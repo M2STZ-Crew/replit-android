@@ -15,6 +15,7 @@ import 'features/notifications/presentation/providers/notification_provider.dart
 import 'features/notifications/presentation/providers/push_registration.dart';
 import 'features/notifications/presentation/screens/notifications_screen.dart';
 import 'features/reports/presentation/screens/my_reports_screen.dart';
+import 'features/responder/presentation/screens/responder_home_screen.dart';
 import 'features/reports/presentation/screens/sos_screen.dart';
 import 'features/verification/presentation/screens/verification_screen.dart';
 
@@ -95,7 +96,13 @@ class _AuthGate extends ConsumerWidget {
     return switch (auth.status) {
       AuthStatus.initial || AuthStatus.loading => const _SplashScreen(),
       AuthStatus.unauthenticated => const LoginScreen(),
-      AuthStatus.authenticated => const HomeScreen(),
+      // Route by role: a Response Team member gets the operational screen,
+      // everyone else the citizen reporting flow. Sub-Admins verify from the
+      // web console, so they see the citizen view here.
+      AuthStatus.authenticated => switch (auth.user?.role) {
+          UserRole.responseTeam => const ResponderShell(),
+          _ => const HomeScreen(),
+        },
     };
   }
 }
@@ -238,6 +245,50 @@ class _AlertsBell extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Scaffold around the Response Team screen, so it shares the app bar, alerts
+/// bell and sign-out with the citizen view.
+class ResponderShell extends ConsumerWidget {
+  const ResponderShell({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Response Team'),
+        actions: [
+          _AlertsBell(),
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: () => ref.read(authProvider.notifier).signOut(),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${user?.displayName ?? 'Responder'} · '
+                    '${AgencyType.label(user?.agencyType ?? '')}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Expanded(child: ResponderHomeScreen()),
+        ],
+      ),
     );
   }
 }
