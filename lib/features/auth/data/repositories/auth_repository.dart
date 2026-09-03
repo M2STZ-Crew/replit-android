@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
-import '../../../../core/errors/app_exception.dart';
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/app_user.dart';
 import '../datasources/auth_local_datasource.dart';

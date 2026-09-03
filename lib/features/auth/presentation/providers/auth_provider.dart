@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show AuthState, AuthChangeEvent;
-import '../../../../core/errors/app_exception.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthChangeEvent, AuthState, Supabase;
 import '../../data/datasources/auth_local_datasource.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository.dart';

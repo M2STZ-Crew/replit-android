@@ -1,6 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/errors/app_exception.dart';
+// Supabase's gotrue exports its own AuthException, which is what the auth calls
+// below throw. Ours is prefixed so `on AuthException` still catches Supabase's
+// while `app.AuthException` constructs the domain error we hand back.
+import '../../../../core/errors/app_exception.dart' as app;
 import '../../../../core/errors/result.dart';
 import '../../domain/entities/app_user.dart';
 
@@ -17,7 +20,7 @@ class AuthRemoteDataSource {
     required String email,
     required String password,
     required String fullName,
-    String role = UserRole.citizen,
+    String role = UserRole.generalUser,
   }) async {
     try {
       final response = await _supabase.auth.signUp(
@@ -27,15 +30,15 @@ class AuthRemoteDataSource {
       );
 
       if (response.user == null) {
-        return const Failure(AuthException('Sign up failed. Please try again.'));
+        return const Failure(app.AuthException('Sign up failed. Please try again.'));
       }
 
       final profile = await _fetchUserProfile(response.user!.id);
       return Success(profile);
     } on AuthException catch (e) {
-      return Failure(AuthException(_sanitizeAuthError(e.message)));
+      return Failure(app.AuthException(_sanitizeAuthError(e.message)));
     } catch (e) {
-      return Failure(AuthException('An unexpected error occurred.', e));
+      return Failure(app.AuthException('An unexpected error occurred.', e));
     }
   }
 
@@ -50,15 +53,15 @@ class AuthRemoteDataSource {
       );
 
       if (response.user == null) {
-        return const Failure(AuthException('Invalid credentials.'));
+        return const Failure(app.AuthException('Invalid credentials.'));
       }
 
       final profile = await _fetchUserProfile(response.user!.id);
       return Success(profile);
     } on AuthException catch (e) {
-      return Failure(AuthException(_sanitizeAuthError(e.message)));
+      return Failure(app.AuthException(_sanitizeAuthError(e.message)));
     } catch (e) {
-      return Failure(AuthException('An unexpected error occurred.', e));
+      return Failure(app.AuthException('An unexpected error occurred.', e));
     }
   }
 
@@ -70,12 +73,12 @@ class AuthRemoteDataSource {
     try {
       final authUser = _supabase.auth.currentUser;
       if (authUser == null) {
-        return const Failure(AuthException('Not authenticated.'));
+        return const Failure(app.AuthException('Not authenticated.'));
       }
       final profile = await _fetchUserProfile(authUser.id);
       return Success(profile);
     } catch (e) {
-      return Failure(AuthException('Failed to fetch user profile.', e));
+      return Failure(app.AuthException('Failed to fetch user profile.', e));
     }
   }
 

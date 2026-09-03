@@ -11,17 +11,27 @@ abstract final class AppColors {
   static const warning = Color(0xFFF57C00);
   static const info = Color(0xFF1976D2);
 
+  // One colour per public.area_status value. Progression reads warm-to-cool:
+  // awaiting review, verified, then responders closing in, then resolved.
   static const statusPending = Color(0xFFFFA726);
-  static const statusDispatched = Color(0xFF42A5F5);
-  static const statusOngoing = Color(0xFFFF7043);
+  static const statusVerified = Color(0xFF42A5F5);
+  static const statusDispatched = Color(0xFF1976D2);
+  static const statusEnRoute = Color(0xFFFF7043);
+  static const statusArrived = Color(0xFFF4511E);
   static const statusResolved = Color(0xFF66BB6A);
+  static const statusRejected = Color(0xFF9E9E9E);
+  static const statusMerged = Color(0xFF7E57C2);
 
   static Color forStatus(String status) {
     return switch (status) {
       'pending' => statusPending,
+      'verified' => statusVerified,
       'dispatched' => statusDispatched,
-      'ongoing' => statusOngoing,
+      'en_route' => statusEnRoute,
+      'arrived' => statusArrived,
       'resolved' => statusResolved,
+      'rejected' => statusRejected,
+      'merged' => statusMerged,
       _ => Colors.grey,
     };
   }
@@ -71,7 +81,7 @@ abstract final class AppTheme {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

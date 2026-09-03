@@ -46,15 +46,15 @@ abstract final class Validators {
     return null;
   }
 
-  static String? incidentDescription(String? value) {
+  /// Optional free-text note on a report. The server accepts up to
+  /// AppConstants.maxNotesLength and does not require it — a photo and GPS are
+  /// the mandatory evidence, so an empty note must not block an SOS submission.
+  static String? incidentNotes(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Description is required';
+      return null;
     }
-    if (value.trim().length < AppConstants.minDescriptionLength) {
-      return 'Description must be at least ${AppConstants.minDescriptionLength} characters';
-    }
-    if (value.trim().length > AppConstants.maxDescriptionLength) {
-      return 'Description must be under ${AppConstants.maxDescriptionLength} characters';
+    if (value.trim().length > AppConstants.maxNotesLength) {
+      return 'Note must be under ${AppConstants.maxNotesLength} characters';
     }
     return null;
   }

@@ -12,7 +12,6 @@ class HiveService {
     await Future.wait([
       Hive.openBox<Map>(HiveBoxes.incidents),
       Hive.openBox<Map>(HiveBoxes.userSession),
-      Hive.openBox<Map>(HiveBoxes.weather),
       Hive.openBox<Map>(HiveBoxes.settings),
     ]);
   }
@@ -24,7 +23,6 @@ class HiveService {
       await Future.wait([
         Hive.box<Map>(HiveBoxes.incidents).clear(),
         Hive.box<Map>(HiveBoxes.userSession).clear(),
-        Hive.box<Map>(HiveBoxes.weather).clear(),
         Hive.box<Map>(HiveBoxes.settings).clear(),
       ]);
     } catch (e) {

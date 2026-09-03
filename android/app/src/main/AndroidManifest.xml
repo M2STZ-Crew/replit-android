@@ -1,6 +1,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Reaching the FastAPI backend and Supabase. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- SOS capture: the report's GPS fix is the incident location, so a coarse
+         fix is not sufficient — area clustering works at a 300 m radius. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <!-- Photo evidence is mandatory on every report. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+
+    <!-- Reading a gallery image. READ_MEDIA_IMAGES is Android 13+; the older
+         READ_EXTERNAL_STORAGE is capped so it is not requested on 13+. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+
+    <!-- GPS hardware is not required to install: a tablet without it can still
+         be used by a Sub-Admin reviewing incidents. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
+
     <application
-        android:label="replit_mobile"
+        android:label="RepLiT"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
