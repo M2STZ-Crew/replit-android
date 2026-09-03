@@ -133,6 +133,23 @@ class AuthNotifier extends StateNotifier<AuthState2> {
     state = const AuthState2(status: AuthStatus.unauthenticated);
   }
 
+  /// Re-read the profile after something server-side changed it.
+  ///
+  /// verified_percent and badge are recomputed by a database trigger when a
+  /// verification is recorded, so the client cannot derive the new values — it
+  /// has to ask. Deliberately does not flip to AuthStatus.loading: that would
+  /// bounce the user out to the splash screen mid-flow.
+  Future<void> refreshUser() async {
+    if (!_repository.isAuthenticated) return;
+    final result = await _repository.getCurrentUser();
+    result.when(
+      success: (user) {
+        state = state.copyWith(status: AuthStatus.authenticated, user: user);
+      },
+      failure: (_) {},
+    );
+  }
+
   void clearError() {
     state = state.copyWith(errorMessage: null);
   }

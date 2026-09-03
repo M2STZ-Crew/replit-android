@@ -12,6 +12,7 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/register_screen.dart';
 import 'features/reports/presentation/screens/my_reports_screen.dart';
 import 'features/reports/presentation/screens/sos_screen.dart';
+import 'features/verification/presentation/screens/verification_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -137,9 +138,23 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             Text('Role: ${user?.role ?? '—'}'),
             const SizedBox(height: 4),
-            Text(
-              'Verification: ${user?.verifiedPercent ?? 0}% '
-              '(${VerificationBadge.label(user?.badge ?? VerificationBadge.yellow)})',
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const VerificationScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Text(
+                      'Verification: ${user?.verifiedPercent ?? 0}% '
+                      '(${VerificationBadge.label(user?.badge ?? VerificationBadge.yellow)})',
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chevron_right, size: 18),
+                  ],
+                ),
+              ),
             ),
             const Spacer(),
             FilledButton.icon(
