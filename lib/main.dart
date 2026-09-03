@@ -6,10 +6,14 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import 'core/config/env.dart';
 import 'core/constants/app_constants.dart';
 import 'core/services/hive_service.dart';
+import 'core/services/push_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/register_screen.dart';
+import 'features/notifications/presentation/providers/notification_provider.dart';
+import 'features/notifications/presentation/providers/push_registration.dart';
+import 'features/notifications/presentation/screens/notifications_screen.dart';
 import 'features/reports/presentation/screens/my_reports_screen.dart';
 import 'features/reports/presentation/screens/sos_screen.dart';
 import 'features/verification/presentation/screens/verification_screen.dart';
@@ -37,6 +41,9 @@ Future<void> main() async {
       anonKey: Env.supabaseAnonKey,
     );
     await HiveService.init();
+    // Never fatal: PushService swallows a missing google-services.json and
+    // reports isAvailable == false, leaving the in-app inbox working.
+    await PushService.instance.init();
   } catch (error) {
     startupError = error.toString();
   }
@@ -82,6 +89,7 @@ class _AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(pushRegistrarProvider); // keeps the FCM token registered
     final auth = ref.watch(authProvider);
 
     return switch (auth.status) {
@@ -119,6 +127,7 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(AppConstants.appName),
         actions: [
+          _AlertsBell(),
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
@@ -182,6 +191,53 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Bell with an unread count. The badge is what makes an alert noticeable when
+/// push is unavailable — no google-services.json, or permission denied.
+class _AlertsBell extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        IconButton(
+          tooltip: 'Alerts',
+          icon: const Icon(Icons.notifications_outlined),
+          onPressed: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
+            );
+            ref.invalidate(unreadCountProvider);
+          },
+        ),
+        if (unread > 0)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(minWidth: 16),
+              child: Text(
+                unread > 9 ? '9+' : '$unread',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

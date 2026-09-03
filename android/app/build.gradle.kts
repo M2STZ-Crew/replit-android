@@ -5,6 +5,24 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase Cloud Messaging needs google-services.json, downloaded from the
+// Firebase console after registering this applicationId in the replit-pasay
+// project. The google-services plugin FAILS THE BUILD when that file is absent,
+// which would stop anyone cloning this repo from building at all.
+//
+// Applying it conditionally keeps the app buildable either way: without the file
+// push is simply disabled (PushService.isAvailable == false) and the in-app
+// alert inbox still works, since the backend records every alert there too.
+val googleServicesJson = file("google-services.json")
+if (googleServicesJson.exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle(
+        "RepLiT: android/app/google-services.json not found — building without " +
+            "push notifications. Add it from the Firebase console to enable FCM."
+    )
+}
+
 android {
     namespace = "com.replit.replit_mobile"
     compileSdk = flutter.compileSdkVersion
