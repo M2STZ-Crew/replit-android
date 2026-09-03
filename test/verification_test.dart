@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:replit_mobile/core/constants/app_constants.dart';
@@ -63,6 +65,41 @@ void main() {
     });
   });
 
+  group('National ID channel status', () {
+    // The whole point of GET /verification/status: 0% cannot distinguish
+    // "never submitted" from "submitted, awaiting review", and only one of
+    // those should show an upload form.
+    test('awaiting review is distinct from never submitted', () {
+      expect(VerificationStatus.isAwaitingReview('manual_review'), isTrue);
+      expect(VerificationStatus.isAwaitingReview(null), isFalse,
+          reason: 'no row means never submitted');
+      expect(VerificationStatus.isAwaitingReview('verified'), isFalse);
+      expect(VerificationStatus.isAwaitingReview('rejected'), isFalse);
+    });
+
+    test('parses a channel with a reviewer note', () {
+      final c = ChannelStatus.fromMap({
+        'type': 'national_id',
+        'status': 'rejected',
+        'percent_awarded': 0,
+        'review_notes': 'ID photo was unreadable.',
+      });
+      expect(c.type, 'national_id');
+      expect(c.percentAwarded, 0);
+      expect(c.reviewNotes, 'ID photo was unreadable.');
+    });
+
+    test('an approved ID carries its 50 percent', () {
+      final c = ChannelStatus.fromMap({
+        'type': 'national_id',
+        'status': 'verified',
+        'percent_awarded': 50,
+      });
+      expect(c.percentAwarded, VerificationBadge.nationalIdPercent);
+      expect(c.reviewNotes, isNull);
+    });
+  });
+
   group('VerificationState', () {
     test('starts on the number step so the code field is unreachable', () {
       expect(const VerificationState().phoneStep, PhoneStep.enterNumber);
@@ -82,5 +119,28 @@ void main() {
       const s = VerificationState(infoMessage: 'Code sent.');
       expect(s.copyWith(busy: true).infoMessage, 'Code sent.');
     });
+
+    test('the ID submission needs both images', () {
+      const none = VerificationState();
+      expect(none.canSubmitId, isFalse);
+      // Having only one of the pair must not enable the button: the server
+      // requires both files and would reject the request.
+      expect(none.copyWith(idImage: File('id.jpg')).canSubmitId, isFalse);
+      expect(none.copyWith(selfieImage: File('me.jpg')).canSubmitId, isFalse);
+      expect(
+        none
+            .copyWith(idImage: File('id.jpg'))
+            .copyWith(selfieImage: File('me.jpg'))
+            .canSubmitId,
+        isTrue,
+      );
+    });
+
+    test('cannot submit while a send is already in flight', () {
+      final busy = const VerificationState(busy: true)
+          .copyWith(idImage: File('id.jpg'), selfieImage: File('me.jpg'));
+      expect(busy.canSubmitId, isFalse);
+    });
   });
 }
+

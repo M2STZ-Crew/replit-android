@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,7 +56,7 @@ class VerificationScreen extends ConsumerWidget {
             busy: state.busy,
           ),
           const SizedBox(height: 12),
-          _IdTile(done: user?.idVerified ?? false),
+          _IdTile(done: user?.idVerified ?? false, state: state),
           const SizedBox(height: 24),
           Text(
             'Your verification level is shown to Fire Volunteer dispatchers when '
@@ -261,21 +263,168 @@ class _EmailTile extends ConsumerWidget {
   }
 }
 
-class _IdTile extends StatelessWidget {
-  const _IdTile({required this.done});
+class _IdTile extends ConsumerWidget {
+  const _IdTile({required this.done, required this.state});
 
   final bool done;
+  final VerificationState state;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(verificationProvider.notifier);
+    final channels = ref.watch(verificationStatusProvider).valueOrNull;
+    final channel = channels?['national_id'];
+    final awaiting = VerificationStatus.isAwaitingReview(channel?.status);
+    final rejected = channel?.status == VerificationStatus.rejected;
+
+    // Awaiting review is not "done", but it must not show an upload form
+    // either — that would invite a second submission on top of the first.
+    if (done || awaiting) {
+      return _StepTile(
+        title: 'National ID',
+        weight: VerificationBadge.nationalIdPercent,
+        done: done,
+        subtitle: done
+            ? 'Approved'
+            : 'Submitted. An Admin is reviewing it — this usually takes a day.',
+        child: null,
+      );
+    }
+
     return _StepTile(
       title: 'National ID',
       weight: VerificationBadge.nationalIdPercent,
-      done: done,
-      subtitle: done
-          ? 'Approved'
-          : 'Upload coming soon — an Admin reviews each submission.',
-      child: null,
+      done: false,
+      subtitle: rejected
+          ? 'Your last submission was not accepted. You can try again.'
+          : 'Photograph your ID and take a selfie. An Admin reviews both.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (rejected && (channel?.reviewNotes?.isNotEmpty ?? false)) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              // Telling someone their ID was refused without saying why leaves
+              // them no way to fix it.
+              child: Text('Reason: ${channel!.reviewNotes}',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: _PickSlot(
+                  label: 'ID photo',
+                  file: state.idImage,
+                  enabled: !state.busy,
+                  onPick: (camera) =>
+                      notifier.pickIdImage(isSelfie: false, fromCamera: camera),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _PickSlot(
+                  label: 'Selfie',
+                  file: state.selfieImage,
+                  enabled: !state.busy,
+                  onPick: (camera) =>
+                      notifier.pickIdImage(isSelfie: true, fromCamera: camera),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed:
+                state.canSubmitId ? () => notifier.submitNationalId() : null,
+            child: Text(state.busy ? 'Sending…' : 'Send for review'),
+          ),
+          if (!state.canSubmitId && !state.busy)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Add both an ID photo and a selfie.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One image slot. Tapping offers camera or gallery — an ID is often already
+/// photographed, but a selfie usually is not.
+class _PickSlot extends StatelessWidget {
+  const _PickSlot({
+    required this.label,
+    required this.file,
+    required this.enabled,
+    required this.onPick,
+  });
+
+  final String label;
+  final File? file;
+  final bool enabled;
+  final void Function(bool fromCamera) onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: !enabled
+          ? null
+          : () async {
+              final camera = await showModalBottomSheet<bool>(
+                context: context,
+                builder: (ctx) => SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.photo_camera_outlined),
+                        title: Text('Take $label'),
+                        onTap: () => Navigator.pop(ctx, true),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.photo_library_outlined),
+                        title: const Text('Choose from gallery'),
+                        onTap: () => Navigator.pop(ctx, false),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+              if (camera != null) onPick(camera);
+            },
+      child: Container(
+        height: 104,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: file != null ? AppColors.success : Colors.black26,
+          ),
+          image: file != null
+              ? DecorationImage(image: FileImage(file!), fit: BoxFit.cover)
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: file != null
+            ? null
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.add_a_photo_outlined, color: Colors.black38),
+                  const SizedBox(height: 6),
+                  Text(label, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+      ),
     );
   }
 }

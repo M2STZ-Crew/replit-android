@@ -25,6 +25,10 @@ abstract final class AppConstants {
   static const List<String> allowedImageTypes = ['jpg', 'jpeg', 'png'];
   static const List<String> allowedVideoTypes = ['mp4'];
 
+  /// National ID and selfie uploads. Larger than an incident photo because a
+  /// document has to stay legible enough for an Admin to read it.
+  static const int maxIdImageSizeBytes = 10 * 1024 * 1024; // 10 MB
+
   /// reports.notes is varchar(2000) on the server.
   static const int maxNotesLength = 2000;
 
@@ -136,6 +140,19 @@ abstract final class VerificationBadge {
         greenCheck => 'Fully verified',
         _ => badge,
       };
+}
+
+/// public.verification_status — the state of one verification channel.
+abstract final class VerificationStatus {
+  static const String pending = 'pending';
+  static const String verified = 'verified';
+  static const String manualReview = 'manual_review';
+  static const String rejected = 'rejected';
+  static const String failed = 'failed';
+
+  /// Submitted and sitting in the Admin queue. Distinct from "never submitted",
+  /// which is the absence of a row entirely.
+  static bool isAwaitingReview(String? status) => status == manualReview;
 }
 
 /// Neighbourhood crowdsourced validation (Section 2.2).
