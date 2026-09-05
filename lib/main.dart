@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
@@ -8,19 +9,17 @@ import 'core/constants/app_constants.dart';
 import 'core/services/hive_service.dart';
 import 'core/services/push_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/widgets/app_shell.dart';
+import 'core/widgets/design.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/register_screen.dart';
-import 'features/notifications/presentation/providers/notification_provider.dart';
 import 'features/notifications/presentation/providers/push_registration.dart';
-import 'features/notifications/presentation/screens/notifications_screen.dart';
-import 'features/reports/presentation/screens/my_reports_screen.dart';
 import 'features/responder/presentation/screens/responder_home_screen.dart';
-import 'features/reports/presentation/screens/sos_screen.dart';
-import 'features/verification/presentation/screens/verification_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(AppTheme.systemOverlay);
 
   // Startup is fallible — a missing .env or an unreachable Supabase project are
   // both normal on a fresh clone. Capture the failure and render it as a screen
@@ -49,11 +48,7 @@ Future<void> main() async {
     startupError = error.toString();
   }
 
-  runApp(
-    ProviderScope(
-      child: RepLiTApp(startupError: startupError),
-    ),
-  );
+  runApp(ProviderScope(child: RepLiTApp(startupError: startupError)));
 }
 
 class RepLiTApp extends StatelessWidget {
@@ -65,7 +60,10 @@ class RepLiTApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: AppConstants.appName,
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
+      // The design is a dark system end to end; there is no light variant of it,
+      // so the app pins the theme rather than following the device.
+      themeMode: ThemeMode.dark,
       debugShowCheckedModeBanner: false,
       home: startupError != null
           ? _StartupErrorScreen(message: startupError!)
@@ -73,9 +71,7 @@ class RepLiTApp extends StatelessWidget {
       // LoginScreen pushes '/register' by name. Without this the app throws
       // "Could not find a generator for route" the moment Register is tapped.
       // RegisterScreen pops back here on success and the gate takes over.
-      routes: {
-        '/register': (_) => const RegisterScreen(),
-      },
+      routes: {'/register': (_) => const RegisterScreen()},
     );
   }
 }
@@ -94,200 +90,91 @@ class _AuthGate extends ConsumerWidget {
     final auth = ref.watch(authProvider);
 
     return switch (auth.status) {
-      AuthStatus.initial || AuthStatus.loading => const _SplashScreen(),
+      AuthStatus.initial || AuthStatus.loading => const SplashScreen(),
       AuthStatus.unauthenticated => const LoginScreen(),
       // Route by role: a Response Team member gets the operational screen,
-      // everyone else the citizen reporting flow. Sub-Admins verify from the
-      // web console, so they see the citizen view here.
+      // everyone else the citizen app. Sub-Admins verify from the web console,
+      // so they see the citizen view here.
       AuthStatus.authenticated => switch (auth.user?.role) {
-          UserRole.responseTeam => const ResponderShell(),
-          _ => const HomeScreen(),
-        },
+        UserRole.responseTeam => const ResponderShell(),
+        _ => const AppShell(),
+      },
     };
   }
 }
 
-class _SplashScreen extends StatelessWidget {
-  const _SplashScreen();
+/// The splash from the hand-off: a breathing halo behind the mark while the
+/// session is resolved. This and the SOS button are the only two places the
+/// design allows glow.
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _breathe = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3400),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _breathe.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
-  }
-}
-
-/// Signed-in landing screen.
-///
-/// Placeholder until the SOS capture flow lands — it already reads the real
-/// profile, so it doubles as proof that Supabase auth and the users table are
-/// wired correctly end to end.
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppConstants.appName),
-        actions: [
-          _AlertsBell(),
-          IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authProvider.notifier).signOut(),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0, -0.16),
+            radius: 0.8,
+            colors: [Color(0x1CFF9066), Color(0x00131313)],
           ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Signed in as ${user?.displayName ?? 'unknown'}',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text('Role: ${user?.role ?? '—'}'),
-            const SizedBox(height: 4),
-            InkWell(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const VerificationScreen()),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const Spacer(flex: 3),
+              AnimatedBuilder(
+                animation: _breathe,
+                builder: (context, child) => Transform.scale(
+                  scale: 1 + _breathe.value * 0.06,
+                  child: Opacity(opacity: 0.92 + _breathe.value * 0.08, child: child),
+                ),
+                child: Image.asset(Art.mark, width: 112, height: 112),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Text(
-                      'Verification: ${user?.verifiedPercent ?? 0}% '
-                      '(${VerificationBadge.label(user?.badge ?? VerificationBadge.yellow)})',
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.chevron_right, size: 18),
-                  ],
+              const SizedBox(height: 34),
+              Image.asset(Art.wordmark, width: 186, fit: BoxFit.contain),
+              const Spacer(flex: 2),
+              SizedBox(
+                width: 106,
+                height: 3,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: const LinearProgressIndicator(minHeight: 3),
                 ),
               ),
-            ),
-            const Spacer(),
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const SosScreen()),
-              ),
-              icon: const Icon(Icons.local_fire_department),
-              label: const Text('Report a fire'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const MyReportsScreen()),
-              ),
-              icon: const Icon(Icons.list_alt),
-              label: const Text('My reports'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-              ),
-            ),
-            const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Bell with an unread count. The badge is what makes an alert noticeable when
-/// push is unavailable — no google-services.json, or permission denied.
-class _AlertsBell extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        IconButton(
-          tooltip: 'Alerts',
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: () async {
-            await Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
-            );
-            ref.invalidate(unreadCountProvider);
-          },
-        ),
-        if (unread > 0)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              constraints: const BoxConstraints(minWidth: 16),
-              child: Text(
-                unread > 9 ? '9+' : '$unread',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
+              const SizedBox(height: 18),
+              const Eyebrow('Connecting to Pasay City', color: AppColors.muted),
+              const Spacer(),
+              Text(
+                AppConstants.appTagline.toUpperCase(),
+                style: AppText.tag.copyWith(
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: AppColors.faint,
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
+            ],
           ),
-      ],
-    );
-  }
-}
-
-/// Scaffold around the Response Team screen, so it shares the app bar, alerts
-/// bell and sign-out with the citizen view.
-class ResponderShell extends ConsumerWidget {
-  const ResponderShell({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Response Team'),
-        actions: [
-          _AlertsBell(),
-          IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authProvider.notifier).signOut(),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${user?.displayName ?? 'Responder'} · '
-                    '${AgencyType.label(user?.agencyType ?? '')}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Expanded(child: ResponderHomeScreen()),
-        ],
+        ),
       ),
     );
   }
@@ -302,22 +189,34 @@ class _StartupErrorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.settings_outlined, size: 40),
-              const SizedBox(height: 16),
-              Text(
-                "${AppConstants.appName} couldn't start",
-                style: Theme.of(context).textTheme.headlineSmall,
+          children: [
+            const SizedBox(height: 60),
+            const IconWell(
+              tint: AppColors.live,
+              icon: Icons.settings_outlined,
+              size: 52,
+              glyph: 24,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "${AppConstants.appName} COULDN'T START",
+              style: AppText.title,
+            ),
+            const SizedBox(height: 16),
+            Panel(
+              color: AppColors.surfaceDim,
+              child: SelectableText(
+                message,
+                style: AppText.meta.copyWith(
+                  fontSize: 12,
+                  height: 17 / 12,
+                  color: AppColors.textSoft,
+                ),
               ),
-              const SizedBox(height: 12),
-              SingleChildScrollView(child: SelectableText(message)),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/design.dart';
 import '../../../reports/presentation/screens/sos_screen.dart';
 import '../../data/notification_api.dart';
 import '../../domain/entities/app_notification.dart';
@@ -11,58 +12,112 @@ import '../providers/notification_provider.dart';
 
 /// The alert inbox, and where a neighbour answers the 300 m crowdsourced
 /// notification with Report or Ignore (Section 2.2).
+///
+/// The hand-off does not cover this screen, so it is aligned to it: coral for
+/// the live neighbourhood alert, glass for everything already read, and the
+/// same uppercase headings.
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(notificationsProvider);
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Alerts'),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await ref.read(notificationApiProvider).markAllRead();
-              ref
-                ..invalidate(notificationsProvider)
-                ..invalidate(unreadCountProvider);
-            },
-            child: const Text('Mark all read'),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref
-            ..invalidate(notificationsProvider)
-            ..invalidate(unreadCountProvider);
-        },
-        child: switch (items) {
-          AsyncLoading() => const Center(child: CircularProgressIndicator()),
-          AsyncError(:final error) => _Message(
-              icon: Icons.cloud_off,
-              text: error.toString(),
-              onRetry: () => ref.invalidate(notificationsProvider),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 18),
+              child: ScreenHeader(
+                eyebrow: unread == 0
+                    ? 'Nothing unread'
+                    : '$unread unread',
+                title: 'Alerts',
+                trailing: unread == 0
+                    ? null
+                    : GestureDetector(
+                        onTap: () async {
+                          await ref.read(notificationApiProvider).markAllRead();
+                          ref
+                            ..invalidate(notificationsProvider)
+                            ..invalidate(unreadCountProvider);
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 12,
+                          ),
+                          child: Eyebrow('Mark all read',
+                              color: AppColors.accent),
+                        ),
+                      ),
+              ),
             ),
-          AsyncValue(:final value?) when value.isEmpty => const _Message(
-              icon: Icons.notifications_none,
-              text: 'No alerts yet.\n\n'
-                  'If a fire is reported within 300 m of you, an alert appears '
-                  'here so you can confirm or dismiss it.',
+            Expanded(
+              child: RefreshIndicator(
+                color: AppColors.accent,
+                backgroundColor: AppColors.surfaceSolid,
+                onRefresh: () async {
+                  ref
+                    ..invalidate(notificationsProvider)
+                    ..invalidate(unreadCountProvider);
+                },
+                child: switch (items) {
+                  AsyncLoading() =>
+                    const Center(child: CircularProgressIndicator()),
+                  AsyncError(:final error) => _Scroll(
+                    child: EmptyState(
+                      icon: Icons.cloud_off_rounded,
+                      tone: AppColors.live,
+                      title: 'Could not load alerts',
+                      body: error.toString(),
+                      action: AppButton.secondary(
+                        'Try again',
+                        onPressed: () =>
+                            ref.invalidate(notificationsProvider),
+                      ),
+                    ),
+                  ),
+                  AsyncValue(:final value?) when value.isEmpty => const _Scroll(
+                    child: EmptyState(
+                      icon: Icons.notifications_none_rounded,
+                      title: 'No alerts yet',
+                      body: 'If something is reported within '
+                          '${AppConstants.areaRadiusMeters} m of you, an alert '
+                          'appears here so you can confirm or dismiss it.',
+                    ),
+                  ),
+                  AsyncValue(:final value?) => ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+                    itemCount: value.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) =>
+                        _NotificationCard(item: value[i]),
+                  ),
+                  _ => const SizedBox.shrink(),
+                },
+              ),
             ),
-          AsyncValue(:final value?) => ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: value.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, i) => _NotificationCard(item: value[i]),
-            ),
-          _ => const SizedBox.shrink(),
-        },
+          ],
+        ),
       ),
     );
   }
+}
+
+class _Scroll extends StatelessWidget {
+  const _Scroll({required this.child});
+
+  final Widget child;
+
+  @override
+  // Must scroll, or pull-to-refresh stops working on the empty state.
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    children: [const SizedBox(height: 40), child],
+  );
 }
 
 class _NotificationCard extends ConsumerStatefulWidget {
@@ -89,10 +144,10 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
     });
 
     final failure = await ref.read(alertResponsesProvider.notifier).respond(
-          notificationId: item.id,
-          areaId: areaId,
-          response: response,
-        );
+      notificationId: item.id,
+      areaId: areaId,
+      response: response,
+    );
 
     if (!mounted) return;
     setState(() {
@@ -104,8 +159,10 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
     // the corroboration becomes an actual report with its own photo and GPS
     // (Section 2.2: the button redirects to the Alert Page).
     if (failure == null && response == NeighborhoodResponse.report && mounted) {
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SosScreen()),
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: SosScreen()),
+        ),
       );
     }
   }
@@ -118,137 +175,130 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
         .responseFor(item.areaId);
     final when = item.createdAt == null
         ? ''
-        : DateFormat('d MMM, h:mm a').format(item.createdAt!.toLocal());
+        : DateFormat('d MMM · h:mm a').format(item.createdAt!.toLocal());
+    final live = item.isNeighborhoodAlert && !item.isRead;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: item.isRead ? Colors.white : AppColors.primary.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: item.isRead ? Colors.black12 : AppColors.primary.withValues(alpha: 0.3),
-        ),
-      ),
+    return Panel(
+      color: live ? AppColors.accent.withValues(alpha: 0.08)
+          : AppColors.surfaceDim,
+      border: live ? AppColors.accent.withValues(alpha: 0.35) : AppColors.line,
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                item.isNeighborhoodAlert
-                    ? Icons.local_fire_department
-                    : Icons.notifications_outlined,
-                color: item.isNeighborhoodAlert
-                    ? AppColors.primary
-                    : Colors.black45,
-                size: 20,
+              IconWell(
+                tint: item.isNeighborhoodAlert
+                    ? AppColors.accent
+                    : AppColors.muted,
+                size: 34,
+                glyph: 17,
+                asset: item.isNeighborhoodAlert ? Art.incident : null,
+                icon: item.isNeighborhoodAlert
+                    ? null
+                    : Icons.notifications_none_rounded,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  item.title,
-                  style: Theme.of(context).textTheme.titleSmall,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.title.toUpperCase(),
+                      style: AppText.cardTitle.copyWith(fontSize: 13),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(when, style: AppText.meta),
+                  ],
                 ),
               ),
-              Text(when, style: Theme.of(context).textTheme.bodySmall),
+              if (!item.isRead) ...[
+                const SizedBox(width: 8),
+                const LiveDot(color: AppColors.accent, size: 7),
+              ],
             ],
           ),
-          const SizedBox(height: 8),
-          Text(item.body),
+          const SizedBox(height: 13),
+          Text(
+            item.body,
+            style: AppText.meta.copyWith(
+              fontSize: 12,
+              height: 17 / 12,
+              color: AppColors.textSoft,
+            ),
+          ),
+
           if (_error != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               _error!,
-              style: const TextStyle(color: AppColors.error, fontSize: 13),
+              style: AppText.meta.copyWith(fontSize: 12, color: AppColors.live),
             ),
           ],
+
           if (item.isNeighborhoodAlert) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             if (answered != null)
               Row(
                 children: [
                   Icon(
                     answered == NeighborhoodResponse.report
-                        ? Icons.check_circle
-                        : Icons.do_not_disturb_on,
-                    size: 18,
+                        ? Icons.check_circle_rounded
+                        : Icons.do_not_disturb_on_outlined,
+                    size: 17,
                     color: answered == NeighborhoodResponse.report
-                        ? AppColors.success
-                        : Colors.black45,
+                        ? AppColors.ok
+                        : AppColors.muted,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    answered == NeighborhoodResponse.report
-                        ? 'You confirmed this fire'
-                        : "Dismissed — you won't be alerted about this area again",
-                    style: Theme.of(context).textTheme.bodySmall,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      answered == NeighborhoodResponse.report
+                          ? 'You confirmed this — thank you.'
+                          : "Dismissed. You won't be alerted about this area "
+                              'again.',
+                      style: AppText.meta.copyWith(height: 15 / 11),
+                    ),
                   ),
                 ],
               )
-            else
+            else ...[
+              Text(
+                'Do you see it too? Confirming raises how fast responders are '
+                'sent.',
+                style: AppText.meta.copyWith(height: 15 / 11),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
-                    child: FilledButton(
+                    child: AppButton(
+                      'Yes, I see it',
+                      height: 46,
+                      busy: _busy,
                       onPressed: _busy
                           ? null
                           : () => _answer(NeighborhoodResponse.report),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                      ),
-                      child: const Text('Report'),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: OutlinedButton(
+                    child: AppButton.secondary(
+                      'Ignore',
+                      height: 46,
                       onPressed: _busy
                           ? null
                           : () => _answer(NeighborhoodResponse.ignore),
-                      child: const Text('Ignore'),
                     ),
                   ),
                 ],
               ),
+            ],
           ],
         ],
       ),
-    );
-  }
-}
-
-class _Message extends StatelessWidget {
-  const _Message({required this.icon, required this.text, this.onRetry});
-
-  final IconData icon;
-  final String text;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    // Must scroll, or pull-to-refresh stops working on the empty state.
-    return ListView(
-      padding: const EdgeInsets.all(36),
-      children: [
-        const SizedBox(height: 70),
-        Icon(icon, size: 52, color: Colors.black26),
-        const SizedBox(height: 16),
-        Text(
-          text,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-        if (onRetry != null) ...[
-          const SizedBox(height: 18),
-          Center(
-            child: OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

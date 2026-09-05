@@ -3,12 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/design.dart';
 import '../../domain/entities/report.dart';
 import '../providers/my_reports_provider.dart';
 
-/// "My reports" — the General User's view of what happened to what they sent
-/// (Section 2.6: submit reports, view status).
+/// "Your reports" — the incident-history screen from the hand-off.
+///
+/// The design's three stat tiles were Sent / Resolved / Avg arrival. The first
+/// two are countable from the reports themselves; arrival time is not, because
+/// GET /reports/mine carries no dispatch timestamps. It is replaced with the
+/// count still open, which is the number the reporter actually wants: "is
+/// anyone still coming?"
 class MyReportsScreen extends ConsumerWidget {
   const MyReportsScreen({super.key});
 
@@ -17,25 +24,134 @@ class MyReportsScreen extends ConsumerWidget {
     final reports = ref.watch(myReportsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My reports')),
-      body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(myReportsProvider),
-        child: switch (reports) {
-          AsyncLoading() => const Center(child: CircularProgressIndicator()),
-          AsyncError(:final error) => _Retry(
-              message: error.toString(),
-              onRetry: () => ref.invalidate(myReportsProvider),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: AppColors.accent,
+          backgroundColor: AppColors.surfaceSolid,
+          onRefresh: () async => ref.invalidate(myReportsProvider),
+          child: switch (reports) {
+            AsyncLoading() => const _Scrollable(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 120),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
             ),
-          AsyncValue(:final value?) when value.isEmpty => const _Empty(),
-          AsyncValue(:final value?) => ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: value.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, i) => _ReportCard(report: value[i]),
+            AsyncError(:final error) => _Scrollable(
+              child: EmptyState(
+                icon: Icons.cloud_off_rounded,
+                tone: AppColors.live,
+                title: 'Could not load your reports',
+                body: error.toString(),
+                action: AppButton.secondary(
+                  'Try again',
+                  onPressed: () => ref.invalidate(myReportsProvider),
+                ),
+              ),
             ),
-          _ => const _Empty(),
-        },
+            AsyncValue(:final value?) => _History(reports: value),
+            _ => const _Scrollable(child: SizedBox.shrink()),
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _Scrollable extends StatelessWidget {
+  const _Scrollable({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ListView(
+    // Inside a RefreshIndicator the child must always scroll, or pull-to-refresh
+    // stops working on the empty and error states.
+    padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+    children: [const ScreenHeader(title: 'Your reports'), child],
+  );
+}
+
+class _History extends StatelessWidget {
+  const _History({required this.reports});
+
+  final List<MyReport> reports;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = reports
+        .where((r) => r.areaStatus == IncidentStatus.resolved)
+        .length;
+    final open = reports.where((r) => r.isActive).length;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+      children: [
+        const ScreenHeader(title: 'Your reports'),
+        const SizedBox(height: 26),
+
+        Row(
+          children: [
+            Expanded(
+              child: StatTile(value: '${reports.length}', label: 'Sent'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatTile(
+                value: '$resolved',
+                label: 'Resolved',
+                color: AppColors.ok,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatTile(
+                value: '$open',
+                label: 'Still open',
+                color: open > 0 ? AppColors.accent : AppColors.text,
+              ),
+            ),
+          ],
+        ),
+
+        if (reports.isEmpty) ...[
+          const SizedBox(height: 40),
+          const EmptyState(
+            title: "Nothing sent yet",
+            body: 'Reports you send appear here with what came of them — who '
+                'responded, and when it was closed.',
+          ),
+        ] else ...[
+          const SizedBox(height: 28),
+          const Eyebrow('Everything you have sent', color: AppColors.accent),
+          const SizedBox(height: 12),
+          for (final report in reports) ...[
+            _ReportCard(report: report),
+            const SizedBox(height: 10),
+          ],
+        ],
+
+        const SizedBox(height: 12),
+        Panel(
+          radius: AppRadius.control,
+          color: AppColors.surfaceDim,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              const Icon(Icons.schedule_rounded, size: 16, color: AppColors.accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Your reports stay on the barangay record. Photos are held '
+                  'in private storage and only responders can open them.',
+                  style: AppText.meta.copyWith(height: 16 / 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -47,70 +163,122 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final live = report.isActive;
+    final color = report.areaStatus == null
+        ? AppColors.muted
+        : AppColors.forStatus(report.areaStatus!);
     final when = report.createdAt == null
-        ? ''
-        : DateFormat('d MMM, h:mm a').format(report.createdAt!.toLocal());
+        ? 'Just now'
+        : DateFormat('d MMM · h:mm a').format(report.createdAt!.toLocal());
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-      ),
-      clipBehavior: Clip.antiAlias,
+    return Panel(
+      color: live ? color.withValues(alpha: 0.08) : AppColors.surfaceDim,
+      border: live ? color.withValues(alpha: 0.35) : AppColors.line,
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (report.photoUrl != null)
-            CachedNetworkImage(
-              imageUrl: report.photoUrl!,
-              height: 150,
-              fit: BoxFit.cover,
-              // Signed URLs expire; a broken image must not look like a lost report.
-              errorWidget: (_, _, _) => Container(
-                height: 150,
-                color: Colors.black12,
-                alignment: Alignment.center,
-                child: const Text('Photo unavailable'),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppRadius.panel - 1),
               ),
-              placeholder: (_, _) => Container(
-                height: 150,
-                color: Colors.black12,
+              child: CachedNetworkImage(
+                imageUrl: report.photoUrl!,
+                height: 140,
+                fit: BoxFit.cover,
+                // Signed URLs expire; a broken image must not read as a lost
+                // report.
+                errorWidget: (_, _, _) => Container(
+                  height: 140,
+                  color: AppColors.canvas,
+                  alignment: Alignment.center,
+                  child: Text(
+                    'PHOTO LINK EXPIRED',
+                    style: AppText.tag.copyWith(color: AppColors.faint),
+                  ),
+                ),
+                placeholder: (_, _) =>
+                    Container(height: 140, color: AppColors.canvas),
               ),
             ),
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    _StatusPill(report: report),
-                    const Spacer(),
-                    Text(when, style: Theme.of(context).textTheme.bodySmall),
+                    IconWell(
+                      tint: color,
+                      asset: Art.incident,
+                      size: 34,
+                      glyph: 17,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            (report.areaDesignation ?? 'Awaiting grouping')
+                                .toUpperCase(),
+                            style: AppText.cardTitle,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(when, style: AppText.meta),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Tag(
+                      report.statusLabel,
+                      color: color,
+                      dot: live && report.areaStatus != null,
+                    ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  report.areaDesignation ?? 'Awaiting grouping',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  report.agenciesLabel,
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(height: 13),
+                Divider(color: color.withValues(alpha: live ? 0.2 : 0.12)),
+                const SizedBox(height: 13),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        report.agenciesLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.meta.copyWith(
+                          color: live ? AppColors.label : AppColors.muted,
+                        ),
+                      ),
+                    ),
+                    if (report.areaConfidenceBand != null)
+                      Text(
+                        '${report.areaConfidenceBand!.toUpperCase()} CONFIDENCE',
+                        style: AppText.tag.copyWith(
+                          color: switch (report.areaConfidenceBand) {
+                            'high' => AppColors.ok,
+                            'medium' => AppColors.statusPending,
+                            _ => AppColors.muted,
+                          },
+                        ),
+                      ),
+                  ],
                 ),
                 if (report.gpsDiscrepancyFlag) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.info_outline,
-                          size: 16, color: AppColors.warning),
-                      const SizedBox(width: 6),
+                      const Icon(Icons.info_outline_rounded,
+                          size: 15, color: AppColors.statusPending),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Being double-checked by a dispatcher',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          'Being double-checked — the photo and your phone '
+                          'disagreed on the location.',
+                          style: AppText.meta.copyWith(height: 15 / 11),
                         ),
                       ),
                     ],
@@ -121,96 +289,6 @@ class _ReportCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.report});
-
-  final MyReport report;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = report.areaStatus == null
-        ? Colors.grey
-        : AppColors.forStatus(report.areaStatus!);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        report.statusLabel,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-}
-
-class _Empty extends StatelessWidget {
-  const _Empty();
-
-  @override
-  Widget build(BuildContext context) {
-    // Inside a RefreshIndicator the child must always scroll, or pull-to-refresh
-    // stops working on the empty state.
-    return ListView(
-      padding: const EdgeInsets.all(40),
-      children: [
-        const SizedBox(height: 80),
-        const Icon(Icons.inbox_outlined, size: 56, color: Colors.black26),
-        const SizedBox(height: 16),
-        Text(
-          "You haven't sent any reports yet",
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Reports you send will appear here with their progress.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      ],
-    );
-  }
-}
-
-class _Retry extends StatelessWidget {
-  const _Retry({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(32),
-      children: [
-        const SizedBox(height: 60),
-        const Icon(Icons.cloud_off, size: 48, color: Colors.black26),
-        const SizedBox(height: 16),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-        const SizedBox(height: 20),
-        Center(
-          child: OutlinedButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Try again'),
-          ),
-        ),
-      ],
     );
   }
 }

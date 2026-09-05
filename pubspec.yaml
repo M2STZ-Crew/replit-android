@@ -45,6 +45,9 @@ dependencies:
   # Biometric Auth
   local_auth: ^2.3.0
 
+  # Dialling emergency hotlines (tel: intents)
+  url_launcher: ^6.3.1
+
   # UI Utilities
   cached_network_image: ^3.4.1
   flutter_svg: ^2.0.16
@@ -76,3 +79,4 @@ flutter:
   assets:
     - .env
     - assets/images/
+    - assets/design/

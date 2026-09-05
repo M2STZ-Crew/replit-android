@@ -123,6 +123,15 @@ class SosNotifier extends StateNotifier<SosState> {
     state = state.copyWith(agencies: next);
   }
 
+  /// Replace the agency set outright.
+  ///
+  /// The redesigned flow asks "what's happening?" — fire, medical, crime —
+  /// rather than making a frightened person pick agencies out of a list. Each
+  /// answer maps to the agencies that actually respond to it, so the request
+  /// the server receives is unchanged.
+  void setAgencies(Set<String> agencies) =>
+      state = state.copyWith(agencies: agencies);
+
   void setNotes(String value) => state = state.copyWith(notes: value);
 
   Future<void> submit() async {

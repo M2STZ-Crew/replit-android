@@ -1,14 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/design.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../notifications/presentation/providers/notification_provider.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
 import '../../domain/entities/responder_incident.dart';
 import '../providers/responder_provider.dart';
 import '../providers/tracking_provider.dart';
 
-/// The Response Team's operational screen: take an incident, advance it, and
-/// broadcast position while travelling (Section 2.5 stages 4-6).
+/// The Response Team app.
+///
+/// The hand-off only covers the resident-facing app, so this screen is aligned
+/// to it rather than copied from it: the same ground, hairlines, coral accent
+/// and uppercase headings, but arranged for someone working an incident rather
+/// than reporting one. No tab bar — a responder has exactly one job on this
+/// screen and a four-tab chrome would only get in the way of it.
+class ResponderShell extends ConsumerWidget {
+  const ResponderShell({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final unread = ref.watch(unreadCountProvider).valueOrNull ?? 0;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Eyebrow('Response team', color: AppColors.accent),
+                        const SizedBox(height: 6),
+                        Text(
+                          (user?.displayName ?? 'Responder').toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.title,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          AgencyType.label(user?.agencyType ?? ''),
+                          style: AppText.meta,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _AlertsWell(
+                    unread: unread,
+                    onTap: () async {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NotificationsScreen(),
+                        ),
+                      );
+                      ref.invalidate(unreadCountProvider);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _SignOutWell(
+                    onTap: () => ref.read(authProvider.notifier).signOut(),
+                  ),
+                ],
+              ),
+            ),
+            const Expanded(child: ResponderHomeScreen()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Take an incident, advance it, and broadcast position while travelling
+/// (Section 2.5 stages 4-6).
 class ResponderHomeScreen extends ConsumerWidget {
   const ResponderHomeScreen({super.key});
 
@@ -19,28 +94,46 @@ class ResponderHomeScreen extends ConsumerWidget {
 
     return Column(
       children: [
-        if (tracking.isBroadcasting) _TrackingBanner(state: tracking),
+        if (tracking.isBroadcasting)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+            child: _TrackingBanner(state: tracking),
+          ),
         Expanded(
           child: RefreshIndicator(
+            color: AppColors.accent,
+            backgroundColor: AppColors.surfaceSolid,
             onRefresh: () async => ref.invalidate(responderIncidentsProvider),
             child: switch (incidents) {
               AsyncLoading() => const Center(child: CircularProgressIndicator()),
-              AsyncError(:final error) => _Message(
-                  icon: Icons.cloud_off,
-                  text: error.toString(),
-                  onRetry: () => ref.invalidate(responderIncidentsProvider),
+              AsyncError(:final error) => _Scroll(
+                child: EmptyState(
+                  icon: Icons.cloud_off_rounded,
+                  tone: AppColors.live,
+                  title: 'Could not reach dispatch',
+                  body: error.toString(),
+                  action: AppButton.secondary(
+                    'Try again',
+                    onPressed: () =>
+                        ref.invalidate(responderIncidentsProvider),
+                  ),
                 ),
-              AsyncValue(:final value?) when value.isEmpty => const _Message(
-                  icon: Icons.check_circle_outline,
-                  text: 'No active incidents.\n\n'
-                      'Verified incidents appear here for you to respond to.',
+              ),
+              AsyncValue(:final value?) when value.isEmpty => const _Scroll(
+                child: EmptyState(
+                  icon: Icons.check_circle_outline_rounded,
+                  tone: AppColors.ok,
+                  title: 'Nothing active',
+                  body: 'Verified incidents appear here the moment a '
+                      'coordinator releases them.',
                 ),
+              ),
               AsyncValue(:final value?) => ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: value.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, i) => _IncidentCard(incident: value[i]),
-                ),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+                itemCount: value.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, i) => _IncidentCard(incident: value[i]),
+              ),
               _ => const SizedBox.shrink(),
             },
           ),
@@ -48,6 +141,18 @@ class ResponderHomeScreen extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _Scroll extends StatelessWidget {
+  const _Scroll({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ListView(
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    children: [const SizedBox(height: 40), child],
+  );
 }
 
 /// Always-visible confirmation that dispatch can see this unit. A responder who
@@ -60,28 +165,30 @@ class _TrackingBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final failing = state.lastError != null;
-    return Container(
-      width: double.infinity,
-      color: failing
-          ? AppColors.error.withValues(alpha: 0.12)
-          : AppColors.success.withValues(alpha: 0.12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    final color = failing ? AppColors.live : AppColors.ok;
+
+    return Panel(
+      radius: AppRadius.control,
+      color: color.withValues(alpha: 0.1),
+      border: color.withValues(alpha: 0.4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(
-            failing ? Icons.gps_off : Icons.gps_fixed,
-            size: 18,
-            color: failing ? AppColors.error : AppColors.success,
-          ),
-          const SizedBox(width: 8),
+          if (failing)
+            const Icon(Icons.gps_off_rounded, size: 17, color: AppColors.live)
+          else
+            const LiveDot(color: AppColors.ok),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               state.lastError ??
-                  'Dispatch can see your position · ${state.fixesSent} updates sent',
+                  'Dispatch can see your position · '
+                      '${state.fixesSent} updates sent',
               style: TextStyle(
-                fontSize: 13,
-                color: failing ? AppColors.error : AppColors.success,
+                fontSize: 12,
+                height: 16 / 12,
                 fontWeight: FontWeight.w600,
+                color: color,
               ),
             ),
           ),
@@ -122,92 +229,107 @@ class _IncidentCardState extends ConsumerState<_IncidentCard> {
     final inc = widget.incident;
     final actions = ref.read(responderActionsProvider.notifier);
     final color = AppColors.forStatus(inc.status);
+    final confidence = (inc.confidenceScore * 100).round();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-      ),
+    return Panel(
+      padding: const EdgeInsets.all(18),
+      color: inc.isUnderway
+          ? color.withValues(alpha: 0.08)
+          : AppColors.surfaceDim,
+      border: inc.isUnderway ? color.withValues(alpha: 0.4) : AppColors.line,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              IconWell(tint: color, asset: Art.truck, size: 38, glyph: 19),
+              const SizedBox(width: 14),
               Expanded(
-                child: Text(inc.designation,
-                    style: Theme.of(context).textTheme.titleMedium),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      inc.designation.toUpperCase(),
+                      style: AppText.cardTitle.copyWith(fontSize: 15),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      '${inc.reportCount} report'
+                      '${inc.reportCount == 1 ? '' : 's'} · $confidence% confidence'
+                      '${inc.activeDispatchCount > 0 ? ' · ${inc.activeDispatchCount} unit(s)' : ''}',
+                      style: AppText.meta,
+                    ),
+                  ],
                 ),
-                child: Text(
-                  inc.statusLabel,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+              ),
+              const SizedBox(width: 10),
+              Tag(inc.statusLabel, color: color, dot: inc.isUnderway),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+          const Divider(),
+          const SizedBox(height: 14),
+
+          Row(
+            children: [
+              const Icon(Icons.place_outlined, size: 15, color: AppColors.faint),
+              const SizedBox(width: 8),
+              Text(
+                '${inc.centroidLat.toStringAsFixed(5)}, '
+                '${inc.centroidLng.toStringAsFixed(5)}',
+                style: AppText.meta.copyWith(
+                  fontFeatures: const [],
+                  color: AppColors.label,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${inc.reportCount} report${inc.reportCount == 1 ? '' : 's'} · '
-            '${(inc.confidenceScore * 100).round()}% confidence'
-            '${inc.activeDispatchCount > 0 ? ' · ${inc.activeDispatchCount} unit(s) responding' : ''}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Centroid ${inc.centroidLat.toStringAsFixed(5)}, '
-            '${inc.centroidLng.toStringAsFixed(5)}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+
           if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!,
-                style: const TextStyle(color: AppColors.error, fontSize: 13)),
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              style: AppText.meta.copyWith(
+                fontSize: 12,
+                height: 16 / 12,
+                color: AppColors.live,
+              ),
+            ),
           ],
-          const SizedBox(height: 14),
+
+          const SizedBox(height: 16),
           Row(
             children: [
               if (inc.nextAction != null)
                 Expanded(
-                  child: FilledButton(
+                  child: AppButton(
+                    switch (inc.nextAction!) {
+                      'accept' => 'Respond to this',
+                      'en_route' => 'Start travelling',
+                      _ => "I've arrived",
+                    },
+                    height: 46,
+                    busy: _busy,
                     onPressed: _busy
                         ? null
                         : () => _act(() => switch (inc.nextAction!) {
-                              'accept' => actions.accept(inc.id),
-                              'en_route' => actions.enRoute(inc.id),
-                              _ => actions.arrived(inc.id),
-                            }),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      minimumSize: const Size.fromHeight(46),
-                    ),
-                    child: Text(_busy
-                        ? 'Working…'
-                        : switch (inc.nextAction!) {
-                            'accept' => 'Respond to this',
-                            'en_route' => 'Start travelling',
-                            _ => "I've arrived",
+                            'accept' => actions.accept(inc.id),
+                            'en_route' => actions.enRoute(inc.id),
+                            _ => actions.arrived(inc.id),
                           }),
                   ),
                 ),
               if (inc.isUnderway) ...[
                 if (inc.nextAction != null) const SizedBox(width: 10),
-                OutlinedButton(
-                  onPressed: _busy ? null : () => _openFireCodes(inc),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(90, 46),
+                SizedBox(
+                  width: inc.nextAction == null ? double.infinity : 104,
+                  child: AppButton.secondary(
+                    'Codes',
+                    height: 46,
+                    onPressed: _busy ? null : () => _openFireCodes(inc),
                   ),
-                  child: const Text('Codes'),
                 ),
               ],
             ],
@@ -221,6 +343,12 @@ class _IncidentCardState extends ConsumerState<_IncidentCard> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.surfaceSolid,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
+        ),
+      ),
       builder: (_) => _FireCodeSheet(incident: incident),
     );
   }
@@ -242,36 +370,43 @@ class _FireCodeSheet extends ConsumerWidget {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Fire codes · ${incident.designation}',
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text('Logged against this incident and broadcast to dispatch.',
-                style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 16),
+            const Center(child: SheetHandle()),
+            Text(
+              'FIRE CODES · ${incident.designation.toUpperCase()}',
+              style: AppText.screenTitle,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Logged against this incident and broadcast to dispatch. Greyed '
+              'codes are not yours to press.',
+              style: AppText.meta.copyWith(height: 16 / 11),
+            ),
+            const SizedBox(height: 18),
             switch (codes) {
-              AsyncLoading() => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-              AsyncError() => const Text('Could not load fire codes.'),
+              AsyncLoading() => const Padding(
+                padding: EdgeInsets.all(28),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              AsyncError() => Text(
+                'Could not load fire codes.',
+                style: AppText.meta.copyWith(color: AppColors.live),
+              ),
               AsyncValue(:final value?) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final code in value)
-                      _FireCodeRow(
-                        code: code,
-                        incident: incident,
-                        enabled: code.pressableBy(user?.role, user?.agencyType),
-                      ),
-                  ],
-                ),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final code in value)
+                    _FireCodeRow(
+                      code: code,
+                      incident: incident,
+                      enabled: code.pressableBy(user?.role, user?.agencyType),
+                    ),
+                ],
+              ),
               _ => const SizedBox.shrink(),
             },
           ],
@@ -303,85 +438,156 @@ class _FireCodeRowState extends ConsumerState<_FireCodeRow> {
   @override
   Widget build(BuildContext context) {
     final code = widget.code;
+    final live = widget.enabled && !_sent;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: OutlinedButton(
-        onPressed: !widget.enabled || _busy || _sent
-            ? null
-            : () async {
-                // Captured before the await: reading it afterwards would touch a
-                // BuildContext that may no longer be mounted.
-                final messenger = ScaffoldMessenger.of(context);
-                setState(() => _busy = true);
-                final failure = await ref
-                    .read(responderActionsProvider.notifier)
-                    .pressCode(codeId: code.id, incidentId: widget.incident.id);
-                if (!mounted) return;
-                setState(() {
-                  _busy = false;
-                  _sent = failure == null;
-                });
-                if (failure != null) {
-                  messenger.showSnackBar(SnackBar(content: Text(failure)));
-                }
-              },
-        style: OutlinedButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 52,
-              child: Text(code.codeNumber,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
-            Expanded(child: Text(code.name, textAlign: TextAlign.left)),
-            if (_sent)
-              const Icon(Icons.check, size: 18, color: AppColors.success)
-            else if (_busy)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+      child: Opacity(
+        opacity: widget.enabled ? 1 : 0.4,
+        child: Panel(
+          radius: AppRadius.control,
+          color: _sent
+              ? AppColors.ok.withValues(alpha: 0.1)
+              : AppColors.surfaceDim,
+          border: _sent ? AppColors.ok.withValues(alpha: 0.4) : AppColors.line,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          onTap: !live || _busy
+              ? null
+              : () async {
+                  // Captured before the await: reading it afterwards would
+                  // touch a BuildContext that may no longer be mounted.
+                  final messenger = ScaffoldMessenger.of(context);
+                  setState(() => _busy = true);
+                  final failure = await ref
+                      .read(responderActionsProvider.notifier)
+                      .pressCode(
+                        codeId: code.id,
+                        incidentId: widget.incident.id,
+                      );
+                  if (!mounted) return;
+                  setState(() {
+                    _busy = false;
+                    _sent = failure == null;
+                  });
+                  if (failure != null) {
+                    messenger.showSnackBar(SnackBar(content: Text(failure)));
+                  }
+                },
+          child: Row(
+            children: [
+              SizedBox(
+                width: 52,
+                child: Text(
+                  code.codeNumber,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: _sent ? AppColors.ok : AppColors.accent,
+                  ),
+                ),
               ),
-          ],
+              Expanded(
+                child: Text(
+                  code.name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.text,
+                  ),
+                ),
+              ),
+              if (_sent)
+                const Icon(Icons.check_rounded, size: 17, color: AppColors.ok)
+              else if (_busy)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _Message extends StatelessWidget {
-  const _Message({required this.icon, required this.text, this.onRetry});
+class _AlertsWell extends StatelessWidget {
+  const _AlertsWell({required this.unread, required this.onTap});
 
-  final IconData icon;
-  final String text;
-  final VoidCallback? onRetry;
+  final int unread;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(36),
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        const SizedBox(height: 70),
-        Icon(icon, size: 52, color: Colors.black26),
-        const SizedBox(height: 16),
-        Text(text,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium),
-        if (onRetry != null) ...[
-          const SizedBox(height: 18),
-          Center(
-            child: OutlinedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
+        _Well(icon: Icons.notifications_none_rounded, onTap: onTap),
+        if (unread > 0)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 18),
+              height: 18,
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                color: AppColors.live,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: AppColors.bg, width: 2),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                unread > 9 ? '9+' : '$unread',
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.text,
+                ),
+              ),
             ),
           ),
-        ],
       ],
+    );
+  }
+}
+
+class _SignOutWell extends StatelessWidget {
+  const _SignOutWell({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) =>
+      _Well(icon: Icons.logout_rounded, onTap: onTap, tint: AppColors.muted);
+}
+
+class _Well extends StatelessWidget {
+  const _Well({required this.icon, required this.onTap, this.tint});
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        onTap: onTap,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Icon(icon, size: 19, color: tint ?? AppColors.text),
+        ),
+      ),
     );
   }
 }

@@ -140,7 +140,9 @@ void main() {
       ),
     );
 
-    expect(find.textContaining("couldn't start"), findsOneWidget);
+    // Case-insensitive: the design sets headings in uppercase, and the point
+    // of the test is that the reason reaches the screen, not its casing.
+    expect(find.textContaining("COULDN'T START"), findsOneWidget);
     expect(find.textContaining('SUPABASE_URL'), findsOneWidget);
   });
 }

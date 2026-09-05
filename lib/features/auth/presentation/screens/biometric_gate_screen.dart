@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/design.dart';
 import '../../data/datasources/biometric_service.dart';
 
 final biometricServiceProvider = Provider((ref) => BiometricService());
@@ -54,25 +55,40 @@ class _BiometricGateScreenState extends ConsumerState<BiometricGateScreen> {
     if (_authenticated) return widget.child;
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.fingerprint, size: 80, color: AppColors.primary),
-            const SizedBox(height: 24),
-            const Text(
-              'Authentication Required',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const IconWell(
+                  tint: AppColors.accent,
+                  icon: Icons.fingerprint_rounded,
+                  size: 72,
+                  glyph: 36,
+                ),
+                const SizedBox(height: 26),
+                const Text('UNLOCK REPLIT', style: AppText.title),
+                const SizedBox(height: 10),
+                const Text(
+                  'Verify your identity to continue. Hotlines still work '
+                  'without unlocking.',
+                  textAlign: TextAlign.center,
+                  style: AppText.body,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: 260,
+                  child: AppButton(
+                    'Authenticate',
+                    icon: Icons.fingerprint_rounded,
+                    onPressed: _checkBiometric,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            const Text('Please verify your identity to continue'),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _checkBiometric,
-              icon: const Icon(Icons.fingerprint),
-              label: const Text('Authenticate'),
-            ),
-          ],
+          ),
         ),
       ),
     );

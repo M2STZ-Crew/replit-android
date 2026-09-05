@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/design.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/verification_provider.dart';
 
@@ -14,6 +15,10 @@ import '../providers/verification_provider.dart';
 /// Framed as credibility rather than compliance — the percentage is shown to
 /// dispatchers when they assess a report, so the user should understand what
 /// they gain, not feel audited.
+///
+/// The hand-off does not cover this screen, so it is aligned to it rather than
+/// copied from it: the same glass panels, coral accent and uppercase headings
+/// as the SOS flow it feeds.
 class VerificationScreen extends ConsumerWidget {
   const VerificationScreen({super.key});
 
@@ -24,47 +29,70 @@ class VerificationScreen extends ConsumerWidget {
     final percent = user?.verifiedPercent ?? 0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify your account')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _ScoreHeader(percent: percent, badge: user?.badge ?? VerificationBadge.yellow),
-          const SizedBox(height: 20),
-          if (state.errorMessage != null)
-            _Banner(
-              text: state.errorMessage!,
-              color: AppColors.error,
-              icon: Icons.error_outline,
-              onDismiss: () => ref.read(verificationProvider.notifier).clearMessages(),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+          children: [
+            const ScreenHeader(
+              eyebrow: 'Credibility',
+              title: 'Verify your account',
             ),
-          if (state.infoMessage != null)
-            _Banner(
-              text: state.infoMessage!,
-              color: AppColors.info,
-              icon: Icons.info_outline,
-              onDismiss: () => ref.read(verificationProvider.notifier).clearMessages(),
+            const SizedBox(height: 26),
+            _ScoreHeader(
+              percent: percent,
+              badge: user?.badge ?? VerificationBadge.yellow,
             ),
-          const SizedBox(height: 4),
-          _PhoneTile(
-            done: user?.phoneVerified ?? false,
-            state: state,
-          ),
-          const SizedBox(height: 12),
-          _EmailTile(
-            done: user?.emailVerified ?? false,
-            hasEmail: (user?.email?.isNotEmpty ?? false),
-            busy: state.busy,
-          ),
-          const SizedBox(height: 12),
-          _IdTile(done: user?.idVerified ?? false, state: state),
-          const SizedBox(height: 24),
-          Text(
-            'Your verification level is shown to Fire Volunteer dispatchers when '
-            'they review your reports. It never changes how quickly an incident '
-            'is handled — it helps them judge unverified sources.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+            const SizedBox(height: 20),
+            if (state.errorMessage != null)
+              _Banner(
+                text: state.errorMessage!,
+                color: AppColors.live,
+                icon: Icons.error_outline_rounded,
+                onDismiss: () =>
+                    ref.read(verificationProvider.notifier).clearMessages(),
+              ),
+            if (state.infoMessage != null)
+              _Banner(
+                text: state.infoMessage!,
+                color: AppColors.info,
+                icon: Icons.info_outline_rounded,
+                onDismiss: () =>
+                    ref.read(verificationProvider.notifier).clearMessages(),
+              ),
+            const Eyebrow('Three ways to raise it', color: AppColors.accent),
+            const SizedBox(height: 12),
+            _PhoneTile(done: user?.phoneVerified ?? false, state: state),
+            const SizedBox(height: 10),
+            _EmailTile(
+              done: user?.emailVerified ?? false,
+              hasEmail: (user?.email?.isNotEmpty ?? false),
+              busy: state.busy,
+            ),
+            const SizedBox(height: 10),
+            _IdTile(done: user?.idVerified ?? false, state: state),
+            const SizedBox(height: 24),
+            Panel(
+              radius: AppRadius.control,
+              color: AppColors.surfaceDim,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  const Icon(Icons.shield_outlined,
+                      size: 16, color: AppColors.accent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Your level is shown to Fire Volunteer coordinators when '
+                      'they review your reports. It never slows an incident '
+                      'down — it helps them weigh unverified sources.',
+                      style: AppText.meta.copyWith(height: 16 / 11),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -77,49 +105,44 @@ class _ScoreHeader extends StatelessWidget {
   final String badge;
 
   Color get _color => switch (badge) {
-        VerificationBadge.greenCheck || VerificationBadge.green => AppColors.success,
-        VerificationBadge.lightGreen => AppColors.secondary,
-        _ => AppColors.warning,
-      };
+    VerificationBadge.greenCheck || VerificationBadge.green => AppColors.ok,
+    VerificationBadge.lightGreen => AppColors.statusPending,
+    _ => AppColors.statusPending,
+  };
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _color.withValues(alpha: 0.35)),
-      ),
+    return Panel(
+      padding: const EdgeInsets.all(20),
+      color: _color.withValues(alpha: 0.08),
+      border: _color.withValues(alpha: 0.35),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 '$percent%',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: _color,
-                    ),
+                style: AppText.numeral.copyWith(fontSize: 40, color: _color),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  VerificationBadge.label(badge),
-                  style: TextStyle(color: _color, fontWeight: FontWeight.w600),
+                  VerificationBadge.label(badge).toUpperCase(),
+                  style: AppText.tag.copyWith(fontSize: 10, color: _color),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: percent / 100,
-              minHeight: 8,
-              backgroundColor: Colors.black12,
+              minHeight: 6,
+              backgroundColor: AppColors.lineStrong,
               valueColor: AlwaysStoppedAnimation(_color),
             ),
           ),
@@ -167,62 +190,80 @@ class _PhoneTileState extends ConsumerState<_PhoneTile> {
           ? null
           : switch (state.phoneStep) {
               PhoneStep.enterNumber => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _phone,
-                      enabled: !state.busy,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[\d+ ]')),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Mobile number',
-                        hintText: '0917 123 4567',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _phone,
+                    enabled: !state.busy,
+                    keyboardType: TextInputType.phone,
+                    style: _fieldStyle,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d+ ]')),
+                    ],
+                    decoration: const InputDecoration(
+                      hintText: '0917 123 4567',
+                      prefixIcon: Icon(Icons.phone_outlined,
+                          size: 18, color: AppColors.muted),
                     ),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      onPressed: state.busy
-                          ? null
-                          : () => notifier.sendPhoneCode(_phone.text),
-                      child: Text(state.busy ? 'Sending…' : 'Send code'),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppButton(
+                    'Send code',
+                    height: 46,
+                    busy: state.busy,
+                    onPressed: state.busy
+                        ? null
+                        : () => notifier.sendPhoneCode(_phone.text),
+                  ),
+                ],
+              ),
               PhoneStep.enterCode => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Code sent to ${state.phoneE164 ?? 'your phone'}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Code sent to ${state.phoneE164 ?? 'your phone'}',
+                    style: AppText.meta,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _code,
+                    enabled: !state.busy,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    style: _fieldStyle.copyWith(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 6,
                     ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _code,
-                      enabled: !state.busy,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
-                        labelText: '6-digit code',
-                        counterText: '',
+                    textAlign: TextAlign.center,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      hintText: '••••••',
+                      counterText: '',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppButton(
+                    'Verify',
+                    height: 46,
+                    busy: state.busy,
+                    onPressed: state.busy
+                        ? null
+                        : () => notifier.submitPhoneCode(_code.text),
+                  ),
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: state.busy ? null : notifier.changeNumber,
+                    child: const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4),
+                        child: Eyebrow('Use a different number',
+                            color: AppColors.muted),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    FilledButton(
-                      onPressed: state.busy
-                          ? null
-                          : () => notifier.submitPhoneCode(_code.text),
-                      child: Text(state.busy ? 'Checking…' : 'Verify'),
-                    ),
-                    TextButton(
-                      onPressed: state.busy ? null : notifier.changeNumber,
-                      child: const Text('Use a different number'),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
               PhoneStep.verified => null,
             },
     );
@@ -253,11 +294,14 @@ class _EmailTile extends ConsumerWidget {
               : 'Add an email to your account first.',
       child: done || !hasEmail
           ? null
-          : FilledButton.tonal(
+          : AppButton.secondary(
+              'Send confirmation email',
+              height: 46,
+              busy: busy,
               onPressed: busy
                   ? null
-                  : () => ref.read(verificationProvider.notifier).sendEmailLink(),
-              child: Text(busy ? 'Sending…' : 'Send confirmation email'),
+                  : () =>
+                        ref.read(verificationProvider.notifier).sendEmailLink(),
             ),
     );
   }
@@ -302,17 +346,23 @@ class _IdTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (rejected && (channel?.reviewNotes?.isNotEmpty ?? false)) ...[
-            Container(
-              padding: const EdgeInsets.all(10),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Panel(
+                radius: AppRadius.control,
+                color: AppColors.live.withValues(alpha: 0.09),
+                border: AppColors.live.withValues(alpha: 0.35),
+                padding: const EdgeInsets.all(12),
+                // Telling someone their ID was refused without saying why
+                // leaves them no way to fix it.
+                child: Text(
+                  'Reason: ${channel!.reviewNotes}',
+                  style: AppText.meta.copyWith(
+                    height: 16 / 11,
+                    color: AppColors.textSoft,
+                  ),
+                ),
               ),
-              // Telling someone their ID was refused without saying why leaves
-              // them no way to fix it.
-              child: Text('Reason: ${channel!.reviewNotes}',
-                  style: Theme.of(context).textTheme.bodySmall),
             ),
           ],
           Row(
@@ -338,19 +388,19 @@ class _IdTile extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed:
-                state.canSubmitId ? () => notifier.submitNationalId() : null,
-            child: Text(state.busy ? 'Sending…' : 'Send for review'),
+          const SizedBox(height: 14),
+          AppButton(
+            'Send for review',
+            height: 46,
+            busy: state.busy,
+            onPressed: state.canSubmitId ? notifier.submitNationalId : null,
           ),
           if (!state.canSubmitId && !state.busy)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                'Add both an ID photo and a selfie.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
+            const Padding(
+              padding: EdgeInsets.only(top: 10),
+              child: Center(
+                child: Eyebrow('Add both an ID photo and a selfie',
+                    color: AppColors.muted),
               ),
             ),
         ],
@@ -382,32 +432,48 @@ class _PickSlot extends StatelessWidget {
           : () async {
               final camera = await showModalBottomSheet<bool>(
                 context: context,
+                backgroundColor: AppColors.surfaceSolid,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.sheet),
+                  ),
+                ),
                 builder: (ctx) => SafeArea(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 10),
+                        child: SheetHandle(),
+                      ),
                       ListTile(
-                        leading: const Icon(Icons.photo_camera_outlined),
-                        title: Text('Take $label'),
+                        leading: const Icon(Icons.photo_camera_outlined,
+                            color: AppColors.accent),
+                        title: Text('Take $label', style: AppText.rowTitle),
                         onTap: () => Navigator.pop(ctx, true),
                       ),
                       ListTile(
-                        leading: const Icon(Icons.photo_library_outlined),
-                        title: const Text('Choose from gallery'),
+                        leading: const Icon(Icons.photo_library_outlined,
+                            color: AppColors.accent),
+                        title: const Text('Choose from gallery',
+                            style: AppText.rowTitle),
                         onTap: () => Navigator.pop(ctx, false),
                       ),
+                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
               );
               if (camera != null) onPick(camera);
             },
+      borderRadius: BorderRadius.circular(AppRadius.control),
       child: Container(
         height: 104,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
+          color: AppColors.surfaceDim,
+          borderRadius: BorderRadius.circular(AppRadius.control),
           border: Border.all(
-            color: file != null ? AppColors.success : Colors.black26,
+            color: file != null ? AppColors.ok : AppColors.lineStrong,
           ),
           image: file != null
               ? DecorationImage(image: FileImage(file!), fit: BoxFit.cover)
@@ -419,9 +485,10 @@ class _PickSlot extends StatelessWidget {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.add_a_photo_outlined, color: Colors.black38),
-                  const SizedBox(height: 6),
-                  Text(label, style: Theme.of(context).textTheme.bodySmall),
+                  const Icon(Icons.add_a_photo_outlined,
+                      size: 20, color: AppColors.muted),
+                  const SizedBox(height: 8),
+                  Eyebrow(label, color: AppColors.muted),
                 ],
               ),
       ),
@@ -446,52 +513,57 @@ class _StepTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: done ? AppColors.success : Colors.black12),
-      ),
+    return Panel(
+      padding: const EdgeInsets.all(18),
+      color: done ? AppColors.ok.withValues(alpha: 0.07) : AppColors.surfaceDim,
+      border: done ? AppColors.ok.withValues(alpha: 0.4) : AppColors.line,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
               Icon(
-                done ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: done ? AppColors.success : Colors.black26,
-                size: 22,
+                done
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                color: done ? AppColors.ok : AppColors.lineLight,
+                size: 20,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(title,
-                    style: Theme.of(context).textTheme.titleMedium),
+                child: Text(
+                  title.toUpperCase(),
+                  style: AppText.cardTitle.copyWith(fontSize: 14),
+                ),
               ),
               Text(
                 '+$weight%',
                 style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: done ? AppColors.success : Colors.black45,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.3,
+                  color: done ? AppColors.ok : AppColors.accent,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 9),
           Padding(
             padding: const EdgeInsets.only(left: 32),
-            child: Text(subtitle,
-                style: Theme.of(context).textTheme.bodySmall),
+            child: Text(subtitle, style: AppText.meta.copyWith(height: 16 / 11)),
           ),
-          if (child != null) ...[
-            const SizedBox(height: 14),
-            child!,
-          ],
+          if (child != null) ...[const SizedBox(height: 16), child!],
         ],
       ),
     );
   }
 }
+
+const _fieldStyle = TextStyle(
+  fontSize: 15,
+  fontWeight: FontWeight.w500,
+  color: AppColors.text,
+);
 
 class _Banner extends StatelessWidget {
   const _Banner({
@@ -508,25 +580,36 @@ class _Banner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text)),
-          IconButton(
-            tooltip: 'Dismiss',
-            icon: const Icon(Icons.close, size: 18),
-            onPressed: onDismiss,
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Panel(
+        radius: AppRadius.control,
+        color: color.withValues(alpha: 0.09),
+        border: color.withValues(alpha: 0.35),
+        padding: const EdgeInsets.fromLTRB(16, 12, 6, 12),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: AppText.meta.copyWith(
+                  fontSize: 12,
+                  height: 16 / 12,
+                  color: AppColors.textSoft,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Dismiss',
+              iconSize: 18,
+              color: AppColors.muted,
+              icon: const Icon(Icons.close_rounded),
+              onPressed: onDismiss,
+            ),
+          ],
+        ),
       ),
     );
   }
