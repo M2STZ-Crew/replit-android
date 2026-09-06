@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import '../api/api_client.dart';
 import '../models/facility.dart';
 import '../theme.dart';
+import '../widgets/map_tiles.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'camera_capture_screen.dart';
@@ -200,38 +201,27 @@ class _MapScreenState extends State<MapScreen> {
 
   // ----------------------------------------------------------------- map ---
   Widget _mapLayer() {
-    return ColorFiltered(
-      // The design's map is the real street layer pulled toward the theme:
-      // desaturated and darkened so the coral markers carry all the colour.
-      // CARTO's dark_all basemap now serves an "API KEY REQUIRED" watermark
-      // tile without a key, which is why this draws plain OSM and tints it.
-      colorFilter: const ColorFilter.matrix(_kNightMatrix),
-      child: FlutterMap(
-        mapController: _map,
-        options: const MapOptions(
-          initialCenter: _pasayCenter,
-          initialZoom: 13,
-          minZoom: 4,
-          maxZoom: 18,
-          backgroundColor: AppColors.background,
-          interactionOptions: InteractionOptions(
-            flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-          ),
+    // No colour filter here any more: Mapbox's dark-v11 is already the design's
+    // basemap, so tinting it a second time would only mud it. The filter this
+    // replaced existed to drag daylight OpenStreetMap tiles toward the theme,
+    // and MapTiles still falls back to those when no token is configured.
+    return FlutterMap(
+      mapController: _map,
+      options: const MapOptions(
+        initialCenter: _pasayCenter,
+        initialZoom: 13,
+        minZoom: 4,
+        maxZoom: 18,
+        backgroundColor: AppColors.background,
+        interactionOptions: InteractionOptions(
+          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            // OpenStreetMap's tile policy requires a real identifying agent.
-            userAgentPackageName: 'com.m2stz.replit',
-            maxNativeZoom: 19,
-          ),
-          MarkerLayer(markers: _markers()),
-          const RichAttributionWidget(
-            alignment: AttributionAlignment.bottomLeft,
-            attributions: [TextSourceAttribution('© OpenStreetMap')],
-          ),
-        ],
       ),
+      children: [
+        MapTiles.layer(),
+        MarkerLayer(markers: _markers()),
+        MapTiles.attribution(),
+      ],
     );
   }
 
@@ -517,13 +507,11 @@ class _MapScreenState extends State<MapScreen> {
   List<_Nearby> _nearby() {
     final out = <_Nearby>[];
 
-    final incidents =
-        _areas.map((a) {
-          final lat = (a['centroid_lat'] as num).toDouble();
-          final lng = (a['centroid_lng'] as num).toDouble();
-          return (raw: a, metres: _metresTo(lat, lng));
-        }).toList()
-          ..sort((x, y) => (x.metres ?? 1e9).compareTo(y.metres ?? 1e9));
+    final incidents = _areas.map((a) {
+      final lat = (a['centroid_lat'] as num).toDouble();
+      final lng = (a['centroid_lng'] as num).toDouble();
+      return (raw: a, metres: _metresTo(lat, lng));
+    }).toList()..sort((x, y) => (x.metres ?? 1e9).compareTo(y.metres ?? 1e9));
 
     for (final entry in incidents.take(2)) {
       final a = entry.raw;
@@ -871,7 +859,10 @@ class _MapScreenState extends State<MapScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 110, child: Eyebrow(row.label, color: AppColors.muted)),
+          SizedBox(
+            width: 110,
+            child: Eyebrow(row.label, color: AppColors.muted),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -889,14 +880,6 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 }
-
-/// Desaturate and darken OSM's daylight tiles so they sit under a #131313 UI.
-const List<double> _kNightMatrix = <double>[
-  0.42, 0.28, 0.10, 0, -14, //
-  0.36, 0.34, 0.10, 0, -14, //
-  0.33, 0.28, 0.19, 0, -12, //
-  0, 0, 0, 1, 0, //
-];
 
 /// One row in the "nearby right now" sheet, already measured against the user.
 class _Nearby {

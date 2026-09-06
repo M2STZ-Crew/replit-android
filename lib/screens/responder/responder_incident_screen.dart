@@ -12,6 +12,7 @@ import 'package:latlong2/latlong.dart';
 import '../../api/api_client.dart';
 import '../../models/fleet_unit.dart';
 import '../../theme.dart';
+import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
 
 const Color _bg = AppColors.background;
@@ -423,10 +424,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                   const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.m2stz.replit',
-              ),
+              MapTiles.layer(),
               MarkerLayer(markers: _markers(c)),
             ],
           ),

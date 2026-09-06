@@ -13,6 +13,7 @@ import '../../api/push_service.dart';
 import '../../api/session.dart';
 import '../../models/fleet_unit.dart';
 import '../../theme.dart';
+import '../../widgets/map_tiles.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
@@ -381,10 +382,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
                         const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
                   ),
                   children: [
-                    TileLayer(
-                      urlTemplate: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.m2stz.replit',
-                    ),
+                    MapTiles.layer(),
                     MarkerLayer(markers: _markers(c)),
                   ],
                 ),

@@ -9,6 +9,7 @@ import '../../api/push_service.dart';
 import '../../api/session.dart';
 import '../../models/facility.dart';
 import '../../theme.dart';
+import '../../widgets/map_tiles.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/design.dart';
 import '../../widgets/notification_bell.dart';
@@ -463,15 +464,9 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         ),
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.m2stz.replit',
-        ),
+        MapTiles.layer(),
         MarkerLayer(markers: _markers()),
-        const RichAttributionWidget(
-          alignment: AttributionAlignment.bottomLeft,
-          attributions: [TextSourceAttribution('© OpenStreetMap, © CARTO')],
-        ),
+        MapTiles.attribution(),
       ],
     );
   }

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../theme.dart';
+import '../widgets/map_tiles.dart';
 import '../widgets/design.dart';
 
 const Color _safeGreen = AppColors.ok;
@@ -168,10 +169,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 ),
               ),
               children: [
-                TileLayer(
-                  urlTemplate: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.m2stz.replit',
-                ),
+                MapTiles.layer(),
                 if (_route.isNotEmpty)
                   PolylineLayer(
                     polylines: [
@@ -190,10 +188,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     Marker(point: _dest, width: 36, height: 36, child: _destMarker()),
                   ],
                 ),
-                const RichAttributionWidget(
-                  alignment: AttributionAlignment.bottomLeft,
-                  attributions: [TextSourceAttribution('© OpenStreetMap, © CARTO, OSRM')],
-                ),
+                MapTiles.attribution(),
               ],
             ),
           SafeArea(
