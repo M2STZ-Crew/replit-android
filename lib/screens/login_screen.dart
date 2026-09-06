@@ -104,7 +104,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(controller.text.trim()),
+            onPressed: () =>
+                Navigator.of(dialogCtx).pop(controller.text.trim()),
             child: const Text(
               'SEND LINK',
               style: TextStyle(
@@ -196,43 +197,50 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () => setState(() => _keepActive = !_keepActive),
-                  behavior: HitTestBehavior.opaque,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: _keepActive
-                              ? AppColors.accent
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
+                Flexible(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _keepActive = !_keepActive),
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
                             color: _keepActive
                                 ? AppColors.accent
-                                : AppColors.lineStrong,
-                            width: 1.5,
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: _keepActive
+                                  ? AppColors.accent
+                                  : AppColors.lineStrong,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: _keepActive
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 13,
+                                  color: AppColors.accentText,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        // Flexible: at a large font scale this label and
+                        // "Recovery" together are wider than the row.
+                        const Flexible(
+                          child: Eyebrow(
+                            'Keep session active',
+                            color: AppColors.label,
                           ),
                         ),
-                        child: _keepActive
-                            ? const Icon(
-                                Icons.check_rounded,
-                                size: 13,
-                                color: AppColors.accentText,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      const Eyebrow(
-                        'Keep session active',
-                        color: AppColors.label,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
+                const SizedBox(width: 12),
                 GestureDetector(
                   onTap: _recoverDialog,
                   behavior: HitTestBehavior.opaque,
@@ -280,14 +288,18 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
 
             const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            // Wrap, not Row: the two halves of this line together are wider
+            // than the screen at a large system font scale, and a sign-up link
+            // that has run off the edge is a dead end for a new user.
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
               children: [
                 const Text(
                   'New to the barangay app?',
                   style: TextStyle(fontSize: 12, color: AppColors.faint),
                 ),
-                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const RegisterScreen()),

@@ -7,6 +7,8 @@ import 'package:replit/screens/call_screen.dart';
 import 'package:replit/screens/guide_detail_screen.dart';
 import 'package:replit/screens/guide_screen.dart';
 import 'package:replit/screens/home_screen.dart';
+import 'package:replit/screens/login_screen.dart';
+import 'package:replit/screens/register_screen.dart';
 import 'package:replit/theme.dart';
 
 /// Guards on the screens ported to the "General User App v2" design.
@@ -25,11 +27,19 @@ void main() {
   /// The 402x874 frame the hand-off is drawn at.
   const designSize = Size(402, 874);
 
+  // The MediaQuery has to be *derived* from the real one, not built fresh: a
+  // bare MediaQueryData carries a zero size and zero padding, which makes
+  // anything reading them lay out wrongly and reports overflows that are the
+  // test's fault rather than the screen's.
   Widget host(Widget child, {double textScale = 1.0}) => MaterialApp(
     theme: buildAppTheme(),
-    home: MediaQuery(
-      data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
-      child: child,
+    home: Builder(
+      builder: (context) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child,
+      ),
     ),
   );
 
@@ -66,6 +76,18 @@ void main() {
         await pump(tester, const GuideScreen(), textScale: scale);
         expect(tester.takeException(), isNull);
         expect(find.text('SAFETY GUIDES'), findsOneWidget);
+      });
+
+      testWidgets('login at ${scale}x', (tester) async {
+        await pump(tester, const LoginScreen(), textScale: scale);
+        expect(tester.takeException(), isNull);
+        expect(find.text('WELCOME BACK'), findsOneWidget);
+      });
+
+      testWidgets('sign up at ${scale}x', (tester) async {
+        await pump(tester, const RegisterScreen(), textScale: scale);
+        expect(tester.takeException(), isNull);
+        expect(find.text('WHO ARE YOU?'), findsOneWidget);
       });
 
       testWidgets('a guide article at ${scale}x', (tester) async {

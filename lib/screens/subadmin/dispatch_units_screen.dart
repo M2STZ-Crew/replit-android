@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../models/fleet_unit.dart';
 import '../../theme.dart';
-import '../../widgets/design.dart';
 import '../../widgets/app_logo.dart';
 import 'dispatch_crew_screen.dart';
 

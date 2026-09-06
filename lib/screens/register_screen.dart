@@ -93,13 +93,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const RoleGate()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const RoleGate()));
     } on ApiException catch (e) {
       _error(e.message);
     } catch (_) {
-      _error('Could not reach the server. Check the API URL in api_config.dart.');
+      _error(
+        'Could not reach the server. Check the API URL in api_config.dart.',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -133,14 +135,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         width: 26,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: i == 0 ? AppColors.accent : AppColors.lineStrong,
+                          color: i == 0
+                              ? AppColors.accent
+                              : AppColors.lineStrong,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Eyebrow('Step 1 · account', color: AppColors.muted),
+                  // Flexible so the caption gives way rather than pushing the
+                  // step bars off the screen at a large font scale.
+                  const Flexible(
+                    child: Eyebrow('Step 1 · account', color: AppColors.muted),
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
@@ -155,9 +163,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 30),
               Row(
                 children: [
-                  Expanded(child: _group('FIRST NAME', _input(_firstName, 'First Name'))),
+                  Expanded(
+                    child: _group(
+                      'FIRST NAME',
+                      _input(_firstName, 'First Name'),
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _group('LAST NAME', _input(_lastName, 'Last Name'))),
+                  Expanded(
+                    child: _group('LAST NAME', _input(_lastName, 'Last Name')),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -170,18 +185,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              _group('EMAIL', _input(_email, 'Enter your email',
-                  keyboard: TextInputType.emailAddress)),
+              _group(
+                'EMAIL',
+                _input(
+                  _email,
+                  'Enter your email',
+                  keyboard: TextInputType.emailAddress,
+                ),
+              ),
               const SizedBox(height: 16),
-              _group('MOBILE NUMBER', _input(_mobile, 'Mobile number',
-                  keyboard: TextInputType.phone)),
+              _group(
+                'MOBILE NUMBER',
+                _input(_mobile, 'Mobile number', keyboard: TextInputType.phone),
+              ),
               const SizedBox(height: 16),
-              _group('PASSWORD', _input(_password, 'Password', obscure: _obscure1,
-                  suffix: _eye(() => setState(() => _obscure1 = !_obscure1), _obscure1))),
+              _group(
+                'PASSWORD',
+                _input(
+                  _password,
+                  'Password',
+                  obscure: _obscure1,
+                  suffix: _eye(
+                    () => setState(() => _obscure1 = !_obscure1),
+                    _obscure1,
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              _group('CONFIRM PASSWORD', _input(_confirm, 'Confirm Password',
+              _group(
+                'CONFIRM PASSWORD',
+                _input(
+                  _confirm,
+                  'Confirm Password',
                   obscure: _obscure2,
-                  suffix: _eye(() => setState(() => _obscure2 = !_obscure2), _obscure2))),
+                  suffix: _eye(
+                    () => setState(() => _obscure2 = !_obscure2),
+                    _obscure2,
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,16 +246,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         children: [
                           TextSpan(
                             text: 'I agree to the ',
-                            style: TextStyle(color: AppColors.label, fontSize: 12, height: 1.6),
+                            style: TextStyle(
+                              color: AppColors.label,
+                              fontSize: 12,
+                              height: 1.6,
+                            ),
                           ),
                           TextSpan(
                             text: 'Terms and Agreements',
-                            style: TextStyle(color: AppColors.accent, fontSize: 12),
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontSize: 12,
+                            ),
                           ),
                           TextSpan(
                             text:
-                            ' and acknowledge the privacy policy regarding sensitive emergency data.',
-                            style: TextStyle(color: AppColors.label, fontSize: 12, height: 1.6),
+                                ' and acknowledge the privacy policy regarding sensitive emergency data.',
+                            style: TextStyle(
+                              color: AppColors.label,
+                              fontSize: 12,
+                              height: 1.6,
+                            ),
                           ),
                         ],
                       ),
@@ -232,7 +285,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         TextSpan(
                           text: 'Already have an account? ',
-                          style: TextStyle(color: AppColors.label, fontSize: 14),
+                          style: TextStyle(
+                            color: AppColors.label,
+                            fontSize: 14,
+                          ),
                         ),
                         TextSpan(
                           text: 'Log in.',
@@ -272,12 +328,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   );
 
   Widget _input(
-      TextEditingController controller,
-      String hint, {
-        bool obscure = false,
-        TextInputType keyboard = TextInputType.text,
-        Widget? suffix,
-      }) {
+    TextEditingController controller,
+    String hint, {
+    bool obscure = false,
+    TextInputType keyboard = TextInputType.text,
+    Widget? suffix,
+  }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
@@ -325,7 +381,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: DropdownButton<String>(
         isExpanded: true,
         value: _gender,
-        hint: const Text('Select', style: TextStyle(color: AppColors.darkText, fontSize: 16)),
+        hint: const Text(
+          'Select',
+          style: TextStyle(color: AppColors.darkText, fontSize: 16),
+        ),
         dropdownColor: AppColors.surface,
         icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.muted),
         style: const TextStyle(color: Colors.white, fontSize: 16),
@@ -333,7 +392,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           DropdownMenuItem(value: 'Male', child: Text('Male')),
           DropdownMenuItem(value: 'Female', child: Text('Female')),
           DropdownMenuItem(value: 'Other', child: Text('Other')),
-          DropdownMenuItem(value: 'Prefer not to say', child: Text('Prefer not to say')),
+          DropdownMenuItem(
+            value: 'Prefer not to say',
+            child: Text('Prefer not to say'),
+          ),
         ],
         onChanged: (v) => setState(() => _gender = v),
       ),
