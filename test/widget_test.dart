@@ -8,6 +8,7 @@ import 'package:replit/screens/guide_detail_screen.dart';
 import 'package:replit/screens/guide_screen.dart';
 import 'package:replit/screens/home_screen.dart';
 import 'package:replit/screens/login_screen.dart';
+import 'package:replit/screens/national_id_screen.dart';
 import 'package:replit/screens/register_screen.dart';
 import 'package:replit/theme.dart';
 
@@ -88,6 +89,15 @@ void main() {
         await pump(tester, const RegisterScreen(), textScale: scale);
         expect(tester.takeException(), isNull);
         expect(find.text('WHO ARE YOU?'), findsOneWidget);
+      });
+
+      testWidgets('national ID at ${scale}x', (tester) async {
+        await pump(tester, const NationalIdScreen(), textScale: scale);
+        expect(tester.takeException(), isNull);
+        expect(find.text('VERIFY YOUR IDENTITY'), findsOneWidget);
+        // Both slots must invite either source — the screen was camera-only
+        // for the selfie, which left people who already had a photo stuck.
+        expect(find.textContaining('choose'), findsNWidgets(2));
       });
 
       testWidgets('a guide article at ${scale}x', (tester) async {

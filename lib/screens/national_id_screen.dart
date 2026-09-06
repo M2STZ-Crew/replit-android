@@ -12,8 +12,15 @@ const Color _safeGreen = AppColors.ok;
 /// National ID verification (+50%) via the manual-review path.
 ///
 /// The backend's Didit auto-KYC has no credits, so this uses
-/// POST /verification/national-id/manual: the user uploads a government ID photo
-/// and a matching selfie, which an administrator reviews before awarding +50%.
+/// POST /verification/national-id/manual: the user supplies a government ID
+/// photo and a matching selfie, which an administrator reviews before
+/// awarding +50%.
+///
+/// Both images can be taken now or chosen from the gallery. Camera-only is
+/// the usual anti-spoofing move in a KYC flow, but it buys nothing here:
+/// there is no liveness check, so a camera pointed at a printed photo passes
+/// exactly as easily. What actually catches a bad submission is the admin
+/// review queue, and that runs either way.
 class NationalIdScreen extends StatefulWidget {
   const NationalIdScreen({super.key});
 
@@ -32,60 +39,148 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
 
   bool get _ready => _idBytes != null && _selfieBytes != null;
 
-  Future<void> _pickId() async {
-    final source = await showModalBottomSheet<ImageSource>(
+  /// Ask where the image should come from.
+  ///
+  /// Both slots offer the camera and the gallery. A photo of an ID very often
+  /// already exists in someone's gallery — sent by a parent, saved from an
+  /// email — and forcing them to re-photograph a document they already have a
+  /// clear picture of is the kind of friction that makes people give up on
+  /// verification entirely.
+  ///
+  /// Returns null if the sheet is dismissed without a choice.
+  Future<ImageSource?> _askSource({required String what}) {
+    return showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surfaceSolid,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
+        ),
       ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
-              title: const Text('Take a photo', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.of(context).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
-              title: const Text('Choose from gallery', style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
+      // sheetContext, not the screen's: popping with the outer context happens
+      // to hit the same Navigator today, but it is the screen that would go if
+      // this sheet were ever shown over another route.
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(child: SheetHandle()),
+              Text('ADD YOUR $what'.toUpperCase(), style: AppText.screenTitle),
+              const SizedBox(height: 16),
+              _sourceRow(
+                icon: Icons.photo_camera_outlined,
+                title: 'Take a photo',
+                subtitle: 'Use the camera now',
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(ImageSource.camera),
+              ),
+              const SizedBox(height: 10),
+              _sourceRow(
+                icon: Icons.photo_library_outlined,
+                title: 'Choose from gallery',
+                subtitle: 'Pick a picture already on this phone',
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
         ),
       ),
     );
-    if (source == null) return;
-    final shot = await _picker.pickImage(source: source, imageQuality: 70, maxWidth: 1600);
-    if (shot == null) return;
-    final bytes = await shot.readAsBytes();
-    if (mounted) {
-      setState(() {
-        _idBytes = bytes;
-        _error = null;
-      });
+  }
+
+  Widget _sourceRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Panel(
+      radius: AppRadius.control,
+      color: AppColors.glassDim,
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      child: Row(
+        children: [
+          IconWell(tint: AppColors.accent, icon: icon, size: 42, glyph: 21),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title.toUpperCase(),
+                  style: AppText.cardTitle.copyWith(fontSize: 13),
+                ),
+                const SizedBox(height: 5),
+                Text(subtitle, style: AppText.meta),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 18,
+            color: AppColors.faint,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Read one image into memory.
+  ///
+  /// [front] only matters for the camera — it opens the selfie lens. Capped at
+  /// 1600px and 70% quality: an ID has to stay legible enough for an admin to
+  /// read, but a full-resolution phone photo is several megabytes of upload
+  /// over mobile data.
+  Future<Uint8List?> _capture(ImageSource source, {bool front = false}) async {
+    try {
+      final shot = await _picker.pickImage(
+        source: source,
+        preferredCameraDevice: front
+            ? CameraDevice.front
+            : CameraDevice.rear,
+        imageQuality: 70,
+        maxWidth: 1600,
+      );
+      if (shot == null) return null; // dismissed — not an error
+      return shot.readAsBytes();
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error = source == ImageSource.camera
+              ? 'Could not open the camera. Check the app permissions.'
+              : 'Could not open your gallery. Check the app permissions.',
+        );
+      }
+      return null;
     }
   }
 
+  Future<void> _pickId() async {
+    final source = await _askSource(what: 'ID');
+    if (source == null) return;
+    final bytes = await _capture(source);
+    if (bytes == null || !mounted) return;
+    setState(() {
+      _idBytes = bytes;
+      _error = null;
+    });
+  }
+
   Future<void> _pickSelfie() async {
-    final shot = await _picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 70,
-      maxWidth: 1600,
-    );
-    if (shot == null) return;
-    final bytes = await shot.readAsBytes();
-    if (mounted) {
-      setState(() {
-        _selfieBytes = bytes;
-        _error = null;
-      });
-    }
+    final source = await _askSource(what: 'selfie');
+    if (source == null) return;
+    final bytes = await _capture(source, front: true);
+    if (bytes == null || !mounted) return;
+    setState(() {
+      _selfieBytes = bytes;
+      _error = null;
+    });
   }
 
   Future<void> _submit() async {
@@ -124,53 +219,68 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _topBar(),
-              const SizedBox(height: 24),
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.accentTint,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(Icons.badge_outlined, color: AppColors.accent, size: 28),
+              const SizedBox(height: 26),
+              const IconWell(
+                tint: AppColors.accent,
+                icon: Icons.badge_outlined,
+                size: 56,
+                glyph: 28,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
+              const Text('VERIFY YOUR IDENTITY', style: AppText.title),
+              const SizedBox(height: 10),
               const Text(
-                'Verify your identity',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.8,
-                ),
+                'Add a clear picture of your government ID and a matching '
+                'selfie — take them now or pick ones already on your phone. An '
+                'administrator reviews both and awards +50%.',
+                style: AppText.body,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Upload a clear photo of your government-issued ID and a matching '
-                'selfie. An administrator reviews them and awards +50%.',
-                style: TextStyle(color: AppColors.muted, fontSize: 14, height: 1.4),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 26),
               _uploadSlot(
-                label: 'GOVERNMENT ID',
-                hint: 'Tap to add a photo of your ID',
+                label: 'Government ID',
+                hint: 'Take a photo or choose one',
                 icon: Icons.badge_outlined,
                 bytes: _idBytes,
                 onTap: _pickId,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _uploadSlot(
-                label: 'SELFIE',
-                hint: 'Tap to take a selfie',
+                label: 'Selfie',
+                hint: 'Take one now or choose one',
                 icon: Icons.face_outlined,
                 bytes: _selfieBytes,
                 onTap: _pickSelfie,
               ),
               if (_error != null) ...[
                 const SizedBox(height: 14),
-                Text(
-                  _error!,
-                  style: const TextStyle(color: AppColors.live, fontSize: 13),
+                Panel(
+                  radius: AppRadius.control,
+                  color: AppColors.live.withValues(alpha: 0.09),
+                  border: AppColors.live.withValues(alpha: 0.4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 17,
+                        color: AppColors.live,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          style: AppText.meta.copyWith(
+                            fontSize: 12,
+                            height: 16 / 12,
+                            color: AppColors.textSoft,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
               const SizedBox(height: 24),
