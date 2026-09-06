@@ -1,15 +1,25 @@
-/// Backend API base URL.
+/// Backend API base URL, supplied at build time.
 ///
-/// Override at run time with: flutter run --dart-define=REPLIT_API_BASE=http://`ip`:8000
-/// Notes:
-///  - Web / Windows / iOS simulator: http://127.0.0.1:8000 (default)
-///  - Android emulator: use http://10.0.2.2:8000 (the host's localhost)
-///  - Physical device: use your PC's LAN IP, e.g. http://192.168.1.20:8000
+/// Set it in env.json (copy env.example.json) and build with:
+///
+///   flutter run --dart-define-from-file=env.json
+///
+/// Which address to use:
+///  - Android emulator:  http://10.0.2.2:8000   — the emulator's alias for the
+///    host machine's localhost. This is the default, so a fresh clone running
+///    on an emulator works with no configuration.
+///  - Physical device:   http://<your PC's LAN IP>:8000, e.g.
+///    http://192.168.1.20:8000. The phone and the PC must be on the same
+///    network, and the address must be listed in
+///    android/app/src/main/res/xml/network_security_config.xml — Android
+///    blocks cleartext HTTP to anything not named there.
+///  - Deployed backend:  https://... — no config entry needed, because HTTPS
+///    is permitted by default.
 class ApiConfig {
   ApiConfig._();
 
   static const String baseUrl = String.fromEnvironment(
     'REPLIT_API_BASE',
-    defaultValue: 'http://192.168.254.168:8000',
+    defaultValue: 'http://10.0.2.2:8000',
   );
 }

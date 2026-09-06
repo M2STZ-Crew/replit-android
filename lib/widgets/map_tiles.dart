@@ -17,20 +17,24 @@ import 'package:flutter_map/flutter_map.dart';
 class MapTiles {
   MapTiles._();
 
-  /// Mapbox public access token.
+  /// Mapbox public access token, supplied at build time.
   ///
   /// A `pk.` token is meant to be embedded in a client — it ships inside the
-  /// APK either way and Mapbox's own guidance accepts that; the protection is
-  /// URL/scope restrictions and watching usage, not secrecy. Override it for a
-  /// rotated token without touching source:
+  /// APK either way, and Mapbox's guidance accepts that. What it must not do
+  /// is sit in a public repository, where scrapers harvest tokens and spend
+  /// somebody else's free tier. A web token can be locked to a domain; a
+  /// mobile one cannot, so keeping it out of source is the only control there
+  /// is.
   ///
-  ///   flutter run --dart-define=MAPBOX_TOKEN=pk.your_token_here
-  static const String token = String.fromEnvironment(
-    'MAPBOX_TOKEN',
-    defaultValue:
-        'pk.REDACTED_SEE_ENV_JSON'
-        '',
-  );
+  /// It comes from env.json, which is gitignored. Copy env.example.json to
+  /// env.json, paste the token in, and run:
+  ///
+  ///   flutter run   --dart-define-from-file=env.json
+  ///   flutter build apk --release --dart-define-from-file=env.json
+  ///
+  /// Forget the flag and the maps quietly fall back to OpenStreetMap rather
+  /// than breaking.
+  static const String token = String.fromEnvironment('MAPBOX_TOKEN');
 
   static bool get hasToken => token.isNotEmpty && token.startsWith('pk.');
 

@@ -61,3 +61,8 @@ android/key.properties
 
 # Local tool state
 .flutter-plugins
+
+# Build-time configuration: the Mapbox token and the API base URL.
+# Copy env.example.json to env.json and fill it in. Never commit env.json —
+# this repository is public, and scrapers harvest tokens from public repos.
+env.json
