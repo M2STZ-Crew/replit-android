@@ -95,9 +95,11 @@ void main() {
         await pump(tester, const NationalIdScreen(), textScale: scale);
         expect(tester.takeException(), isNull);
         expect(find.text('VERIFY YOUR IDENTITY'), findsOneWidget);
-        // Both slots must invite either source — the screen was camera-only
-        // for the selfie, which left people who already had a photo stuck.
-        expect(find.textContaining('choose'), findsNWidgets(2));
+        // Camera-only, deliberately: a gallery pick is how someone submits
+        // an ID that is not theirs. Nothing on this screen may offer one.
+        expect(find.textContaining('gallery', findRichText: true), findsNothing);
+        expect(find.textContaining('choose'), findsNothing);
+        expect(find.textContaining('Choose'), findsNothing);
       });
 
       testWidgets('a guide article at ${scale}x', (tester) async {
