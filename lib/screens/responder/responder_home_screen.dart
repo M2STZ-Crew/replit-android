@@ -7,12 +7,13 @@ import 'package:latlong2/latlong.dart';
 import '../../api/api_client.dart';
 import '../../api/push_service.dart';
 import '../../api/session.dart';
-import '../../models/facility.dart';
+import '../../location/responder_tracker.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/design.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/ops_layers.dart';
 import '../login_screen.dart';
 import 'responder_incident_screen.dart';
 import 'responder_incidents_screen.dart';
@@ -25,20 +26,16 @@ const Color _red = AppColors.live;
 const Color _orange = AppColors.accent;
 const Color _green = AppColors.ok;
 const Color _grey = AppColors.muted;
-const Color _blue = AppColors.info;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
-
-class _LayerDef {
-  const _LayerDef(this.key, this.label, this.color, this.loader);
-  final String key;
-  final String label;
-  final Color color;
-  final Future<List<LatLng>> Function()? loader; // null → no backend layer
-}
 
 /// Responder dashboard — live counters + a layered operational map. Replaces the
 /// plain feed: incidents are markers (tap → respond/advance), and the chips
 /// toggle GIS layers (evacuation sites, hydrants, risk areas, etc.).
+///
+/// The map layers are the shared staff set in widgets/ops_layers.dart.
+///
+/// The dashboard also picks up a dispatch made while the responder was
+/// elsewhere, and resumes sharing their location for it ([ResponderTracker]).
 class ResponderHomeScreen extends StatefulWidget {
   const ResponderHomeScreen({super.key, required this.me});
 
@@ -57,32 +54,20 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
   Map<String, dynamic>? _stats;
   List<Map<String, dynamic>> _incidents = [];
   final Set<String> _enabled = {'incidents'};
-  final Map<String, List<LatLng>> _cache = {};
+  final Map<String, List<OpsPoint>> _cache = {};
+  final ResponderTracker _tracker = ResponderTracker.instance;
+  bool _checkingDispatch = false;
 
   String get _myId => widget.me['id'] as String? ?? '';
+  String? get _agency => widget.me['agency_type'] as String?;
+  String? get _orgId => widget.me['primary_org_id'] as String?;
 
-  late final List<_LayerDef> _layers = [
-    const _LayerDef('incidents', 'Incidents', _red, null),
-    _LayerDef('evac', 'Evacuation Sites', _green,
-        () async => _points(await _api.getEvacuationSites(), 'latitude', 'longitude')),
-    _LayerDef('risk', 'Risk Areas', _orange,
-        () async => _points(await _api.getRiskZones(), 'centroid_lat', 'centroid_lng')),
-    const _LayerDef('teams', 'Response Teams', _orange, null),
-    _LayerDef('hydrants', 'Fire Hydrants', _grey,
-        () async => _points(await _api.getHydrants(), 'latitude', 'longitude')),
-    _LayerDef('water', 'Bodies of Water', _grey,
-        () async => _points(await _api.getBodiesOfWater(), 'latitude', 'longitude')),
-    _LayerDef('fire', 'Fire Department', _red,
-        () async => kFireStations.map((f) => LatLng(f.lat, f.lng)).toList()),
-    _LayerDef('police', 'Police Department', _blue,
-        () async => kPoliceStations.map((f) => LatLng(f.lat, f.lng)).toList()),
-    const _LayerDef('hospital', 'Hospital', _grey, null),
-    const _LayerDef('barangay', 'Barangay Hall', _grey, null),
-  ];
+  late final List<OpsLayer> _layers = opsLayers(_api);
 
   @override
   void initState() {
     super.initState();
+    _tracker.sharingFor.addListener(_rebuild);
     _load();
     _poll = Timer.periodic(const Duration(seconds: 10), (_) => _load());
   }
@@ -90,7 +75,12 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    _tracker.sharingFor.removeListener(_rebuild);
     super.dispose();
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -101,37 +91,62 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         _stats = results[0] as Map<String, dynamic>;
         _incidents = (results[1] as List).cast<Map<String, dynamic>>();
       });
+      _pickUpDispatch();
     } catch (_) {
       // keep last known data
     }
   }
 
-  List<LatLng> _points(List<dynamic> raw, String latKey, String lngKey) {
-    final out = <LatLng>[];
-    for (final e in raw) {
-      final m = e as Map<String, dynamic>;
-      final la = (m[latKey] as num?)?.toDouble();
-      final ln = (m[lngKey] as num?)?.toDouble();
-      if (la != null && ln != null) out.add(LatLng(la, ln));
+  /// A coordinator may dispatch this responder while they are on the
+  /// dashboard, or the app may have been closed mid-response. Either way,
+  /// "5 s while dispatched" (§6) means sharing should start without waiting
+  /// for them to open the incident. Only live, dispatched incidents are
+  /// checked — usually none, rarely more than two.
+  Future<void> _pickUpDispatch() async {
+    if (_tracker.isSharing || _checkingDispatch) return;
+    _checkingDispatch = true;
+    try {
+      for (final inc in _incidents) {
+        if (!const {'dispatched', 'en_route', 'arrived'}.contains(inc['status'])) continue;
+        final id = inc['id'] as String;
+        final dispatches = (await _api.getDispatches(id)).cast<Map<String, dynamic>>();
+        final mine = dispatches.where(
+          (d) => d['responder_id'] == _myId && d['status'] == 'active',
+        );
+        if (mine.isNotEmpty) {
+          await _tracker.start(incidentId: id, dispatchId: mine.first['id'] as String);
+          break;
+        }
+      }
+    } catch (_) {
+      // try again on the next poll
+    } finally {
+      _checkingDispatch = false;
     }
-    return out;
   }
 
-  Future<void> _toggleLayer(_LayerDef layer) async {
-    if (layer.loader == null && layer.key != 'incidents') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${layer.label} layer is not in this build yet.')),
-      );
-      return;
-    }
+  void _openIncident(String incidentId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ResponderIncidentScreen(
+          incidentId: incidentId,
+          myId: _myId,
+          agency: _agency,
+          orgId: _orgId,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleLayer(OpsLayer layer) async {
     if (_enabled.contains(layer.key)) {
       setState(() => _enabled.remove(layer.key));
       return;
     }
     setState(() => _enabled.add(layer.key));
-    if (layer.loader != null && !_cache.containsKey(layer.key)) {
+    if (layer.load != null && !_cache.containsKey(layer.key)) {
       try {
-        final pts = await layer.loader!();
+        final pts = await layer.load!();
         if (mounted) setState(() => _cache[layer.key] = pts);
       } catch (_) {
         if (mounted) {
@@ -145,6 +160,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
 
   Future<void> _logout() async {
     final navigator = Navigator.of(context);
+    await _tracker.stop();
     await PushService.instance.unregister();
     await _api.logout();
     await Session.instance.clear();
@@ -166,6 +182,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         child: Column(
           children: [
             _topBar(),
+            if (_tracker.isSharing) _sharingBanner(),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: _statsGrid(),
@@ -210,6 +227,42 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// While a dispatch is live, say so — the phone is sending the responder's
+  /// position to command, and they should know which incident it is for.
+  Widget _sharingBanner() {
+    final id = _tracker.sharingFor.value!;
+    final designation = _incidents
+        .where((i) => i['id'] == id)
+        .map((i) => i['designation'] as String?)
+        .firstOrNull;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      child: Panel(
+        onTap: () => _openIncident(id),
+        radius: AppRadius.control,
+        color: _green.withValues(alpha: 0.08),
+        border: _green.withValues(alpha: 0.4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            const Icon(Icons.my_location, color: _green, size: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Sharing your location with command'
+                '${designation == null ? '' : ' · $designation'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.rowTitle.copyWith(fontSize: 13),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: _green),
+          ],
+        ),
       ),
     );
   }
@@ -418,7 +471,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
     );
   }
 
-  Widget _chip(_LayerDef layer) {
+  Widget _chip(OpsLayer layer) {
     final on = _enabled.contains(layer.key);
     return GestureDetector(
       onTap: () => _toggleLayer(layer),
@@ -480,20 +533,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
       final pts = _cache[layer.key];
       if (pts == null) continue;
       for (final p in pts) {
-        markers.add(
-          Marker(
-            point: p,
-            width: 16,
-            height: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: layer.color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
-              ),
-            ),
-          ),
-        );
+        markers.add(opsMarker(layer, p));
       }
     }
 
@@ -576,18 +616,15 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 '${(inc['active_dispatch_count'] as num?)?.toInt() ?? 0} responding',
                 style: const TextStyle(color: AppColors.muted, fontSize: 13),
               ),
+              if (routingLabel(inc, agency: _agency) case final routed?) ...[
+                const SizedBox(height: 10),
+                Tag(routed, color: _green, dot: true),
+              ],
               const SizedBox(height: 18),
               GestureDetector(
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ResponderIncidentScreen(
-                        incidentId: inc['id'] as String,
-                        myId: _myId,
-                      ),
-                    ),
-                  );
+                  _openIncident(inc['id'] as String);
                 },
                 child: Container(
                   height: 52,

@@ -59,13 +59,17 @@ class MapTiles {
     maxNativeZoom: 19,
   );
 
+  /// The credit line itself, for a screen that covers the map's corners and
+  /// has to show it somewhere else (the citizen map's areas sheet).
+  static String get credit =>
+      hasToken ? '© Mapbox © OpenStreetMap' : '© OpenStreetMap';
+
   /// Attribution is a licence condition for both providers, not decoration.
-  static Widget attribution() => RichAttributionWidget(
-    alignment: AttributionAlignment.bottomLeft,
-    attributions: [
-      TextSourceAttribution(
-        hasToken ? '© Mapbox © OpenStreetMap' : '© OpenStreetMap',
-      ),
-    ],
+  /// [alignment] moves it off a corner a screen uses for something else.
+  static Widget attribution({
+    AttributionAlignment alignment = AttributionAlignment.bottomLeft,
+  }) => RichAttributionWidget(
+    alignment: alignment,
+    attributions: [TextSourceAttribution(credit)],
   );
 }

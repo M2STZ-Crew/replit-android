@@ -7,17 +7,17 @@ import 'package:latlong2/latlong.dart';
 import '../../api/api_client.dart';
 import '../../api/push_service.dart';
 import '../../api/session.dart';
-import '../../models/facility.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/ops_layers.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
+import 'coordinator_nav.dart';
+import 'pending_reports_screen.dart';
 import 'subadmin_home_screen.dart';
-import 'subadmin_incident_command_screen.dart';
-import 'subadmin_incident_report_screen.dart';
 
 const Color _bg = AppColors.background;
 const Color _panel = AppColors.glassDim;
@@ -26,20 +26,12 @@ const Color _red = AppColors.live;
 const Color _orange = AppColors.accent;
 const Color _green = AppColors.ok;
 const Color _grey = AppColors.muted;
-const Color _blue = AppColors.info;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
-
-class _LayerDef {
-  const _LayerDef(this.key, this.label, this.color, this.loader);
-  final String key;
-  final String label;
-  final Color color;
-  final Future<List<LatLng>> Function()? loader; // null → no backend layer
-}
 
 /// Sub-admin dashboard — live counters + a layered operational map, with a
 /// top-right hamburger that opens the console nav (Incidents, etc.). Incident
-/// markers route by status: active → command screen, otherwise the verify screen.
+/// markers route by status through [openCoordinatorIncident]. The map layers
+/// are the shared staff set in widgets/ops_layers.dart.
 class SubAdminDashboardScreen extends StatefulWidget {
   const SubAdminDashboardScreen({super.key, required this.me});
 
@@ -58,28 +50,11 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
   Map<String, dynamic>? _stats;
   List<Map<String, dynamic>> _incidents = [];
   final Set<String> _enabled = {'incidents'};
-  final Map<String, List<LatLng>> _cache = {};
+  final Map<String, List<OpsPoint>> _cache = {};
 
   String? get _agency => widget.me['agency_type'] as String?;
 
-  late final List<_LayerDef> _layers = [
-    const _LayerDef('incidents', 'Incidents', _red, null),
-    _LayerDef('evac', 'Evacuation Sites', _green,
-        () async => _points(await _api.getEvacuationSites(), 'latitude', 'longitude')),
-    _LayerDef('risk', 'Risk Areas', _orange,
-        () async => _points(await _api.getRiskZones(), 'centroid_lat', 'centroid_lng')),
-    const _LayerDef('teams', 'Response Teams', _orange, null),
-    _LayerDef('hydrants', 'Fire Hydrants', _grey,
-        () async => _points(await _api.getHydrants(), 'latitude', 'longitude')),
-    _LayerDef('water', 'Bodies of Water', _grey,
-        () async => _points(await _api.getBodiesOfWater(), 'latitude', 'longitude')),
-    _LayerDef('fire', 'Fire Department', _red,
-        () async => kFireStations.map((f) => LatLng(f.lat, f.lng)).toList()),
-    _LayerDef('police', 'Police Department', _blue,
-        () async => kPoliceStations.map((f) => LatLng(f.lat, f.lng)).toList()),
-    const _LayerDef('hospital', 'Hospital', _grey, null),
-    const _LayerDef('barangay', 'Barangay Hall', _grey, null),
-  ];
+  late final List<OpsLayer> _layers = opsLayers(_api);
 
   @override
   void initState() {
@@ -107,33 +82,18 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
     }
   }
 
-  List<LatLng> _points(List<dynamic> raw, String latKey, String lngKey) {
-    final out = <LatLng>[];
-    for (final e in raw) {
-      final m = e as Map<String, dynamic>;
-      final la = (m[latKey] as num?)?.toDouble();
-      final ln = (m[lngKey] as num?)?.toDouble();
-      if (la != null && ln != null) out.add(LatLng(la, ln));
-    }
-    return out;
-  }
-
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  Future<void> _toggleLayer(_LayerDef layer) async {
-    if (layer.loader == null && layer.key != 'incidents') {
-      _toast('${layer.label} layer is not in this build yet.');
-      return;
-    }
+  Future<void> _toggleLayer(OpsLayer layer) async {
     if (_enabled.contains(layer.key)) {
       setState(() => _enabled.remove(layer.key));
       return;
     }
     setState(() => _enabled.add(layer.key));
-    if (layer.loader != null && !_cache.containsKey(layer.key)) {
+    if (layer.load != null && !_cache.containsKey(layer.key)) {
       try {
-        final pts = await layer.loader!();
+        final pts = await layer.load!();
         if (mounted) setState(() => _cache[layer.key] = pts);
       } catch (_) {
         if (mounted) _toast('Could not load ${layer.label}.');
@@ -153,40 +113,10 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
     );
   }
 
-  // Route an incident marker tap: active → command screen, else verify screen.
+  // Route an incident marker tap to the right coordinator screen.
   Future<void> _openIncident(Map<String, dynamic> inc) async {
-    final status = (inc['status'] as String?) ?? 'pending';
-    final areaId = inc['id'] as String;
-    final nav = Navigator.of(context);
-    bool? changed;
-    if (const {'dispatched', 'en_route', 'arrived'}.contains(status)) {
-      changed = await nav.push<bool>(MaterialPageRoute(
-        builder: (_) => SubAdminIncidentCommandScreen(areaId: areaId, me: widget.me, api: _api),
-      ));
-    } else {
-      List<dynamic> reports;
-      try {
-        reports = await _api.getIncidentReports(areaId);
-      } catch (_) {
-        reports = const [];
-      }
-      if (!mounted) return;
-      if (reports.isEmpty) {
-        _toast('No reports to review yet.');
-        return;
-      }
-      changed = await nav.push<bool>(MaterialPageRoute(
-        builder: (_) => SubAdminIncidentReportScreen(
-          report: (reports.first as Map).cast<String, dynamic>(),
-          areaId: areaId,
-          status: status,
-          agency: _agency,
-          me: widget.me,
-          api: _api,
-        ),
-      ));
-    }
-    if (changed == true && mounted) _load();
+    final changed = await openCoordinatorIncident(context, incident: inc, me: widget.me, api: _api);
+    if (changed && mounted) _load();
   }
 
   // ------------------------------------------------------------- build ---
@@ -200,6 +130,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
         child: Column(
           children: [
             _topBar(),
+            if (_pendingReports > 0) _pendingBanner(),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: _statsGrid(),
@@ -285,6 +216,15 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                 if (mounted) _load();
               });
             }),
+            _navTile(
+              Icons.assignment_late_outlined,
+              'Pending reports',
+              () {
+                Navigator.of(context).pop();
+                _openPendingReports();
+              },
+              count: _pendingReports,
+            ),
             const Spacer(),
             const Divider(color: _panelBorder, height: 1),
             _navTile(Icons.logout, 'Log out', () {
@@ -298,11 +238,58 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
     );
   }
 
-  Widget _navTile(IconData icon, String label, VoidCallback onTap, {Color color = Colors.white}) {
+  Widget _navTile(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    Color color = Colors.white,
+    int count = 0,
+  }) {
     return ListTile(
       leading: Icon(icon, color: color, size: 20),
       title: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      trailing: count > 0 ? Tag('$count', color: _red, solid: true) : null,
       onTap: onTap,
+    );
+  }
+
+  /// Fire out, Post-Incident Report not yet filed (v10 §2.5) — from the stats.
+  int get _pendingReports => (_stats?['pending_reports'] as num?)?.toInt() ?? 0;
+
+  Future<void> _openPendingReports() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => PendingReportsScreen(api: _api)),
+    );
+    if (mounted) _load();
+  }
+
+  /// A standing reminder while reports are owed. No incident becomes terminal
+  /// without its record, so these do not go away on their own.
+  Widget _pendingBanner() {
+    final n = _pendingReports;
+    final tint = AppColors.forStatus('post_incident_report');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      child: Panel(
+        onTap: _openPendingReports,
+        radius: AppRadius.control,
+        color: tint.withValues(alpha: 0.08),
+        border: tint.withValues(alpha: 0.4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(Icons.assignment_late_outlined, color: tint, size: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '$n Post-Incident Report${n == 1 ? '' : 's'} to file',
+                style: AppText.rowTitle.copyWith(fontSize: 13),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: tint),
+          ],
+        ),
+      ),
     );
   }
 
@@ -461,7 +448,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
     );
   }
 
-  Widget _chip(_LayerDef layer) {
+  Widget _chip(OpsLayer layer) {
     final on = _enabled.contains(layer.key);
     return GestureDetector(
       onTap: () => _toggleLayer(layer),
@@ -522,20 +509,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
       final pts = _cache[layer.key];
       if (pts == null) continue;
       for (final p in pts) {
-        markers.add(
-          Marker(
-            point: p,
-            width: 16,
-            height: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: layer.color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
-              ),
-            ),
-          ),
-        );
+        markers.add(opsMarker(layer, p));
       }
     }
 
@@ -617,6 +591,10 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                 '${(inc['active_dispatch_count'] as num?)?.toInt() ?? 0} responding',
                 style: const TextStyle(color: AppColors.muted, fontSize: 13),
               ),
+              if (routingLabel(inc, agency: _agency) case final routed?) ...[
+                const SizedBox(height: 10),
+                Tag(routed, color: _green, dot: true),
+              ],
               const SizedBox(height: 18),
               GestureDetector(
                 onTap: () {

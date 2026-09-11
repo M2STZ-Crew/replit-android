@@ -59,7 +59,8 @@ cp env.example.json env.json
 ```json
 {
   "MAPBOX_TOKEN": "pk.your_mapbox_public_token",
-  "REPLIT_API_BASE": "http://10.0.2.2:8000"
+  "REPLIT_API_BASE": "http://10.0.2.2:8000",
+  "OBSERVER_CONSOLE_URL": ""
 }
 ```
 
@@ -77,6 +78,10 @@ cp env.example.json env.json
     blocks cleartext HTTP to any address not named there.
   - **Deployed backend:** the `https://…` URL. No config file entry needed,
     because HTTPS is allowed by default.
+- `OBSERVER_CONSOLE_URL` — optional. Police, Medical and Barangay team
+  captains work from the Observer Console on the web (Master Context v10
+  §2.6); when one signs in to the app it shows them this address with an
+  **Open** button. Leave it blank and it tells them to ask their Admin.
 
 `env.json` is gitignored. Never commit it.
 
@@ -129,12 +134,61 @@ the machine itself, and a phone on the same Wi-Fi cannot reach it.
 
 ```bash
 flutter analyze          # must report no issues
-flutter test             # 21 tests
+flutter test             # 66 tests
 ```
 
 The widget tests pump each redesigned screen at the design's 402×874 viewport
 at both normal and 1.5× system font scale, and fail on any layout overflow.
 That guard exists because three real overflows reached a handset before it did.
+
+---
+
+## Timing the report flow
+
+Meeting 12 found the citizen flow too slow (about 20 seconds), and Master
+Context v10 §6 sets no target until it is measured. Every report the app sends
+logs one line saying where the time went:
+
+```
+[report-timing] origin=sos outcome=sent total=12.4s hold_complete=3.0s camera_ready=3.6s location_fix=5.2s photo_taken=6.9s send_pressed=9.8s upload_started=9.8s server_ack=12.4s
+```
+
+Each figure is seconds since the resident first touched SOS (`origin=map` for
+the map's SOS button, `neighbour_alert` for a Report from a nearby-fire alert).
+`upload_started − send_pressed` is time spent still waiting for GPS, and
+`server_ack − upload_started` is the network plus the server. Only durations
+are logged — no location or content.
+
+With a phone plugged in:
+
+```bash
+adb logcat -s flutter | grep report-timing
+```
+
+The GPS fix now starts when the SOS hold begins rather than when the camera
+opens, and the shutter no longer waits for it, so a cold fix overlaps the hold,
+the photo and the agency choice instead of adding to them. If the fresh fix
+times out indoors, the report falls back to the phone's last known position
+(up to 10 minutes old) rather than failing; the accuracy is sent with it.
+
+---
+
+## Responder location sharing
+
+Master Context v10 §6 has a dispatched responder's position reach command
+every 5 seconds *while dispatched*. `lib/location/responder_tracker.dart` does
+this for the whole app, not one screen: it starts when the responder has an
+active dispatch (opening the incident, tapping the dispatch push, or the
+dashboard noticing a dispatch a coordinator made), keeps going when they leave
+the incident screen, and stops by itself once the server refuses a point
+because the dispatch ended (fire out, withdrawn).
+
+On Android it runs as a location foreground service, so it continues with the
+screen off. The phone shows an ongoing "Sharing your location with command"
+notification while it runs; that notification is required by Android and is
+also how the responder knows. This needs the `FOREGROUND_SERVICE`,
+`FOREGROUND_SERVICE_LOCATION` and `WAKE_LOCK` permissions in the manifest. If
+the phone refuses the service, sharing carries on while the app is open.
 
 ---
 

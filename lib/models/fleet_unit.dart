@@ -1,10 +1,9 @@
-/// A fire-fighting unit (truck) in an organization's fleet.
+/// A fire-fighting unit (truck) in an organization's fleet, built from a
+/// GET /equipment row with category 'fire_truck'.
 ///
-/// STATIC demo data for now ([kDemoFleet]): the backend `equipment` table has no
-/// capacity/liters column and dispatch is responder-user-based (dispatch_logs
-/// keyed on responder_id, not trucks), so the fleet is hardcoded for the
-/// dispatch UI. Swap [kDemoFleet] for GET /equipment once an equipment↔incident
-/// dispatch link exists (map status in_use → onCall, available → available).
+/// Dispatch is responder-based (dispatch_logs keys on responder_id), so a unit
+/// is a label on a dispatch and on the Post-Incident Report rather than a thing
+/// dispatched in its own right. Status maps in_use/maintenance → onCall.
 enum FleetStatus { available, onCall }
 
 class FleetUnit {
@@ -57,28 +56,3 @@ class FleetUnit {
     return buf.toString();
   }
 }
-
-/// Demo fleet matching the Figma (Apollo/Achilles available, Hermes on call).
-const List<FleetUnit> kDemoFleet = [
-  FleetUnit(
-    id: 'apollo',
-    name: 'Apollo',
-    type: 'Fire Truck',
-    capacityLiters: 4000,
-    status: FleetStatus.available,
-  ),
-  FleetUnit(
-    id: 'achilles',
-    name: 'Achilles',
-    type: 'Fire Truck',
-    capacityLiters: 3500,
-    status: FleetStatus.available,
-  ),
-  FleetUnit(
-    id: 'hermes',
-    name: 'Hermes',
-    type: 'Fire Truck',
-    capacityLiters: 4000,
-    status: FleetStatus.onCall,
-  ),
-];

@@ -3,39 +3,48 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../models/verification_state.dart';
+import '../sound/sound_cues.dart';
 import '../theme.dart';
+import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
-import 'call_screen.dart';
+import '../widgets/notification_bell.dart';
 import 'edit_profile_screen.dart';
-import 'guide_screen.dart';
 import 'help_center_screen.dart';
 import 'login_screen.dart';
 import 'my_reports_screen.dart';
-import 'notification_settings_screen.dart';
+import 'notifications_screen.dart';
 import 'verification_screen.dart';
 
-const Color _safeGreen = AppColors.ok;
-
-/// "Your account" — reached from the avatar in every screen header, never
-/// from the tab bar. That is the v2 design's arrangement and it is the right
-/// one: the four tabs are things you do in an emergency, and this is not.
+/// "15 Profile" from the REPLIT-OVERHAUL Figma — "Your profile", now a tab.
 ///
-/// v1 opened with a coral gradient banner. The design reserves coral for the
-/// SOS moment, so identity is a glass card like every other surface.
-///
-/// Wired to the backend: GET /auth/me (identity + verified_percent + badge),
-/// links to My Reports (GET /reports/mine), and logout (POST /auth/logout).
+/// Wired to GET /auth/me (name, email, mobile) and GET /verification/status
+/// (the ring, the badge, and which step to suggest next). Settings are only
+/// the ones that do something: "Barangay alerts" registers or unregisters this
+/// phone for pushes, and "Notification sounds" is the "salamat" cue (v10
+/// §2.8). The frame's "Share location always" and "Language" are left out —
+/// there is no background sharing for residents and no second language yet,
+/// and a switch that changes nothing is a lie (§2.7.1). Below the frame: your
+/// reports, the notification inbox (the bell moved here from the SOS screen),
+/// help, and log out.
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.api});
+
+  final ApiClient? api;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final ApiClient _api = ApiClient();
+  late final ApiClient _api = widget.api ?? ApiClient();
 
   Map<String, dynamic>? _me;
+  VerificationState _verification = VerificationState.empty;
+  bool _alerts = true;
+  bool _sounds = true;
+  bool _alertsBusy = false;
+  bool _testing = false;
   bool _loggingOut = false;
 
   @override
@@ -51,84 +60,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {
       // Falls back to the cached session email below.
     }
+    try {
+      final status = await _api.getVerificationStatus();
+      if (mounted) {
+        setState(() => _verification = VerificationState.fromJson(status));
+      }
+    } catch (_) {
+      // The ring stays empty rather than guessing.
+    }
+    try {
+      final alerts = await PushService.instance.isEnabled();
+      final sounds = await SoundCues.instance.reportSentEnabled();
+      if (mounted) {
+        setState(() {
+          _alerts = alerts;
+          _sounds = sounds;
+        });
+      }
+    } catch (_) {
+      // Keep the defaults.
+    }
   }
 
-  // ----------------------------------------------------------- getters ---
   String get _name {
     final n = _me?['full_name'] as String?;
     if (n != null && n.trim().isNotEmpty) return n;
-    final email = (_me?['email'] as String?) ?? Session.instance.email;
+    final email = _email;
     if (email != null && email.contains('@')) return email.split('@').first;
-    return 'RepLiT User';
+    return 'RepLiT user';
   }
 
-  String get _email => (_me?['email'] as String?) ?? Session.instance.email ?? '—';
+  String? get _email => (_me?['email'] as String?) ?? Session.instance.email;
 
-  String get _mobile {
+  String? get _mobile {
     final m = _me?['mobile'] as String?;
-    return (m != null && m.trim().isNotEmpty) ? m : 'Not added';
-  }
-
-  String get _dobLabel {
-    final d = _me?['date_of_birth'] as String?;
-    return (d != null && d.trim().isNotEmpty) ? d : 'Not added';
-  }
-
-  String get _genderLabel {
-    final g = _me?['gender'] as String?;
-    return (g != null && g.trim().isNotEmpty) ? g : 'Not added';
-  }
-
-  int get _percent => (_me?['verified_percent'] as num?)?.toInt() ?? 0;
-
-  String get _badge => (_me?['badge'] as String?) ?? 'yellow';
-
-  bool get _fullyVerified => _badge == 'green_check' || _percent >= 100;
-
-  String get _roleLabel {
-    switch (_me?['role'] as String?) {
-      case 'admin':
-        return 'Administrator';
-      case 'sub_admin':
-        return 'Sub-Admin';
-      case 'response_team':
-        return 'Response Team';
-      default:
-        return 'General User';
-    }
-  }
-
-  Color get _badgeColor {
-    switch (_badge) {
-      case 'green_check':
-      case 'green':
-        return _safeGreen;
-      case 'light_green':
-        return const Color(0xFF84CC16);
-      default:
-        return AppColors.warn;
-    }
-  }
-
-  String get _badgeLabel {
-    switch (_badge) {
-      case 'green_check':
-        return 'Fully Verified';
-      case 'green':
-        return 'Verified';
-      case 'light_green':
-        return 'Partially Verified';
-      default:
-        return 'Unverified';
-    }
+    return (m != null && m.trim().isNotEmpty) ? m : null;
   }
 
   // ------------------------------------------------------------ actions ---
   Future<void> _openVerification() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const VerificationScreen()),
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const VerificationScreen()));
+    _load();
+  }
+
+  Future<void> _editProfile() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EditProfileScreen(
+          fullName: _me?['full_name'] as String?,
+          mobile: _me?['mobile'] as String?,
+          dateOfBirth: _me?['date_of_birth'] as String?,
+          gender: _me?['gender'] as String?,
+        ),
+      ),
     );
-    _load(); // refresh trust level after returning
+    if (changed == true) _load();
+  }
+
+  Future<void> _setAlerts(bool on) async {
+    setState(() {
+      _alerts = on;
+      _alertsBusy = true;
+    });
+    await PushService.instance.setEnabled(on);
+    if (mounted) setState(() => _alertsBusy = false);
+  }
+
+  Future<void> _setSounds(bool on) async {
+    setState(() => _sounds = on);
+    await SoundCues.instance.setReportSentEnabled(on);
+    // Let the resident hear what they just turned on.
+    if (on) SoundCues.instance.playReportSent();
+  }
+
+  Future<void> _sendTest() async {
+    setState(() => _testing = true);
+    String message;
+    try {
+      message = await _api.sendTestPush();
+    } on ApiException catch (e) {
+      message = e.message;
+    } catch (_) {
+      message = 'Could not send a test alert.';
+    }
+    if (!mounted) return;
+    setState(() => _testing = false);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _logout() async {
@@ -144,166 +165,206 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-          children: [
-            const ScreenHeader(title: 'Your account'),
-            const SizedBox(height: 26),
-            _identityCard(),
-            const SizedBox(height: 22),
-            _trustCard(),
+  void _push(Widget screen) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 
-            const SizedBox(height: 26),
-            const Eyebrow('My account', color: AppColors.accent),
-            const SizedBox(height: 12),
-            _menuCard([
-              _MenuRow(
-                Icons.person_outline,
-                'Personal information',
-                subtitle: 'Name, email, and contact',
-                onTap: _personalInfoSheet,
+  void _about() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surfaceSolid,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
+        ),
+      ),
+      builder: (_) => const SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(24, 10, 24, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: SheetHandle()),
+              Text('ABOUT REPLIT', style: AppText.title),
+              SizedBox(height: 14),
+              Text(
+                'RepLiT is Barangay 76\'s emergency reporting network for '
+                'Pasay City. Report an incident, see what is happening near '
+                'you and where the shelters are, learn the basics, and reach '
+                'responders fast.',
+                style: AppText.body,
               ),
-              _MenuRow(
-                Icons.assignment_outlined,
-                'Your reports',
-                subtitle: 'Incidents you have submitted',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const MyReportsScreen()),
-                ),
+              SizedBox(height: 14),
+              Text(
+                'In a real emergency, hold SOS or call 911.',
+                style: AppText.bodySm,
               ),
-              _MenuRow(
-                Icons.verified_user_outlined,
-                'Verification',
-                trailingText: '$_percent%',
-                onTap: _openVerification,
-              ),
-            ]),
-
-            const SizedBox(height: 22),
-            const Eyebrow('App', color: AppColors.accent),
-            const SizedBox(height: 12),
-            _menuCard([
-              _MenuRow(
-                Icons.menu_book_outlined,
-                'Safety guides',
-                subtitle: 'Fire prevention and first aid',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const GuideScreen()),
-                ),
-              ),
-              _MenuRow(
-                Icons.call_outlined,
-                'Emergency hotlines',
-                subtitle: 'Tap to dial responders fast',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CallScreen()),
-                ),
-              ),
-              _MenuRow(
-                Icons.notifications_none,
-                'Notifications',
-                subtitle: 'Push alerts for nearby incidents',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationSettingsScreen(),
-                  ),
-                ),
-              ),
-            ]),
-
-            const SizedBox(height: 22),
-            const Eyebrow('Support', color: AppColors.accent),
-            const SizedBox(height: 12),
-            _menuCard([
-              _MenuRow(
-                Icons.help_outline,
-                'Help centre',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const HelpCenterScreen()),
-                ),
-              ),
-              _MenuRow(Icons.info_outline, 'About RepLiT', onTap: _showAbout),
-            ]),
-
-            const SizedBox(height: 30),
-            AppButton.danger(
-              'Log out',
-              icon: Icons.logout_rounded,
-              busy: _loggingOut,
-              onPressed: _loggingOut ? null : _logout,
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'REPLIT · PASAY CITY · V1.0.0',
-                style: AppText.tag.copyWith(color: AppColors.faint),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ----------------------------------------------------------- identity ---
-  /// The design replaces v1's coral gradient banner with a glass card. Coral is
-  /// reserved for the SOS moment; a profile screen is not one.
-  Widget _identityCard() {
+  // -------------------------------------------------------------- build ---
+  @override
+  Widget build(BuildContext context) {
+    // As a tab it is the only route: it carries the bar and has nothing to go
+    // back to. Opened from elsewhere it keeps a back chevron.
+    final pushed = Navigator.of(context).canPop();
+    final next = _verification.nextStep;
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      bottomNavigationBar: const AppNavBar(active: AppTab.profile),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            children: [
+              ScreenHeader(
+                eyebrow: 'Account',
+                title: 'Your profile',
+                showBack: pushed,
+                trailing: const NotificationBell(),
+              ),
+              const SizedBox(height: 20),
+              _identity(),
+              if (next != null) ...[
+                const SizedBox(height: 10),
+                _nextStep(next),
+              ],
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Eyebrow('Account details', color: AppColors.muted),
+                  ),
+                  GestureDetector(
+                    onTap: _editProfile,
+                    behavior: HitTestBehavior.opaque,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      child: Eyebrow('Edit', color: AppColors.accent),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _details(),
+              const SizedBox(height: 20),
+              const Eyebrow('Settings', color: AppColors.muted),
+              const SizedBox(height: 8),
+              _Toggle(
+                title: 'Barangay alerts',
+                line: 'Fires reported within 300 m, and news on your reports',
+                value: _alerts,
+                busy: _alertsBusy,
+                onChanged: _setAlerts,
+              ),
+              const SizedBox(height: 8),
+              _Toggle(
+                title: 'Notification sounds',
+                line: 'A short cue when a report sends',
+                value: _sounds,
+                onChanged: _setSounds,
+              ),
+              const SizedBox(height: 8),
+              _Link(
+                title: 'Send a test alert',
+                line: 'Check this phone receives them',
+                busy: _testing,
+                onTap: _testing ? null : _sendTest,
+              ),
+              const SizedBox(height: 20),
+              const Eyebrow('More', color: AppColors.muted),
+              const SizedBox(height: 8),
+              _Link(
+                title: 'Your reports',
+                line: 'Everything you have sent, and where it got to',
+                onTap: () => _push(const MyReportsScreen()),
+              ),
+              const SizedBox(height: 8),
+              _Link(
+                title: 'Notifications',
+                line: 'Alerts and updates sent to you',
+                onTap: () => _push(const NotificationsScreen()),
+              ),
+              const SizedBox(height: 8),
+              _Link(
+                title: 'Help centre',
+                line: 'How reporting works, and what happens next',
+                onTap: () => _push(const HelpCenterScreen()),
+              ),
+              const SizedBox(height: 8),
+              _Link(
+                title: 'About RepLiT',
+                line: 'Barangay 76, Pasay City',
+                onTap: _about,
+              ),
+              const SizedBox(height: 24),
+              AppButton.danger(
+                'Log out',
+                icon: Icons.logout_rounded,
+                busy: _loggingOut,
+                onPressed: _loggingOut ? null : _logout,
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'REPLIT · BARANGAY 76 · V1.0.0',
+                  style: AppText.tag.copyWith(color: AppColors.faint),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Avatar in its verification ring, the name, and the badge.
+  Widget _identity() {
+    final v = _verification;
+    final pct = v.percent.clamp(0, 100);
     return Panel(
-      padding: const EdgeInsets.all(20),
-      color: AppColors.glassDim,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
         children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSolid,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.accent.withValues(alpha: 0.5),
-                width: 1.5,
-              ),
+          SizedBox(
+            width: 64,
+            height: 64,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: CircularProgressIndicator(
+                    value: pct / 100,
+                    strokeWidth: 3,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: AppColors.lineStrong,
+                    color: v.color,
+                  ),
+                ),
+                Opacity(
+                  opacity: 0.9,
+                  child: Image.asset(Art.avatar, width: 38, height: 38),
+                ),
+              ],
             ),
-            alignment: Alignment.center,
-            child: Image.asset(Art.avatar, width: 42, height: 42),
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _name.toUpperCase(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.cardTitle.copyWith(
-                    fontSize: 18,
-                    letterSpacing: -0.7,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _email,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.meta,
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: _fullyVerified ? null : _openVerification,
-                  child: Tag(
-                    _fullyVerified ? 'Fully verified' : _badgeLabel,
-                    color: _badgeColor,
-                    dot: !_fullyVerified,
-                  ),
-                ),
+                Text(_name.toUpperCase(), style: AppText.headline),
+                const SizedBox(height: 7),
+                Tag('$pct% verified', color: v.color),
               ],
             ),
           ),
@@ -312,143 +373,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // -------------------------------------------------------- trust card ---
-  Widget _trustCard() {
-    final pct = _percent.clamp(0, 100);
-    return Panel(
-      padding: const EdgeInsets.all(20),
-      color: _badgeColor.withValues(alpha: 0.07),
-      border: _badgeColor.withValues(alpha: 0.35),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$pct%',
-                style: AppText.numeral.copyWith(
-                  fontSize: 36,
-                  color: _badgeColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 5),
-                  child: Eyebrow('Trust level', color: _badgeColor),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: pct / 100,
-              minHeight: 6,
-              backgroundColor: AppColors.lineStrong,
-              color: _badgeColor,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            _fullyVerified
-                ? 'Your account is fully verified. Thank you for keeping '
-                      'reports trustworthy.'
-                : 'Phone +40%, National ID +50%, email +10%. A verified report '
-                      'is trusted faster.',
-            style: AppText.meta.copyWith(height: 16 / 11),
-          ),
-          if (!_fullyVerified) ...[
-            const SizedBox(height: 16),
-            AppButton('Get verified', height: 46, onPressed: _openVerification),
-          ],
-        ],
+  /// "Add your National ID for +50%" — whatever is most worth doing next.
+  Widget _nextStep(VerifyChannel next) {
+    final inReview = _verification.isInReview(next);
+    final (String title, String line) = switch (next) {
+      VerifyChannel.nationalId when inReview => (
+        'Your National ID is being checked',
+        'Its 50% applies once an administrator approves it',
       ),
-    );
-  }
-
-  // -------------------------------------------------------------- menu ---
-  Widget _menuCard(List<_MenuRow> rows) {
-    final children = <Widget>[];
-    for (var i = 0; i < rows.length; i++) {
-      children.add(_menuRowTile(rows[i]));
-      if (i < rows.length - 1) {
-        children.add(
-          const Padding(
-            padding: EdgeInsets.only(left: 64),
-            child: Divider(),
-          ),
-        );
-      }
-    }
-    return Panel(
-      padding: EdgeInsets.zero,
-      color: AppColors.glassDim,
-      child: Column(children: children),
-    );
-  }
-
-  Widget _menuRowTile(_MenuRow row) {
-    return InkWell(
-      onTap: row.onTap,
-      borderRadius: BorderRadius.circular(AppRadius.panel),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      VerifyChannel.nationalId => (
+        'Add your National ID for +50%',
+        'Responders weigh verified reports more heavily',
+      ),
+      VerifyChannel.email => (
+        'Confirm your email for +10%',
+        'One tap on a link we send you',
+      ),
+      VerifyChannel.phone => (
+        'Add your mobile number for +40%',
+        'Confirmed with a code by SMS',
+      ),
+    };
+    return Semantics(
+      button: true,
+      label: '$title. $line',
+      excludeSemantics: true,
+      child: Panel(
+        radius: AppRadius.card,
+        color: AppColors.accent.withValues(alpha: 0.10),
+        border: AppColors.accent.withValues(alpha: 0.45),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        onTap: _openVerification,
         child: Row(
           children: [
-            IconWell(
-              tint: AppColors.accent,
-              icon: row.icon,
-              size: 38,
-              glyph: 18,
-            ),
-            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Text(title, style: AppText.rowTitleLg),
+                  const SizedBox(height: 5),
                   Text(
-                    row.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                      color: AppColors.onBackground,
-                    ),
+                    line,
+                    style: AppText.caption.copyWith(color: AppColors.label),
                   ),
-                  if (row.subtitle != null) ...[
-                    const SizedBox(height: 5),
-                    Text(
-                      row.subtitle!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.meta,
-                    ),
-                  ],
                 ],
               ),
             ),
-            if (row.trailingText != null) ...[
-              const SizedBox(width: 10),
-              Text(
-                row.trailingText!,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.accent,
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
+            const SizedBox(width: 12),
             const Icon(
               Icons.chevron_right_rounded,
               size: 18,
-              color: AppColors.faint,
+              color: AppColors.accent,
             ),
           ],
         ),
@@ -456,162 +432,182 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ------------------------------------------------------------ sheets ---
-  void _personalInfoSheet() {
-    final id = (_me?['id'] as String?);
-    final shortId = (id != null && id.length >= 8) ? '${id.substring(0, 8)}…' : (id ?? '—');
-    _sheet(
-      title: 'Personal Information',
+  Widget _details() {
+    final emailOk = _verification.isVerified(VerifyChannel.email);
+    return Panel(
+      padding: EdgeInsets.zero,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow('Full name', _name),
-          _infoRow('Email', _email),
-          _infoRow('Mobile number', _mobile),
-          _infoRow('Date of birth', _dobLabel),
-          _infoRow('Gender', _genderLabel),
-          _infoRow('Account type', _roleLabel),
-          _infoRow('Trust level', '$_percent% • $_badgeLabel'),
-          _infoRow('Account ID', shortId),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).pop();
-              _openEditProfile();
-            },
-            child: Container(
-              height: 48,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.glass,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.accent),
-              ),
-              child: const Text(
-                'EDIT PROFILE',
-                style: TextStyle(
-                  color: AppColors.accent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
+          _DetailRow(
+            icon: Icons.mail_outline_rounded,
+            label: 'Email',
+            value: _email ?? '—',
+            action: emailOk ? 'Verified' : 'Verify',
+            actionColor: emailOk ? AppColors.ok : AppColors.accent,
+            onTap: emailOk ? null : _openVerification,
+          ),
+          const Divider(),
+          _DetailRow(
+            icon: Icons.smartphone_rounded,
+            label: 'Mobile',
+            value: _mobile ?? 'Not added yet',
+            muted: _mobile == null,
+            action: _mobile == null ? 'Add' : null,
+            actionColor: AppColors.accent,
+            onTap: _mobile == null ? _editProfile : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A row in "Account details": icon, label, value, and what a tap does.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.actionColor,
+    this.action,
+    this.onTap,
+    this.muted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final String? action;
+  final Color actionColor;
+  final VoidCallback? onTap;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, size: 17, color: AppColors.accent),
+            const SizedBox(width: 14),
+            SizedBox(width: 58, child: Eyebrow(label, color: AppColors.muted)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.rowValue.copyWith(
+                  color: muted ? AppColors.muted : AppColors.onBackground,
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Email and account type are managed by your administrator.',
-            style: TextStyle(color: AppColors.muted, fontSize: 11, height: 1.4),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _openEditProfile() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EditProfileScreen(
-          fullName: _me?['full_name'] as String?,
-          mobile: _me?['mobile'] as String?,
-          dateOfBirth: _me?['date_of_birth'] as String?,
-          gender: _me?['gender'] as String?,
-        ),
-      ),
-    );
-    if (changed == true) _load();
-  }
-
-  void _showAbout() {
-    _sheet(
-      title: 'About RepLiT',
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'RepLiT is a fire-volunteer emergency response platform for Pasay '
-            'City. Report incidents, see active areas and safe sites near you, '
-            'learn fire-safety basics, and reach responders fast.',
-            style: TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'In a real emergency, trigger an SOS from the ALERT tab or dial 911.',
-            style: TextStyle(color: AppColors.accent, fontSize: 13, height: 1.4),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 116,
-            child: Eyebrow(label, color: AppColors.muted),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 13,
-                height: 17 / 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.onBackground,
+            if (action != null) ...[
+              const SizedBox(width: 10),
+              Text(
+                action!.toUpperCase(),
+                style: AppText.tag.copyWith(color: actionColor),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _sheet({required String title, required Widget child}) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surfaceSolid,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(child: SheetHandle()),
-              Text(title.toUpperCase(), style: AppText.title),
-              const SizedBox(height: 16),
-              Flexible(child: SingleChildScrollView(child: child)),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _MenuRow {
-  const _MenuRow(
-    this.icon,
-    this.title, {
-    this.subtitle,
-    this.trailingText,
-    required this.onTap,
+/// A 58px settings row with a switch.
+class _Toggle extends StatelessWidget {
+  const _Toggle({
+    required this.title,
+    required this.line,
+    required this.value,
+    required this.onChanged,
+    this.busy = false,
   });
 
-  final IconData icon;
   final String title;
-  final String? subtitle;
-  final String? trailingText;
-  final VoidCallback onTap;
+  final String line;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Panel(
+      radius: AppRadius.card,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: AppText.label),
+                const SizedBox(height: 5),
+                Text(line, style: AppText.caption),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(value: value, onChanged: busy ? null : onChanged),
+        ],
+      ),
+    );
+  }
+}
+
+/// A 58px row that opens something.
+class _Link extends StatelessWidget {
+  const _Link({
+    required this.title,
+    required this.line,
+    this.onTap,
+    this.busy = false,
+  });
+
+  final String title;
+  final String line;
+  final VoidCallback? onTap;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Panel(
+      radius: AppRadius.card,
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(title, style: AppText.label),
+                const SizedBox(height: 5),
+                Text(line, style: AppText.caption),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          busy
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.muted,
+                ),
+        ],
+      ),
+    );
+  }
 }

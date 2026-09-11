@@ -5,6 +5,14 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- A dispatched responder's location keeps going to command with the
+         screen off (lib/location/responder_tracker.dart): geolocator runs it as
+         a location-type foreground service, which Android 14+ refuses without
+         both of these. No background-location permission is needed, because
+         the service starts while the app is open. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <application
         android:label="RepLiT"
         android:name="${applicationName}"

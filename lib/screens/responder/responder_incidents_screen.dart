@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
 import '../../theme.dart';
+import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
 import 'responder_incident_report_screen.dart';
+import 'responder_incident_screen.dart';
+import 'responder_status.dart';
 
 const Color _bg = AppColors.background;
 const Color _panel = AppColors.glassDim;
@@ -21,6 +24,8 @@ Color _areaColor(String s) {
   switch (s) {
     case 'verified':
     case 'resolved':
+    case 'post_incident_report':
+    case 'closed':
       return _green;
     case 'dispatched':
     case 'en_route':
@@ -44,6 +49,8 @@ Color _areaColor(String s) {
     case 'arrived':
       return ('ACTIVE', _red);
     case 'resolved':
+    case 'post_incident_report':
+    case 'closed':
       return ('RESOLVED', _green);
     case 'rejected':
       return ('REJECTED', _red);
@@ -53,9 +60,11 @@ Color _areaColor(String s) {
 }
 
 /// Responder incident feed — incident AREAS as expandable section headers; each
-/// expands to its citizen reports. Tapping a report opens the responder incident
-/// screen (respond / en-route / arrived). The pill shows the responder action /
-/// state for that incident.
+/// expands to its citizen reports. OPEN on a live incident's header goes to the
+/// responder incident screen (respond / en-route / arrived); tapping a report
+/// shows what the citizen reported. The pill shows the responder action / state
+/// for that incident, and a green tag says when Admin has routed it to the
+/// responder's agency (v10 §2.6.2).
 class ResponderIncidentsScreen extends StatefulWidget {
   const ResponderIncidentsScreen({super.key, required this.me});
 
@@ -243,11 +252,31 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
     );
   }
 
+  String? get _agency => widget.me['agency_type'] as String?;
+
+  /// Open the incident itself — where Respond, En route and Arrived are. The
+  /// report cards below only show what a citizen reported.
+  Future<void> _openIncident(String areaId) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ResponderIncidentScreen(
+          incidentId: areaId,
+          myId: widget.me['id'] as String? ?? '',
+          agency: _agency,
+          orgId: widget.me['primary_org_id'] as String?,
+        ),
+      ),
+    );
+    if (mounted) _load(silent: true);
+  }
+
   Widget _areaSection(Map<String, dynamic> area) {
     final id = area['id'] as String;
     final status = (area['status'] as String?) ?? 'pending';
     final color = _areaColor(status);
     final open = _expanded.contains(id);
+    final routed = routingLabel(area, agency: _agency);
+    final actionable = const {'verified', 'dispatched', 'en_route', 'arrived'}.contains(status);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -255,22 +284,44 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
           onTap: () => _toggle(id),
           behavior: HitTestBehavior.opaque,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: const BoxDecoration(
               border: Border(bottom: BorderSide(color: _panelBorder)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  ((area['designation'] as String?) ?? 'Area').toUpperCase(),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ((area['designation'] as String?) ?? 'Area').toUpperCase(),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      if (routed != null) ...[
+                        const SizedBox(height: 6),
+                        Tag(routed, color: _green, dot: true),
+                      ],
+                    ],
                   ),
                 ),
+                if (actionable)
+                  TextButton(
+                    onPressed: () => _openIncident(id),
+                    child: const Text(
+                      'OPEN',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
                 AnimatedRotation(
                   turns: open ? 0 : -0.25,
                   duration: const Duration(milliseconds: 150),

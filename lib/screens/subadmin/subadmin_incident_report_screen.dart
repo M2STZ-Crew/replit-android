@@ -10,7 +10,8 @@ import '../../widgets/incident_map.dart';
 import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
-import 'dispatch_units_screen.dart';
+import 'dispatch_screen.dart';
+import 'post_incident_report_screen.dart';
 
 const Color _bg = AppColors.background;
 const Color _panel = AppColors.glassDim;
@@ -192,14 +193,60 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
     _run(() => _api.rejectIncident(widget.areaId, reason), 'Incident rejected.');
   }
 
-  // Open the 2-step dispatch flow (pick trucks → assign crew → dispatch).
+  // Choose who's going (v10 §2.5 — truck, driver and roles come later, in the
+  // Post-Incident Report).
   Future<void> _openDispatch() async {
     final dispatched = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => DispatchUnitsScreen(areaId: widget.areaId)),
+      MaterialPageRoute(builder: (_) => DispatchScreen(areaId: widget.areaId, api: _api)),
     );
     if (dispatched == true && mounted) {
-      _toast('Units dispatched.');
       Navigator.of(context).pop(true); // back to home, which reloads
+    }
+  }
+
+  /// Fire out from review: the incident moves to the Post-Incident Report step,
+  /// and the report is offered now or left in the tray — the same as from the
+  /// command screen.
+  Future<void> _fireOut() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Fire out?',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        content: const Text('Mark this incident resolved and stop the response.',
+            style: TextStyle(color: AppColors.muted)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dctx).pop(false),
+            child: const Text('CANCEL', style: TextStyle(color: AppColors.muted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dctx).pop(true),
+            child: const Text('FIRE OUT',
+                style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _busy = true);
+    final navigator = Navigator.of(context);
+    try {
+      await _api.resolveIncident(widget.areaId);
+      if (!mounted) return;
+      await offerPostIncidentReport(context, areaId: widget.areaId, api: _api);
+      if (mounted) navigator.pop(true);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast(e.message);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast('Could not resolve. Check your connection.');
+      }
     }
   }
 
@@ -463,8 +510,16 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
   // Lifecycle decision actions, gated by status + agency.
   Widget _actions() {
     final s = _status;
-    if (s == 'resolved') {
-      return _infoBanner('This incident has been resolved.');
+    if (s == 'post_incident_report') {
+      return _infoBanner(
+        'Fire out. The Post-Incident Report is still owed — file it from '
+        'Pending reports in the menu.',
+      );
+    }
+    if (kAfterFireOut.contains(s)) {
+      return _infoBanner(
+        s == 'closed' ? 'Closed — Post-Incident Report filed.' : 'This incident has been resolved.',
+      );
     }
     if (s == 'rejected') {
       return _infoBanner(
@@ -497,11 +552,10 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
         children.add(_darkButton('REJECT', _reject));
       }
     } else if (dispatchable) {
-      // Verified onwards: dispatch units, then resolve / reject.
-      children.add(_gradientButton('DISPATCH UNITS', _openDispatch));
+      // Verified onwards: dispatch responders, then fire out / reject.
+      children.add(_gradientButton('DISPATCH RESPONDERS', _openDispatch));
       children.add(const SizedBox(height: 12));
-      final resolve = _darkButton(
-          'RESOLVE', () => _run(() => _api.resolveIncident(widget.areaId), 'Incident resolved.'));
+      final resolve = _darkButton('FIRE OUT', _fireOut);
       if (canReject) {
         children.add(Row(
           children: [

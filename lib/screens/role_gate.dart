@@ -5,12 +5,15 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'bfp/bfp_dashboard_screen.dart';
 import 'map_screen.dart';
+import 'observer_handoff_screen.dart';
 import 'responder/responder_home_screen.dart';
 import 'subadmin/subadmin_dashboard_screen.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
-/// role from GET /auth/me: response_team → the responder console, everyone else
-/// (general_user / sub_admin / admin) → the citizen app.
+/// role from GET /auth/me: response_team → the responder console; a coordinator
+/// sub-admin (Fire Volunteer, BFP) → their console; an observer sub-admin
+/// (Police, Medical, Barangay) → a pointer to the Observer Console on the web;
+/// everyone else → the citizen app.
 ///
 /// The citizen app now opens on the map, not the SOS dial. That is the v2
 /// design's arrangement: residents open the app to see what is happening, and
@@ -75,6 +78,11 @@ class _RoleGateState extends State<RoleGate> {
       return ResponderHomeScreen(me: me);
     }
     if (role == 'sub_admin') {
+      // Observers (police, medical, barangay) work from the Observer Console on
+      // the web (v10 §2.6); only the coordinators run the response from here.
+      if (isObserverCaptain(me)) {
+        return ObserverHandoffScreen(me: me);
+      }
       // BFP sub-admins get the alarm-review console; Fire-Vol get the full console.
       if (me['agency_type'] == 'bfp') {
         return BfpDashboardScreen(me: me);

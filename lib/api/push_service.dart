@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../screens/camera_capture_screen.dart';
 import '../screens/live_update_screen.dart';
+import '../screens/neighbour_alert_screen.dart';
+import '../screens/responder/responder_incident_screen.dart';
+import '../screens/subadmin/coordinator_nav.dart';
 import '../theme.dart';
 import 'api_client.dart';
 import 'session.dart';
@@ -28,7 +30,8 @@ class PushService {
       GlobalKey<ScaffoldMessengerState>();
 
   /// Lets a tapped notification navigate / show a dialog without a BuildContext.
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   static const String _kEnabledKey = 'push_enabled';
 
@@ -64,7 +67,10 @@ class PushService {
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message == null) return;
       // Let the splash route to home first, then surface the alert.
-      Future.delayed(const Duration(milliseconds: 1700), () => _onOpened(message));
+      Future.delayed(
+        const Duration(milliseconds: 1700),
+        () => _onOpened(message),
+      );
     });
   }
 
@@ -105,7 +111,8 @@ class PushService {
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
@@ -148,7 +155,10 @@ class PushService {
           children: [
             Text(
               title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 2),
             Text(body, style: const TextStyle(color: Colors.white)),
@@ -165,6 +175,53 @@ class PushService {
     } else if (type == 'incident_update') {
       final areaId = message.data['area_id'] as String?;
       if (areaId != null) _openIncident(areaId);
+    } else if (type == 'responder_dispatch') {
+      final areaId = message.data['area_id'] as String?;
+      if (areaId != null) _openDispatch(areaId);
+    } else if (type == 'incident_routed') {
+      final areaId = message.data['area_id'] as String?;
+      if (areaId != null) _openRouted(areaId);
+    }
+  }
+
+  /// Admin routed an incident to this team captain's team (v10 §2.6.2):
+  /// open it where a coordinator acts on it. Observer captains work from the
+  /// web console, so the phone has nothing to open for them.
+  Future<void> _openRouted(String areaId) async {
+    try {
+      final me = await _api.getMe();
+      final coordinator =
+          me['role'] == 'sub_admin' &&
+          const {'fire_volunteer', 'bfp'}.contains(me['agency_type']);
+      if (!coordinator) return;
+      final incident = await _api.getIncident(areaId);
+      final ctx = navigatorKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+      await openCoordinatorIncident(ctx, incident: incident, me: me, api: _api);
+    } catch (_) {
+      // ignore — best-effort deep link; the incident is on the dashboard too
+    }
+  }
+
+  /// A coordinator dispatched this responder: tapping the push opens the
+  /// incident, where En route and Arrived are — and where location sharing
+  /// starts, if the dashboard has not already picked the dispatch up.
+  Future<void> _openDispatch(String areaId) async {
+    try {
+      final me = await _api.getMe();
+      if (me['role'] != 'response_team') return;
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (_) => ResponderIncidentScreen(
+            incidentId: areaId,
+            myId: me['id'] as String? ?? '',
+            agency: me['agency_type'] as String?,
+            orgId: me['primary_org_id'] as String?,
+          ),
+        ),
+      );
+    } catch (_) {
+      // ignore — best-effort deep link; the dispatch is on the dashboard too
     }
   }
 
@@ -186,48 +243,14 @@ class PushService {
     }
   }
 
-  /// Show the "is there a fire near you?" prompt for a 300 m neighborhood alert,
-  /// letting the citizen Report (→ SOS flow, corroborates the incident) or Ignore.
+  /// A 300 m neighbourhood alert opens "Do you see it too?" ("11 Corroborate
+  /// — 300 m"): Yes goes through the SOS photo step as a real report (v10
+  /// §2.2); No stops further alerts for this area.
   void _handleNeighborhood(RemoteMessage message) {
     final areaId = message.data['area_id'] as String?;
     if (areaId == null) return;
-    final ctx = navigatorKey.currentContext;
-    if (ctx == null) return;
-    final title = message.notification?.title ?? 'Alerto sa Sunog';
-    final body = message.notification?.body ??
-        'May sunog ba sa lugar na ito? Mag-report para makatulong.';
-    showDialog<void>(
-      context: ctx,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          title,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-        ),
-        content: Text(body, style: const TextStyle(color: AppColors.muted, height: 1.4)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              _api.respondToAlert(areaId, 'ignore');
-            },
-            child: const Text('IGNORE', style: TextStyle(color: AppColors.muted)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              _api.respondToAlert(areaId, 'report');
-              navigatorKey.currentState?.push(
-                MaterialPageRoute(builder: (_) => const CameraCaptureScreen()),
-              );
-            },
-            child: const Text(
-              'REPORT A FIRE',
-              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800),
-            ),
-          ),
-        ],
-      ),
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => NeighbourAlertScreen(areaId: areaId)),
     );
   }
 

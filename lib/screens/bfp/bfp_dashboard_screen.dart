@@ -7,14 +7,17 @@ import 'package:latlong2/latlong.dart';
 import '../../api/api_client.dart';
 import '../../api/push_service.dart';
 import '../../api/session.dart';
-import '../../models/facility.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/ops_layers.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
+import '../subadmin/coordinator_nav.dart';
+import '../subadmin/pending_reports_screen.dart';
+import '../subadmin/subadmin_home_screen.dart';
 import 'bfp_alarm_requests_screen.dart';
 
 const Color _bg = AppColors.background;
@@ -24,21 +27,18 @@ const Color _red = AppColors.live;
 const Color _orange = AppColors.accent;
 const Color _green = AppColors.ok;
 const Color _grey = AppColors.muted;
-const Color _blue = AppColors.info;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
-class _LayerDef {
-  const _LayerDef(this.key, this.label, this.color, this.loader);
-  final String key;
-  final String label;
-  final Color color;
-  final Future<List<LatLng>> Function()? loader;
-}
-
-/// BFP sub-admin dashboard — situational awareness (live counters + layered map)
-/// plus the entry to the alarm-request review queue (BFP's exclusive authority,
-/// master context v8 §6). BFP cannot verify/dispatch, so incident markers open a
-/// read-only info sheet, not the verify/command screens.
+/// BFP team captain's dashboard — live counters, the layered map, and the
+/// alarm-request review queue (BFP's exclusive authority).
+///
+/// Since v9 BFP is a coordinator (Master Context v10 §2.6.1): it rejects,
+/// dispatches, declares fire out and presses fire codes; only verifying is the
+/// Fire Volunteer's. This screen used to follow the older rule — "BFP has
+/// read-only view of incidents" — and with the Admin Console now Admin-only a
+/// BFP captain had nowhere left to act. Incidents now open the same coordinator
+/// screens a Fire Volunteer captain uses ([openCoordinatorIncident]); the
+/// review screen itself withholds Verify from BFP.
 class BfpDashboardScreen extends StatefulWidget {
   const BfpDashboardScreen({super.key, required this.me});
 
@@ -58,23 +58,14 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   List<Map<String, dynamic>> _incidents = [];
   int _pendingAlarms = 0;
   final Set<String> _enabled = {'incidents'};
-  final Map<String, List<LatLng>> _cache = {};
+  final Map<String, List<OpsPoint>> _cache = {};
 
-  late final List<_LayerDef> _layers = [
-    const _LayerDef('incidents', 'Incidents', _red, null),
-    _LayerDef('evac', 'Evacuation Sites', _green,
-        () async => _points(await _api.getEvacuationSites(), 'latitude', 'longitude')),
-    _LayerDef('risk', 'Risk Areas', _orange,
-        () async => _points(await _api.getRiskZones(), 'centroid_lat', 'centroid_lng')),
-    _LayerDef('hydrants', 'Fire Hydrants', _grey,
-        () async => _points(await _api.getHydrants(), 'latitude', 'longitude')),
-    _LayerDef('water', 'Bodies of Water', _grey,
-        () async => _points(await _api.getBodiesOfWater(), 'latitude', 'longitude')),
-    _LayerDef('fire', 'Fire Department', _red,
-        () async => kFireStations.map((f) => LatLng(f.lat, f.lng)).toList()),
-    _LayerDef('police', 'Police Department', _blue,
-        () async => kPoliceStations.map((f) => LatLng(f.lat, f.lng)).toList()),
-  ];
+  late final List<OpsLayer> _layers = opsLayers(_api);
+
+  Future<void> _openIncident(Map<String, dynamic> inc) async {
+    final changed = await openCoordinatorIncident(context, incident: inc, me: widget.me, api: _api);
+    if (changed && mounted) _load();
+  }
 
   @override
   void initState() {
@@ -107,33 +98,18 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     }
   }
 
-  List<LatLng> _points(List<dynamic> raw, String latKey, String lngKey) {
-    final out = <LatLng>[];
-    for (final e in raw) {
-      final m = e as Map<String, dynamic>;
-      final la = (m[latKey] as num?)?.toDouble();
-      final ln = (m[lngKey] as num?)?.toDouble();
-      if (la != null && ln != null) out.add(LatLng(la, ln));
-    }
-    return out;
-  }
-
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  Future<void> _toggleLayer(_LayerDef layer) async {
-    if (layer.loader == null && layer.key != 'incidents') {
-      _toast('${layer.label} layer is not in this build yet.');
-      return;
-    }
+  Future<void> _toggleLayer(OpsLayer layer) async {
     if (_enabled.contains(layer.key)) {
       setState(() => _enabled.remove(layer.key));
       return;
     }
     setState(() => _enabled.add(layer.key));
-    if (layer.loader != null && !_cache.containsKey(layer.key)) {
+    if (layer.load != null && !_cache.containsKey(layer.key)) {
       try {
-        final pts = await layer.loader!();
+        final pts = await layer.load!();
         if (mounted) setState(() => _cache[layer.key] = pts);
       } catch (_) {
         if (mounted) _toast('Could not load ${layer.label}.');
@@ -249,10 +225,24 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
             ),
             const Divider(color: _panelBorder, height: 1),
             _navTile(Icons.dashboard_outlined, 'Dashboard', () => Navigator.of(context).pop()),
+            _navTile(Icons.list_alt_outlined, 'Incidents', () {
+              Navigator.of(context).pop();
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => SubAdminHomeScreen(me: widget.me)))
+                  .then((_) {
+                if (mounted) _load();
+              });
+            }),
             _navTile(Icons.campaign_outlined, 'Alarm Requests', () {
               Navigator.of(context).pop();
               _openAlarmRequests();
             }),
+            // A BFP team captain files the Post-Incident Report for a BFP
+            // response, as a Fire Volunteer captain does for theirs (v10 §2.5).
+            _navTile(Icons.assignment_late_outlined, 'Pending reports', () {
+              Navigator.of(context).pop();
+              _openPendingReports();
+            }, count: (_stats?['pending_reports'] as num?)?.toInt() ?? 0),
             const Spacer(),
             const Divider(color: _panelBorder, height: 1),
             _navTile(Icons.logout, 'Log out', () {
@@ -266,12 +256,26 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     );
   }
 
-  Widget _navTile(IconData icon, String label, VoidCallback onTap, {Color color = Colors.white}) {
+  Widget _navTile(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    Color color = Colors.white,
+    int count = 0,
+  }) {
     return ListTile(
       leading: Icon(icon, color: color, size: 20),
       title: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      trailing: count > 0 ? Tag('$count', color: _red, solid: true) : null,
       onTap: onTap,
     );
+  }
+
+  Future<void> _openPendingReports() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => PendingReportsScreen(api: _api)),
+    );
+    if (mounted) _load();
   }
 
   // ------------------------------------------------------------ stats ---
@@ -464,7 +468,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     );
   }
 
-  Widget _chip(_LayerDef layer) {
+  Widget _chip(OpsLayer layer) {
     final on = _enabled.contains(layer.key);
     return GestureDetector(
       onTap: () => _toggleLayer(layer),
@@ -520,18 +524,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
       final pts = _cache[layer.key];
       if (pts == null) continue;
       for (final p in pts) {
-        markers.add(Marker(
-          point: p,
-          width: 16,
-          height: 16,
-          child: Container(
-            decoration: BoxDecoration(
-              color: layer.color,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
-            ),
-          ),
-        ));
+        markers.add(opsMarker(layer, p));
       }
     }
     if (_enabled.contains('incidents')) {
@@ -618,9 +611,18 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                   ],
                 ),
               ],
-              const SizedBox(height: 14),
-              const Text('BFP has read-only view of incidents. Use Alarm Requests to escalate.',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.4)),
+              if (routingLabel(inc, agency: 'bfp') case final routed?) ...[
+                const SizedBox(height: 10),
+                Tag(routed, color: _green, dot: true),
+              ],
+              const SizedBox(height: 18),
+              AppButton(
+                'Open incident',
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _openIncident(inc);
+                },
+              ),
             ],
           ),
         ),

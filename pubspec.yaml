@@ -46,6 +46,10 @@ dependencies:
   geocoding: ^4.0.0
   firebase_core: ^4.11.0
   firebase_messaging: ^16.4.1
+  audioplayers: ^6.8.1
+  # Already in the lock through camera/image_picker; declared because the
+  # offline report queue keeps its photos in the app documents directory.
+  path_provider: ^2.1.6
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -56,6 +60,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  geolocator_platform_interface: ^4.3.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -71,6 +76,9 @@ flutter:
   assets:
     - assets/images/
     - assets/design/
+    # Placeholder notification cue (Master Context v10 §2.8) — replace the file
+    # when the final "salamat!" recording is chosen.
+    - assets/sounds/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

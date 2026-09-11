@@ -15,8 +15,12 @@ import '../../models/fleet_unit.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/app_logo.dart';
+import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
+import '../responder/responder_status.dart';
+import 'dispatch_screen.dart';
+import 'post_incident_report_screen.dart';
 
 const Color _bg = AppColors.background;
 const Color _sheet = AppColors.surfaceSolid;
@@ -74,6 +78,15 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
   }
 
   String get _status => (_incident?['status'] as String?) ?? '';
+
+  /// "Routed to your team" when Admin has sent this incident to it (§2.6.2).
+  String? get _routing => _incident == null
+      ? null
+      : routingLabel(
+          _incident!,
+          agency: widget.me['agency_type'] as String?,
+          orgId: widget.me['primary_org_id'] as String?,
+        );
 
   @override
   void initState() {
@@ -312,8 +325,14 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     try {
       await _api.resolveIncident(widget.areaId);
       if (!mounted) return;
-      _toast('Incident resolved.');
-      navigator.pop(true);
+      // Fire out ends the response; the paperwork comes after (v10 §2.5).
+      await offerPostIncidentReport(
+        context,
+        areaId: widget.areaId,
+        designation: _incident?['designation'] as String?,
+        api: _api,
+      );
+      if (mounted) navigator.pop(true);
     } on ApiException catch (e) {
       if (mounted) {
         setState(() => _busy = false);
@@ -325,6 +344,18 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
         _toast('Could not resolve. Check your connection.');
       }
     }
+  }
+
+  Future<void> _openReport() async {
+    final navigator = Navigator.of(context);
+    final filed = await navigator.push<bool>(MaterialPageRoute(
+      builder: (_) => PostIncidentReportScreen(
+        areaId: widget.areaId,
+        designation: _incident?['designation'] as String?,
+        api: _api,
+      ),
+    ));
+    if (filed == true && mounted) navigator.pop(true);
   }
 
   Future<void> _logout() async {
@@ -342,7 +373,6 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
   // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    final resolved = _status == 'resolved' || _status == 'rejected';
     return Scaffold(
       backgroundColor: _bg,
       body: _loading
@@ -359,7 +389,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-                child: _fireOutButton(resolved),
+                child: _fireOutButton(),
               ),
             ),
     );
@@ -506,6 +536,10 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
             children: [
               _addressCard(),
               const SizedBox(height: 12),
+              if (_routing != null) ...[
+                Tag(_routing!, color: AppColors.ok, dot: true),
+                const SizedBox(height: 12),
+              ],
               if (groups.isEmpty)
                 _emptyUnits()
               else
@@ -513,6 +547,15 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
                   _unitCard(entry.key, entry.value),
                   const SizedBox(height: 12),
                 ],
+              if (!const {'resolved', 'post_incident_report', 'closed', 'rejected'}
+                  .contains(_status)) ...[
+                AppButton.secondary(
+                  'Send more responders',
+                  icon: Icons.group_add_outlined,
+                  onPressed: _sendMore,
+                ),
+                const SizedBox(height: 12),
+              ],
               const SizedBox(height: 8),
               const Text('Escalate alarm',
                   style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -611,15 +654,34 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     );
   }
 
-  // Group active dispatches by truck; null vehicle (self-dispatch) under one key.
+  static const String _noUnit = 'Unit not recorded';
+
+  // Group active dispatches by truck. Since v10 §2.5 the truck is optional at
+  // dispatch (it is recorded in the Post-Incident Report), so people sent
+  // without one — or who self-selected — share one group.
   Map<String, List<Map<String, dynamic>>> _groupedDispatches() {
     final m = <String, List<Map<String, dynamic>>>{};
     for (final d in _dispatches) {
       if (d['status'] != 'active') continue;
       final v = (d['vehicle_name'] as String?)?.trim();
-      m.putIfAbsent(v == null || v.isEmpty ? 'Self-dispatched' : v, () => []).add(d);
+      m.putIfAbsent(v == null || v.isEmpty ? _noUnit : v, () => []).add(d);
     }
     return m;
+  }
+
+  /// Send more people to a live incident — the review screen's dispatch is
+  /// only reachable before the response starts.
+  Future<void> _sendMore() async {
+    final sent = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DispatchScreen(
+          areaId: widget.areaId,
+          designation: _incident?['designation'] as String?,
+          api: _api,
+        ),
+      ),
+    );
+    if (sent == true && mounted) _refresh();
   }
 
   Widget _emptyUnits() {
@@ -638,7 +700,9 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
 
   Widget _unitCard(String vehicleName, List<Map<String, dynamic>> crew) {
     final unit = _fleetByName[vehicleName];
-    final subtitle = unit?.subtitle ?? 'Fire Truck';
+    final subtitle = vehicleName == _noUnit
+        ? 'Recorded in the Post-Incident Report'
+        : unit?.subtitle ?? 'Fire Truck';
     Map<String, dynamic>? driver;
     final others = <Map<String, dynamic>>[];
     for (final d in crew) {
@@ -846,17 +910,32 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     );
   }
 
-  Widget _fireOutButton(bool resolved) {
-    if (resolved) {
+  Widget _fireOutButton() {
+    // Fire out, report still owed: the one thing left to do here is file it.
+    if (_status == 'post_incident_report') {
+      return AppButton(
+        'File Post-Incident Report',
+        icon: Icons.assignment_outlined,
+        height: 56,
+        onPressed: _openReport,
+      );
+    }
+    final ended = _status == 'resolved' || _status == 'closed' || _status == 'rejected';
+    if (ended) {
       return Container(
         height: 56,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.glass,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
-        child: const Text('INCIDENT RESOLVED',
-            style: TextStyle(
+        child: Text(
+            _status == 'closed'
+                ? 'INCIDENT CLOSED'
+                : _status == 'rejected'
+                    ? 'INCIDENT REJECTED'
+                    : 'INCIDENT RESOLVED',
+            style: const TextStyle(
                 color: AppColors.muted, fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1)),
       );
     }

@@ -88,7 +88,7 @@ void main() {
       testWidgets('sign up at ${scale}x', (tester) async {
         await pump(tester, const RegisterScreen(), textScale: scale);
         expect(tester.takeException(), isNull);
-        expect(find.text('WHO ARE YOU?'), findsOneWidget);
+        expect(find.text('CREATE YOUR ACCOUNT'), findsOneWidget);
       });
 
       testWidgets('national ID at ${scale}x', (tester) async {
@@ -150,16 +150,12 @@ void main() {
       }
     });
 
-    test('both categories have at least one guide', () {
-      // The GUIDES tab opens the first guide of a category inline; an empty
-      // category would render a featured card with nothing in it.
-      for (final category in [kCatFire, kCatHealth]) {
-        expect(
-          kGuideArticles.where((g) => g.category == category),
-          isNotEmpty,
-          reason: category,
-        );
-      }
+    test('exactly one guide is "Start here", and it has three steps', () {
+      // The GUIDES tab opens it inline with its first steps showing; a second
+      // one would be ambiguous, and a guide with no steps an empty card.
+      final start = kGuideArticles.where((g) => g.startHere).toList();
+      expect(start, hasLength(1));
+      expect(start.single.firstSteps, hasLength(3));
     });
   });
 
@@ -167,7 +163,8 @@ void main() {
     test('every area_status has its own colour', () {
       const statuses = [
         'pending', 'verified', 'dispatched', 'en_route',
-        'arrived', 'resolved', 'rejected', 'merged',
+        'arrived', 'resolved', 'post_incident_report', 'closed',
+        'rejected', 'merged',
       ];
       final seen = <Color>{};
       for (final status in statuses) {

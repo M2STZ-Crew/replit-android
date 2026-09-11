@@ -1,32 +1,36 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../api/session.dart';
+import '../models/verification_state.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import 'national_id_screen.dart';
 import 'phone_verify_screen.dart';
 
-const Color _safeGreen = AppColors.ok;
-
-/// Verification Center — the progressive-verification hub. Shows the user's
-/// aggregate trust level (GET /auth/me) and the three ways to raise it:
-/// Email (+10%), Phone (+40%), and National ID (+50%).
+/// "16 Verification" from the REPLIT-OVERHAUL Figma — "Verify your account".
 ///
-/// /auth/me only exposes the aggregate verified_percent + badge (no per-method
-/// breakdown), so each method is shown as an action; the header % updates after
-/// any step completes.
+/// Reads GET /verification/status, so each channel says where it actually
+/// stands: done, submitted and awaiting an administrator, refused, or not
+/// started — the aggregate percent alone cannot tell those apart, and a
+/// resident told to upload their ID again while the first is still in the
+/// queue would do exactly that. Phone is shown unavailable while no SMS
+/// provider is chosen ([kPhoneVerificationOpen], §10.3).
 class VerificationScreen extends StatefulWidget {
-  const VerificationScreen({super.key});
+  const VerificationScreen({super.key, this.api});
+
+  final ApiClient? api;
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
 }
 
 class _VerificationScreenState extends State<VerificationScreen> {
-  final ApiClient _api = ApiClient();
+  late final ApiClient _api = widget.api ?? ApiClient();
 
-  Map<String, dynamic>? _me;
-  bool _loading = true;
+  VerificationState _state = VerificationState.empty;
+  String? _email;
+  bool _loaded = false;
 
   @override
   void initState() {
@@ -36,42 +40,18 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   Future<void> _load() async {
     try {
-      final me = await _api.getMe();
-      if (mounted) setState(() => _me = me);
+      final status = await _api.getVerificationStatus();
+      if (mounted) setState(() => _state = VerificationState.fromJson(status));
     } catch (_) {
-      // keep previous values
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      // keep what is on screen
     }
-  }
-
-  int get _percent => (_me?['verified_percent'] as num?)?.toInt() ?? 0;
-  String get _badge => (_me?['badge'] as String?) ?? 'yellow';
-  bool get _fullyVerified => _badge == 'green_check' || _percent >= 100;
-
-  Color get _badgeColor {
-    switch (_badge) {
-      case 'green_check':
-      case 'green':
-        return _safeGreen;
-      case 'light_green':
-        return const Color(0xFF84CC16);
-      default:
-        return AppColors.warn;
+    try {
+      final me = await _api.getMe();
+      if (mounted) setState(() => _email = me['email'] as String?);
+    } catch (_) {
+      _email ??= Session.instance.email;
     }
-  }
-
-  String get _badgeLabel {
-    switch (_badge) {
-      case 'green_check':
-        return 'Fully Verified';
-      case 'green':
-        return 'Verified';
-      case 'light_green':
-        return 'Partially Verified';
-      default:
-        return 'Unverified';
-    }
+    if (mounted) setState(() => _loaded = true);
   }
 
   Future<void> _openEmail() async {
@@ -90,223 +70,305 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Future<void> _openPhone() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const PhoneVerifyScreen()),
-    );
+    final changed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const PhoneVerifyScreen()));
     if (changed == true) _load();
   }
 
   Future<void> _openNationalId() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const NationalIdScreen()),
-    );
+    final changed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const NationalIdScreen()));
     if (changed == true) _load();
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = _state;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-          children: [
-            ScreenHeader(
-              eyebrow: 'Credibility',
-              title: 'Verify your account',
-              trailing: _loading
-                  ? const SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    )
-                  : IconWellButton(
-                      icon: Icons.refresh_rounded,
-                      tint: AppColors.muted,
-                      onTap: _load,
-                    ),
-            ),
-            const SizedBox(height: 26),
-            _trustHeader(),
-            const SizedBox(height: 26),
-            const Eyebrow('Three ways to raise it', color: AppColors.accent),
-            const SizedBox(height: 12),
-            _methodCard(
-              icon: Icons.alternate_email,
-              title: 'Email address',
-              subtitle: 'Confirm your email via a secure link.',
-              bonus: '+10%',
-              onTap: _openEmail,
-            ),
-            const SizedBox(height: 10),
-            _methodCard(
-              icon: Icons.smartphone,
-              title: 'Mobile number',
-              subtitle: 'Verify your phone with an SMS code.',
-              bonus: '+40%',
-              onTap: _openPhone,
-            ),
-            const SizedBox(height: 10),
-            _methodCard(
-              icon: Icons.badge_outlined,
-              title: 'National ID',
-              subtitle: 'Upload a government ID and a selfie for review.',
-              bonus: '+50%',
-              onTap: _openNationalId,
-            ),
-            const SizedBox(height: 22),
-            Panel(
-              radius: AppRadius.control,
-              color: AppColors.glassDim,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            children: [
+              const Align(alignment: Alignment.centerLeft, child: BackWell()),
+              const SizedBox(height: 28),
+              const Text('VERIFY YOUR ACCOUNT', style: AppText.heading1),
+              const SizedBox(height: 12),
+              const Text(
+                'Verification never blocks a report. It tells responders how '
+                'much weight to give what you send.',
+                style: AppText.body,
+              ),
+              const SizedBox(height: 24),
+              _progress(s),
+              const SizedBox(height: 24),
+              const Eyebrow('Channels', color: AppColors.muted),
+              const SizedBox(height: 10),
+              _phone(s),
+              const SizedBox(height: 8),
+              _nationalId(s),
+              const SizedBox(height: 8),
+              _emailRow(s),
+              const SizedBox(height: 24),
+              const Eyebrow('Badges', color: AppColors.muted),
+              const SizedBox(height: 10),
+              const Row(
                 children: [
-                  const Icon(
-                    Icons.lock_outline_rounded,
-                    size: 16,
-                    color: AppColors.accent,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Your documents are held privately and used only to '
-                      'verify who you are. A National ID is reviewed by an '
-                      'administrator before the bonus applies.',
-                      style: AppText.meta.copyWith(height: 16 / 11),
-                    ),
-                  ),
+                  Expanded(child: _Legend('Under 50', AppColors.warn)),
+                  SizedBox(width: 8),
+                  Expanded(child: _Legend('50 to 89', AppColors.ok)),
+                  SizedBox(width: 8),
+                  Expanded(child: _Legend('90 to 99', AppColors.ok)),
+                  SizedBox(width: 8),
+                  Expanded(child: _Legend('100', AppColors.ok)),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              Text(
+                'Documents are held privately and used only to confirm who '
+                'you are. A National ID is checked by an administrator before '
+                'its 50% applies.',
+                style: AppText.caption,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _trustHeader() {
-    final pct = _percent.clamp(0, 100);
+  Widget _progress(VerificationState s) {
+    final pct = s.percent.clamp(0, 100);
     return Panel(
-      padding: const EdgeInsets.all(20),
-      color: _badgeColor.withValues(alpha: 0.08),
-      border: _badgeColor.withValues(alpha: 0.35),
+      padding: const EdgeInsets.all(18),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '$pct%',
-                style: AppText.numeral.copyWith(
-                  fontSize: 40,
-                  color: _badgeColor,
+              Expanded(
+                child: Text(
+                  _loaded ? '$pct%' : '—',
+                  style: AppText.numeralXl.copyWith(color: s.color),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 5),
-                  child: Text(
-                    _badgeLabel.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.tag.copyWith(
-                      fontSize: 10,
-                      color: _badgeColor,
-                    ),
-                  ),
+              Container(
+                constraints: const BoxConstraints(minHeight: 22),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: s.color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
+                  border: Border.all(color: s.color.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  s.badgeName.toUpperCase(),
+                  style: AppText.tag.copyWith(color: s.color),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 14),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: pct / 100,
               minHeight: 6,
               backgroundColor: AppColors.lineStrong,
-              color: _badgeColor,
+              color: s.color,
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            _fullyVerified
-                ? 'Your account is fully verified. Thank you for keeping '
-                      'reports trustworthy.'
-                : 'Your level is shown to Fire Volunteer coordinators when they '
-                      'review your reports. It never slows an incident down — it '
-                      'helps them weigh unverified sources.',
-            style: AppText.meta.copyWith(height: 16 / 11),
           ),
         ],
       ),
     );
   }
 
-  Widget _methodCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String bonus,
-    required VoidCallback onTap,
-  }) {
-    return Opacity(
-      opacity: _fullyVerified ? 0.5 : 1,
-      child: Panel(
-        onTap: _fullyVerified ? null : onTap,
-        color: AppColors.glassDim,
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            IconWell(tint: AppColors.accent, icon: icon, size: 44, glyph: 22),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.cardTitle.copyWith(fontSize: 14),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.meta.copyWith(height: 15 / 11),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              bonus,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.3,
-                color: AppColors.accent,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: AppColors.faint,
-            ),
-          ],
+  Widget _phone(VerificationState s) {
+    const c = VerifyChannel.phone;
+    if (s.isVerified(c)) {
+      return const _Channel(channel: c, line: 'Verified', done: true);
+    }
+    if (!kPhoneVerificationOpen) {
+      return const _Channel(
+        channel: c,
+        line: 'Unavailable while we change SMS provider',
+        lineColor: AppColors.warn,
+        trailing: Icon(
+          Icons.error_outline_rounded,
+          size: 16,
+          color: AppColors.warn,
         ),
+        dimmed: true,
+      );
+    }
+    return _Channel(
+      channel: c,
+      line: 'Confirm it with a code by SMS',
+      onTap: _openPhone,
+    );
+  }
+
+  Widget _nationalId(VerificationState s) {
+    const c = VerifyChannel.nationalId;
+    if (s.isVerified(c)) {
+      return const _Channel(channel: c, line: 'Verified', done: true);
+    }
+    if (s.isInReview(c)) {
+      return const _Channel(
+        channel: c,
+        line: 'Submitted — an administrator is checking it',
+        lineColor: AppColors.warn,
+        trailing: Icon(Icons.schedule_rounded, size: 16, color: AppColors.warn),
+      );
+    }
+    return _Channel(
+      channel: c,
+      line: s.isRefused(c)
+          ? 'Not accepted — take the photos again'
+          : 'Camera only — the photo and selfie must be live',
+      lineColor: s.isRefused(c) ? AppColors.live : null,
+      onTap: _openNationalId,
+    );
+  }
+
+  Widget _emailRow(VerificationState s) {
+    const c = VerifyChannel.email;
+    if (s.isVerified(c)) {
+      return _Channel(channel: c, line: _email ?? 'Verified', done: true);
+    }
+    return _Channel(
+      channel: c,
+      line: s.status(c) == 'pending'
+          ? 'Link sent — open it on this phone'
+          : 'Tap for a confirmation link',
+      onTap: _openEmail,
+    );
+  }
+}
+
+/// One channel row: what it is worth, where it stands, what a tap does.
+class _Channel extends StatelessWidget {
+  const _Channel({
+    required this.channel,
+    required this.line,
+    this.lineColor,
+    this.trailing,
+    this.onTap,
+    this.done = false,
+    this.dimmed = false,
+  });
+
+  final VerifyChannel channel;
+  final String line;
+  final Color? lineColor;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final bool done;
+  final bool dimmed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = done ? AppColors.ok : AppColors.accent;
+    return Opacity(
+      opacity: dimmed ? 0.6 : 1,
+      child: Semantics(
+        button: onTap != null,
+        label: '${channel.label}, plus ${channel.percent} percent. $line',
+        excludeSemantics: true,
+        child: Panel(
+          radius: AppRadius.card,
+          onTap: onTap,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: tone.withValues(alpha: done ? 0.14 : 0.16),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '+${channel.percent}%',
+                  style: AppText.cardTitleSm.copyWith(color: tone),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(channel.label, style: AppText.rowTitleLg),
+                    const SizedBox(height: 5),
+                    Text(
+                      line,
+                      style: AppText.caption.copyWith(
+                        color: lineColor ?? AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              trailing ??
+                  (done
+                      ? const Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                          color: AppColors.ok,
+                        )
+                      : const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: AppColors.accent,
+                        )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend(this.label, this.color);
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: AppColors.glass,
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label.toUpperCase(),
+            style: AppText.eyebrow.copyWith(color: AppColors.textSoft),
+          ),
+        ],
       ),
     );
   }
@@ -344,7 +406,11 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _message = e.message);
     } catch (_) {
-      if (mounted) setState(() => _message = 'Could not send the email. Check your connection.');
+      if (mounted) {
+        setState(
+          () => _message = 'Could not send the email. Check your connection.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -356,105 +422,57 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           24,
-          16,
+          10,
           24,
-          24 + MediaQuery.of(context).viewInsets.bottom,
+          24 + MediaQuery.viewInsetsOf(context).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: const SheetHandle(),
-            ),
-            const SizedBox(height: 18),
+            const Center(child: SheetHandle()),
             Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.accentTint,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.alternate_email, color: AppColors.accent),
-                ),
-                const SizedBox(width: 12),
                 const Expanded(
-                  child: Text(
-                    'Verify your email',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: Text('CONFIRM YOUR EMAIL', style: AppText.title),
                 ),
-                const Text(
+                Text(
                   '+10%',
-                  style: TextStyle(
-                    color: _safeGreen,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: AppText.cardTitleSm.copyWith(color: AppColors.accent),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Text(
               _sent
-                  ? "We've sent a verification link to your email. Open it to "
-                      'confirm, then return here — your trust level updates '
-                      'automatically.'
-                  : "We'll email you a secure link. Open it on this device to "
-                      'confirm your address and earn +10%.',
-              style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5),
+                  ? "The link is on its way. Open it on this phone, then come "
+                        'back — your level updates by itself.'
+                  : "We'll email you a secure link. Opening it on this phone "
+                        'confirms the address.',
+              style: AppText.body,
             ),
             if (_message != null) ...[
               const SizedBox(height: 12),
               Text(
                 _message!,
-                style: const TextStyle(color: AppColors.accent, fontSize: 13, height: 1.4),
+                style: AppText.caption.copyWith(color: AppColors.accent),
               ),
             ],
             const SizedBox(height: 20),
-            GestureDetector(
-              onTap: _sending ? null : (_sent ? () => Navigator.of(context).pop() : _send),
-              child: Container(
-                height: 52,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-                ),
-                child: _sending
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: AppColors.accentText),
-                      )
-                    : Text(
-                        _sent ? 'DONE' : 'SEND VERIFICATION EMAIL',
-                        style: const TextStyle(
-                          color: AppColors.accentText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                        ),
-                      ),
-              ),
+            AppButton(
+              _sent ? 'Done' : 'Send the link',
+              busy: _sending,
+              onPressed: _sending
+                  ? null
+                  : _sent
+                  ? () => Navigator.of(context).pop()
+                  : _send,
             ),
             if (_sent) ...[
-              const SizedBox(height: 10),
-              Center(
-                child: TextButton(
-                  onPressed: _sending ? null : _send,
-                  child: const Text(
-                    'Resend email',
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
-                  ),
-                ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _sending ? null : _send,
+                child: const Text('Send it again'),
               ),
             ],
           ],

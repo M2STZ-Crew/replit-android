@@ -88,6 +88,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       Icons.local_shipping_outlined,
       AppColors.accent,
     ),
+    // Admin routed an incident to this team captain's team (v10 §2.6.2).
+    'incident_routed' => (
+      'Routed to your team',
+      Icons.alt_route_rounded,
+      AppColors.ok,
+    ),
     'alarm_request' => (
       'Alarm request',
       Icons.notifications_active_outlined,

@@ -23,6 +23,7 @@ class GuideArticle {
     required this.readMins,
     required this.intro,
     required this.sections,
+    this.startHere = false,
   });
 
   final String category;
@@ -32,6 +33,16 @@ class GuideArticle {
   final int readMins;
   final String intro;
   final List<GuideSection> sections;
+
+  /// The guide the GUIDES tab opens already expanded ("Start here"): the one
+  /// to follow while it is happening, not a prevention read.
+  final bool startHere;
+
+  /// Up to three steps for the "Start here" card: the first point of each
+  /// section, or the first points of a single-section guide.
+  List<String> get firstSteps => sections.length >= 3
+      ? [for (final s in sections.take(3)) s.points.first]
+      : [for (final s in sections) ...s.points].take(3).toList();
 }
 
 /// The full knowledge base. Bite-sized, locally-relevant fire & health guidance.
@@ -41,10 +52,12 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatFire,
     icon: Icons.electrical_services,
     title: 'Prevent Common Fire Hazards',
-    summary: 'Inspect wiring, unplug idle appliances, and keep flammables away '
+    summary:
+        'Inspect wiring, unplug idle appliances, and keep flammables away '
         'from heat sources.',
     readMins: 4,
-    intro: 'Most home fires start from everyday hazards that are easy to '
+    intro:
+        'Most home fires start from everyday hazards that are easy to '
         'control. A few minutes of checking can prevent a tragedy.',
     sections: [
       GuideSection('Electrical safety', [
@@ -69,10 +82,12 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatFire,
     icon: Icons.notifications_active,
     title: 'Smoke Alarm Maintenance',
-    summary: 'Test alarms monthly, replace batteries yearly, and swap units '
+    summary:
+        'Test alarms monthly, replace batteries yearly, and swap units '
         'every 10 years.',
     readMins: 3,
-    intro: 'A working smoke alarm gives you the early warning you need to '
+    intro:
+        'A working smoke alarm gives you the early warning you need to '
         'escape. Maintenance takes only minutes.',
     sections: [
       GuideSection('Where to place them', [
@@ -94,10 +109,12 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatFire,
     icon: Icons.directions_run,
     title: 'Build an Escape Plan',
-    summary: 'Map two exits per room, agree on a meet point, and practice with '
+    summary:
+        'Map two exits per room, agree on a meet point, and practice with '
         'your household.',
     readMins: 5,
-    intro: 'In a real fire you may have less than two minutes to get out. A '
+    intro:
+        'In a real fire you may have less than two minutes to get out. A '
         'plan you have practiced saves lives.',
     sections: [
       GuideSection('Map your exits', [
@@ -119,10 +136,13 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatFire,
     icon: Icons.air,
     title: "If There's Smoke: Stay Low",
-    summary: 'Crawl beneath the smoke layer, cover your mouth, and feel doors '
+    startHere: true,
+    summary:
+        'Crawl beneath the smoke layer, cover your mouth, and feel doors '
         'before opening.',
     readMins: 2,
-    intro: 'Smoke and toxic gas — not flames — cause most fire deaths. Staying '
+    intro:
+        'Smoke and toxic gas — not flames — cause most fire deaths. Staying '
         'low keeps you in the cleaner air near the floor.',
     sections: [
       GuideSection('Move low and fast', [
@@ -144,10 +164,12 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatHealth,
     icon: Icons.healing,
     title: 'Treating Minor Burns',
-    summary: 'Cool the burn under running water, cover it loosely, and avoid '
+    summary:
+        'Cool the burn under running water, cover it loosely, and avoid '
         'home remedies.',
     readMins: 3,
-    intro: 'Quick, correct first aid limits the damage from minor burns. Know '
+    intro:
+        'Quick, correct first aid limits the damage from minor burns. Know '
         'what to do — and what to avoid.',
     sections: [
       GuideSection('Cool the burn', [
@@ -168,10 +190,12 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatHealth,
     icon: Icons.masks,
     title: 'Smoke Inhalation First Aid',
-    summary: 'Get to fresh air, watch for trouble breathing, and call for help '
+    summary:
+        'Get to fresh air, watch for trouble breathing, and call for help '
         'on warning signs.',
     readMins: 3,
-    intro: 'Breathing in smoke can harm someone even without visible burns. '
+    intro:
+        'Breathing in smoke can harm someone even without visible burns. '
         'Watch closely for the warning signs.',
     sections: [
       GuideSection('Get to fresh air', [
@@ -192,10 +216,12 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatHealth,
     icon: Icons.favorite,
     title: 'Helping Someone in Shock',
-    summary: 'Lay them down, keep them warm, and get medical help — do not give '
+    summary:
+        'Lay them down, keep them warm, and get medical help — do not give '
         'food or drink.',
     readMins: 2,
-    intro: 'Shock can follow any serious injury or fright. Simple steps keep '
+    intro:
+        'Shock can follow any serious injury or fright. Simple steps keep '
         'the person stable until help arrives.',
     sections: [
       GuideSection('Recognize it', [
@@ -212,10 +238,12 @@ const List<GuideArticle> kGuideArticles = [
     category: kCatHealth,
     icon: Icons.bloodtype,
     title: 'Stop Bleeding from a Wound',
-    summary: 'Press firmly with a clean cloth, keep pressure on, and call for '
+    summary:
+        'Press firmly with a clean cloth, keep pressure on, and call for '
         'serious bleeding.',
     readMins: 4,
-    intro: 'Controlling heavy bleeding fast can save a life before responders '
+    intro:
+        'Controlling heavy bleeding fast can save a life before responders '
         'arrive.',
     sections: [
       GuideSection('Apply pressure', [

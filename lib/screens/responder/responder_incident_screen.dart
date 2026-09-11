@@ -5,15 +5,16 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart' as geo;
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
+import '../../location/responder_tracker.dart';
 import '../../models/fleet_unit.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
+import 'responder_status.dart';
 
 const Color _bg = AppColors.background;
 const Color _sheet = AppColors.surfaceSolid;
@@ -29,14 +30,30 @@ const Color _red = AppColors.live;
 
 /// The responder's active-incident command screen: live map (incident + other
 /// responders + my GPS), address + route ETA, my unit/crew, the respond →
-/// en-route → arrived progression with 5 s GPS streaming, the field escalations
-/// (Need Water / Need Assistance / Escalate to BFP), and REQUEST FIRE OUT
-/// (signals command via the Fire-Out code; the sub-admin resolves).
+/// en-route → arrived progression, the field escalations (Need Water / Need
+/// Assistance / Escalate to BFP), and REQUEST FIRE OUT (signals command via
+/// the Fire-Out code; the sub-admin resolves).
+///
+/// Location sharing is [ResponderTracker]'s, not this screen's: it starts here
+/// when the responder has an active dispatch and carries on after they leave,
+/// until the dispatch ends (v10 §6 — "5 s while dispatched").
+///
+/// Response Teams exist in all five agencies. [agency] decides which controls
+/// are offered: fire codes to fire crews, the BFP escalation to Fire Volunteer
+/// responders only — the server refuses anyone else (§2.7.1).
 class ResponderIncidentScreen extends StatefulWidget {
-  const ResponderIncidentScreen({super.key, required this.incidentId, required this.myId});
+  const ResponderIncidentScreen({
+    super.key,
+    required this.incidentId,
+    required this.myId,
+    this.agency,
+    this.orgId,
+  });
 
   final String incidentId;
   final String myId;
+  final String? agency;
+  final String? orgId;
 
   @override
   State<ResponderIncidentScreen> createState() => _ResponderIncidentScreenState();
@@ -45,8 +62,8 @@ class ResponderIncidentScreen extends StatefulWidget {
 class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   final ApiClient _api = ApiClient();
   final MapController _map = MapController();
+  final ResponderTracker _tracker = ResponderTracker.instance;
   Timer? _poll;
-  Timer? _gps;
 
   Map<String, dynamic>? _incident;
   List<Map<String, dynamic>> _responders = [];
@@ -55,19 +72,26 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   final Map<String, FleetUnit> _fleetByName = {};
   final Map<String, String> _fireCodeIds = {};
 
-  LatLng? _myPos;
   String? _address;
   String? _etaText;
 
   bool _loading = true;
   bool _busy = false;
-  bool _streaming = false;
   bool _pressing = false;
   bool _geocoded = false;
+
+  LatLng? get _myPos {
+    final p = _tracker.position.value;
+    return p == null ? null : LatLng(p.latitude, p.longitude);
+  }
+
+  bool get _streaming => _tracker.sharingFor.value == widget.incidentId;
 
   @override
   void initState() {
     super.initState();
+    _tracker.position.addListener(_onTracker);
+    _tracker.sharingFor.addListener(_onTracker);
     _load();
     _loadStatics();
     _poll = Timer.periodic(const Duration(seconds: 6), (_) => _load(silent: true));
@@ -76,11 +100,31 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   @override
   void dispose() {
     _poll?.cancel();
-    _gps?.cancel();
+    // The tracker keeps sharing after this screen closes — that is the point.
+    _tracker.position.removeListener(_onTracker);
+    _tracker.sharingFor.removeListener(_onTracker);
     super.dispose();
   }
 
+  DateTime? _lastEta;
+
+  void _onTracker() {
+    if (!mounted) return;
+    setState(() {});
+    // The route ETA is a network call; once every 15 s is plenty.
+    final now = DateTime.now();
+    if (_lastEta == null || now.difference(_lastEta!) > const Duration(seconds: 15)) {
+      _lastEta = now;
+      _computeEta();
+    }
+  }
+
   String get _status => (_incident?['status'] as String?) ?? 'pending';
+
+  /// "Routed to your team" when Admin has sent this incident your way (§2.6.2).
+  String? get _routing => _incident == null
+      ? null
+      : routingLabel(_incident!, agency: widget.agency, orgId: widget.orgId);
   bool get _hasActiveDispatch => _myDispatch != null;
   bool get _active => const {'dispatched', 'en_route', 'arrived'}.contains(_status);
   bool get _shouldStream => _hasActiveDispatch && _active;
@@ -155,51 +199,15 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   }
 
   // ----------------------------------------------------------- streaming ---
+  /// Start sharing when this responder has an active dispatch on a live
+  /// incident; stop when the poll shows it has ended here (withdrawn, fire
+  /// out). The tracker also stops itself when the server refuses a point.
   void _syncStreaming() {
-    if (_shouldStream && _gps == null) {
-      _gps = Timer.periodic(const Duration(seconds: 5), (_) => _postGps());
-      _postGps();
-    } else if (!_shouldStream && _gps != null) {
-      _gps?.cancel();
-      _gps = null;
-      if (mounted) setState(() => _streaming = false);
-    }
-  }
-
-  Future<Position?> _currentPosition() async {
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) return null;
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-        return null;
-      }
-      return await Geolocator.getCurrentPosition();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> _postGps() async {
-    final pos = await _currentPosition();
-    if (pos == null || !mounted) return;
-    setState(() => _myPos = LatLng(pos.latitude, pos.longitude));
-    _computeEta();
-    final dispatch = _myDispatch;
-    if (dispatch == null) return;
-    try {
-      await _api.postResponderLocation(
-        widget.incidentId,
-        lat: pos.latitude,
-        lng: pos.longitude,
-        accuracyM: pos.accuracy >= 0 ? pos.accuracy : null,
-        speedMps: pos.speed >= 0 ? pos.speed : null,
-        headingDeg: (pos.heading >= 0 && pos.heading < 360) ? pos.heading : null,
-        dispatchId: dispatch['id'] as String?,
-      );
-      if (mounted) setState(() => _streaming = true);
-    } catch (_) {
-      // retry next tick
+    final dispatchId = _myDispatch?['id'] as String?;
+    if (_shouldStream && dispatchId != null) {
+      _tracker.start(incidentId: widget.incidentId, dispatchId: dispatchId);
+    } else if (!_shouldStream && _streaming) {
+      _tracker.stop();
     }
   }
 
@@ -398,7 +406,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                 Expanded(child: _panelContent()),
               ],
             ),
-      bottomNavigationBar: _loading
+      // Fire out is a fire crew's call to make; other crews have no such code.
+      bottomNavigationBar: _loading || !isFireCrew(widget.agency)
           ? null
           : SafeArea(
               top: false,
@@ -532,6 +541,10 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_routing != null) ...[
+                Tag(_routing!, color: AppColors.ok, dot: true),
+                const SizedBox(height: 12),
+              ],
               _addressCard(),
               const SizedBox(height: 12),
               _myUnitCard(),
@@ -749,12 +762,15 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
 
   // The respond → en-route → arrived progression + withdraw.
   Widget _lifecycle() {
-    if (_status == 'resolved' || _status == 'rejected') {
+    if (kAfterFireOut.contains(_status) || _status == 'rejected') {
       return _infoBox(
         Icons.flag_outlined,
-        _status == 'resolved'
-            ? 'This incident has been resolved. Stand down.'
-            : 'This incident was rejected by command.',
+        _status == 'rejected'
+            ? 'This incident was rejected by command.'
+            // Members do not file the Post-Incident Report (v10 §2.5) — the
+            // team captain does, for everyone who went.
+            : 'This incident has been resolved. Stand down — your team captain '
+                'files the Post-Incident Report.',
       );
     }
     if (_status == 'pending') {
@@ -787,22 +803,26 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
 
   List<Widget> _escalationsBlock() {
     if (!_hasActiveDispatch || !_active) return const [];
+    final fireCrew = isFireCrew(widget.agency);
     return [
       const SizedBox(height: 16),
-      const Text('Escalate alarm', style: TextStyle(color: Colors.white, fontSize: 16)),
+      Text(fireCrew ? 'Escalate alarm' : 'Call for help',
+          style: const TextStyle(color: Colors.white, fontSize: 16)),
       const SizedBox(height: 4),
-      const Text('Broadcast a fire code to all responding units',
+      const Text('Broadcast a code to all responding units',
           style: TextStyle(color: _muted, fontSize: 12)),
       const SizedBox(height: 12),
-      _escalationRow(
-        icon: Icons.water_drop_outlined,
-        tint: const Color(0x1E3B82F6),
-        iconColor: AppColors.info,
-        title: 'Need Water',
-        subtitle: 'Request additional water supply',
-        onTap: () => _pressCode('FC-6', 'Need Water'),
-      ),
-      const SizedBox(height: 10),
+      if (fireCrew) ...[
+        _escalationRow(
+          icon: Icons.water_drop_outlined,
+          tint: const Color(0x1E3B82F6),
+          iconColor: AppColors.info,
+          title: 'Need Water',
+          subtitle: 'Request additional water supply',
+          onTap: () => _pressCode('FC-6', 'Need Water'),
+        ),
+        const SizedBox(height: 10),
+      ],
       _escalationRow(
         icon: Icons.group_add_outlined,
         tint: const Color(0x1EF59E0B),
@@ -811,15 +831,17 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         subtitle: 'Request backup responders',
         onTap: () => _pressCode('FC-7', 'Need Assistance'),
       ),
-      const SizedBox(height: 10),
-      _escalationRow(
-        icon: Icons.campaign_outlined,
-        tint: const Color(0x23EF4444),
-        iconColor: AppColors.live,
-        title: 'Escalate to BFP',
-        subtitle: 'Request alarm escalation to BFP',
-        onTap: _escalateBfp,
-      ),
+      if (mayRequestAlarm(widget.agency)) ...[
+        const SizedBox(height: 10),
+        _escalationRow(
+          icon: Icons.campaign_outlined,
+          tint: const Color(0x23EF4444),
+          iconColor: AppColors.live,
+          title: 'Escalate to BFP',
+          subtitle: 'Request alarm escalation to BFP',
+          onTap: _escalateBfp,
+        ),
+      ],
     ];
   }
 

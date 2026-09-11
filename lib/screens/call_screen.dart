@@ -5,18 +5,15 @@ import '../models/hotline.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
-import 'profile_screen.dart';
 
-/// "Call for help" — the HOTLINES tab, in the v2 design.
+/// "12 Hotlines" from the REPLIT-OVERHAUL Figma — "Call for help".
 ///
 /// Everything here is local. No session, no network, no loading state: the
 /// screen has to work when the rest of the app cannot, which is the whole
 /// reason it exists.
 ///
-/// The numbers themselves are the team's existing [kHotlines] list, untouched.
-/// The design's own directory listed two more (Pasay City General Hospital and
-/// a DRRMO mobile) — those are not added here, because a hotline nobody on the
-/// team has verified is worse than one fewer entry.
+/// The numbers themselves are the team's verified [kHotlines] list; see there
+/// for why the frame's extra numbers are not added.
 class CallScreen extends StatefulWidget {
   const CallScreen({super.key});
 
@@ -72,9 +69,7 @@ class _CallScreenState extends State<CallScreen> {
                 title: 'Call for help',
                 showBack: false,
                 trailing: AvatarWell(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                  ),
+                  onTap: () => AppNavBar.switchTo(context, AppTab.profile),
                 ),
               ),
             ),
@@ -116,14 +111,37 @@ class _CallScreenState extends State<CallScreen> {
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                itemCount: _visible.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (_, i) => _HotlineRow(
-                  hotline: _visible[i],
-                  onTap: () => _dial(_visible[i]),
-                ),
+              child: Stack(
+                children: [
+                  ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
+                    itemCount: _visible.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) => _HotlineRow(
+                      hotline: _visible[i],
+                      onTap: () => _dial(_visible[i]),
+                    ),
+                  ),
+                  // The list fades into the tab bar rather than stopping at a
+                  // hard edge.
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 56,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x00131313), Color(0xF2131313)],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -139,101 +157,98 @@ class _HotlineRow extends StatelessWidget {
   final Hotline hotline;
   final VoidCallback onTap;
 
-  Color get _tint => switch (hotline.category) {
-    HotlineCategory.fire => AppColors.live,
-    HotlineCategory.medical => AppColors.ok,
-    HotlineCategory.police => AppColors.crime,
-    HotlineCategory.pasay => AppColors.accent,
-    HotlineCategory.all =>
-      hotline.featured ? AppColors.accent : AppColors.textSoft,
-  };
-
   @override
   Widget build(BuildContext context) {
     // 911 gets the coral treatment; everything else is a plain glass row, so
     // the one number that always works is the one the eye finds first.
-    final short = hotline.displayNumber.length <= 4;
+    final short = hotline.displayNumber.length <= 5;
+    final neutral = hotline.tint == AppColors.textSoft;
 
-    return Panel(
-      radius: AppRadius.card,
-      onTap: onTap,
-      color: hotline.featured
-          ? AppColors.accent.withValues(alpha: 0.09)
-          : AppColors.glassDim,
-      border: hotline.featured
-          ? AppColors.accent.withValues(alpha: 0.4)
-          : AppColors.line,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      child: Row(
-        children: [
-          IconWell(tint: _tint, icon: hotline.icon),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  hotline.name.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.cardTitle.copyWith(fontSize: 13),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  hotline.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.meta.copyWith(
-                    height: 15 / 11,
-                    color: hotline.featured
-                        ? AppColors.label
-                        : AppColors.muted,
-                  ),
-                ),
-              ],
+    return Semantics(
+      button: true,
+      label: '${hotline.name}, ${hotline.displayNumber}. Tap to dial.',
+      excludeSemantics: true,
+      child: Panel(
+        radius: AppRadius.card,
+        onTap: onTap,
+        color: hotline.featured
+            ? AppColors.accent.withValues(alpha: 0.10)
+            : AppColors.glass,
+        border: hotline.featured
+            ? AppColors.accent.withValues(alpha: 0.45)
+            : AppColors.line,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: hotline.tint.withValues(alpha: neutral ? 0.10 : 0.16),
+                borderRadius: BorderRadius.circular(AppRadius.control),
+              ),
+              alignment: Alignment.center,
+              child: hotline.art != null
+                  ? Image.asset(hotline.art!, width: 21, height: 21)
+                  : Icon(hotline.icon, size: 19, color: hotline.tint),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Capped and scaled down rather than allowed to push the row wide:
-          // a landline like "(02) 8426-0219" at a 1.5x system font scale is
-          // half the width of the phone on its own.
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 108),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    hotline.displayNumber,
+                    hotline.name.toUpperCase(),
                     maxLines: 1,
-                    style: TextStyle(
-                      fontSize: short ? 17 : 13,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                      color: hotline.featured
-                          ? AppColors.accent
-                          : AppColors.onBackground,
-                    ),
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.cardTitleSm,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 5),
                   Text(
-                    'TAP TO DIAL',
+                    hotline.summary,
                     maxLines: 1,
-                    style: AppText.tag.copyWith(
-                      fontSize: 8,
-                      color: AppColors.muted,
-                    ),
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.caption.copyWith(color: AppColors.label),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            // Capped and scaled down rather than allowed to push the row wide:
+            // a landline like "(02) 8426-0219" at a 1.5x system font scale is
+            // half the width of the phone on its own.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 116),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      hotline.displayNumber,
+                      maxLines: 1,
+                      style: (short ? AppText.numeralSm : AppText.cardTitle)
+                          .copyWith(
+                            color: hotline.featured
+                                ? AppColors.accent
+                                : AppColors.onBackground,
+                          ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      hotline.featured ? 'Toll-free nationwide' : 'Tap to dial',
+                      maxLines: 1,
+                      style: AppText.captionSm,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

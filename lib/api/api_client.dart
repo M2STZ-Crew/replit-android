@@ -139,7 +139,9 @@ class ApiClient {
   Future<String> sendTestPush() async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/devices/test'),
-      headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
     );
     final body = _decode(resp);
     return (body['message'] as String?) ?? 'Test notification sent.';
@@ -157,11 +159,14 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/reports/submit');
     final request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer ${Session.instance.accessToken ?? ''}'
+      ..headers['Authorization'] =
+          'Bearer ${Session.instance.accessToken ?? ''}'
       ..fields['device_lat'] = lat.toString()
       ..fields['device_lng'] = lng.toString()
       ..fields['selected_agencies'] = agencies.join(',');
-    if (accuracyM != null) request.fields['device_gps_accuracy_m'] = accuracyM.toString();
+    if (accuracyM != null) {
+      request.fields['device_gps_accuracy_m'] = accuracyM.toString();
+    }
     if (notes != null && notes.isNotEmpty) request.fields['notes'] = notes;
     request.files.add(
       http.MultipartFile.fromBytes(
@@ -171,7 +176,9 @@ class ApiClient {
         contentType: MediaType('image', 'jpeg'),
       ),
     );
-    final streamed = await request.send();
+    // Through the shared client (not request.send(), which opens a new one):
+    // the connection is reused, and a test can stand in for the server.
+    final streamed = await _client.send(request);
     final resp = await http.Response.fromStream(streamed);
     return _decode(resp);
   }
@@ -180,7 +187,9 @@ class ApiClient {
   Future<Map<String, dynamic>> getArea(String areaId) async {
     final resp = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}/areas/$areaId'),
-      headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
     );
     return _decode(resp);
   }
@@ -189,7 +198,9 @@ class ApiClient {
   Future<List<dynamic>> getEvacuationSites() async {
     final resp = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}/map/evacuation-sites'),
-      headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
     );
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, 'Failed to load evacuation sites.');
@@ -206,7 +217,9 @@ class ApiClient {
     final query = activeOnly ? '' : '?active_only=false';
     final resp = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}/areas$query'),
-      headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
     );
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, 'Failed to load incident areas.');
@@ -238,7 +251,22 @@ class ApiClient {
   Future<Map<String, dynamic>> getMe() async {
     final resp = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}/auth/me'),
-      headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
+    );
+    return _decode(resp);
+  }
+
+  /// Progressive verification, per channel: GET /verification/status.
+  /// `{verified_percent, badge, channels: [{type, status, ...}]}` — the only
+  /// way to tell "never submitted" from "submitted, awaiting review".
+  Future<Map<String, dynamic>> getVerificationStatus() async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/verification/status'),
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
     );
     return _decode(resp);
   }
@@ -247,7 +275,9 @@ class ApiClient {
   Future<List<dynamic>> getMyReports() async {
     final resp = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}/reports/mine'),
-      headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
     );
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, 'Failed to load your reports.');
@@ -300,7 +330,9 @@ class ApiClient {
     try {
       await _client.delete(
         Uri.parse('${ApiConfig.baseUrl}/devices/$fcmToken'),
-        headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+        headers: {
+          'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+        },
       );
     } catch (_) {
       // ignore — local token is cleared regardless
@@ -331,7 +363,9 @@ class ApiClient {
     try {
       await _client.post(
         Uri.parse('${ApiConfig.baseUrl}/auth/logout'),
-        headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+        headers: {
+          'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+        },
       );
     } catch (_) {
       // Ignore — the local session is cleared regardless.
@@ -349,7 +383,9 @@ class ApiClient {
   Future<String> requestEmailVerification() async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/verification/email/request'),
-      headers: {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'},
+      headers: {
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
     );
     final body = _decode(resp);
     return (body['message'] as String?) ?? 'Verification email sent.';
@@ -394,9 +430,12 @@ class ApiClient {
     String idFilename = 'national_id.jpg',
     String selfieFilename = 'selfie.jpg',
   }) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/verification/national-id/manual');
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}/verification/national-id/manual',
+    );
     final request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer ${Session.instance.accessToken ?? ''}';
+      ..headers['Authorization'] =
+          'Bearer ${Session.instance.accessToken ?? ''}';
     request.files.add(
       http.MultipartFile.fromBytes(
         'id_image',
@@ -422,16 +461,33 @@ class ApiClient {
   // Responder / staff incidents (response_team console)
   // ----------------------------------------------------------------- //
 
-  Map<String, String> get _auth =>
-      {'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}'};
+  Map<String, String> get _auth => {
+    'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+  };
 
-  Map<String, String> get _jsonAuth => {'Content-Type': 'application/json', ..._auth};
+  Map<String, String> get _jsonAuth => {
+    'Content-Type': 'application/json',
+    ..._auth,
+  };
 
   /// List incidents visible to the caller's agency: GET /incidents.
-  Future<List<dynamic>> getIncidents({bool activeOnly = true}) async {
-    final query = activeOnly ? '' : '?active_only=false';
+  ///
+  /// [status] filters to one area_status; pass activeOnly: false with it for a
+  /// status that is off the live feed (e.g. 'post_incident_report').
+  Future<List<dynamic>> getIncidents({
+    bool activeOnly = true,
+    String? status,
+  }) async {
+    final query = Uri(
+      queryParameters: {
+        if (!activeOnly) 'active_only': 'false',
+        'status': ?status,
+      },
+    ).query;
     final resp = await _client.get(
-      Uri.parse('${ApiConfig.baseUrl}/incidents$query'),
+      Uri.parse(
+        '${ApiConfig.baseUrl}/incidents${query.isEmpty ? '' : '?$query'}',
+      ),
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
@@ -571,7 +627,10 @@ class ApiClient {
   }
 
   /// Execute (apply) an alarm request — BFP only: POST /alarm-requests/{id}/execute.
-  Future<Map<String, dynamic>> executeAlarmRequest(String id, {String? notes}) async {
+  Future<Map<String, dynamic>> executeAlarmRequest(
+    String id, {
+    String? notes,
+  }) async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/alarm-requests/$id/execute'),
       headers: _jsonAuth,
@@ -581,7 +640,10 @@ class ApiClient {
   }
 
   /// Reject an alarm request — BFP only: POST /alarm-requests/{id}/reject.
-  Future<Map<String, dynamic>> rejectAlarmRequest(String id, {String? notes}) async {
+  Future<Map<String, dynamic>> rejectAlarmRequest(
+    String id, {
+    String? notes,
+  }) async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/alarm-requests/$id/reject'),
       headers: _jsonAuth,
@@ -609,9 +671,14 @@ class ApiClient {
   }
 
   /// Withdraw a dispatch: POST /incidents/{id}/dispatches/{dispatchId}/withdraw.
-  Future<Map<String, dynamic>> withdrawDispatch(String id, String dispatchId) async {
+  Future<Map<String, dynamic>> withdrawDispatch(
+    String id,
+    String dispatchId,
+  ) async {
     final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/dispatches/$dispatchId/withdraw'),
+      Uri.parse(
+        '${ApiConfig.baseUrl}/incidents/$id/dispatches/$dispatchId/withdraw',
+      ),
       headers: _auth,
     );
     return _decode(resp);
@@ -636,7 +703,10 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load responder locations.');
+      throw ApiException(
+        resp.statusCode,
+        'Failed to load responder locations.',
+      );
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -708,6 +778,47 @@ class ApiClient {
     return _decode(resp);
   }
 
+  /// File the Post-Incident Report (team captain, Master Context v10 §2.5):
+  /// POST /incidents/{id}/post-incident-report. Single submit — the report and
+  /// the incident's close commit together, and a filed report cannot be edited.
+  /// [roster] items are {name, role?, user_id?}.
+  Future<Map<String, dynamic>> filePostIncidentReport(
+    String id, {
+    String? truckEquipmentId,
+    required String truckLabel,
+    required String truckType,
+    required String driverName,
+    String? driverUserId,
+    required List<Map<String, dynamic>> roster,
+    required List<String> equipmentTaken,
+    String? notes,
+  }) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/post-incident-report'),
+      headers: _jsonAuth,
+      body: jsonEncode({
+        'truck_equipment_id': ?truckEquipmentId,
+        'truck_label': truckLabel,
+        'truck_type': truckType,
+        'driver_name': driverName,
+        'driver_user_id': ?driverUserId,
+        'roster': roster,
+        'equipment_taken': equipmentTaken,
+        'notes': ?notes,
+      }),
+    );
+    return _decode(resp);
+  }
+
+  /// A filed Post-Incident Report: GET /incidents/{id}/post-incident-report.
+  Future<Map<String, dynamic>> getPostIncidentReport(String id) async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/post-incident-report'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
   /// Responder dashboard counters: GET /incidents/stats.
   Future<Map<String, dynamic>> getIncidentStats() async {
     final resp = await _client.get(
@@ -717,10 +828,12 @@ class ApiClient {
     return _decode(resp);
   }
 
-  /// Map layer reads (any authenticated user).
+  /// Map layer reads (any authenticated user — Master Context v10 §2.4).
   Future<List<dynamic>> getHydrants() => _mapLayer('hydrants');
   Future<List<dynamic>> getRiskZones() => _mapLayer('risk-zones');
   Future<List<dynamic>> getBodiesOfWater() => _mapLayer('bodies-of-water');
+  Future<List<dynamic>> getUndergroundCisterns() =>
+      _mapLayer('underground-cisterns');
 
   Future<List<dynamic>> _mapLayer(String layer) async {
     final resp = await _client.get(
@@ -746,7 +859,9 @@ class ApiClient {
         ? jsonDecode(resp.body) as Map<String, dynamic>
         : <String, dynamic>{};
     if (resp.statusCode >= 400) {
-      final message = (body['message'] as String?) ?? 'Request failed (${resp.statusCode}).';
+      final message =
+          (body['message'] as String?) ??
+          'Request failed (${resp.statusCode}).';
       throw ApiException(resp.statusCode, message);
     }
     return body;

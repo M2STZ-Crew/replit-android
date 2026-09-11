@@ -9,9 +9,9 @@ import '../widgets/design.dart';
 import 'login_screen.dart';
 import 'role_gate.dart';
 
-/// The splash from the "General User App v2" hand-off: a slow breathing halo
-/// behind the mark while the session is restored. This and the SOS button are
-/// the only two places the design allows glow.
+/// "01 Splash" from the REPLIT-OVERHAUL Figma: the mark in its glow, the
+/// plain wordmark, a short coral loader, and the locality at the foot. This
+/// and the SOS button are the only two places the design allows glow (§2.7).
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -19,12 +19,18 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
+// Two controllers — the breathing halo and the loader — so the plural mixin.
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _breathe = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 3400),
   )..repeat(reverse: true);
+
+  late final AnimationController _loader = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  )..repeat();
 
   @override
   void initState() {
@@ -35,6 +41,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _breathe.dispose();
+    _loader.dispose();
     super.dispose();
   }
 
@@ -57,65 +64,110 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0, -0.16),
-            radius: 0.8,
-            colors: [Color(0x1CFF9066), Color(0x00131313)],
-          ),
-        ),
-        child: SafeArea(
-          // Padded, and every line below wraps: at the larger system font
-          // scales people actually use, an unpadded single-line footer runs
-          // off both edges of the screen.
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
+      body: SafeArea(
+        // Padded, and every line below wraps: at the larger system font
+        // scales people actually use, an unpadded single-line footer runs
+        // off both edges of the screen.
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
             children: [
+              // The frame puts the mark's centre at ~40% and the locality
+              // 64px off the bottom; 3:2 flex keeps that on any height.
               const Spacer(flex: 3),
-              AnimatedBuilder(
-                animation: _breathe,
-                builder: (context, child) => Transform.scale(
-                  scale: 1 + _breathe.value * 0.06,
-                  child: Opacity(
-                    opacity: 0.92 + _breathe.value * 0.08,
-                    child: child,
-                  ),
-                ),
-                child: Image.asset(Art.mark, width: 112, height: 112),
-              ),
-              const SizedBox(height: 34),
-              Image.asset(Art.wordmark, width: 186, fit: BoxFit.contain),
-              const Spacer(flex: 2),
-              const SizedBox(
-                width: 106,
-                height: 3,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(2)),
-                  child: LinearProgressIndicator(minHeight: 3),
-                ),
-              ),
+              _markInGlow(),
+              // 125px from the mark in the frame, less the glow's 39px margin.
+              const SizedBox(height: 86),
+              Image.asset(Art.wordmarkType, width: 118, height: 21),
+              const SizedBox(height: 52),
+              _loaderBar(),
               const SizedBox(height: 18),
               Text(
-                'CONNECTING TO PASAY CITY',
+                'CONNECTING TO BARANGAY 76',
                 textAlign: TextAlign.center,
                 style: AppText.eyebrow.copyWith(color: AppColors.muted),
               ),
-              const Spacer(),
+              const Spacer(flex: 2),
               Text(
-                'FIRE VOLUNTEER RESPONSE · PASAY CITY',
+                'Barangay 76, Pasay City',
                 textAlign: TextAlign.center,
-                style: AppText.tag.copyWith(
-                  fontSize: 10,
-                  height: 1.5,
-                  letterSpacing: 0.6,
-                  color: AppColors.faint,
+                style: AppText.labelSm,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'EMERGENCY RESPONSE NETWORK',
+                textAlign: TextAlign.center,
+                style: AppText.eyebrow.copyWith(color: AppColors.muted),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The 112px mark inside its 190px glow ("Mark glow (permitted §2.7)"),
+  /// breathing slowly while the session restores.
+  Widget _markInGlow() {
+    return SizedBox(
+      width: 190,
+      height: 190,
+      child: AnimatedBuilder(
+        animation: _breathe,
+        builder: (context, child) => Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 190,
+              height: 190,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.accent.withValues(
+                      alpha: 0.16 + _breathe.value * 0.06,
+                    ),
+                    AppColors.accent.withValues(alpha: 0),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-            ],
             ),
+            Transform.scale(scale: 1 + _breathe.value * 0.04, child: child),
+          ],
+        ),
+        child: Image.asset(Art.mark, width: 112, height: 112),
+      ),
+    );
+  }
+
+  /// A 34px coral segment running along a 106px track — the design's loader.
+  Widget _loaderBar() {
+    const track = 106.0;
+    const fill = 34.0;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(2),
+      child: Container(
+        width: track,
+        height: 3,
+        color: AppColors.lineStrong,
+        child: AnimatedBuilder(
+          animation: _loader,
+          builder: (context, _) => Stack(
+            children: [
+              Positioned(
+                left: -fill + (track + fill) * _loader.value,
+                top: 0,
+                bottom: 0,
+                width: fill,
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.all(Radius.circular(2)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

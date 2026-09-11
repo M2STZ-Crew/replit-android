@@ -9,6 +9,14 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'role_gate.dart';
 
+/// "03 Sign up" from the REPLIT-OVERHAUL Figma: three fields and you are in.
+///
+/// v2 asked for first and last name, date of birth, gender, mobile and a
+/// password twice. The overhaul keeps what `/auth/signup` needs — full name,
+/// email, password — and leaves mobile, birthday and gender to Edit Profile,
+/// where they always could be set. The password field keeps a show/hide eye
+/// the frame does not draw: with the confirm field gone, it is the only way to
+/// check what you typed.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -18,78 +26,41 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final ApiClient _api = ApiClient();
-  final _firstName = TextEditingController();
-  final _lastName = TextEditingController();
+  final _name = TextEditingController();
   final _email = TextEditingController();
-  final _mobile = TextEditingController();
   final _password = TextEditingController();
-  final _confirm = TextEditingController();
 
-  DateTime? _dob;
-  String? _gender;
   bool _agree = false;
-  bool _obscure1 = true;
-  bool _obscure2 = true;
+  bool _obscure = true;
   bool _loading = false;
 
   @override
   void dispose() {
-    _firstName.dispose();
-    _lastName.dispose();
+    _name.dispose();
     _email.dispose();
-    _mobile.dispose();
     _password.dispose();
-    _confirm.dispose();
     super.dispose();
   }
 
-  String _two(int n) => n.toString().padLeft(2, '0');
-  String _fmtDate(DateTime d) => '${_two(d.month)}/${_two(d.day)}/${d.year}';
-  String _isoDate(DateTime d) => '${d.year}-${_two(d.month)}-${_two(d.day)}';
-
-  Future<void> _pickDob() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(now.year - 18, now.month, now.day),
-      firstDate: DateTime(1900),
-      lastDate: now,
-    );
-    if (picked != null) setState(() => _dob = picked);
-  }
-
   Future<void> _submit() async {
-    final first = _firstName.text.trim();
-    final last = _lastName.text.trim();
+    final name = _name.text.trim().replaceAll(RegExp(r'\s+'), ' ');
     final email = _email.text.trim();
     final password = _password.text;
 
-    if (first.isEmpty || last.isEmpty) {
-      return _error('Please enter your first and last name.');
-    }
+    if (name.isEmpty) return _error('Please enter your full name.');
     if (!email.contains('@') || !email.contains('.')) {
       return _error('Please enter a valid email address.');
     }
     if (password.length < 8) {
       return _error('Password must be at least 8 characters.');
     }
-    if (password != _confirm.text) {
-      return _error('Passwords do not match.');
-    }
     if (!_agree) {
-      return _error('Please accept the Terms and Agreements.');
+      return _error('Please agree to sharing your location and reports.');
     }
 
     setState(() => _loading = true);
     try {
-      await _api.signup(
-        email: email,
-        password: password,
-        fullName: '$first $last',
-        mobile: _mobile.text.trim().isEmpty ? null : _mobile.text.trim(),
-        dateOfBirth: _dob == null ? null : _isoDate(_dob!),
-        gender: _gender,
-      );
+      await _api.signup(email: email, password: password, fullName: name);
       await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
       if (!mounted) return;
@@ -109,7 +80,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _error(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.gradientEnd),
+      SnackBar(content: Text(message), backgroundColor: AppColors.live),
     );
   }
 
@@ -118,294 +89,174 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const BackWell(),
-                  const SizedBox(width: 16),
-                  ...List.generate(
-                    3,
-                    (i) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Container(
-                        width: 26,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: i == 0
-                              ? AppColors.accent
-                              : AppColors.lineStrong,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
+        child: FootedScroll(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
+          content: [
+            const Align(alignment: Alignment.centerLeft, child: BackWell()),
+            const SizedBox(height: 28),
+            const Text('CREATE YOUR ACCOUNT', style: AppText.display),
+            const SizedBox(height: 8),
+            const Text(
+              'Three fields and you are in. Verifying your number and '
+              'ID comes later — reports work either way.',
+              style: AppText.body,
+            ),
+            const SizedBox(height: 46),
+            LabeledField(
+              label: 'Full name',
+              builder: (focus) => TextField(
+                controller: _name,
+                focusNode: focus,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.name],
+                style: AppText.input,
+                decoration: const InputDecoration(hintText: 'As on your ID'),
+              ),
+            ),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: 'Email address',
+              builder: (focus) => TextField(
+                controller: _email,
+                focusNode: focus,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autocorrect: false,
+                autofillHints: const [AutofillHints.email],
+                style: AppText.input,
+                decoration: const InputDecoration(hintText: 'you@email.com'),
+              ),
+            ),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: 'Password',
+              builder: (focus) => TextField(
+                controller: _password,
+                focusNode: focus,
+                obscureText: _obscure,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.newPassword],
+                style: AppText.input,
+                decoration: InputDecoration(
+                  hintText: 'At least 8 characters',
+                  suffixIcon: IconButton(
+                    iconSize: 18,
+                    color: AppColors.muted,
+                    tooltip: _obscure ? 'Show password' : 'Hide password',
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  // Flexible so the caption gives way rather than pushing the
-                  // step bars off the screen at a large font scale.
-                  const Flexible(
-                    child: Eyebrow('Step 1 · account', color: AppColors.muted),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              const Text('WHO ARE YOU?', style: AppText.display),
-              const SizedBox(height: 10),
-              const Text(
-                'Responders see your name the moment you send an alert. Your '
-                'number and ID come later and raise how fast a report is '
-                'trusted.',
-                style: AppText.body,
-              ),
-              const SizedBox(height: 30),
-              Row(
-                children: [
-                  Expanded(
-                    child: _group(
-                      'FIRST NAME',
-                      _input(_firstName, 'First Name'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _group('LAST NAME', _input(_lastName, 'Last Name')),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _group('DATE OF BIRTH', _dobField())),
-                  const SizedBox(width: 16),
-                  Expanded(child: _group('GENDER', _genderField())),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _group(
-                'EMAIL',
-                _input(
-                  _email,
-                  'Enter your email',
-                  keyboard: TextInputType.emailAddress,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _group(
-                'MOBILE NUMBER',
-                _input(_mobile, 'Mobile number', keyboard: TextInputType.phone),
-              ),
-              const SizedBox(height: 16),
-              _group(
-                'PASSWORD',
-                _input(
-                  _password,
-                  'Password',
-                  obscure: _obscure1,
-                  suffix: _eye(
-                    () => setState(() => _obscure1 = !_obscure1),
-                    _obscure1,
+                    onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              _group(
-                'CONFIRM PASSWORD',
-                _input(
-                  _confirm,
-                  'Confirm Password',
-                  obscure: _obscure2,
-                  suffix: _eye(
-                    () => setState(() => _obscure2 = !_obscure2),
-                    _obscure2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Checkbox(
-                      value: _agree,
-                      onChanged: (v) => setState(() => _agree = v ?? false),
-                      side: const BorderSide(color: AppColors.label, width: 2),
-                      activeColor: AppColors.accent,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'I agree to the ',
-                            style: TextStyle(
-                              color: AppColors.label,
-                              fontSize: 12,
-                              height: 1.6,
-                            ),
-                          ),
-                          TextSpan(
-                            text: 'Terms and Agreements',
-                            style: TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 12,
-                            ),
-                          ),
-                          TextSpan(
-                            text:
-                                ' and acknowledge the privacy policy regarding sensitive emergency data.',
-                            style: TextStyle(
-                              color: AppColors.label,
-                              fontSize: 12,
-                              height: 1.6,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _signUpButton(),
-              const SizedBox(height: 20),
-              Center(
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Already have an account? ',
-                          style: TextStyle(
-                            color: AppColors.label,
-                            fontSize: 14,
-                          ),
-                        ),
-                        TextSpan(
-                          text: 'Log in.',
-                          style: TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
+            ),
+            const SizedBox(height: 13),
+            _terms(),
+            const SizedBox(height: 40),
+            const Eyebrow('Verify later, earn up to 100%'),
+            const SizedBox(height: 10),
+            // The trust weights the server scores (§2.3), shown so the
+            // later steps have a reason. Informational, not buttons —
+            // there is nothing to verify until the account exists.
+            const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _Weight('+40%', 'Mobile')),
+                SizedBox(width: 8),
+                Expanded(child: _Weight('+50%', 'National ID')),
+                SizedBox(width: 8),
+                Expanded(child: _Weight('+10%', 'Email')),
+              ],
+            ),
+          ],
+          footer: AppButton(
+            'Create account',
+            height: 54,
+            busy: _loading,
+            onPressed: _loading ? null : _submit,
           ),
         ),
       ),
     );
   }
 
-  Widget _group(String label, Widget field) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Eyebrow(label, color: AppColors.label),
-      const SizedBox(height: 9),
-      field,
-    ],
-  );
-
-  BoxDecoration _box() => BoxDecoration(
-    color: AppColors.inputBg,
-    borderRadius: BorderRadius.circular(AppRadius.control),
-    border: Border.all(color: AppColors.line),
-  );
-
-  Widget _input(
-    TextEditingController controller,
-    String hint, {
-    bool obscure = false,
-    TextInputType keyboard = TextInputType.text,
-    Widget? suffix,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      keyboardType: keyboard,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
-        color: AppColors.onBackground,
+  Widget _terms() {
+    return Semantics(
+      checked: _agree,
+      child: GestureDetector(
+        onTap: () => setState(() => _agree = !_agree),
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: _agree ? AppColors.accent : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: _agree
+                    ? null
+                    : Border.all(color: AppColors.lineStrong, width: 1.5),
+              ),
+              child: _agree
+                  ? const Icon(
+                      Icons.check_rounded,
+                      size: 13,
+                      color: AppColors.accentText,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'I agree that my location and reports may be shared with '
+                'Barangay 76 and responding agencies during an emergency.',
+                style: AppText.caption.copyWith(color: AppColors.label),
+              ),
+            ),
+          ],
+        ),
       ),
-      decoration: InputDecoration(hintText: hint, suffixIcon: suffix),
     );
   }
+}
 
-  Widget _eye(VoidCallback onTap, bool obscured) => IconButton(
-    icon: Icon(
-      obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-      color: AppColors.darkText,
-      size: 20,
-    ),
-    onPressed: onTap,
-  );
+/// One verification weight: "+40%" over "MOBILE".
+class _Weight extends StatelessWidget {
+  const _Weight(this.value, this.label);
 
-  Widget _dobField() => GestureDetector(
-    onTap: _pickDob,
-    child: Container(
-      height: 47,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: _box(),
-      child: Text(
-        _dob == null ? 'mm/dd/yyyy' : _fmtDate(_dob!),
-        style: TextStyle(
-          color: _dob == null ? AppColors.darkText : Colors.white,
-          fontSize: 16,
-        ),
-      ),
-    ),
-  );
+  final String value;
+  final String label;
 
-  Widget _genderField() => Container(
-    height: 47,
-    padding: const EdgeInsets.symmetric(horizontal: 16),
-    decoration: _box(),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        isExpanded: true,
-        value: _gender,
-        hint: const Text(
-          'Select',
-          style: TextStyle(color: AppColors.darkText, fontSize: 16),
-        ),
-        dropdownColor: AppColors.surface,
-        icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.muted),
-        style: const TextStyle(color: Colors.white, fontSize: 16),
-        items: const [
-          DropdownMenuItem(value: 'Male', child: Text('Male')),
-          DropdownMenuItem(value: 'Female', child: Text('Female')),
-          DropdownMenuItem(value: 'Other', child: Text('Other')),
-          DropdownMenuItem(
-            value: 'Prefer not to say',
-            child: Text('Prefer not to say'),
+  @override
+  Widget build(BuildContext context) {
+    return Panel(
+      radius: AppRadius.chip,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: AppText.cardTitleSm.copyWith(color: AppColors.accent),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label.toUpperCase(),
+            style: AppText.eyebrow.copyWith(
+              letterSpacing: 0.5,
+              color: AppColors.muted,
+            ),
           ),
         ],
-        onChanged: (v) => setState(() => _gender = v),
       ),
-    ),
-  );
-
-  Widget _signUpButton() => AppButton(
-    'Create account',
-    height: 54,
-    busy: _loading,
-    onPressed: _loading ? null : _submit,
-  );
+    );
+  }
 }

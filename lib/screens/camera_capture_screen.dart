@@ -3,22 +3,36 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:geolocator/geolocator.dart';
 
+import '../diagnostics/report_timing.dart';
+import '../location/sos_location.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/incident_map.dart';
 import 'sos_report_screen.dart';
 
+/// A photo taken again from the report screen, with the place it names.
+typedef RetakenPhoto = ({List<int> bytes, String? address});
+
 /// "Show them" — step 2 of the SOS flow in the v2 hand-off.
 ///
 /// A live preview with the user's current location (reverse-geocoded address
 /// plus coordinates) and a mini-map, then the required incident photo. On
-/// capture it hands the bytes and GPS to [SosReportScreen].
+/// capture it hands the bytes to [SosReportScreen].
+///
+/// The GPS fix is [SosLocation]'s, started when the resident began holding
+/// SOS. The shutter no longer waits for it (v10 §6): the fix keeps working
+/// while they choose who to call, and only the send waits, if it must.
 ///
 /// The design's "Skip the photo" affordance is not offered: the server rejects
 /// a report without one, and the photo is what it cross-references against the
 /// device fix. A button that cannot work is worse than no button.
 class CameraCaptureScreen extends StatefulWidget {
-  const CameraCaptureScreen({super.key});
+  const CameraCaptureScreen({super.key, this.retake = false});
+
+  /// Opened from the report screen to replace its photo: the capture pops
+  /// back with the new one (a [RetakenPhoto]) rather than opening a second
+  /// report on top of the first.
+  final bool retake;
 
   @override
   State<CameraCaptureScreen> createState() => _CameraCaptureScreenState();
@@ -34,23 +48,46 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   bool _capturing = false;
   bool _torch = false;
 
-  Position? _position;
+  final SosLocation _location = SosLocation.instance;
   String? _address;
-  bool _locating = true;
+  Position? _geocodedFor;
+
+  Position? get _position => _location.position.value;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _location.position.addListener(_onPosition);
+    _location.problem.addListener(_onPosition);
     _initCamera();
-    _getLocation();
+    // Joins the fix the SOS hold started, or starts one (asking for permission
+    // here if it was never granted).
+    _location.warmUp();
+    _geocodeIfNew();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _location.position.removeListener(_onPosition);
+    _location.problem.removeListener(_onPosition);
     _controller?.dispose();
     super.dispose();
+  }
+
+  void _onPosition() {
+    if (!mounted) return;
+    setState(() {});
+    _geocodeIfNew();
+  }
+
+  void _geocodeIfNew() {
+    final p = _position;
+    if (p != null && !identical(p, _geocodedFor)) {
+      _geocodedFor = p;
+      _reverseGeocode(p.latitude, p.longitude);
+    }
   }
 
   @override
@@ -69,16 +106,22 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     try {
       final cams = await availableCameras();
       if (cams.isEmpty) {
-        if (mounted) setState(() => _camError = 'No camera found on this device.');
+        if (mounted) {
+          setState(() => _camError = 'No camera found on this device.');
+        }
         return;
       }
       _cameras = cams;
-      final back = cams.indexWhere((c) => c.lensDirection == CameraLensDirection.back);
+      final back = cams.indexWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+      );
       _camIndex = back >= 0 ? back : 0;
       await _setController(_camIndex);
     } on CameraException catch (e) {
       if (mounted) {
-        setState(() => _camError = e.description ?? 'Camera permission denied.');
+        setState(
+          () => _camError = e.description ?? 'Camera permission denied.',
+        );
       }
     } catch (_) {
       if (mounted) setState(() => _camError = 'Camera unavailable.');
@@ -97,6 +140,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       await prev?.dispose();
       await controller.initialize();
       _torch = false;
+      ReportTiming.instance.mark('camera_ready');
       if (mounted) {
         setState(() {
           _camReady = true;
@@ -124,39 +168,16 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   }
 
   // ---------------------------------------------------------- location ---
-  Future<void> _getLocation() async {
-    setState(() => _locating = true);
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        throw 'Location is off.';
-      }
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-        throw 'Location permission denied.';
-      }
-      final pos = await Geolocator.getCurrentPosition();
-      if (!mounted) return;
-      setState(() => _position = pos);
-      _reverseGeocode(pos.latitude, pos.longitude);
-    } catch (_) {
-      // location card will show "Locating..." / unavailable
-    } finally {
-      if (mounted) setState(() => _locating = false);
-    }
-  }
-
   Future<void> _reverseGeocode(double lat, double lng) async {
     try {
       final placemarks = await geo.placemarkFromCoordinates(lat, lng);
       if (placemarks.isEmpty) return;
       final p = placemarks.first;
-      final parts = [p.street, p.subLocality, p.locality]
-          .where((s) => s != null && s.trim().isNotEmpty)
-          .cast<String>()
-          .toList();
+      final parts = [
+        p.street,
+        p.subLocality,
+        p.locality,
+      ].where((s) => s != null && s.trim().isNotEmpty).cast<String>().toList();
       if (mounted && parts.isNotEmpty) {
         setState(() => _address = parts.take(2).join(', '));
       }
@@ -184,14 +205,13 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   Future<void> _capture() async {
     final c = _controller;
     if (c == null || !c.value.isInitialized || _capturing) return;
-    if (_position == null) {
-      _toast('Still pinpointing your location — one moment.');
-      return;
-    }
+    // No waiting on the GPS here any more: the fix finishes while the
+    // resident picks who to call, and the send waits for it only if it must.
     setState(() => _capturing = true);
     try {
       final shot = await c.takePicture();
       final bytes = await shot.readAsBytes();
+      ReportTiming.instance.mark('photo_taken');
       if (!mounted) return;
       _goToReport(bytes);
     } catch (_) {
@@ -214,15 +234,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   }
 
   void _goToReport(List<int> bytes) {
+    if (widget.retake) {
+      Navigator.of(
+        context,
+      ).pop<RetakenPhoto>((bytes: bytes, address: _address));
+      return;
+    }
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => SosReportScreen(
-          photoBytes: bytes,
-          lat: _position!.latitude,
-          lng: _position!.longitude,
-          accuracyM: _position!.accuracy,
-          address: _address,
-        ),
+        builder: (_) => SosReportScreen(photoBytes: bytes, address: _address),
       ),
     );
   }
@@ -299,7 +319,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     if (_camError != null) {
       return _cameraError();
     }
-    if (c == null || !_camReady || !c.value.isInitialized || c.value.previewSize == null) {
+    if (c == null ||
+        !_camReady ||
+        !c.value.isInitialized ||
+        c.value.previewSize == null) {
       return const ColoredBox(
         color: Colors.black,
         child: Center(
@@ -327,7 +350,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         icon: Icons.no_photography_outlined,
         tone: AppColors.live,
         title: 'Camera unavailable',
-        body: '$_camError\n\nA live photo of the scene is required to send a '
+        body:
+            '$_camError\n\nA live photo of the scene is required to send a '
             'report — it is what proves where and when this was taken.',
         action: AppButton.secondary(
           'Retry camera',
@@ -369,9 +393,17 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   }
 
   Widget _locationCard() {
+    final problem = _location.problem.value;
     final title =
-        _address ?? (_locating ? 'Locating you…' : 'Location unavailable');
+        _address ??
+        (_position != null
+            ? 'Location found'
+            : problem != null
+            ? 'Location needed'
+            : 'Locating you…');
     return Panel(
+      // A tap retries when the fix failed (location off, permission denied).
+      onTap: problem != null ? () => _location.warmUp() : null,
       color: AppColors.surfaceSolid.withValues(alpha: 0.92),
       padding: const EdgeInsets.all(18),
       child: Row(
@@ -398,10 +430,16 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  _coords(),
-                  maxLines: 1,
+                  _position == null && problem != null
+                      ? '$problem Tap to retry.'
+                      : _coords(),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.meta,
+                  style: AppText.meta.copyWith(
+                    color: _position == null && problem != null
+                        ? AppColors.live
+                        : null,
+                  ),
                 ),
               ],
             ),

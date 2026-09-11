@@ -14,8 +14,21 @@ class Art {
 
   static const String _d = 'assets/design';
   static const String mark = '$_d/mark.png';
+
+  /// The v2 lock-up: wordmark with the signal bars and pin, on a square
+  /// canvas. Still used by [AppLogo].
   static const String wordmark = '$_d/wordmark.png';
+
+  /// The overhaul's plain "REPLIT" type, tightly cropped (353×63 at 3x).
+  static const String wordmarkType = '$_d/wordmark-type.png';
   static const String avatar = '$_d/avatar.png';
+
+  // White agency glyphs from the REPLIT-OVERHAUL report frame, drawn on the
+  // agency's own tinted well.
+  static const String agFire = '$_d/ag-fire.png';
+  static const String agMedical = '$_d/ag-medical.png';
+  static const String agPolice = '$_d/ag-police.png';
+  static const String agBarangay = '$_d/ag-barangay.png';
 
   static const String agency911 = '$_d/agency-911.png';
   static const String agencyBfp = '$_d/agency-bfp.png';
@@ -28,15 +41,12 @@ class Art {
   static const String incident = '$_d/mk-incident.png';
   static const String truck = '$_d/mk-truck.png';
 
-  // Tab icons come in on/off pairs; the mapping is from NavBar.dc.html.
-  static const String navMapOn = '$_d/nav-a.png';
-  static const String navMapOff = '$_d/nav-f.png';
-  static const String navSosOn = '$_d/nav-g.png';
-  static const String navSosOff = '$_d/nav-b.png';
-  static const String navCallOn = '$_d/nav-e.png';
-  static const String navCallOff = '$_d/nav-h.png';
-  static const String navGuideOn = '$_d/nav-d.png';
-  static const String navGuideOff = '$_d/nav-c.png';
+  // Tab icons, exported at 3x from the REPLIT-OVERHAUL NavBar component. One
+  // glyph per tab, tinted at runtime for the on/off state.
+  static const String navMap = '$_d/nav-map.png';
+  static const String navHotlines = '$_d/nav-hotlines.png';
+  static const String navGuides = '$_d/nav-guides.png';
+  static const String navProfile = '$_d/nav-profile.png';
 }
 
 /// The 10px uppercase section label used above every group in the design.
@@ -50,6 +60,44 @@ class Eyebrow extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
     style: AppText.eyebrow.copyWith(color: color ?? AppColors.faint),
+  );
+}
+
+/// An eyebrow over a text field. The eyebrow turns coral while its field has
+/// focus — how the overhaul's forms show where you are typing.
+class LabeledField extends StatefulWidget {
+  const LabeledField({super.key, required this.label, required this.builder});
+
+  final String label;
+
+  /// Builds the field; pass the [FocusNode] to it.
+  final Widget Function(FocusNode focus) builder;
+
+  @override
+  State<LabeledField> createState() => _LabeledFieldState();
+}
+
+class _LabeledFieldState extends State<LabeledField> {
+  late final FocusNode _focus = FocusNode()..addListener(() => setState(() {}));
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Eyebrow(
+        widget.label,
+        color: _focus.hasFocus ? AppColors.accent : AppColors.muted,
+      ),
+      const SizedBox(height: 9),
+      widget.builder(_focus),
+    ],
   );
 }
 
@@ -257,7 +305,10 @@ class AppButton extends StatelessWidget {
         border = AppColors.live.withValues(alpha: 0.35);
     }
 
-    final shape = BorderRadius.circular(AppRadius.card);
+    // The overhaul draws every button at the control radius and flat: glow is
+    // reserved for the splash mark and the SOS disc (§2.7), so the v2 coral
+    // drop shadow is gone.
+    final shape = BorderRadius.circular(AppRadius.control);
     return Opacity(
       opacity: enabled ? 1 : 0.45,
       child: Material(
@@ -273,15 +324,6 @@ class AppButton extends StatelessWidget {
               gradient: gradient,
               borderRadius: shape,
               border: border == null ? null : Border.all(color: border),
-              boxShadow: _tone == _Tone.primary && enabled
-                  ? [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.2),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ]
-                  : null,
             ),
             alignment: Alignment.center,
             child: busy
@@ -322,6 +364,8 @@ class AppButton extends StatelessWidget {
 }
 
 /// Back chevron in its own glass well — the design's only back affordance.
+/// 48px square at the control radius with a hairline edge ("Back" in every
+/// REPLIT-OVERHAUL frame that has one).
 class BackWell extends StatelessWidget {
   const BackWell({super.key, this.onTap});
 
@@ -329,25 +373,30 @@ class BackWell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shape = BorderRadius.circular(AppRadius.card);
-    return Material(
-      color: AppColors.glass,
-      borderRadius: shape,
-      child: InkWell(
+    final shape = BorderRadius.circular(AppRadius.control);
+    return Semantics(
+      button: true,
+      label: 'Back',
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.glass,
         borderRadius: shape,
-        onTap: onTap ?? () => Navigator.of(context).maybePop(),
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            borderRadius: shape,
-            border: Border.all(color: AppColors.lineLight),
-          ),
-          alignment: Alignment.center,
-          child: const Icon(
-            Icons.chevron_left_rounded,
-            size: 22,
-            color: AppColors.onBackground,
+        child: InkWell(
+          borderRadius: shape,
+          onTap: onTap ?? () => Navigator.of(context).maybePop(),
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              borderRadius: shape,
+              border: Border.all(color: AppColors.line),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.chevron_left_rounded,
+              size: 22,
+              color: AppColors.onBackground,
+            ),
           ),
         ),
       ),
@@ -644,12 +693,12 @@ class FilterChips extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 13),
               decoration: BoxDecoration(
                 color: on
-                    ? AppColors.accent.withValues(alpha: 0.14)
-                    : AppColors.glassDim,
+                    ? AppColors.accent.withValues(alpha: 0.16)
+                    : AppColors.glass,
                 borderRadius: BorderRadius.circular(AppRadius.chip),
                 border: Border.all(
                   color: on
-                      ? AppColors.accent.withValues(alpha: 0.55)
+                      ? AppColors.accent.withValues(alpha: 0.45)
                       : AppColors.line,
                 ),
               ),
@@ -706,8 +755,67 @@ class _LiveDotState extends State<LiveDot> with SingleTickerProviderStateMixin {
           color: widget.color,
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: widget.color.withValues(alpha: 0.8), blurRadius: 8),
+            BoxShadow(
+              color: widget.color.withValues(alpha: 0.8),
+              blurRadius: 8,
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A scrolling page whose [footer] sits at the foot of the screen when the
+/// content is short, and simply follows the content when it is not — the sign
+/// in and sign up frames both pin their last line to the bottom.
+///
+/// Built from a min-height Column rather than SliverFillRemaining: that one
+/// sizes itself from intrinsic heights, which text fields under-report at
+/// large font scales, and the page overflowed at 1.5x.
+class FootedScroll extends StatelessWidget {
+  const FootedScroll({
+    super.key,
+    required this.content,
+    required this.footer,
+    this.padding = EdgeInsets.zero,
+    this.gap = 32,
+  });
+
+  final List<Widget> content;
+  final Widget footer;
+  final EdgeInsets padding;
+
+  /// The least space kept between the content and the footer.
+  final double gap;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: padding,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: (constraints.maxHeight - padding.vertical).clamp(
+              0,
+              double.infinity,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: content,
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: gap),
+                child: footer,
+              ),
+            ],
+          ),
         ),
       ),
     );

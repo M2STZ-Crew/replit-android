@@ -7,12 +7,7 @@ import '../widgets/map_tiles.dart';
 
 const Color _safeGreen = AppColors.ok;
 
-/// Map centered on an incident with an orange marker.
-///
-/// Uses CARTO "Dark Matter" basemap tiles — free, NO API key, NO account, NO
-/// billing — which also match the app's dark theme. To use plain OpenStreetMap
-/// instead, swap the [TileLayer] urlTemplate for
-/// `https://tile.openstreetmap.org/{z}/{x}/{y}.png`.
+/// Map centered on an incident with an orange marker, on [MapTiles]' basemap.
 ///
 /// By default it's a static snapshot ([interactive] = false). Pass
 /// interactive: true to allow panning/zooming, and [evacSites] to plot nearby
@@ -62,9 +57,15 @@ class IncidentMap extends StatelessWidget {
                     color: _safeGreen,
                     borderRadius: BorderRadius.circular(AppRadius.card),
                     border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: const [BoxShadow(color: Color(0x9922C55E), blurRadius: 10)],
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x9922C55E), blurRadius: 10),
+                    ],
                   ),
-                  child: const Icon(Icons.home_outlined, color: Colors.white, size: 16),
+                  child: const Icon(
+                    Icons.home_outlined,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
             Marker(
@@ -81,11 +82,10 @@ class IncidentMap extends StatelessWidget {
             ),
           ],
         ),
-        const RichAttributionWidget(
-          attributions: [
-            TextSourceAttribution('© OpenStreetMap, © CARTO'),
-          ],
-        ),
+        // The tiles are MapTiles' (Mapbox, or OSM without a token), so the
+        // credit is too — this used to name CARTO, whose tiles it no longer
+        // draws.
+        MapTiles.attribution(),
       ],
     );
   }

@@ -74,9 +74,19 @@ class AppColors {
   // ── meaning ─────────────────────────────────────────────────────────────
   static const Color live = Color(0xFFFF544E); // active incident, destructive
   static const Color ok = Color(0xFF22C55E); // resolved, verified, ready
-  static const Color warn = Color(0xFFEAB308); // pending, needs attention
+  static const Color warn = Color(0xFFFACC15); // pending, needs attention
   static const Color info = Color(0xFF6098D6);
-  static const Color crime = Color(0xFF8A38F5);
+
+  // ── agencies (REPLIT-OVERHAUL Figma, "Agency/*") ────────────────────────
+  static const Color fire = Color(0xFFFF544E);
+  static const Color medical = Color(0xFF35C77B);
+  static const Color police = Color(0xFF5B93F5);
+  static const Color barangay = Color(0xFFD98324);
+  static const Color coastguard = Color(0xFF2DD4BF);
+
+  /// Police markers and hotlines. Was violet in v1; the overhaul makes police
+  /// blue everywhere, so this now simply names [police].
+  static const Color crime = police;
 
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topCenter,
@@ -91,7 +101,9 @@ class AppColors {
     colors: [gradientStart, Color(0xFFFF734E)],
   );
 
-  /// One colour per public.area_status value, on the v2 palette.
+  /// One colour per public.area_status value, on the v2 palette. The two v10
+  /// statuses (Master Context §2.5) follow fire out: the Post-Incident Report
+  /// is owed, then filed and the incident closed. Both match the web consoles.
   static Color forStatus(String? status) => switch (status) {
     'pending' => warn,
     'verified' => const Color(0xFF42A5F5),
@@ -99,18 +111,23 @@ class AppColors {
     'en_route' => accent,
     'arrived' => live,
     'resolved' => ok,
+    'post_incident_report' => const Color(0xFF2DD4BF),
+    'closed' => const Color(0xFF16A34A),
     'rejected' => const Color(0xFF9E9E9E),
     'merged' => const Color(0xFF7E57C2),
     _ => muted,
   };
 
-  /// Agency accent, matching the incident-type cards in the design.
+  /// Agency accent, matching the agency rows in the design. Fire volunteers
+  /// keep the coral — they are this app's own crews — and BFP takes the
+  /// design's fire red.
   static Color forAgency(String? agency) => switch (agency) {
     'fire_volunteer' => accent,
-    'bfp' => live,
-    'police' => crime,
-    'medical' => ok,
-    'barangay' => label,
+    'bfp' => fire,
+    'police' => police,
+    'medical' => medical,
+    'barangay' => barangay,
+    'coastguard' => coastguard,
     _ => muted,
   };
 }
@@ -121,8 +138,8 @@ class AppRadius {
   AppRadius._();
 
   static const double chip = 11;
-  static const double control = 12; // rows, fields, small buttons
-  static const double card = 14; // list cards, primary buttons
+  static const double control = 12; // rows, fields, every button
+  static const double card = 14; // list cards, notices
   static const double panel = 16; // grouped panels, selection cards
   static const double sheet = 20; // bottom sheets, screen frame
 }
@@ -201,6 +218,132 @@ class AppText {
     height: 1,
     fontWeight: FontWeight.w900,
     letterSpacing: -1.2,
+    color: AppColors.onBackground,
+  );
+
+  // ── REPLIT-OVERHAUL additions ───────────────────────────────────────────
+  // The Figma's named text styles that the v2 ramp above did not have. Names
+  // follow the Figma ("Type/Heading 1" → heading1) so a spec reads straight
+  // across. The design sets everything in Inter; until the font is bundled
+  // these fall back to the platform face at the same size and weight.
+  static const TextStyle heading1 = TextStyle(
+    fontSize: 28,
+    height: 32 / 28,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -1.1,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle heading2 = TextStyle(
+    fontSize: 26,
+    height: 28 / 26,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -1,
+    color: AppColors.onBackground,
+  );
+
+  /// "Type/Title" — 17px, the sheet and card-header size.
+  static const TextStyle headline = TextStyle(
+    fontSize: 17,
+    height: 20 / 17,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.5,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle subtitle = TextStyle(
+    fontSize: 15,
+    height: 18 / 15,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.5,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle cardTitleSm = TextStyle(
+    fontSize: 13,
+    height: 15 / 13,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.3,
+    color: AppColors.onBackground,
+  );
+
+  /// "Type/Row title" — the 13px list-row name ([rowTitle] is the 12px one).
+  static const TextStyle rowTitleLg = TextStyle(
+    fontSize: 13,
+    height: 16 / 13,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.2,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle rowValue = TextStyle(
+    fontSize: 13,
+    height: 16 / 13,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.1,
+    color: AppColors.textSoft,
+  );
+  static const TextStyle bodySm = TextStyle(
+    fontSize: 13,
+    height: 18 / 13,
+    fontWeight: FontWeight.w400,
+    color: AppColors.label,
+  );
+
+  /// "Type/Meta" — 12px secondary line. ([meta] above is the 11px caption.)
+  static const TextStyle detail = TextStyle(
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.muted,
+  );
+  static const TextStyle caption = TextStyle(
+    fontSize: 11,
+    height: 14 / 11,
+    fontWeight: FontWeight.w400,
+    color: AppColors.muted,
+  );
+  static const TextStyle captionSm = TextStyle(
+    fontSize: 10,
+    height: 13 / 10,
+    fontWeight: FontWeight.w400,
+    color: AppColors.muted,
+  );
+  static const TextStyle label = TextStyle(
+    fontSize: 12,
+    height: 16 / 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.2,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle labelSm = TextStyle(
+    fontSize: 11,
+    height: 14 / 11,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.2,
+    color: AppColors.textSoft,
+  );
+  static const TextStyle numeralSm = TextStyle(
+    fontSize: 17,
+    height: 1,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.5,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle numeralXl = TextStyle(
+    fontSize: 34,
+    height: 1,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -1.6,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle dial = TextStyle(
+    fontSize: 22,
+    height: 1,
+    fontWeight: FontWeight.w900,
+    letterSpacing: 1.5,
+    color: AppColors.onBackground,
+  );
+  static const TextStyle input = TextStyle(
+    fontSize: 15,
+    height: 20 / 15,
+    fontWeight: FontWeight.w500,
     color: AppColors.onBackground,
   );
 }
@@ -334,7 +477,7 @@ ThemeData buildAppTheme() {
         elevation: 0,
         textStyle: AppText.action,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          borderRadius: BorderRadius.circular(AppRadius.control),
         ),
       ),
     ),
@@ -345,7 +488,7 @@ ThemeData buildAppTheme() {
         minimumSize: const Size(double.infinity, 52),
         textStyle: AppText.action,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.card),
+          borderRadius: BorderRadius.circular(AppRadius.control),
         ),
       ),
     ),

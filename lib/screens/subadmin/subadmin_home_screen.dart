@@ -7,6 +7,7 @@ import '../../api/push_service.dart';
 import '../../api/session.dart';
 import '../../theme.dart';
 import '../../widgets/app_logo.dart';
+import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
@@ -26,7 +27,10 @@ Color _areaColor(String s) {
   switch (s) {
     case 'verified':
     case 'resolved':
+    case 'closed':
       return _green;
+    case 'post_incident_report':
+      return AppColors.forStatus(s);
     case 'dispatched':
     case 'en_route':
     case 'arrived':
@@ -281,13 +285,25 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  ((area['designation'] as String?) ?? 'Area').toUpperCase(),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        ((area['designation'] as String?) ?? 'Area').toUpperCase(),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      // Admin routed this to your agency or team (v10 §2.6.2).
+                      if (routingLabel(area, agency: _agency) case final routed?) ...[
+                        const SizedBox(height: 6),
+                        Tag(routed, color: _green, dot: true),
+                      ],
+                    ],
                   ),
                 ),
                 Row(

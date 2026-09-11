@@ -10,12 +10,12 @@ import '../widgets/design.dart';
 import 'register_screen.dart';
 import 'role_gate.dart';
 
-/// "Welcome back" — the sign-in screen from the hand-off.
+/// "02 Sign in" from the REPLIT-OVERHAUL Figma.
 ///
-/// The design signs in with a mobile number. Authentication here is email +
-/// password and there is no phone-login endpoint, so the field stays email.
-/// Everything else is the design, including the line that matters most at 2am:
-/// hotlines work while you are locked out.
+/// Email + password, as the backend authenticates. The overhaul dropped v2's
+/// "Keep session active" box: a reporter who is signed out at 2am is a
+/// reporter who cannot send, so the session is always kept. The line that
+/// matters most stays — hotlines work while you are locked out.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -28,7 +28,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
   bool _obscure = true;
-  bool _keepActive = true;
   bool _loading = false;
 
   @override
@@ -48,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
     try {
       await _api.login(email: email, password: password);
-      if (_keepActive) await Session.instance.persist();
+      await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
       if (!mounted) return;
       Navigator.of(
@@ -90,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: controller,
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
-              style: _fieldStyle,
+              style: AppText.input,
               decoration: const InputDecoration(hintText: 'you@email.com'),
             ),
           ],
@@ -139,131 +138,89 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-          children: [
-            Image.asset(Art.mark, width: 44, height: 44),
-            const SizedBox(height: 52),
+        // The sign-up line sits at the foot, as in the frame, and the page
+        // still scrolls when the keyboard or a large font scale takes the room.
+        child: FootedScroll(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+          content: [
+            const SizedBox(height: 120),
             const Text('WELCOME BACK', style: AppText.display),
             const SizedBox(height: 10),
-            const SizedBox(
-              width: 300,
-              child: Text(
-                'Sign in so responders know who is reporting and where to find '
-                'you.',
-                style: AppText.body,
-              ),
-            ),
-            const SizedBox(height: 38),
-
-            const Eyebrow('Email', color: AppColors.accent),
-            const SizedBox(height: 9),
-            TextField(
-              controller: _emailCtrl,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              autocorrect: false,
-              autofillHints: const [AutofillHints.email],
-              style: _fieldStyle,
-              decoration: const InputDecoration(hintText: 'you@email.com'),
-            ),
-
-            const SizedBox(height: 18),
-            const Eyebrow('Password'),
-            const SizedBox(height: 9),
-            TextField(
-              controller: _passwordCtrl,
-              obscureText: _obscure,
-              textInputAction: TextInputAction.done,
-              autofillHints: const [AutofillHints.password],
-              onSubmitted: (_) => _submit(),
-              style: _fieldStyle,
-              decoration: InputDecoration(
-                hintText: 'Your password',
-                suffixIcon: IconButton(
-                  iconSize: 18,
-                  color: AppColors.muted,
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 306,
+                child: Text(
+                  'Sign in so responders know who is reporting and '
+                  'where to find you.',
+                  style: AppText.body,
                 ),
               ),
             ),
-
-            const SizedBox(height: 18),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _keepActive = !_keepActive),
-                    behavior: HitTestBehavior.opaque,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: _keepActive
-                                ? AppColors.accent
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: _keepActive
-                                  ? AppColors.accent
-                                  : AppColors.lineStrong,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: _keepActive
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  size: 13,
-                                  color: AppColors.accentText,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        // Flexible: at a large font scale this label and
-                        // "Recovery" together are wider than the row.
-                        const Flexible(
-                          child: Eyebrow(
-                            'Keep session active',
-                            color: AppColors.label,
-                          ),
-                        ),
-                      ],
+            const SizedBox(height: 42),
+            LabeledField(
+              label: 'Email address',
+              builder: (focus) => TextField(
+                controller: _emailCtrl,
+                focusNode: focus,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autocorrect: false,
+                autofillHints: const [AutofillHints.email],
+                style: AppText.input,
+                decoration: const InputDecoration(hintText: 'you@email.com'),
+              ),
+            ),
+            const SizedBox(height: 15),
+            LabeledField(
+              label: 'Password',
+              builder: (focus) => TextField(
+                controller: _passwordCtrl,
+                focusNode: focus,
+                obscureText: _obscure,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.password],
+                onSubmitted: (_) => _submit(),
+                style: AppText.input,
+                decoration: InputDecoration(
+                  hintText: 'Your password',
+                  suffixIcon: IconButton(
+                    iconSize: 18,
+                    color: AppColors.muted,
+                    tooltip: _obscure ? 'Show password' : 'Hide password',
+                    // The eye offers what a tap does: see it.
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                     ),
+                    onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: _recoverDialog,
-                  behavior: HitTestBehavior.opaque,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
-                    child: Eyebrow('Recovery', color: AppColors.accent),
-                  ),
-                ),
-              ],
+              ),
             ),
-
-            const SizedBox(height: 30),
+            const SizedBox(height: 11),
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: _recoverDialog,
+                behavior: HitTestBehavior.opaque,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Eyebrow('Forgot password?', color: AppColors.label),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
             AppButton(
-              'Log in',
+              'Sign in',
               height: 54,
               busy: _loading,
               onPressed: _loading ? null : _submit,
             ),
-
             const SizedBox(height: 26),
             Panel(
-              radius: AppRadius.control,
-              color: AppColors.glassDim,
+              radius: AppRadius.card,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               child: Row(
                 children: [
@@ -275,60 +232,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Locked out? You can still reach 911 and every hotline '
-                      'from your phone without signing in.',
-                      style: AppText.meta.copyWith(
-                        height: 16 / 11,
-                        color: AppColors.label,
-                      ),
+                      'Locked out? Every hotline still dials without '
+                      'signing in.',
+                      style: AppText.caption.copyWith(color: AppColors.label),
                     ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 32),
-            // Wrap, not Row: the two halves of this line together are wider
-            // than the screen at a large system font scale, and a sign-up link
-            // that has run off the edge is a dead end for a new user.
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              children: [
-                const Text(
-                  'New to the barangay app?',
-                  style: TextStyle(fontSize: 12, color: AppColors.faint),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                  ),
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Text(
-                      'CREATE ACCOUNT',
-                      style: AppText.tag.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        color: AppColors.accent,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
+          // Wrap, not Row: the two halves of this line together are wider
+          // than the screen at a large system font scale, and a sign-up link
+          // that has run off the edge is a dead end for a new user.
+          footer: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            children: [
+              const Text('New to the barangay app?', style: AppText.detail),
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                ),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Text(
+                    'CREATE ACCOUNT',
+                    style: AppText.action.copyWith(color: AppColors.accent),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-const TextStyle _fieldStyle = TextStyle(
-  fontSize: 15,
-  fontWeight: FontWeight.w500,
-  color: AppColors.onBackground,
-);

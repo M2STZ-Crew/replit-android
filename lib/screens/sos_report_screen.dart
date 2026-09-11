@@ -1,64 +1,138 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../api/api_client.dart';
-import '../models/responder_unit.dart';
+import '../api/report_queue.dart';
+import '../diagnostics/report_timing.dart';
+import '../location/sos_location.dart';
+import '../sound/sound_cues.dart';
 import '../theme.dart';
+import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
-import '../widgets/incident_map.dart';
+import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
 
-/// "What kind of help?" — step 3 of the SOS flow, after the photo is captured.
+/// One choice in "Who should respond": the agency the server knows, the word
+/// a resident knows, and the frame's colour and glyph for it.
+typedef _Agency = ({String key, String label, Color color, String glyph});
+
+const List<_Agency> _agencies = [
+  (
+    key: 'fire_volunteer',
+    label: 'Fire',
+    color: AppColors.fire,
+    glyph: Art.agFire,
+  ),
+  (
+    key: 'medical',
+    label: 'Medical',
+    color: AppColors.medical,
+    glyph: Art.agMedical,
+  ),
+  (
+    key: 'police',
+    label: 'Police',
+    color: AppColors.police,
+    glyph: Art.agPolice,
+  ),
+  (
+    key: 'barangay',
+    label: 'Barangay',
+    color: AppColors.barangay,
+    glyph: Art.agBarangay,
+  ),
+];
+
+/// "08 Report" from the REPLIT-OVERHAUL Figma — "What are we sending?".
 ///
-/// The v2 design asks this as "What's happening?" with one answer (Fire /
-/// Medical / Crime), each mapping to the agencies that respond to it. This
-/// screen keeps the app's existing multi-select over the four agencies, because
-/// /reports/submit takes a list and a resident who needs both an ambulance and
-/// a fire truck should be able to say so. What it takes from the design is the
-/// card: an icon well, a plain-language line, and a round check.
+/// The frame opens this screen straight from the SOS hold with an empty
+/// viewfinder ("Tap to capture"). The app keeps camera-first — the hold
+/// opens the camera, the photo is the one thing the server insists on, and
+/// the GPS fix finishes while it is taken (v10 §6) — so this screen arrives
+/// with the photo already in the viewfinder, and tapping it retakes.
+///
+/// Agencies are multi-select, not the frame's single choice: /reports/submit
+/// takes a list, and a resident who needs an ambulance and a fire truck should
+/// be able to say so. The frame's "Location already sent" is not claimed —
+/// nothing is sent until "Send report" — so the chip says whether the fix is
+/// in hand.
+///
+/// The location is [SosLocation]'s fix, which may still be arriving when this
+/// screen opens. "Send report" waits for it only if it has not. With no answer
+/// from the server at all, the report is saved on the phone ([ReportQueue]).
 class SosReportScreen extends StatefulWidget {
   const SosReportScreen({
     super.key,
     required this.photoBytes,
-    required this.lat,
-    required this.lng,
-    this.accuracyM,
     this.address,
+    this.api,
   });
 
   final List<int> photoBytes;
-  final double lat;
-  final double lng;
-  final double? accuracyM;
   final String? address;
+  final ApiClient? api;
 
   @override
   State<SosReportScreen> createState() => _SosReportScreenState();
 }
 
 class _SosReportScreenState extends State<SosReportScreen> {
-  final ApiClient _api = ApiClient();
+  late final ApiClient _api = widget.api ?? ApiClient();
+  final SosLocation _location = SosLocation.instance;
   final TextEditingController _notes = TextEditingController();
   final Map<String, bool> _selected = {
     'fire_volunteer': true,
-    'police': false,
     'medical': false,
+    'police': false,
     'barangay': false,
   };
 
+  late List<int> _photo = widget.photoBytes;
+  late String? _address = widget.address;
+
   bool _submitting = false;
+
+  /// True while a pressed "Send" is still waiting on the GPS fix.
+  bool _waitingForFix = false;
+
+  Position? get _position => _location.position.value;
+
+  @override
+  void initState() {
+    super.initState();
+    _location.position.addListener(_rebuild);
+  }
 
   @override
   void dispose() {
+    _location.position.removeListener(_rebuild);
     _notes.dispose();
     super.dispose();
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
   }
 
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.live),
     );
+  }
+
+  Future<void> _retake() async {
+    final shot = await Navigator.of(context).push<RetakenPhoto>(
+      MaterialPageRoute(
+        builder: (_) => const CameraCaptureScreen(retake: true),
+      ),
+    );
+    if (shot == null || !mounted) return;
+    setState(() {
+      _photo = shot.bytes;
+      _address = shot.address ?? _address;
+    });
   }
 
   Future<void> _requestHelp() async {
@@ -71,30 +145,91 @@ class _SosReportScreenState extends State<SosReportScreen> {
       return;
     }
 
-    setState(() => _submitting = true);
+    final timing = ReportTiming.instance;
+    timing.mark('send_pressed');
+    setState(() {
+      _submitting = true;
+      _waitingForFix = _position == null;
+    });
+    Position? pos;
     try {
+      // Usually already here: it has been working since the SOS hold began.
+      pos = await _location.forReport();
+      if (!mounted) return;
+      setState(() => _waitingForFix = false);
+      if (pos == null) {
+        timing.finish(outcome: 'no_location');
+        _toast(
+          _location.problem.value ??
+              'Could not pinpoint your location. Move near a window or outdoors and try again.',
+        );
+        return;
+      }
+      timing.mark('upload_started');
       final data = await _api.submitReport(
-        lat: widget.lat,
-        lng: widget.lng,
-        accuracyM: widget.accuracyM,
+        lat: pos.latitude,
+        lng: pos.longitude,
+        accuracyM: pos.accuracy,
         agencies: agencies,
         notes: _notes.text.trim(),
-        photoBytes: widget.photoBytes,
+        photoBytes: _photo,
       );
+      timing.mark('server_ack');
+      timing.finish(outcome: 'sent');
       if (!mounted) return;
-      await _showSuccess(data, agencies);
+      // "Salamat!" (v10 §2.8) — not awaited, so the sound never holds up the
+      // status screen.
+      SoundCues.instance.playReportSent();
+      await _showSuccess(data, agencies, pos);
     } on ApiException catch (e) {
+      timing.finish(outcome: 'rejected');
       _toast(e.message);
     } catch (_) {
-      _toast('Could not submit the report. Check your connection.');
+      // No answer at all — no signal, most likely. With a fix in hand the
+      // report is not lost: it is saved on the phone and sends itself when
+      // the signal returns ("05 Map — offline queue"). The map shows it.
+      final at = pos;
+      if (at == null) {
+        timing.finish(outcome: 'failed');
+        _toast('Could not submit the report. Check your connection.');
+      } else {
+        await _saveForLater(at, agencies);
+      }
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _waitingForFix = false;
+        });
+      }
     }
+  }
+
+  Future<void> _saveForLater(Position pos, List<String> agencies) async {
+    final timing = ReportTiming.instance;
+    try {
+      await ReportQueue.instance.enqueue(
+        lat: pos.latitude,
+        lng: pos.longitude,
+        accuracyM: pos.accuracy,
+        agencies: agencies,
+        notes: _notes.text.trim(),
+        photoBytes: _photo,
+      );
+    } catch (_) {
+      timing.finish(outcome: 'failed');
+      _toast('Could not submit the report or save it. Check your connection.');
+      return;
+    }
+    timing.finish(outcome: 'queued');
+    if (!mounted) return;
+    AppNavBar.switchTo(context, AppTab.map);
   }
 
   Future<void> _showSuccess(
     Map<String, dynamic> data,
     List<String> agencies,
+    Position pos,
   ) async {
     final createdRaw = data['created_at'] as String?;
     DateTime when;
@@ -112,8 +247,8 @@ class _SosReportScreenState extends State<SosReportScreen> {
           designation: (data['area_designation'] as String?) ?? '—',
           message: data['message'] as String?,
           areaId: data['area_id'] as String?,
-          lat: widget.lat,
-          lng: widget.lng,
+          lat: pos.latitude,
+          lng: pos.longitude,
           submittedAt: when,
           selectedAgencies: agencies,
         ),
@@ -121,171 +256,119 @@ class _SosReportScreenState extends State<SosReportScreen> {
     );
   }
 
+  // -------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
     final chosen = _selected.values.where((v) => v).length;
-
     return Scaffold(
-      backgroundColor: AppColors.background,
+      // The report frame sits on the canvas, not the ground: the viewfinder
+      // is a camera surface and the screen darkens around it.
+      backgroundColor: AppColors.canvas,
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-                children: [
-                  Row(
-                    children: [
-                      BackWell(
-                        onTap: _submitting
-                            ? () {}
-                            : () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Eyebrow('Step 3 of 3', color: AppColors.accent),
-                            SizedBox(height: 6),
-                            Text('PHOTO CAPTURED', style: AppText.screenTitle),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 26),
-                  const Text("WHAT'S HAPPENING?", style: AppText.display),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Pick everyone you need. We already know where you are.',
-                    style: AppText.body,
-                  ),
-                  const SizedBox(height: 22),
-                  _evidenceCard(),
-                  const SizedBox(height: 26),
-                  const Eyebrow('Who should respond?', color: AppColors.accent),
-                  const SizedBox(height: 12),
-                  for (final unit in kResponderUnits) ...[
-                    _unitCard(unit),
-                    const SizedBox(height: 12),
-                  ],
-                  const SizedBox(height: 10),
-                  const Eyebrow('Optional note'),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _notes,
-                    maxLines: 4,
-                    minLines: 3,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.onBackground,
-                    ),
-                    decoration: const InputDecoration(
-                      hintText: 'Anything responders should know…',
-                    ),
-                  ),
-                ],
-              ),
+        child: FootedScroll(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
+          content: [
+            Row(
+              children: [
+                BackWell(
+                  onTap: _submitting
+                      ? () {}
+                      : () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 16),
+                Flexible(child: _locationChip()),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 110,
-                    child: AppButton.secondary(
-                      'Cancel',
-                      onPressed: _submitting
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: AppButton(
-                      chosen == 0 ? 'Choose who to call' : 'Send report',
-                      busy: _submitting,
-                      onPressed: _submitting || chosen == 0
-                          ? null
-                          : _requestHelp,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 28),
+            const Text('WHAT ARE WE SENDING?', style: AppText.heading1),
+            const SizedBox(height: 32),
+            const Eyebrow('Who should respond', color: AppColors.muted),
+            const SizedBox(height: 10),
+            _agencyGrid(),
+            const SizedBox(height: 28),
+            const Row(
+              children: [
+                Expanded(
+                  child: Eyebrow('Photo of the scene', color: AppColors.muted),
+                ),
+                Eyebrow('Required', color: AppColors.accent),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _viewfinder(),
+            const SizedBox(height: 24),
+            const Eyebrow('Anything else', color: AppColors.muted),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _notes,
+              minLines: 1,
+              maxLines: 4,
+              style: AppText.bodySm.copyWith(color: AppColors.onBackground),
+              decoration: InputDecoration(
+                hintText: 'Optional — what responders should know',
+                hintStyle: AppText.bodySm.copyWith(
+                  color: AppColors.label.withValues(alpha: 0.45),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
             ),
           ],
+          footer: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_waitingForFix) ...[
+                Text(
+                  'Pinpointing your location — your report sends the moment '
+                  'it is found.',
+                  textAlign: TextAlign.center,
+                  style: AppText.caption.copyWith(color: AppColors.accent),
+                ),
+                const SizedBox(height: 12),
+              ],
+              AppButton(
+                chosen == 0 ? 'Choose who to call' : 'Send report',
+                height: 54,
+                busy: _submitting,
+                onPressed: _submitting || chosen == 0 ? null : _requestHelp,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// The map and the photo together — proof that both halves of the evidence
-  /// are attached before anything is sent.
-  Widget _evidenceCard() {
-    final label =
-        widget.address ??
-        '${widget.lat.toStringAsFixed(4)}, ${widget.lng.toStringAsFixed(4)}';
-
+  /// Whether the fix is in hand. (The frame's "Location already sent" would
+  /// be untrue: the location goes with the report, on "Send report".)
+  Widget _locationChip() {
+    final fixed = _position != null;
+    final tone = fixed ? AppColors.ok : AppColors.warn;
     return Container(
-      height: 260,
-      clipBehavior: Clip.antiAlias,
+      constraints: const BoxConstraints(minHeight: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.canvas,
-        borderRadius: BorderRadius.circular(AppRadius.sheet),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.55)),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          IncidentMap(lat: widget.lat, lng: widget.lng),
-          Positioned(
-            right: 12,
-            top: 12,
-            child: Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.control),
-                border: Border.all(color: AppColors.lineLight),
-              ),
-              child: Image.memory(
-                Uint8List.fromList(widget.photoBytes),
-                width: 76,
-                height: 76,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Positioned(left: 12, bottom: 12, right: 12, child: _gpsChip(label)),
-        ],
-      ),
-    );
-  }
-
-  Widget _gpsChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.canvas.withValues(alpha: 0.85),
+        color: tone.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.chip),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: tone.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const LiveDot(size: 6),
-          const SizedBox(width: 8),
+          if (fixed)
+            const Icon(Icons.check_rounded, size: 12, color: AppColors.ok)
+          else
+            const LiveDot(color: AppColors.warn, size: 6),
+          const SizedBox(width: 7),
           Flexible(
             child: Text(
-              label,
+              fixed ? 'LOCATION LOCKED' : 'FINDING YOUR LOCATION',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.onBackground,
-              ),
+              style: AppText.tag.copyWith(color: tone),
             ),
           ),
         ],
@@ -293,65 +376,251 @@ class _SosReportScreenState extends State<SosReportScreen> {
     );
   }
 
-  Widget _unitCard(ResponderUnit unit) {
-    final selected = _selected[unit.key] ?? false;
-    final tint = AppColors.forAgency(unit.key);
+  Widget _agencyGrid() {
+    Widget row(_Agency a, _Agency b) => Row(
+      children: [
+        Expanded(child: _agencyCard(a)),
+        const SizedBox(width: 8),
+        Expanded(child: _agencyCard(b)),
+      ],
+    );
+    return Column(
+      children: [
+        row(_agencies[0], _agencies[1]),
+        const SizedBox(height: 8),
+        row(_agencies[2], _agencies[3]),
+      ],
+    );
+  }
 
-    return Panel(
-      onTap: () => setState(() => _selected[unit.key] = !selected),
-      color: selected ? tint.withValues(alpha: 0.1) : AppColors.glassDim,
-      border: selected ? tint : AppColors.line,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Row(
-        children: [
-          IconWell(tint: tint, icon: unit.icon, size: 48, glyph: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+  Widget _agencyCard(_Agency a) {
+    final on = _selected[a.key] ?? false;
+    final shape = BorderRadius.circular(AppRadius.card);
+    return Semantics(
+      button: true,
+      checked: on,
+      label: a.label,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: shape,
+        child: InkWell(
+          borderRadius: shape,
+          onTap: _submitting
+              ? null
+              : () => setState(() => _selected[a.key] = !on),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 68),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: on ? a.color.withValues(alpha: 0.16) : AppColors.glass,
+              borderRadius: shape,
+              border: Border.all(
+                color: on ? a.color : AppColors.line,
+                width: on ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
               children: [
-                Text(
-                  unit.title.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.cardTitle.copyWith(
-                    fontSize: 16,
-                    letterSpacing: -0.5,
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: a.color.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(AppRadius.chip),
+                  ),
+                  alignment: Alignment.center,
+                  child: Image.asset(a.glyph, width: 19, height: 19),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      a.label.toUpperCase(),
+                      style: AppText.cardTitleSm.copyWith(
+                        color: on ? AppColors.onBackground : AppColors.textSoft,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  unit.subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.meta,
+                const SizedBox(width: 8),
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: on ? a.color : AppColors.muted,
+                      width: 1.5,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: on
+                      ? Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: a.color,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      : null,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: selected ? tint : Colors.transparent,
-              border: Border.all(
-                color: selected ? tint : AppColors.lineStrong,
-                width: 2,
+        ),
+      ),
+    );
+  }
+
+  /// The photo in the frame's viewfinder: coral brackets, the geotag, and a
+  /// tap to take it again.
+  Widget _viewfinder() {
+    final pos = _position;
+    final tag = pos == null
+        ? 'Pinpointing your location…'
+        : 'Geotagged, ${_address ?? '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}'}';
+    return Semantics(
+      button: true,
+      label: 'Photo of the scene. Tap to take it again.',
+      child: GestureDetector(
+        onTap: _submitting ? null : _retake,
+        child: Container(
+          height: 214,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: AppColors.canvas,
+            borderRadius: BorderRadius.circular(AppRadius.panel),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.45)),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.memory(Uint8List.fromList(_photo), fit: BoxFit.cover),
+              // Keeps the chips legible over a bright photo.
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x000B0B0B), Color(0xB30B0B0B)],
+                    stops: [0.5, 1],
+                  ),
+                ),
               ),
+              const CustomPaint(painter: _BracketPainter()),
+              Positioned(
+                left: 17,
+                right: 17,
+                bottom: 19,
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: _FrameChip(
+                        leading: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: AppColors.live,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        text: tag,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const _FrameChip(
+                      leading: Icon(
+                        Icons.photo_camera_outlined,
+                        size: 12,
+                        color: AppColors.onBackground,
+                      ),
+                      text: 'Retake',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A dark chip laid over the viewfinder photo.
+class _FrameChip extends StatelessWidget {
+  const _FrameChip({required this.leading, required this.text});
+
+  final Widget leading;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 26),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xD10B0B0B),
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          leading,
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              text.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.tag.copyWith(color: AppColors.onBackground),
             ),
-            child: selected
-                ? const Icon(
-                    Icons.check_rounded,
-                    size: 13,
-                    color: AppColors.background,
-                  )
-                : null,
           ),
         ],
       ),
     );
   }
+}
+
+/// The viewfinder's four coral corner brackets: 32px arms, 8px corner
+/// radius, 15px in from each edge.
+class _BracketPainter extends CustomPainter {
+  const _BracketPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const inset = 15.0;
+    const arm = 32.0;
+    const r = 8.0;
+    final paint = Paint()
+      ..color = AppColors.accent
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    // [sx], [sy] point inward from the corner at [o].
+    void corner(Offset o, double sx, double sy) {
+      final path = Path()
+        ..moveTo(o.dx, o.dy + sy * arm)
+        ..lineTo(o.dx, o.dy + sy * r)
+        ..arcToPoint(
+          Offset(o.dx + sx * r, o.dy),
+          radius: const Radius.circular(r),
+          clockwise: sx * sy > 0,
+        )
+        ..lineTo(o.dx + sx * arm, o.dy);
+      canvas.drawPath(path, paint);
+    }
+
+    corner(const Offset(inset, inset), 1, 1);
+    corner(Offset(size.width - inset, inset), -1, 1);
+    corner(Offset(inset, size.height - inset), 1, -1);
+    corner(Offset(size.width - inset, size.height - inset), -1, -1);
+  }
+
+  @override
+  bool shouldRepaint(_BracketPainter oldDelegate) => false;
 }
