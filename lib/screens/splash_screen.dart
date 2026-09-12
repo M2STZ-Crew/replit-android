@@ -70,37 +70,43 @@ class _SplashScreenState extends State<SplashScreen>
         // off both edges of the screen.
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              // The frame puts the mark's centre at ~40% and the locality
-              // 64px off the bottom; 3:2 flex keeps that on any height.
-              const Spacer(flex: 3),
-              _markInGlow(),
-              // 125px from the mark in the frame, less the glow's 39px margin.
-              const SizedBox(height: 86),
-              Image.asset(Art.wordmarkType, width: 118, height: 21),
-              const SizedBox(height: 52),
-              _loaderBar(),
-              const SizedBox(height: 18),
-              Text(
-                'CONNECTING TO BARANGAY 76',
-                textAlign: TextAlign.center,
-                style: AppText.eyebrow.copyWith(color: AppColors.muted),
-              ),
-              const Spacer(flex: 2),
-              Text(
-                'Barangay 76, Pasay City',
-                textAlign: TextAlign.center,
-                style: AppText.labelSm,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'EMERGENCY RESPONSE NETWORK',
-                textAlign: TextAlign.center,
-                style: AppText.eyebrow.copyWith(color: AppColors.muted),
-              ),
-              const SizedBox(height: 40),
-            ],
+          // Full width on purpose: a Scaffold body is laid out with loose
+          // constraints, so a Column of fixed-width children shrinks to its
+          // widest one and lands against the left edge instead of the middle.
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              children: [
+                // The frame puts the mark's centre at ~40% and the locality
+                // 64px off the bottom; 3:2 flex keeps that on any height.
+                const Spacer(flex: 3),
+                _markInGlow(),
+                // 125px from the mark in the frame, less the glow's 39px margin.
+                const SizedBox(height: 86),
+                Image.asset(Art.wordmarkType, width: 118, height: 21),
+                const SizedBox(height: 52),
+                _loaderBar(),
+                const SizedBox(height: 18),
+                Text(
+                  'CONNECTING TO BARANGAY 76',
+                  textAlign: TextAlign.center,
+                  style: AppText.eyebrow.copyWith(color: AppColors.muted),
+                ),
+                const Spacer(flex: 2),
+                Text(
+                  'Barangay 76, Pasay City',
+                  textAlign: TextAlign.center,
+                  style: AppText.labelSm,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'EMERGENCY RESPONSE NETWORK',
+                  textAlign: TextAlign.center,
+                  style: AppText.eyebrow.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
