@@ -71,6 +71,38 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      - name: Check the signing key before building
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          # The release build signs with the debug signing config
+          # (android/app/build.gradle.kts), which reads debug.keystore from the
+          # Android user home. The Android tools quietly generate a brand-new key
+          # when they find none there, and the build still succeeds — so name the
+          # directory explicitly instead of trusting the runner's default, and
+          # export it so the build step reads the same file.
+          android_user_home="$RUNNER_TEMP/android-user-home"
+          mkdir -p "$android_user_home" "$HOME/.android"
+          keystore="$android_user_home/debug.keystore"
+          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          cp "$keystore" "$HOME/.android/debug.keystore"
+          echo "ANDROID_USER_HOME=$android_user_home" >> "$GITHUB_ENV"
+
+          # Fail in seconds rather than after a five-minute build. A certificate
+          # fingerprint is public, so printing it is safe.
+          fingerprint=$(keytool -list -v -keystore "$keystore" -alias androiddebugkey \
+            -storepass android 2>/dev/null | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 || true)
+          fingerprint=$(printf '%s' "$fingerprint" | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          if [ -z "$fingerprint" ]; then
+            echo "::error::DEBUG_KEYSTORE_BASE64 is not a readable Android debug keystore. Copy it again with the command in docs/ci-release.md."
+            exit 1
+          fi
+          if [ "$fingerprint" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::DEBUG_KEYSTORE_BASE64 holds a different key ($fingerprint). Copy it again on the laptop whose key is $EXPECTED_CERT_SHA256 — see docs/ci-release.md."
+            exit 1
+          fi
+          echo "The secret holds the key the installed app was signed with."
+
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -88,18 +120,11 @@ jobs:
 
       - name: Write the build configuration from secrets
         env:
-          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
           REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
           OBSERVER_CONSOLE_URL: ${{ vars.OBSERVER_CONSOLE_URL }}
         run: |
-          # The release build signs with the debug signing config
-          # (android/app/build.gradle.kts), which reads this file.
-          keystore_dir="${ANDROID_USER_HOME:-$HOME/.android}"
-          mkdir -p "$keystore_dir"
-          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > "$keystore_dir/debug.keystore"
-
           # Push notifications (FCM). Without it the app still builds, silently without push.
           printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
@@ -128,7 +153,9 @@ jobs:
           actual=$("$apksigner" verify --print-certs "$apk" \
             | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
           if [ "$actual" != "$EXPECTED_CERT_SHA256" ]; then
-            echo "::error::Signed with the wrong key ($actual). Installed copies could not update to it."
+            # The key itself was checked before the build, so reaching here means
+            # the build did not read it and generated a key of its own.
+            echo "::error::The APK is signed with $actual, not the key checked before the build. The build did not read debug.keystore from $ANDROID_USER_HOME."
             exit 1
           fi
 
@@ -165,7 +192,8 @@ jobs:
       - name: Remove the secret files
         if: always()
         run: |
+          rm -rf "$RUNNER_TEMP/android-user-home"
           rm -f "$RUNNER_TEMP/firebase-service-account.json" \
                 android/app/google-services.json \
                 env.json \
-                "${ANDROID_USER_HOME:-$HOME/.android}/debug.keystore"
+                "$HOME/.android/debug.keystore"
