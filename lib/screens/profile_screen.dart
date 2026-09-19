@@ -6,6 +6,7 @@ import '../api/session.dart';
 import '../models/verification_state.dart';
 import '../sound/sound_cues.dart';
 import '../theme.dart';
+import '../theme_choice.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import '../widgets/notification_bell.dart';
@@ -269,6 +270,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 line: 'A short cue when a report sends',
                 value: _sounds,
                 onChanged: _setSounds,
+              ),
+              const SizedBox(height: 8),
+              _Toggle(
+                title: 'Light mode',
+                line: 'The pale ground, for daylight',
+                value: ThemeChoice.light.value,
+                onChanged: (on) async {
+                  await ThemeChoice.set(on);
+                  if (mounted) setState(() {});
+                },
               ),
               const SizedBox(height: 8),
               _Link(

@@ -8,6 +8,7 @@ import 'api/push_service.dart';
 import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
 import 'theme.dart';
+import 'theme_choice.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,9 @@ Future<void> main() async {
     // Firebase not configured yet (no google-services.json) — the app still
     // runs; push notifications are simply inactive until it's set up.
   }
+  // The ground the app draws on is a choice made inside it, so it has to be
+  // read before the first frame or the app flashes the wrong one.
+  await ThemeChoice.load();
   // A report saved with no signal in an earlier session starts retrying now,
   // and says so wherever the person is in the app when it finally goes.
   unawaited(ReportQueue.instance.load());
@@ -35,19 +39,21 @@ class RepLitApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'RepLiT',
-      debugShowCheckedModeBanner: false,
-      // Both grounds from the hand-off. Which one shows follows the phone:
-      // a resident who has set their phone to light should not be handed a
-      // black screen at noon, and one who has set it to dark should not be
-      // flashbanged at 3am.
-      theme: buildAppTheme(AppPalette.light),
-      darkTheme: buildAppTheme(AppPalette.dark),
-      themeMode: ThemeMode.system,
-      scaffoldMessengerKey: PushService.messengerKey,
-      navigatorKey: PushService.navigatorKey,
-      home: const SplashScreen(),
+    // Both grounds from the hand-off. Which one shows is the switch in
+    // Profile, not the phone's setting: rebuilt here so one tap repaints
+    // every screen at once.
+    return ValueListenableBuilder<bool>(
+      valueListenable: ThemeChoice.light,
+      builder: (context, light, _) => MaterialApp(
+        title: 'RepLiT',
+        debugShowCheckedModeBanner: false,
+        theme: buildAppTheme(AppPalette.light),
+        darkTheme: buildAppTheme(AppPalette.dark),
+        themeMode: light ? ThemeMode.light : ThemeMode.dark,
+        scaffoldMessengerKey: PushService.messengerKey,
+        navigatorKey: PushService.navigatorKey,
+        home: const SplashScreen(),
+      ),
     );
   }
 }
