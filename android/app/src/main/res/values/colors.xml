@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Background/Ground from the design system: the icon sits on the same
+         ground every screen does. -->
+    <color name="ic_launcher_background">#131313</color>
+</resources>
