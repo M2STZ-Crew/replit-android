@@ -43,6 +43,17 @@ String responderStatusLabel(String status) => switch (status) {
   _ => status.replaceAll('_', ' ').toUpperCase(),
 };
 
+/// What an agency is called on screen.
+String agencyLabel(String? agency) => switch (agency) {
+  'fire_volunteer' => 'Fire Volunteer',
+  'bfp' => 'Bureau of Fire',
+  'police' => 'Police',
+  'medical' => 'Medical',
+  'barangay' => 'Barangay',
+  'coastguard' => 'Coast Guard',
+  _ => 'Response team',
+};
+
 /// Response Teams exist in all five agencies (v10 §2.6), but fire codes — Need
 /// Water, Fire Out — are the fire service's. A police, medical or barangay
 /// crew is not offered them.

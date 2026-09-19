@@ -52,6 +52,10 @@ class Art {
   /// map plate his examples are drawn on (ONBOARDING T1-T7).
   static const String lit = '$_d/lit.png';
   static const String tourMap = '$_d/tour-map.jpg';
+
+  /// Responder bar glyphs (COMPONENTS: NavBar (Responder)).
+  static const String navDuty = '$_d/nav-duty.png';
+  static const String navUnit = '$_d/nav-unit.png';
 }
 
 /// The 10px uppercase section label used above every group in the design.

@@ -7,7 +7,7 @@ import 'bfp/bfp_dashboard_screen.dart';
 import 'map_screen.dart';
 import 'onboarding_screen.dart';
 import 'observer_handoff_screen.dart';
-import 'responder/responder_home_screen.dart';
+import 'responder/responder_duty_screen.dart';
 import 'subadmin/subadmin_dashboard_screen.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
@@ -81,7 +81,7 @@ class _RoleGateState extends State<RoleGate> {
     }
     final role = me['role'] as String?;
     if (role == 'response_team') {
-      return ResponderHomeScreen(me: me);
+      return ResponderDutyScreen(me: me);
     }
     if (role == 'sub_admin') {
       // Observers (police, medical, barangay) work from the Observer Console on
