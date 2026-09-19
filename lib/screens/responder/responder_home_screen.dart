@@ -583,7 +583,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         ),
       ),
       children: [
-        MapTiles.layer(),
+        MapTiles.layer(light: context.pal.isLight),
         MarkerLayer(markers: _markers()),
         MapTiles.attribution(),
       ],

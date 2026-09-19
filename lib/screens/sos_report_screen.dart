@@ -241,9 +241,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
   Widget build(BuildContext context) {
     final chosen = _selected.values.where((v) => v).length;
     return Scaffold(
-      // The report frame sits on the canvas, not the ground: the viewfinder
-      // is a camera surface and the screen darkens around it.
-      backgroundColor: context.pal.canvas,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),

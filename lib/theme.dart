@@ -17,12 +17,9 @@ class AppColors {
   AppColors._();
 
   // ── ground ──────────────────────────────────────────────────────────────
-  /// Outside the phone frame, and behind a camera viewfinder.
+  /// Behind a camera viewfinder. Dark in both themes: a viewfinder is a
+  /// camera surface, and the light frames keep it dark (LIGHT frame 08).
   static const Color canvas = Color(0xFF0B0B0B);
-
-  /// Background/Island — pure black, for anything that must read as sitting
-  /// on top of the app rather than in it (the coach marks' callouts).
-  static const Color island = Color(0xFF000000);
 
   /// The screen background. Was #171717 in v1.
   static const Color background = Color(0xFF131313);
@@ -168,7 +165,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
   const AppPalette({
     required this.brightness,
     required this.canvas,
-    required this.island,
     required this.background,
     required this.surfaceSolid,
     required this.surface,
@@ -198,7 +194,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   // ground
   final Color canvas;
-  final Color island;
   final Color background;
   final Color surfaceSolid;
   final Color surface;
@@ -309,7 +304,6 @@ class AppPalette extends ThemeExtension<AppPalette> {
   static const AppPalette dark = AppPalette(
     brightness: Brightness.dark,
     canvas: Color(0xFF0B0B0B),
-    island: Color(0xFF000000),
     background: Color(0xFF131313),
     surfaceSolid: Color(0xFF171717),
     surface: Color(0xFF262626),
@@ -337,8 +331,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   static const AppPalette light = AppPalette(
     brightness: Brightness.light,
-    canvas: Color(0xFFE4E2DE),
-    island: Color(0xFF000000),
+    // A viewfinder stays dark on the light ground — the design's light Report
+    // frame draws the photo area in the dark ground colour.
+    canvas: Color(0xFF131313),
     background: Color(0xFFEEEDEA),
     surfaceSolid: Color(0xFFF3F3F1),
     surface: Color(0xFFFCFCFC),

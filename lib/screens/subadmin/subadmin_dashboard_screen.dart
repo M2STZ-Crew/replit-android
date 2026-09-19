@@ -548,7 +548,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
         ),
       ),
       children: [
-        MapTiles.layer(),
+        MapTiles.layer(light: context.pal.isLight),
         MarkerLayer(markers: _markers()),
         MapTiles.attribution(),
       ],

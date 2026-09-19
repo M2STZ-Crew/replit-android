@@ -124,7 +124,7 @@ class _CallScreenState extends State<CallScreen> {
                   ),
                   // The list fades into the tab bar rather than stopping at a
                   // hard edge.
-                  const Positioned(
+                  Positioned(
                     left: 0,
                     right: 0,
                     bottom: 0,
@@ -135,7 +135,10 @@ class _CallScreenState extends State<CallScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Color(0x00131313), Color(0xF2131313)],
+                            colors: [
+                              context.pal.background.withValues(alpha: 0),
+                              context.pal.background.withValues(alpha: 0.95),
+                            ],
                           ),
                         ),
                       ),

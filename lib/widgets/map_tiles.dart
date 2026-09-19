@@ -38,22 +38,29 @@ class MapTiles {
 
   static bool get hasToken => token.isNotEmpty && token.startsWith('pk.');
 
-  /// The design's basemap. `dark-v11` is Mapbox's dark style, which is what
-  /// the hand-off draws its maps on.
-  static const String _style = 'dark-v11';
+  /// The design's basemaps: the hand-off draws its dark frames on Mapbox's
+  /// `dark-v11` and its light ones on `light-v11`. A dark map under a light
+  /// app is the loudest thing on the screen, so the map follows the ground.
+  static const String _darkStyle = 'dark-v11';
+  static const String _lightStyle = 'light-v11';
 
   /// Raster tiles rather than vector: `flutter_map` renders raster, and at
   /// `@2x` on a phone the difference from vector is not visible. Going vector
   /// would mean a second map engine in the app for no gain a user would see.
-  static String get _mapboxUrl =>
-      'https://api.mapbox.com/styles/v1/mapbox/$_style/tiles/256/'
+  static String _mapboxUrl(bool light) =>
+      'https://api.mapbox.com/styles/v1/mapbox/'
+      '${light ? _lightStyle : _darkStyle}/tiles/256/'
       '{z}/{x}/{y}@2x?access_token=$token';
 
   static const String _osmUrl =
       'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-  static TileLayer layer() => TileLayer(
-    urlTemplate: hasToken ? _mapboxUrl : _osmUrl,
+  /// [light] picks the basemap for the palette in force — pass
+  /// `context.pal.isLight`. OpenStreetMap's standard tiles are light either
+  /// way, which is the right fallback: a missing token should not also mean a
+  /// map nobody can read.
+  static TileLayer layer({bool light = false}) => TileLayer(
+    urlTemplate: hasToken ? _mapboxUrl(light) : _osmUrl,
     // Both providers' terms require a real identifying agent.
     userAgentPackageName: 'com.m2stz.replit',
     maxNativeZoom: 19,

@@ -173,7 +173,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 ),
               ),
               children: [
-                MapTiles.layer(),
+                MapTiles.layer(light: context.pal.isLight),
                 if (_route.isNotEmpty)
                   PolylineLayer(
                     polylines: [

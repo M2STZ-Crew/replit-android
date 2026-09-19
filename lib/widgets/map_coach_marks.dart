@@ -127,7 +127,7 @@ class _Callout extends StatelessWidget {
     final card = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: context.pal.island,
+        color: context.pal.surfaceSolid,
         borderRadius: BorderRadius.circular(AppRadius.panel),
         border: Border.all(color: context.pal.line),
       ),
@@ -149,7 +149,7 @@ class _Callout extends StatelessWidget {
         CustomPaint(
           size: const Size(18, 10),
           painter: _PointerPainter(
-            fill: context.pal.island,
+            fill: context.pal.surfaceSolid,
             edge: context.pal.line,
           ),
         ),

@@ -29,11 +29,18 @@ const double _nearMetres = 1500;
 
 /// The dark glass every overlay on the map sits on — #171717 at 72%, and at
 /// 90% for the sheet and the offline card, which carry more text.
-const Color _overlay = Color(0xB8171717);
-const Color _overlayDense = Color(0xE6171717);
+/// The glass a panel over the map is made of — the ground colour at the
+/// design's opacity, so it reads as the app over the map in either theme.
+Color _overlay(AppPalette pal) =>
+    pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.86 : 0.72);
+
+/// The denser glass, for a panel that has to hold text over a busy map.
+Color _overlayDense(AppPalette pal) =>
+    pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.94 : 0.9);
 
 /// The ground under a map marker glyph: #131313 at 92%.
-const Color _markerGround = Color(0xEB131313);
+/// A marker plate: nearly opaque, so a glyph on it reads over any tile.
+Color _markerGround(AppPalette pal) => pal.background.withValues(alpha: 0.92);
 
 /// One chip in the "Map layers" row, and the layer it switches.
 /// What a layer is drawn in. A role rather than a swatch, so the light and
@@ -556,7 +563,7 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
       children: [
-        MapTiles.layer(),
+        MapTiles.layer(light: context.pal.isLight),
         if (_on.contains('risk')) PolygonLayer(polygons: _riskPolygons()),
         MarkerLayer(markers: _markers()),
       ],
@@ -845,7 +852,7 @@ class _MapScreenState extends State<MapScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 color: on
                     ? layer.colour(context.pal).withValues(alpha: 0.16)
-                    : _overlay,
+                    : _overlay(context.pal),
                 edge: on
                     ? layer.colour(context.pal).withValues(alpha: 0.45)
                     : context.pal.line,
@@ -954,7 +961,7 @@ class _MapScreenState extends State<MapScreen> {
     final n = queued.length;
     return _Glass(
       radius: AppRadius.panel,
-      color: _overlayDense,
+      color: _overlayDense(context.pal),
       edge: context.pal.accent.withValues(alpha: 0.45),
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -1042,7 +1049,7 @@ class _MapScreenState extends State<MapScreen> {
       child: BackdropFilter.grouped(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
-          color: _overlayDense,
+          color: _overlayDense(context.pal),
           // The bar's height plus a little: the last row clears the SOS disc.
           padding: EdgeInsets.fromLTRB(24, 10, 24, clearance + 10),
           child: Column(
@@ -1421,14 +1428,14 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
-/// Frosted dark glass: the backdrop blurred, #171717 over it, a hairline edge.
-/// Grouped, so the dozen of these over the map share one backdrop read.
+/// Frosted glass: the backdrop blurred, the ground colour over it, a hairline
+/// edge. Grouped, so the dozen of these over the map share one backdrop read.
 class _Glass extends StatelessWidget {
   const _Glass({
     required this.child,
     this.radius = AppRadius.panel,
     this.padding = EdgeInsets.zero,
-    this.color = _overlay,
+    this.color,
     this.edge,
     this.blur = 12,
     this.width,
@@ -1438,7 +1445,9 @@ class _Glass extends StatelessWidget {
   final Widget child;
   final double radius;
   final EdgeInsets padding;
-  final Color color;
+
+  /// Defaults to the palette's glass over the map.
+  final Color? color;
 
   /// Defaults to the palette's hairline.
   final Color? edge;
@@ -1458,7 +1467,7 @@ class _Glass extends StatelessWidget {
           height: height,
           padding: padding,
           decoration: BoxDecoration(
-            color: color,
+            color: color ?? _overlay(context.pal),
             borderRadius: shape,
             border: Border.all(color: edge ?? context.pal.line),
           ),
@@ -1475,21 +1484,24 @@ class _Vignette extends StatelessWidget {
   const _Vignette();
 
   @override
-  Widget build(BuildContext context) => const DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0xCC131313),
-          Color(0x00131313),
-          Color(0x00131313),
-          Color(0xEB131313),
-        ],
-        stops: [0, 0.26, 0.55, 1],
+  Widget build(BuildContext context) {
+    final ground = context.pal.background;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            ground.withValues(alpha: 0.8),
+            ground.withValues(alpha: 0),
+            ground.withValues(alpha: 0),
+            ground.withValues(alpha: 0.92),
+          ],
+          stops: const [0, 0.26, 0.55, 1],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// A rounded-square marker: a glyph on the near-black ground, edged in the
@@ -1519,7 +1531,7 @@ class _MarkerSquare extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: _markerGround,
+        color: _markerGround(context.pal),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: edge),
       ),
@@ -1570,7 +1582,9 @@ class _AreaMarker extends StatelessWidget {
     decoration: BoxDecoration(
       color: context.pal.forStatus(status),
       borderRadius: BorderRadius.circular(AppRadius.chip),
-      border: Border.all(color: const Color(0xE6171717)),
+      border: Border.all(
+        color: context.pal.surfaceSolid.withValues(alpha: 0.9),
+      ),
     ),
     alignment: Alignment.center,
     child: Image.asset(Art.incident, width: 17, height: 17),

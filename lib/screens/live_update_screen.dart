@@ -307,7 +307,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
         ),
       ),
       children: [
-        MapTiles.layer(),
+        MapTiles.layer(light: context.pal.isLight),
         if (centre != null)
           CircleLayer(
             circles: [
@@ -330,7 +330,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                 height: 24,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xEB131313),
+                    color: context.pal.background.withValues(alpha: 0.92),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: context.pal.ok.withValues(alpha: 0.4),
@@ -349,7 +349,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                   decoration: BoxDecoration(
                     color: context.pal.forStatus(status),
                     borderRadius: BorderRadius.circular(AppRadius.chip),
-                    border: Border.all(color: const Color(0xE6171717)),
+                    border: Border.all(
+                      color: context.pal.surfaceSolid.withValues(alpha: 0.9),
+                    ),
                   ),
                   alignment: Alignment.center,
                   child: Image.asset(Art.incident, width: 17, height: 17),
@@ -469,7 +471,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
-          color: const Color(0xE6171717),
+          color: context.pal.surfaceSolid.withValues(alpha: 0.9),
           child: SafeArea(
             top: false,
             child: ListView(
@@ -618,16 +620,16 @@ class _Vignette extends StatelessWidget {
   const _Vignette();
 
   @override
-  Widget build(BuildContext context) => const DecoratedBox(
+  Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Color(0xD1131313),
-          Color(0x00131313),
-          Color(0x00131313),
-          Color(0xE6131313),
+          context.pal.background.withValues(alpha: 0.82),
+          context.pal.background.withValues(alpha: 0),
+          context.pal.background.withValues(alpha: 0),
+          context.pal.background.withValues(alpha: 0.9),
         ],
         stops: [0, 0.24, 0.52, 1],
       ),

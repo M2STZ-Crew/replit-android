@@ -445,7 +445,7 @@ class _SubAdminIncidentCommandScreenState
                     ),
                   ),
                   children: [
-                    MapTiles.layer(),
+                    MapTiles.layer(light: context.pal.isLight),
                     MarkerLayer(markers: _markers(c)),
                   ],
                 ),

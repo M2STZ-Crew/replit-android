@@ -590,7 +590,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         ),
       ),
       children: [
-        MapTiles.layer(),
+        MapTiles.layer(light: context.pal.isLight),
         MarkerLayer(markers: _markers()),
         MapTiles.attribution(),
       ],

@@ -42,7 +42,7 @@ class IncidentMap extends StatelessWidget {
         ),
       ),
       children: [
-        MapTiles.layer(),
+        MapTiles.layer(light: context.pal.isLight),
         MarkerLayer(
           markers: [
             for (final site in evacSites)

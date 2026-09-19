@@ -224,7 +224,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
       height: 226,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: context.pal.canvas,
+        color: context.pal.background,
         borderRadius: BorderRadius.circular(AppRadius.panel),
         border: Border.all(color: context.pal.line),
       ),
@@ -237,13 +237,13 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                     initialCenter: c,
                     // ~3 m a pixel: the 300 m circle is ~190 px across.
                     initialZoom: 15.5,
-                    backgroundColor: context.pal.canvas,
+                    backgroundColor: context.pal.background,
                     interactionOptions: const InteractionOptions(
                       flags: InteractiveFlag.none,
                     ),
                   ),
                   children: [
-                    MapTiles.layer(),
+                    MapTiles.layer(light: context.pal.isLight),
                     CircleLayer(
                       circles: [
                         CircleMarker(

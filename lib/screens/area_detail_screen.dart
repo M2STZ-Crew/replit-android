@@ -266,7 +266,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       height: 140,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: context.pal.canvas,
+        color: context.pal.background,
         borderRadius: BorderRadius.circular(AppRadius.panel),
         border: Border.all(color: context.pal.line),
       ),
@@ -275,13 +275,13 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
           initialCenter: c,
           // ~5 m a pixel here, so the 300 m circle is ~120 px across.
           initialZoom: 14.9,
-          backgroundColor: context.pal.canvas,
+          backgroundColor: context.pal.background,
           interactionOptions: const InteractionOptions(
             flags: InteractiveFlag.none,
           ),
         ),
         children: [
-          MapTiles.layer(),
+          MapTiles.layer(light: context.pal.isLight),
           CircleLayer(
             circles: [
               CircleMarker(
