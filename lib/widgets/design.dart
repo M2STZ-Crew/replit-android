@@ -47,6 +47,11 @@ class Art {
   static const String navHotlines = '$_d/nav-hotlines.png';
   static const String navGuides = '$_d/nav-guides.png';
   static const String navProfile = '$_d/nav-profile.png';
+
+  /// Lit, the firefly who walks a new resident through the tour, and the
+  /// map plate his examples are drawn on (ONBOARDING T1-T7).
+  static const String lit = '$_d/lit.png';
+  static const String tourMap = '$_d/tour-map.jpg';
 }
 
 /// The 10px uppercase section label used above every group in the design.
@@ -59,7 +64,7 @@ class Eyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    style: AppText.eyebrow.copyWith(color: color ?? AppColors.faint),
+    style: context.type.eyebrow.copyWith(color: color ?? context.pal.faint),
   );
 }
 
@@ -93,7 +98,7 @@ class _LabeledFieldState extends State<LabeledField> {
     children: [
       Eyebrow(
         widget.label,
-        color: _focus.hasFocus ? AppColors.accent : AppColors.muted,
+        color: _focus.hasFocus ? context.pal.accent : context.pal.muted,
       ),
       const SizedBox(height: 9),
       widget.builder(_focus),
@@ -134,10 +139,10 @@ class Panel extends StatelessWidget {
     final shape = BorderRadius.circular(radius);
     final content = DecoratedBox(
       decoration: BoxDecoration(
-        color: gradient == null ? (color ?? AppColors.glass) : null,
+        color: gradient == null ? (color ?? context.pal.glass) : null,
         gradient: gradient,
         borderRadius: shape,
-        border: Border.all(color: border ?? AppColors.line),
+        border: Border.all(color: border ?? context.pal.line),
       ),
       child: Padding(padding: padding, child: child),
     );
@@ -196,7 +201,7 @@ class Tag extends StatelessWidget {
           ],
           Text(
             text.toUpperCase(),
-            style: AppText.tag.copyWith(
+            style: context.type.tag.copyWith(
               color: solid ? AppColors.accentText : color,
             ),
           ),
@@ -214,7 +219,7 @@ class IconWell extends StatelessWidget {
     this.asset,
     this.icon,
     this.size = 42,
-    this.glyph = 21,
+    this.glyph = 20,
   });
 
   final Color tint;
@@ -229,7 +234,7 @@ class IconWell extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.15),
+        color: tint.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(size * 0.28),
       ),
       alignment: Alignment.center,
@@ -243,14 +248,19 @@ class IconWell extends StatelessWidget {
 enum _Tone { primary, secondary, danger }
 
 /// Primary (coral gradient), secondary (glass) and destructive buttons.
+///
+/// All three are the same 54px control at the same label size — the COMPONENTS
+/// page draws them as one component with a Type switch, so a destructive
+/// button never reads as a lesser control than the primary it sits beside.
 class AppButton extends StatelessWidget {
   const AppButton(
     this.label, {
     super.key,
     this.onPressed,
     this.icon,
-    this.height = 52,
+    this.height = 54,
     this.busy = false,
+    this.large = false,
   }) : _tone = _Tone.primary;
 
   const AppButton.secondary(
@@ -258,8 +268,9 @@ class AppButton extends StatelessWidget {
     super.key,
     this.onPressed,
     this.icon,
-    this.height = 52,
+    this.height = 54,
     this.busy = false,
+    this.large = false,
   }) : _tone = _Tone.secondary;
 
   /// Destructive — the design uses a red-tinted glass panel, never a red fill.
@@ -268,8 +279,9 @@ class AppButton extends StatelessWidget {
     super.key,
     this.onPressed,
     this.icon,
-    this.height = 48,
+    this.height = 54,
     this.busy = false,
+    this.large = false,
   }) : _tone = _Tone.danger;
 
   final String label;
@@ -277,6 +289,10 @@ class AppButton extends StatelessWidget {
   final IconData? icon;
   final double height;
   final bool busy;
+
+  /// Type/Button large, sentence case: the onboarding tour's call to action.
+  /// A welcome screen is not the place for 12px shouting.
+  final bool large;
   final _Tone _tone;
 
   @override
@@ -292,17 +308,17 @@ class AppButton extends StatelessWidget {
         fg = AppColors.accentText;
         bg = null;
         gradient = enabled ? AppColors.accentGradient : null;
-        border = enabled ? null : AppColors.line;
+        border = enabled ? null : context.pal.line;
       case _Tone.secondary:
-        fg = AppColors.textSoft;
-        bg = AppColors.glass;
+        fg = context.pal.textSoft;
+        bg = context.pal.glass;
         gradient = null;
-        border = AppColors.line;
+        border = context.pal.line;
       case _Tone.danger:
-        fg = AppColors.live;
-        bg = AppColors.live.withValues(alpha: 0.1);
+        fg = context.pal.live;
+        bg = context.pal.live.withValues(alpha: 0.12);
         gradient = null;
-        border = AppColors.live.withValues(alpha: 0.35);
+        border = context.pal.live.withValues(alpha: 0.45);
     }
 
     // The overhaul draws every button at the control radius and flat: glow is
@@ -310,17 +326,24 @@ class AppButton extends StatelessWidget {
     // drop shadow is gone.
     final shape = BorderRadius.circular(AppRadius.control);
     return Opacity(
-      opacity: enabled ? 1 : 0.45,
+      opacity: enabled ? 1 : AppColors.disabledOpacity,
       child: Material(
         color: Colors.transparent,
         borderRadius: shape,
         child: InkWell(
           borderRadius: shape,
           onTap: enabled ? onPressed : null,
+          // Hover and pressed are a token overlay over the same fill, so the
+          // gradient still shows through (COMPONENTS: Button).
+          overlayColor: const WidgetStatePropertyAll(null),
+          hoverColor: context.pal.hover,
+          highlightColor: context.pal.pressed,
+          splashColor: context.pal.pressed,
+          focusColor: Colors.transparent,
           child: Container(
             height: height,
             decoration: BoxDecoration(
-              color: gradient == null ? (bg ?? AppColors.glass) : null,
+              color: gradient == null ? (bg ?? context.pal.glass) : null,
               gradient: gradient,
               borderRadius: shape,
               border: border == null ? null : Border.all(color: border),
@@ -341,17 +364,12 @@ class AppButton extends StatelessWidget {
                       ],
                       Flexible(
                         child: Text(
-                          label.toUpperCase(),
+                          large ? label : label.toUpperCase(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppText.action.copyWith(
-                            color: fg,
-                            fontWeight: _tone == _Tone.primary
-                                ? FontWeight.w900
-                                : FontWeight.w700,
-                            fontSize: _tone == _Tone.primary ? 12 : 11,
-                            letterSpacing: _tone == _Tone.primary ? 1.2 : 1.1,
-                          ),
+                          style: large
+                              ? context.type.actionLarge.copyWith(color: fg)
+                              : context.type.action.copyWith(color: fg),
                         ),
                       ),
                     ],
@@ -379,7 +397,7 @@ class BackWell extends StatelessWidget {
       label: 'Back',
       excludeSemantics: true,
       child: Material(
-        color: AppColors.glass,
+        color: context.pal.glass,
         borderRadius: shape,
         child: InkWell(
           borderRadius: shape,
@@ -389,13 +407,13 @@ class BackWell extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               borderRadius: shape,
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.pal.line),
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.chevron_left_rounded,
               size: 22,
-              color: AppColors.onBackground,
+              color: context.pal.onBackground,
             ),
           ),
         ),
@@ -431,14 +449,16 @@ class ScreenHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (eyebrow != null) ...[
-                Eyebrow(eyebrow!, color: AppColors.label),
+                Eyebrow(eyebrow!, color: context.pal.label),
                 const SizedBox(height: 6),
               ],
               Text(
                 title.toUpperCase(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: eyebrow == null ? AppText.screenTitle : AppText.title,
+                style: eyebrow == null
+                    ? context.type.screenTitle
+                    : context.type.title,
               ),
             ],
           ),
@@ -461,7 +481,7 @@ class AvatarWell extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape = BorderRadius.circular(AppRadius.card);
     return Material(
-      color: AppColors.glass,
+      color: context.pal.glass,
       borderRadius: shape,
       child: InkWell(
         borderRadius: shape,
@@ -471,17 +491,17 @@ class AvatarWell extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             borderRadius: shape,
-            border: Border.all(color: AppColors.lineLight),
+            border: Border.all(color: context.pal.lineLight),
           ),
           alignment: Alignment.center,
           child: initials != null && initials!.isNotEmpty
               ? Text(
                   initials!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.4,
-                    color: AppColors.onBackground,
+                    color: context.pal.onBackground,
                   ),
                 )
               : Image.asset(Art.avatar, width: 28, height: 28),
@@ -515,7 +535,7 @@ class IconWellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: AppColors.glass,
+          color: context.pal.glass,
           borderRadius: shape,
           child: InkWell(
             borderRadius: shape,
@@ -525,12 +545,12 @@ class IconWellButton extends StatelessWidget {
               height: size,
               decoration: BoxDecoration(
                 borderRadius: shape,
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
               child: Icon(
                 icon,
                 size: size * 0.43,
-                color: tint ?? AppColors.onBackground,
+                color: tint ?? context.pal.onBackground,
               ),
             ),
           ),
@@ -544,17 +564,17 @@ class IconWellButton extends StatelessWidget {
               height: 18,
               padding: const EdgeInsets.symmetric(horizontal: 5),
               decoration: BoxDecoration(
-                color: AppColors.live,
+                color: context.pal.live,
                 borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: AppColors.background, width: 2),
+                border: Border.all(color: context.pal.background, width: 2),
               ),
               alignment: Alignment.center,
               child: Text(
                 badge > 9 ? '9+' : '$badge',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
-                  color: AppColors.onBackground,
+                  color: context.pal.onBackground,
                 ),
               ),
             ),
@@ -584,7 +604,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = tone ?? AppColors.faint;
+    final color = tone ?? context.pal.faint;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
@@ -596,10 +616,10 @@ class EmptyState extends StatelessWidget {
             Text(
               title.toUpperCase(),
               textAlign: TextAlign.center,
-              style: AppText.cardTitle.copyWith(fontSize: 15),
+              style: context.type.cardTitle.copyWith(fontSize: 15),
             ),
             const SizedBox(height: 10),
-            Text(body, textAlign: TextAlign.center, style: AppText.body),
+            Text(body, textAlign: TextAlign.center, style: context.type.body),
             if (action != null) ...[const SizedBox(height: 22), action!],
           ],
         ),
@@ -618,7 +638,7 @@ class SheetHandle extends StatelessWidget {
     height: 4,
     margin: const EdgeInsets.only(bottom: 16),
     decoration: BoxDecoration(
-      color: AppColors.label.withValues(alpha: 0.35),
+      color: context.pal.label.withValues(alpha: 0.35),
       borderRadius: BorderRadius.circular(2),
     ),
   );
@@ -642,7 +662,7 @@ class StatTile extends StatelessWidget {
     return Panel(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       radius: AppRadius.card,
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -651,12 +671,12 @@ class StatTile extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppText.numeral.copyWith(
-              color: color ?? AppColors.onBackground,
+            style: context.type.numeral.copyWith(
+              color: color ?? context.pal.onBackground,
             ),
           ),
           const SizedBox(height: 7),
-          Eyebrow(label, color: AppColors.muted),
+          Eyebrow(label, color: context.pal.muted),
         ],
       ),
     );
@@ -687,27 +707,30 @@ class FilterChips extends StatelessWidget {
         itemBuilder: (context, i) {
           final option = options[i];
           final on = option == selected;
-          return GestureDetector(
+          return InkWell(
             onTap: () => onSelect(option),
+            borderRadius: BorderRadius.circular(AppRadius.chip),
+            hoverColor: context.pal.hover,
+            highlightColor: context.pal.pressed,
+            splashColor: context.pal.pressed,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 13),
               decoration: BoxDecoration(
                 color: on
-                    ? AppColors.accent.withValues(alpha: 0.16)
-                    : AppColors.glass,
+                    ? context.pal.accent.withValues(alpha: 0.16)
+                    : context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.chip),
                 border: Border.all(
                   color: on
-                      ? AppColors.accent.withValues(alpha: 0.45)
-                      : AppColors.line,
+                      ? context.pal.accent.withValues(alpha: 0.45)
+                      : context.pal.line,
                 ),
               ),
               alignment: Alignment.center,
               child: Text(
                 option.toUpperCase(),
-                style: AppText.tag.copyWith(
-                  letterSpacing: 1,
-                  color: on ? AppColors.accent : AppColors.label,
+                style: context.type.tag.copyWith(
+                  color: on ? context.pal.accent : context.pal.muted,
                 ),
               ),
             ),
@@ -720,9 +743,10 @@ class FilterChips extends StatelessWidget {
 
 /// A dot that pulses, for anything the design marks "live".
 class LiveDot extends StatefulWidget {
-  const LiveDot({super.key, this.color = AppColors.live, this.size = 8});
+  const LiveDot({super.key, this.color, this.size = 8});
 
-  final Color color;
+  /// Defaults to the palette's live red.
+  final Color? color;
   final double size;
 
   @override
@@ -752,11 +776,11 @@ class _LiveDotState extends State<LiveDot> with SingleTickerProviderStateMixin {
         width: widget.size,
         height: widget.size,
         decoration: BoxDecoration(
-          color: widget.color,
+          color: widget.color ?? context.pal.live,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: widget.color.withValues(alpha: 0.8),
+              color: (widget.color ?? context.pal.live).withValues(alpha: 0.8),
               blurRadius: 8,
             ),
           ],

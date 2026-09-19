@@ -19,13 +19,13 @@ import 'coordinator_nav.dart';
 import 'pending_reports_screen.dart';
 import 'subadmin_home_screen.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _red = AppColors.live;
-const Color _orange = AppColors.accent;
-const Color _green = AppColors.ok;
-const Color _grey = AppColors.muted;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _red = AppColors.live;
+Color _orange = AppColors.accent;
+Color _green = AppColors.ok;
+Color _grey = AppColors.muted;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
 /// Sub-admin dashboard — live counters + a layered operational map, with a
@@ -38,7 +38,8 @@ class SubAdminDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> me;
 
   @override
-  State<SubAdminDashboardScreen> createState() => _SubAdminDashboardScreenState();
+  State<SubAdminDashboardScreen> createState() =>
+      _SubAdminDashboardScreenState();
 }
 
 class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
@@ -71,7 +72,10 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
 
   Future<void> _load() async {
     try {
-      final results = await Future.wait([_api.getIncidentStats(), _api.getIncidents()]);
+      final results = await Future.wait([
+        _api.getIncidentStats(),
+        _api.getIncidents(),
+      ]);
       if (!mounted) return;
       setState(() {
         _stats = results[0] as Map<String, dynamic>;
@@ -115,7 +119,12 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
 
   // Route an incident marker tap to the right coordinator screen.
   Future<void> _openIncident(Map<String, dynamic> inc) async {
-    final changed = await openCoordinatorIncident(context, incident: inc, me: widget.me, api: _api);
+    final changed = await openCoordinatorIncident(
+      context,
+      incident: inc,
+      me: widget.me,
+      api: _api,
+    );
     if (changed && mounted) _load();
   }
 
@@ -151,7 +160,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -167,9 +176,9 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
               child: const Icon(Icons.menu, color: Colors.white, size: 20),
             ),
@@ -181,9 +190,11 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
 
   Widget _drawer() {
     final name =
-        (widget.me['full_name'] as String?) ?? (widget.me['email'] as String?) ?? 'Sub-Admin';
+        (widget.me['full_name'] as String?) ??
+        (widget.me['email'] as String?) ??
+        'Sub-Admin';
     return Drawer(
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,38 +206,44 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                 children: [
                   const AppLogo(),
                   const SizedBox(height: 16),
-                  Text(name,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('Sub-Admin • ${responderAgencyLabel(_agency)}',
-                      style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                  Text(
+                    'Sub-Admin • ${responderAgencyLabel(_agency)}',
+                    style: TextStyle(color: context.pal.muted, fontSize: 12),
+                  ),
                 ],
               ),
             ),
-            const Divider(color: _panelBorder, height: 1),
+            Divider(color: _panelBorder, height: 1),
             _navTile(Icons.dashboard_outlined, 'Dashboard', () {
               Navigator.of(context).pop();
             }),
             _navTile(Icons.list_alt_outlined, 'Incidents', () {
               Navigator.of(context).pop();
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => SubAdminHomeScreen(me: widget.me)),
-              ).then((_) {
-                if (mounted) _load();
-              });
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(
+                      builder: (_) => SubAdminHomeScreen(me: widget.me),
+                    ),
+                  )
+                  .then((_) {
+                    if (mounted) _load();
+                  });
             }),
-            _navTile(
-              Icons.assignment_late_outlined,
-              'Pending reports',
-              () {
-                Navigator.of(context).pop();
-                _openPendingReports();
-              },
-              count: _pendingReports,
-            ),
+            _navTile(Icons.assignment_late_outlined, 'Pending reports', () {
+              Navigator.of(context).pop();
+              _openPendingReports();
+            }, count: _pendingReports),
             const Spacer(),
-            const Divider(color: _panelBorder, height: 1),
+            Divider(color: _panelBorder, height: 1),
             _navTile(Icons.logout, 'Log out', () {
               Navigator.of(context).pop();
               _logout();
@@ -247,7 +264,10 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
   }) {
     return ListTile(
       leading: Icon(icon, color: color, size: 20),
-      title: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      title: Text(
+        label,
+        style: TextStyle(color: color, fontWeight: FontWeight.w500),
+      ),
       trailing: count > 0 ? Tag('$count', color: _red, solid: true) : null,
       onTap: onTap,
     );
@@ -267,7 +287,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
   /// without its record, so these do not go away on their own.
   Widget _pendingBanner() {
     final n = _pendingReports;
-    final tint = AppColors.forStatus('post_incident_report');
+    final tint = context.pal.forStatus('post_incident_report');
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
       child: Panel(
@@ -283,7 +303,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
             Expanded(
               child: Text(
                 '$n Post-Incident Report${n == 1 ? '' : 's'} to file',
-                style: AppText.rowTitle.copyWith(fontSize: 13),
+                style: context.type.rowTitle.copyWith(fontSize: 13),
               ),
             ),
             Icon(Icons.chevron_right_rounded, color: tint),
@@ -301,13 +321,23 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('${s?['active_incidents'] ?? '–'}', 'Active Incidents',
-                  'In progress now', _red, Icons.warning_amber_rounded),
+              child: _statCard(
+                '${s?['active_incidents'] ?? '–'}',
+                'Active Incidents',
+                'In progress now',
+                _red,
+                Icons.warning_amber_rounded,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _statCard('${s?['pending_verify'] ?? '–'}', 'Pending Verify',
-                  'Awaiting review', _orange, Icons.fact_check_outlined),
+              child: _statCard(
+                '${s?['pending_verify'] ?? '–'}',
+                'Pending Verify',
+                'Awaiting review',
+                _orange,
+                Icons.fact_check_outlined,
+              ),
             ),
           ],
         ),
@@ -315,13 +345,23 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('${s?['units_deployed'] ?? '–'}', 'Units Deployed',
-                  'On the way to or on site', _orange, Icons.local_shipping_outlined),
+              child: _statCard(
+                '${s?['units_deployed'] ?? '–'}',
+                'Units Deployed',
+                'On the way to or on site',
+                _orange,
+                Icons.local_shipping_outlined,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _statCard('${s?['units_standby'] ?? '–'}', 'Units Standby',
-                  'Ready to respond', _grey, Icons.groups_outlined),
+              child: _statCard(
+                '${s?['units_standby'] ?? '–'}',
+                'Units Standby',
+                'Ready to respond',
+                _grey,
+                Icons.groups_outlined,
+              ),
             ),
           ],
         ),
@@ -341,7 +381,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
   ) {
     return Panel(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -354,7 +394,10 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.numeral.copyWith(fontSize: 30, color: color),
+                  style: context.type.numeral.copyWith(
+                    fontSize: 30,
+                    color: color,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -366,14 +409,14 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
             title.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppText.cardTitle.copyWith(fontSize: 12),
+            style: context.type.cardTitle.copyWith(fontSize: 12),
           ),
           const SizedBox(height: 5),
           Text(
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppText.meta,
+            style: context.type.meta,
           ),
         ],
       ),
@@ -411,7 +454,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                       const SizedBox(height: 2),
                       Text(
                         'Real-time incidents across Pasay City',
-                        style: AppText.meta,
+                        style: context.type.meta,
                       ),
                     ],
                   ),
@@ -421,10 +464,16 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(color: _orange, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: _orange,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
-                    const Text('Updating live', style: TextStyle(color: _orange, fontSize: 10)),
+                    Text(
+                      'Updating live',
+                      style: TextStyle(color: _orange, fontSize: 10),
+                    ),
                   ],
                 ),
               ],
@@ -456,7 +505,9 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: on ? layer.color.withValues(alpha: 0.12) : const Color(0xFF1A1A1A),
+          color: on
+              ? layer.color.withValues(alpha: 0.12)
+              : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: on ? layer.color : const Color(0xFF2A2A2A)),
         ),
@@ -466,7 +517,10 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
             Container(
               width: 14,
               height: 14,
-              decoration: BoxDecoration(color: layer.color, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: layer.color,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 8),
             Text(
@@ -518,7 +572,9 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
         final lat = (inc['centroid_lat'] as num?)?.toDouble();
         final lng = (inc['centroid_lng'] as num?)?.toDouble();
         if (lat == null || lng == null) continue;
-        final color = responderStatusColor((inc['status'] as String?) ?? 'pending');
+        final color = responderStatusColor(
+          (inc['status'] as String?) ?? 'pending',
+        );
         markers.add(
           Marker(
             point: LatLng(lat, lng),
@@ -530,10 +586,22 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                 decoration: BoxDecoration(
                   color: color,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                  boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 14)],
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.5),
+                      blurRadius: 14,
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.local_fire_department, color: Colors.white, size: 15),
+                child: const Icon(
+                  Icons.local_fire_department,
+                  color: Colors.white,
+                  size: 15,
+                ),
               ),
             ),
           ),
@@ -548,7 +616,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
     final color = responderStatusColor(status);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -574,14 +642,23 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: color.withValues(alpha: 0.5)),
                     ),
-                    child: Text(responderStatusLabel(status),
-                        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800)),
+                    child: Text(
+                      responderStatusLabel(status),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -589,7 +666,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
               Text(
                 '${(inc['report_count'] as num?)?.toInt() ?? 0} reports • '
                 '${(inc['active_dispatch_count'] as num?)?.toInt() ?? 0} responding',
-                style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                style: TextStyle(color: context.pal.muted, fontSize: 13),
               ),
               if (routingLabel(inc, agency: _agency) case final routed?) ...[
                 const SizedBox(height: 10),
@@ -606,7 +683,7 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     gradient: AppColors.accentGradient,
-          borderRadius: BorderRadius.circular(AppRadius.card),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
                   ),
                   child: const Text(
                     'OPEN INCIDENT',

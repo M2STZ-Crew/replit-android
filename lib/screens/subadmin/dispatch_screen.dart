@@ -20,7 +20,12 @@ import '../responder/responder_status.dart';
 ///
 /// Pops `true` once at least one responder was dispatched.
 class DispatchScreen extends StatefulWidget {
-  const DispatchScreen({super.key, required this.areaId, this.designation, this.api});
+  const DispatchScreen({
+    super.key,
+    required this.areaId,
+    this.designation,
+    this.api,
+  });
 
   final String areaId;
   final String? designation;
@@ -115,9 +120,11 @@ class _DispatchScreenState extends State<DispatchScreen> {
       _toast('Dispatch failed. Check your connection.');
       return;
     }
-    _toast(failed == 0
-        ? 'Dispatched $ok responder${ok == 1 ? '' : 's'}.'
-        : '$ok dispatched, $failed failed.');
+    _toast(
+      failed == 0
+          ? 'Dispatched $ok responder${ok == 1 ? '' : 's'}.'
+          : '$ok dispatched, $failed failed.',
+    );
     Navigator.of(context).pop(true);
   }
 
@@ -126,7 +133,7 @@ class _DispatchScreenState extends State<DispatchScreen> {
   Widget build(BuildContext context) {
     final n = _selected.length;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -134,33 +141,51 @@ class _DispatchScreenState extends State<DispatchScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
                 children: [
-                  ScreenHeader(eyebrow: 'Dispatch', title: widget.designation ?? "Who's going?"),
+                  ScreenHeader(
+                    eyebrow: 'Dispatch',
+                    title: widget.designation ?? "Who's going?",
+                  ),
                   const SizedBox(height: 14),
                   Text(
                     'Choose who is going. Truck, driver and roles are recorded after '
                     'fire out, in the Post-Incident Report.',
-                    style: AppText.body.copyWith(fontSize: 13),
+                    style: context.type.body.copyWith(fontSize: 13),
                   ),
                   const SizedBox(height: 22),
                   if (_loading)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.all(40),
-                      child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: context.pal.accent,
+                        ),
+                      ),
                     )
                   else if (_error != null)
-                    Text(_error!, style: AppText.meta.copyWith(color: AppColors.live))
+                    Text(
+                      _error!,
+                      style: context.type.meta.copyWith(
+                        color: context.pal.live,
+                      ),
+                    )
                   else ...[
-                    Eyebrow('Responders · $n selected', color: AppColors.label),
+                    Eyebrow(
+                      'Responders · $n selected',
+                      color: context.pal.label,
+                    ),
                     const SizedBox(height: 10),
                     if (_responders.isEmpty)
-                      Text('No responders in your agency to dispatch.', style: AppText.meta),
+                      Text(
+                        'No responders in your agency to dispatch.',
+                        style: context.type.meta,
+                      ),
                     for (final r in _responders) ...[
                       _responderRow(r),
                       const SizedBox(height: 8),
                     ],
                     if (_fleet.isNotEmpty) ...[
                       const SizedBox(height: 18),
-                      const Eyebrow('Unit · optional', color: AppColors.label),
+                      Eyebrow('Unit · optional', color: context.pal.label),
                       const SizedBox(height: 10),
                       _unitChips(),
                     ],
@@ -171,7 +196,9 @@ class _DispatchScreenState extends State<DispatchScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
               child: AppButton(
-                n == 0 ? 'Choose who is going' : 'Dispatch $n responder${n == 1 ? '' : 's'}',
+                n == 0
+                    ? 'Choose who is going'
+                    : 'Dispatch $n responder${n == 1 ? '' : 's'}',
                 icon: Icons.send_rounded,
                 busy: _sending,
                 onPressed: n == 0 ? null : _dispatch,
@@ -194,10 +221,14 @@ class _DispatchScreenState extends State<DispatchScreen> {
       child: Panel(
         onTap: here
             ? null
-            : () => setState(() => selected ? _selected.remove(id) : _selected.add(id)),
+            : () => setState(
+                () => selected ? _selected.remove(id) : _selected.add(id),
+              ),
         radius: AppRadius.control,
-        color: selected ? AppColors.accent.withValues(alpha: 0.08) : AppColors.glassDim,
-        border: selected ? AppColors.accent : AppColors.line,
+        color: selected
+            ? context.pal.accent.withValues(alpha: 0.08)
+            : context.pal.glassDim,
+        border: selected ? context.pal.accent : context.pal.line,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
@@ -205,24 +236,32 @@ class _DispatchScreenState extends State<DispatchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: AppText.rowTitle.copyWith(fontSize: 14)),
+                  Text(
+                    name,
+                    style: context.type.rowTitle.copyWith(fontSize: 14),
+                  ),
                   const SizedBox(height: 3),
-                  Text(responderAgencyLabel(r['agency_type'] as String?), style: AppText.meta),
+                  Text(
+                    responderAgencyLabel(r['agency_type'] as String?),
+                    style: context.type.meta,
+                  ),
                 ],
               ),
             ),
             if (here)
-              const Tag('Responding', color: AppColors.ok)
+              Tag('Responding', color: context.pal.ok)
             else if (busy)
-              const Tag('On another call', color: AppColors.warn),
+              Tag('On another call', color: context.pal.warn),
             const SizedBox(width: 10),
             Icon(
               here
                   ? Icons.check_circle
                   : selected
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-              color: here || selected ? AppColors.accent : AppColors.lineStrong,
+                  ? Icons.check_circle
+                  : Icons.radio_button_unchecked,
+              color: here || selected
+                  ? context.pal.accent
+                  : context.pal.lineStrong,
               size: 22,
             ),
           ],
@@ -238,15 +277,17 @@ class _DispatchScreenState extends State<DispatchScreen> {
         label: Text(label),
         selected: on,
         onSelected: (_) => setState(() => _unitId = id),
-        selectedColor: AppColors.accentTint,
-        backgroundColor: AppColors.glass,
-        side: BorderSide(color: on ? AppColors.accent : AppColors.line),
+        selectedColor: context.pal.accentTint,
+        backgroundColor: context.pal.glass,
+        side: BorderSide(color: on ? context.pal.accent : context.pal.line),
         labelStyle: TextStyle(
-          color: on ? AppColors.accent : AppColors.textSoft,
+          color: on ? context.pal.accent : context.pal.textSoft,
           fontWeight: FontWeight.w700,
         ),
         showCheckmark: false,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.chip)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.chip),
+        ),
       );
     }
 

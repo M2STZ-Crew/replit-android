@@ -136,16 +136,16 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 30),
           content: [
             Align(alignment: Alignment.centerLeft, child: _alertChip()),
             const SizedBox(height: 24),
-            const Text('DO YOU SEE IT TOO?', style: AppText.display),
+            Text('DO YOU SEE IT TOO?', style: context.type.display),
             const SizedBox(height: 14),
-            Text(_sentence, style: AppText.body),
+            Text(_sentence, style: context.type.body),
             const SizedBox(height: 26),
             _proximityMap(),
             const SizedBox(height: 26),
@@ -155,17 +155,19 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline_rounded,
                     size: 18,
-                    color: AppColors.accent,
+                    color: context.pal.accent,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
                       'Confirming takes you through the same photo step, so '
                       'your answer becomes a real report — not just a tap.',
-                      style: AppText.caption.copyWith(color: AppColors.label),
+                      style: context.type.caption.copyWith(
+                        color: context.pal.label,
+                      ),
                     ),
                   ),
                 ],
@@ -195,9 +197,9 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
       constraints: const BoxConstraints(minHeight: 28),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.live.withValues(alpha: 0.16),
+        color: context.pal.live.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppRadius.chip),
-        border: Border.all(color: AppColors.live.withValues(alpha: 0.45)),
+        border: Border.all(color: context.pal.live.withValues(alpha: 0.45)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -206,7 +208,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
           const SizedBox(width: 8),
           Text(
             'BARANGAY 76 ALERT',
-            style: AppText.tag.copyWith(color: AppColors.live),
+            style: context.type.tag.copyWith(color: context.pal.live),
           ),
         ],
       ),
@@ -222,9 +224,9 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
       height: 226,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.canvas,
+        color: context.pal.canvas,
         borderRadius: BorderRadius.circular(AppRadius.panel),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
       child: c == null
           ? const Center(child: CircularProgressIndicator())
@@ -235,7 +237,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                     initialCenter: c,
                     // ~3 m a pixel: the 300 m circle is ~190 px across.
                     initialZoom: 15.5,
-                    backgroundColor: AppColors.canvas,
+                    backgroundColor: context.pal.canvas,
                     interactionOptions: const InteractionOptions(
                       flags: InteractiveFlag.none,
                     ),
@@ -248,8 +250,8 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                           point: c,
                           radius: kClusterRadiusMetres,
                           useRadiusInMeter: true,
-                          color: AppColors.live.withValues(alpha: 0.08),
-                          borderColor: AppColors.live.withValues(alpha: 0.45),
+                          color: context.pal.live.withValues(alpha: 0.08),
+                          borderColor: context.pal.live.withValues(alpha: 0.45),
                           borderStrokeWidth: 1,
                         ),
                       ],
@@ -262,10 +264,10 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                           height: 22,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: AppColors.live,
+                              color: context.pal.live,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.surfaceSolid,
+                                color: context.pal.surfaceSolid,
                                 width: 3,
                               ),
                             ),
@@ -278,10 +280,10 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                             height: 16,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: AppColors.accent,
+                                color: context.pal.accent,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppColors.surfaceSolid,
+                                  color: context.pal.surfaceSolid,
                                   width: 2.5,
                                 ),
                               ),
@@ -310,8 +312,8 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                       ),
                       child: Text(
                         '${away < 1000 ? '${away.round()} M' : '${(away / 1000).toStringAsFixed(1)} KM'} FROM YOU',
-                        style: AppText.tag.copyWith(
-                          color: AppColors.onBackground,
+                        style: context.type.tag.copyWith(
+                          color: context.pal.onBackground,
                         ),
                       ),
                     ),

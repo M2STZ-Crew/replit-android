@@ -14,14 +14,14 @@ import '../responder/responder_status.dart';
 import 'subadmin_incident_command_screen.dart';
 import 'subadmin_incident_report_screen.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _grey = AppColors.muted;
-const Color _green = AppColors.ok;
-const Color _orange = AppColors.accent;
-const Color _red = AppColors.live;
-const Color _label = AppColors.label;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _grey = AppColors.muted;
+Color _green = AppColors.ok;
+Color _orange = AppColors.accent;
+Color _red = AppColors.live;
+Color _label = AppColors.label;
 
 Color _areaColor(String s) {
   switch (s) {
@@ -71,7 +71,10 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
   void initState() {
     super.initState();
     _load();
-    _poll = Timer.periodic(const Duration(seconds: 12), (_) => _load(silent: true));
+    _poll = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => _load(silent: true),
+    );
   }
 
   @override
@@ -109,7 +112,9 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
     _reportsLoading.add(areaId);
     try {
       final raw = await _api.getIncidentReports(areaId);
-      if (mounted) setState(() => _reports[areaId] = raw.cast<Map<String, dynamic>>());
+      if (mounted) {
+        setState(() => _reports[areaId] = raw.cast<Map<String, dynamic>>());
+      }
     } catch (_) {
       // leave previous
     } finally {
@@ -182,7 +187,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -196,11 +201,15 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
-              child: const Icon(Icons.settings_outlined, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.settings_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -210,10 +219,12 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
 
   void _accountSheet() {
     final name =
-        (widget.me['full_name'] as String?) ?? (widget.me['email'] as String?) ?? 'Sub-Admin';
+        (widget.me['full_name'] as String?) ??
+        (widget.me['email'] as String?) ??
+        'Sub-Admin';
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -224,14 +235,25 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 16),
-            Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text('Sub-Admin • ${responderAgencyLabel(_agency)}',
-                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            Text(
+              'Sub-Admin • ${responderAgencyLabel(_agency)}',
+              style: TextStyle(color: context.pal.muted, fontSize: 12),
+            ),
             const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.logout, color: _red),
-              title: const Text('Log out', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.logout, color: _red),
+              title: const Text(
+                'Log out',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _logout();
@@ -246,17 +268,22 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+      return Center(
+        child: CircularProgressIndicator(color: context.pal.accent),
+      );
     }
     if (_error != null) {
       return _centered(Icons.cloud_off, _error!, retry: true);
     }
     if (_areas.isEmpty) {
-      return _centered(Icons.inbox_outlined, 'No incidents to review right now.');
+      return _centered(
+        Icons.inbox_outlined,
+        'No incidents to review right now.',
+      );
     }
     return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceSolid,
+      color: context.pal.accent,
+      backgroundColor: context.pal.surfaceSolid,
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
@@ -279,7 +306,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
           behavior: HitTestBehavior.opaque,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: _panelBorder)),
             ),
             child: Row(
@@ -290,7 +317,8 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ((area['designation'] as String?) ?? 'Area').toUpperCase(),
+                        ((area['designation'] as String?) ?? 'Area')
+                            .toUpperCase(),
                         style: TextStyle(
                           color: color,
                           fontSize: 12,
@@ -299,7 +327,8 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                         ),
                       ),
                       // Admin routed this to your agency or team (v10 §2.6.2).
-                      if (routingLabel(area, agency: _agency) case final routed?) ...[
+                      if (routingLabel(area, agency: _agency)
+                          case final routed?) ...[
                         const SizedBox(height: 6),
                         Tag(routed, color: _green, dot: true),
                       ],
@@ -310,13 +339,21 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                   children: [
                     Text(
                       responderStatusLabel(status),
-                      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     AnimatedRotation(
                       turns: open ? 0 : -0.25,
                       duration: const Duration(milliseconds: 150),
-                      child: const Icon(Icons.keyboard_arrow_down, color: _grey, size: 20),
+                      child: Icon(
+                        Icons.keyboard_arrow_down,
+                        color: _grey,
+                        size: 20,
+                      ),
                     ),
                   ],
                 ),
@@ -332,21 +369,27 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
   Widget _areaReports(String areaId, String status) {
     final reports = _reports[areaId];
     if (reports == null) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.all(20),
         child: Center(
           child: SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: context.pal.accent,
+            ),
           ),
         ),
       );
     }
     if (reports.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.fromLTRB(24, 12, 24, 12),
-        child: Text('No reports in this area.', style: TextStyle(color: AppColors.muted)),
+        child: Text(
+          'No reports in this area.',
+          style: TextStyle(color: context.pal.muted),
+        ),
       );
     }
     return Padding(
@@ -364,7 +407,8 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
 
   Widget _reportCard(Map<String, dynamic> r, String status, String areaId) {
     final color = _areaColor(status);
-    final name = (r['reporter_name'] as String?)?.toUpperCase() ?? 'UNKNOWN REPORTER';
+    final name =
+        (r['reporter_name'] as String?)?.toUpperCase() ?? 'UNKNOWN REPORTER';
     final created = r['created_at'] as String?;
     return GestureDetector(
       onTap: () => _openReport(r, status, areaId),
@@ -389,7 +433,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _label,
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
@@ -397,10 +441,22 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                       height: 1.6,
                     ),
                   ),
-                  Text(_fmtDate(created),
-                      style: const TextStyle(color: _label, fontSize: 11, letterSpacing: 1)),
-                  Text(_fmtTime(created),
-                      style: const TextStyle(color: _label, fontSize: 11, letterSpacing: 1)),
+                  Text(
+                    _fmtDate(created),
+                    style: TextStyle(
+                      color: _label,
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    _fmtTime(created),
+                    style: TextStyle(
+                      color: _label,
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -414,7 +470,11 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
               ),
               child: Text(
                 responderStatusLabel(status),
-                style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -447,11 +507,14 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                 width: size,
                 height: size,
                 color: const Color(0x7F303030),
-                child: const Center(
+                child: Center(
                   child: SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: context.pal.accent,
+                    ),
                   ),
                 ),
               ),
@@ -473,17 +536,28 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.outline, size: 44),
+            Icon(icon, color: context.pal.outline, size: 44),
             const SizedBox(height: 16),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.pal.muted,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
             if (retry) ...[
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => _load(),
-                child: const Text('Retry',
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700)),
+                child: Text(
+                  'Retry',
+                  style: TextStyle(
+                    color: context.pal.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ],
@@ -493,13 +567,21 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
   }
 
   // ------------------------------------------------ report + actions ---
-  Future<void> _openReport(Map<String, dynamic> r, String status, String areaId) async {
+  Future<void> _openReport(
+    Map<String, dynamic> r,
+    String status,
+    String areaId,
+  ) async {
     // Active (dispatched onwards) → command screen; otherwise the verify screen.
     final active = const {'dispatched', 'en_route', 'arrived'}.contains(status);
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => active
-            ? SubAdminIncidentCommandScreen(areaId: areaId, me: widget.me, api: _api)
+            ? SubAdminIncidentCommandScreen(
+                areaId: areaId,
+                me: widget.me,
+                api: _api,
+              )
             : SubAdminIncidentReportScreen(
                 report: r,
                 areaId: areaId,

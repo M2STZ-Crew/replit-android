@@ -10,8 +10,8 @@ import '../theme.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/design.dart';
 
-const Color _safeGreen = AppColors.ok;
-const Color _youBlue = AppColors.info;
+Color _safeGreen = AppColors.ok;
+Color _youBlue = AppColors.info;
 
 /// In-app turn-by-route directions to an evacuation site (Grab/Foodpanda style)
 /// — a draggable CARTO map with the route drawn as a polyline, instead of
@@ -68,7 +68,8 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         if (perm == LocationPermission.denied) {
           perm = await Geolocator.requestPermission();
         }
-        if (perm != LocationPermission.denied && perm != LocationPermission.deniedForever) {
+        if (perm != LocationPermission.denied &&
+            perm != LocationPermission.deniedForever) {
           final pos = await Geolocator.getCurrentPosition();
           _origin = LatLng(pos.latitude, pos.longitude);
         }
@@ -96,7 +97,10 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         if (routes != null && routes.isNotEmpty) {
           final route = routes.first as Map<String, dynamic>;
           final coords = (route['geometry']['coordinates'] as List<dynamic>)
-              .map((c) => LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()))
+              .map(
+                (c) =>
+                    LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()),
+              )
               .toList();
           if (mounted) {
             setState(() {
@@ -153,7 +157,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   Widget build(BuildContext context) {
     final origin = _origin;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: Stack(
         children: [
           if (origin != null)
@@ -176,7 +180,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                       Polyline(
                         points: _route,
                         strokeWidth: 5,
-                        color: AppColors.accent,
+                        color: context.pal.accent,
                         borderStrokeWidth: 1,
                         borderColor: Colors.black54,
                       ),
@@ -184,8 +188,18 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                   ),
                 MarkerLayer(
                   markers: [
-                    Marker(point: origin, width: 26, height: 26, child: _youMarker()),
-                    Marker(point: _dest, width: 36, height: 36, child: _destMarker()),
+                    Marker(
+                      point: origin,
+                      width: 26,
+                      height: 26,
+                      child: _youMarker(),
+                    ),
+                    Marker(
+                      point: _dest,
+                      width: 36,
+                      height: 36,
+                      child: _destMarker(),
+                    ),
                   ],
                 ),
                 MapTiles.attribution(),
@@ -204,13 +218,13 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
             ),
           ),
           if (_loading)
-            const Positioned(
+            Positioned(
               top: 0,
               left: 0,
               right: 0,
               child: LinearProgressIndicator(
                 minHeight: 2,
-                color: AppColors.accent,
+                color: context.pal.accent,
                 backgroundColor: Colors.transparent,
               ),
             ),
@@ -230,13 +244,13 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
-        color: AppColors.surfaceSolid,
+        color: context.pal.surfaceSolid,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: context.pal.outline),
       ),
       child: Row(
         children: [
-          const Icon(Icons.navigation, color: AppColors.accent, size: 16),
+          Icon(Icons.navigation, color: context.pal.accent, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -256,53 +270,48 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   }
 
   Widget _youMarker() => Container(
-        decoration: BoxDecoration(
-          color: _youBlue,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-          boxShadow: const [BoxShadow(color: Color(0x803B82F6), blurRadius: 12)],
-        ),
-      );
+    decoration: BoxDecoration(
+      color: _youBlue,
+      shape: BoxShape.circle,
+      border: Border.all(color: Colors.white, width: 3),
+      boxShadow: const [BoxShadow(color: Color(0x803B82F6), blurRadius: 12)],
+    ),
+  );
 
   Widget _destMarker() => Container(
-        decoration: BoxDecoration(
-          color: _safeGreen,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [BoxShadow(color: Color(0x9922C55E), blurRadius: 12)],
-        ),
-        child: const Icon(Icons.home_outlined, color: Colors.white, size: 20),
-      );
+    decoration: BoxDecoration(
+      color: _safeGreen,
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      border: Border.all(color: Colors.white, width: 2),
+      boxShadow: const [BoxShadow(color: Color(0x9922C55E), blurRadius: 12)],
+    ),
+    child: const Icon(Icons.home_outlined, color: Colors.white, size: 20),
+  );
 
   Widget _routeCard() {
     return Panel(
       padding: const EdgeInsets.all(20),
-      color: AppColors.surfaceSolid.withValues(alpha: 0.94),
+      color: context.pal.surfaceSolid.withValues(alpha: 0.94),
       border: _safeGreen.withValues(alpha: 0.5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const IconWell(
-                tint: _safeGreen,
-                asset: Art.evac,
-                size: 40,
-                glyph: 20,
-              ),
+              IconWell(tint: _safeGreen, asset: Art.evac, size: 40, glyph: 20),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Eyebrow('Route to safety', color: _safeGreen),
+                    Eyebrow('Route to safety', color: _safeGreen),
                     const SizedBox(height: 6),
                     Text(
                       widget.destName.toUpperCase(),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.cardTitle.copyWith(fontSize: 16),
+                      style: context.type.cardTitle.copyWith(fontSize: 16),
                     ),
                   ],
                 ),
@@ -335,7 +344,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
             Text(
               'Direct line shown — live routing was unavailable. Follow main '
               'roads toward the marker.',
-              style: AppText.meta.copyWith(height: 16 / 11),
+              style: context.type.meta.copyWith(height: 16 / 11),
             ),
           ],
         ],
@@ -347,7 +356,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: AppColors.accent, size: 19),
+        Icon(icon, color: context.pal.accent, size: 19),
         const SizedBox(width: 10),
         Flexible(
           child: Column(
@@ -358,10 +367,10 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppText.numeral.copyWith(fontSize: 18),
+                style: context.type.numeral.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 4),
-              Eyebrow(label, color: AppColors.muted),
+              Eyebrow(label, color: context.pal.muted),
             ],
           ),
         ),

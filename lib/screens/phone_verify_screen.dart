@@ -5,7 +5,7 @@ import '../api/api_client.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 
-const Color _safeGreen = AppColors.ok;
+Color _safeGreen = AppColors.ok;
 
 /// Phone OTP verification (+40%). Two steps in one screen:
 ///  1. Enter mobile number (E.164) → POST /verification/phone/request.
@@ -37,11 +37,15 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
     super.dispose();
   }
 
-  bool get _phoneValid => RegExp(r'^\+[1-9]\d{6,14}$').hasMatch(_phone.text.trim());
+  bool get _phoneValid =>
+      RegExp(r'^\+[1-9]\d{6,14}$').hasMatch(_phone.text.trim());
 
   Future<void> _sendCode() async {
     if (!_phoneValid) {
-      setState(() => _error = 'Enter a valid number in E.164 format, e.g. +639171234567.');
+      setState(
+        () => _error =
+            'Enter a valid number in E.164 format, e.g. +639171234567.',
+      );
       return;
     }
     setState(() {
@@ -60,7 +64,11 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not send the code. Check your connection.');
+      if (mounted) {
+        setState(
+          () => _error = 'Could not send the code. Check your connection.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -90,7 +98,11 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not verify the code. Check your connection.');
+      if (mounted) {
+        setState(
+          () => _error = 'Could not verify the code. Check your connection.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -99,7 +111,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
@@ -112,10 +124,14 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: AppColors.accentTint,
+                  color: context.pal.accentTint,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.smartphone, color: AppColors.accent, size: 28),
+                child: Icon(
+                  Icons.smartphone,
+                  color: context.pal.accent,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -132,7 +148,11 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                 _codeSent
                     ? 'Enter the 6-digit code we sent to ${_phone.text.trim()}.'
                     : 'We will send a one-time SMS code to confirm your number (+40%).',
-                style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.4),
+                style: TextStyle(
+                  color: context.pal.muted,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 24),
               if (!_codeSent) _phoneField() else _codeField(),
@@ -140,15 +160,12 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                 const SizedBox(height: 12),
                 Text(
                   _error!,
-                  style: const TextStyle(color: AppColors.live, fontSize: 13),
+                  style: TextStyle(color: context.pal.live, fontSize: 13),
                 ),
               ],
               if (_info != null && _error == null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _info!,
-                  style: const TextStyle(color: _safeGreen, fontSize: 13),
-                ),
+                Text(_info!, style: TextStyle(color: _safeGreen, fontSize: 13)),
               ],
               const SizedBox(height: 20),
               _primaryButton(),
@@ -157,18 +174,23 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                 Center(
                   child: TextButton(
                     onPressed: _busy ? null : _sendCode,
-                    child: const Text(
+                    child: Text(
                       'Resend code',
-                      style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: context.pal.accent,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
                 Center(
                   child: TextButton(
-                    onPressed: _busy ? null : () => setState(() => _codeSent = false),
-                    child: const Text(
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() => _codeSent = false),
+                    child: Text(
                       'Change number',
-                      style: TextStyle(color: AppColors.muted),
+                      style: TextStyle(color: context.pal.muted),
                     ),
                   ),
                 ),
@@ -187,7 +209,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('Mobile Number'.toUpperCase(), style: AppText.screenTitle),
+        Text('Mobile Number'.toUpperCase(), style: context.type.screenTitle),
       ],
     );
   }
@@ -198,12 +220,12 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       keyboardType: TextInputType.phone,
       style: _fieldStyle,
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))],
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: '+63 917 123 4567',
         prefixIcon: Icon(
           Icons.phone_outlined,
           size: 18,
-          color: AppColors.muted,
+          color: context.pal.muted,
         ),
       ),
     );
@@ -240,26 +262,22 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
   Widget _trialNote() {
     return Panel(
       radius: AppRadius.control,
-      color: AppColors.warn.withValues(alpha: 0.08),
-      border: AppColors.warn.withValues(alpha: 0.35),
+      color: context.pal.warn.withValues(alpha: 0.08),
+      border: context.pal.warn.withValues(alpha: 0.35),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.info_outline_rounded,
-            size: 16,
-            color: AppColors.warn,
-          ),
+          Icon(Icons.info_outline_rounded, size: 16, color: context.pal.warn),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'SMS runs through a trial gateway, so a Philippine number may not '
               'receive the code in this build. A paid sender is needed before '
               'release.',
-              style: AppText.meta.copyWith(
+              style: context.type.meta.copyWith(
                 height: 16 / 11,
-                color: AppColors.textSoft,
+                color: context.pal.textSoft,
               ),
             ),
           ),
@@ -269,7 +287,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
   }
 }
 
-const TextStyle _fieldStyle = TextStyle(
+TextStyle _fieldStyle = TextStyle(
   fontSize: 15,
   fontWeight: FontWeight.w500,
   color: AppColors.onBackground,

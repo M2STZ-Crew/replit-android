@@ -63,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         // Padded, and every line below wraps: at the larger system font
         // scales people actually use, an unpadded single-line footer runs
@@ -90,19 +90,23 @@ class _SplashScreenState extends State<SplashScreen>
                 Text(
                   'CONNECTING TO BARANGAY 76',
                   textAlign: TextAlign.center,
-                  style: AppText.eyebrow.copyWith(color: AppColors.muted),
+                  style: context.type.eyebrow.copyWith(
+                    color: context.pal.muted,
+                  ),
                 ),
                 const Spacer(flex: 2),
                 Text(
                   'Barangay 76, Pasay City',
                   textAlign: TextAlign.center,
-                  style: AppText.labelSm,
+                  style: context.type.labelSm,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'EMERGENCY RESPONSE NETWORK',
                   textAlign: TextAlign.center,
-                  style: AppText.eyebrow.copyWith(color: AppColors.muted),
+                  style: context.type.eyebrow.copyWith(
+                    color: context.pal.muted,
+                  ),
                 ),
                 const SizedBox(height: 40),
               ],
@@ -131,10 +135,10 @@ class _SplashScreenState extends State<SplashScreen>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.accent.withValues(
+                    context.pal.accent.withValues(
                       alpha: 0.16 + _breathe.value * 0.06,
                     ),
-                    AppColors.accent.withValues(alpha: 0),
+                    context.pal.accent.withValues(alpha: 0),
                   ],
                 ),
               ),
@@ -156,7 +160,7 @@ class _SplashScreenState extends State<SplashScreen>
       child: Container(
         width: track,
         height: 3,
-        color: AppColors.lineStrong,
+        color: context.pal.lineStrong,
         child: AnimatedBuilder(
           animation: _loader,
           builder: (context, _) => Stack(
@@ -166,9 +170,9 @@ class _SplashScreenState extends State<SplashScreen>
                 top: 0,
                 bottom: 0,
                 width: fill,
-                child: const DecoratedBox(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: context.pal.accent,
                     borderRadius: BorderRadius.all(Radius.circular(2)),
                   ),
                 ),

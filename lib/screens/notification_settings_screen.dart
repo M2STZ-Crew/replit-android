@@ -12,10 +12,12 @@ class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
   final ApiClient _api = ApiClient();
 
   bool _enabled = true;
@@ -61,11 +63,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     try {
       final message = await _api.sendTestPush();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
@@ -81,7 +87,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
@@ -109,7 +115,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('Notifications'.toUpperCase(), style: AppText.screenTitle),
+        Text('Notifications'.toUpperCase(), style: context.type.screenTitle),
       ],
     );
   }
@@ -117,11 +123,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   Widget _toggleCard() {
     return Panel(
       padding: const EdgeInsets.all(18),
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       child: Row(
         children: [
-          const IconWell(
-            tint: AppColors.accent,
+          IconWell(
+            tint: context.pal.accent,
             icon: Icons.notifications_active_outlined,
             size: 44,
             glyph: 22,
@@ -134,12 +140,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               children: [
                 Text(
                   'EMERGENCY ALERTS',
-                  style: AppText.cardTitle.copyWith(fontSize: 14),
+                  style: context.type.cardTitle.copyWith(fontSize: 14),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Get alerted about incidents reported near you.',
-                  style: AppText.meta.copyWith(height: 15 / 11),
+                  style: context.type.meta.copyWith(height: 15 / 11),
                 ),
               ],
             ),
@@ -155,11 +161,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   Widget _soundCard() {
     return Panel(
       padding: const EdgeInsets.all(18),
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       child: Row(
         children: [
-          const IconWell(
-            tint: AppColors.ok,
+          IconWell(
+            tint: context.pal.ok,
             icon: Icons.volume_up_outlined,
             size: 44,
             glyph: 22,
@@ -172,12 +178,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               children: [
                 Text(
                   'REPORT SENT SOUND',
-                  style: AppText.cardTitle.copyWith(fontSize: 14),
+                  style: context.type.cardTitle.copyWith(fontSize: 14),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'A short “salamat!” when your report reaches responders.',
-                  style: AppText.meta.copyWith(height: 15 / 11),
+                  style: context.type.meta.copyWith(height: 15 / 11),
                 ),
               ],
             ),
@@ -198,23 +204,19 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   Widget _note() {
     return Panel(
       radius: AppRadius.control,
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.info_outline_rounded,
-            size: 16,
-            color: AppColors.accent,
-          ),
+          Icon(Icons.info_outline_rounded, size: 16, color: context.pal.accent),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Turning alerts off unregisters this device, so nearby-incident '
               'notifications stop until you turn it back on. Alerts still '
               'appear in the inbox.',
-              style: AppText.meta.copyWith(height: 16 / 11),
+              style: context.type.meta.copyWith(height: 16 / 11),
             ),
           ),
         ],

@@ -16,17 +16,17 @@ import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
 import 'responder_status.dart';
 
-const Color _bg = AppColors.background;
-const Color _sheet = AppColors.surfaceSolid;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _rowBg = AppColors.glassDim;
-const Color _orangeTint = AppColors.accentTint;
-const Color _muted = AppColors.muted;
-const Color _crewGrey = AppColors.muted;
-const Color _youGreen = AppColors.ok;
-const Color _otherBlue = AppColors.info;
-const Color _red = AppColors.live;
+Color _bg = AppColors.background;
+Color _sheet = AppColors.surfaceSolid;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _rowBg = AppColors.glassDim;
+Color _orangeTint = AppColors.accentTint;
+Color _muted = AppColors.muted;
+Color _crewGrey = AppColors.muted;
+Color _youGreen = AppColors.ok;
+Color _otherBlue = AppColors.info;
+Color _red = AppColors.live;
 
 /// The responder's active-incident command screen: live map (incident + other
 /// responders + my GPS), address + route ETA, my unit/crew, the respond →
@@ -56,7 +56,8 @@ class ResponderIncidentScreen extends StatefulWidget {
   final String? orgId;
 
   @override
-  State<ResponderIncidentScreen> createState() => _ResponderIncidentScreenState();
+  State<ResponderIncidentScreen> createState() =>
+      _ResponderIncidentScreenState();
 }
 
 class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
@@ -94,7 +95,10 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     _tracker.sharingFor.addListener(_onTracker);
     _load();
     _loadStatics();
-    _poll = Timer.periodic(const Duration(seconds: 6), (_) => _load(silent: true));
+    _poll = Timer.periodic(
+      const Duration(seconds: 6),
+      (_) => _load(silent: true),
+    );
   }
 
   @override
@@ -113,7 +117,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     setState(() {});
     // The route ETA is a network call; once every 15 s is plenty.
     final now = DateTime.now();
-    if (_lastEta == null || now.difference(_lastEta!) > const Duration(seconds: 15)) {
+    if (_lastEta == null ||
+        now.difference(_lastEta!) > const Duration(seconds: 15)) {
       _lastEta = now;
       _computeEta();
     }
@@ -126,7 +131,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       ? null
       : routingLabel(_incident!, agency: widget.agency, orgId: widget.orgId);
   bool get _hasActiveDispatch => _myDispatch != null;
-  bool get _active => const {'dispatched', 'en_route', 'arrived'}.contains(_status);
+  bool get _active =>
+      const {'dispatched', 'en_route', 'arrived'}.contains(_status);
   bool get _shouldStream => _hasActiveDispatch && _active;
 
   LatLng? get _centroid {
@@ -217,11 +223,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       final marks = await geo.placemarkFromCoordinates(p.latitude, p.longitude);
       if (marks.isEmpty) return;
       final m = marks.first;
-      final parts = [m.street, m.subLocality, m.locality]
-          .where((s) => s != null && s.isNotEmpty)
-          .cast<String>()
-          .toList();
-      if (mounted && parts.isNotEmpty) setState(() => _address = parts.take(2).join(', '));
+      final parts = [
+        m.street,
+        m.subLocality,
+        m.locality,
+      ].where((s) => s != null && s.isNotEmpty).cast<String>().toList();
+      if (mounted && parts.isNotEmpty) {
+        setState(() => _address = parts.take(2).join(', '));
+      }
     } catch (_) {
       // address stays null
     }
@@ -231,7 +240,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     const r = 6371000.0;
     final dLat = (b.latitude - a.latitude) * math.pi / 180;
     final dLng = (b.longitude - a.longitude) * math.pi / 180;
-    final s = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final s =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(a.latitude * math.pi / 180) *
             math.cos(b.latitude * math.pi / 180) *
             math.sin(dLng / 2) *
@@ -270,9 +280,12 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       return;
     }
     try {
-      final url = 'https://router.project-osrm.org/route/v1/driving/'
+      final url =
+          'https://router.project-osrm.org/route/v1/driving/'
           '${from.longitude},${from.latitude};${c.longitude},${c.latitude}?overview=false';
-      final resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
+      final resp = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 8));
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
       final routes = data['routes'] as List?;
       if (routes != null && routes.isNotEmpty) {
@@ -291,7 +304,10 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   // ------------------------------------------------------------- actions ---
-  Future<void> _action(Future<Map<String, dynamic>> Function() call, String ok) async {
+  Future<void> _action(
+    Future<Map<String, dynamic>> Function() call,
+    String ok,
+  ) async {
     setState(() => _busy = true);
     try {
       await call();
@@ -306,15 +322,22 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     }
   }
 
-  void _respond() => _action(() => _api.selfDispatch(widget.incidentId), 'You are now responding.');
-  void _enRoute() => _action(() => _api.markEnRoute(widget.incidentId), 'Marked en route.');
-  void _arrived() => _action(() => _api.markArrived(widget.incidentId), 'Marked on scene.');
+  void _respond() => _action(
+    () => _api.selfDispatch(widget.incidentId),
+    'You are now responding.',
+  );
+  void _enRoute() =>
+      _action(() => _api.markEnRoute(widget.incidentId), 'Marked en route.');
+  void _arrived() =>
+      _action(() => _api.markArrived(widget.incidentId), 'Marked on scene.');
 
   void _withdraw() {
     final d = _myDispatch;
     if (d == null) return;
-    _action(() => _api.withdrawDispatch(widget.incidentId, d['id'] as String),
-        'You withdrew from this incident.');
+    _action(
+      () => _api.withdrawDispatch(widget.incidentId, d['id'] as String),
+      'You withdrew from this incident.',
+    );
   }
 
   Future<void> _pressCode(String codeNumber, String label) async {
@@ -346,7 +369,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     ];
     final level = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -359,17 +382,28 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Request alarm escalation',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+              const Text(
+                'Request alarm escalation',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 4),
-              const Text('Sent to BFP for review.',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12)),
+              Text(
+                'Sent to BFP for review.',
+                style: TextStyle(color: context.pal.muted, fontSize: 12),
+              ),
               const SizedBox(height: 14),
               for (final (value, label) in levels)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(label, style: const TextStyle(color: Colors.white)),
-                  trailing: const Icon(Icons.chevron_right, color: _muted),
+                  title: Text(
+                    label,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: _muted),
                   onTap: () => Navigator.of(context).pop(value),
                 ),
             ],
@@ -379,7 +413,10 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     );
     if (level == null) return;
     try {
-      await _api.createAlarmRequest(areaId: widget.incidentId, alarmLevel: level);
+      await _api.createAlarmRequest(
+        areaId: widget.incidentId,
+        alarmLevel: level,
+      );
       if (mounted) _toast('Alarm escalation requested.');
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
@@ -399,7 +436,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     return Scaffold(
       backgroundColor: _bg,
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
           : Column(
               children: [
                 SizedBox(height: 280, child: _mapHeader()),
@@ -429,8 +466,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             options: MapOptions(
               initialCenter: c,
               initialZoom: 15,
-              interactionOptions:
-                  const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
             ),
             children: [
               MapTiles.layer(),
@@ -462,13 +500,19 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _youGreen),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.my_location, color: _youGreen, size: 14),
           SizedBox(width: 6),
-          Text('SHARING LOCATION',
-              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+          Text(
+            'SHARING LOCATION',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -485,9 +529,15 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             color: _red,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
-            boxShadow: const [BoxShadow(color: Color(0x99FF544E), blurRadius: 14)],
+            boxShadow: const [
+              BoxShadow(color: Color(0x99FF544E), blurRadius: 14),
+            ],
           ),
-          child: const Icon(Icons.local_fire_department, color: Colors.white, size: 14),
+          child: const Icon(
+            Icons.local_fire_department,
+            color: Colors.white,
+            size: 14,
+          ),
         ),
       ),
     ];
@@ -496,34 +546,44 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       final lat = (r['lat'] as num?)?.toDouble();
       final lng = (r['lng'] as num?)?.toDouble();
       if (lat == null || lng == null) continue;
-      markers.add(Marker(
-        point: LatLng(lat, lng),
-        width: 26,
-        height: 26,
-        child: Container(
-          decoration: BoxDecoration(
-            color: _otherBlue,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
+      markers.add(
+        Marker(
+          point: LatLng(lat, lng),
+          width: 26,
+          height: 26,
+          child: Container(
+            decoration: BoxDecoration(
+              color: _otherBlue,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: const Icon(
+              Icons.local_shipping,
+              color: Colors.white,
+              size: 12,
+            ),
           ),
-          child: const Icon(Icons.local_shipping, color: Colors.white, size: 12),
         ),
-      ));
+      );
     }
     if (_myPos != null) {
-      markers.add(Marker(
-        point: _myPos!,
-        width: 26,
-        height: 26,
-        child: Container(
-          decoration: BoxDecoration(
-            color: _youGreen,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: const [BoxShadow(color: Color(0x8022C55E), blurRadius: 12)],
+      markers.add(
+        Marker(
+          point: _myPos!,
+          width: 26,
+          height: 26,
+          child: Container(
+            decoration: BoxDecoration(
+              color: _youGreen,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: const [
+                BoxShadow(color: Color(0x8022C55E), blurRadius: 12),
+              ],
+            ),
           ),
         ),
-      ));
+      );
     }
     return markers;
   }
@@ -532,7 +592,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     return Transform.translate(
       offset: const Offset(0, -16),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: _sheet,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -542,7 +602,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_routing != null) ...[
-                Tag(_routing!, color: AppColors.ok, dot: true),
+                Tag(_routing!, color: context.pal.ok, dot: true),
                 const SizedBox(height: 12),
               ],
               _addressCard(),
@@ -573,8 +633,15 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: _orangeTint, borderRadius: BorderRadius.circular(14)),
-            child: const Icon(Icons.location_on_outlined, color: AppColors.accent, size: 20),
+            decoration: BoxDecoration(
+              color: _orangeTint,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.location_on_outlined,
+              color: context.pal.accent,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -586,23 +653,45 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: context.pal.accent,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
-                    const Text('Live', style: TextStyle(color: AppColors.accent, fontSize: 11)),
+                    Text(
+                      'Live',
+                      style: TextStyle(color: context.pal.accent, fontSize: 11),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 5),
-                Text(_address ?? 'Locating incident…',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.2)),
-                const SizedBox(height: 5),
-                Text.rich(TextSpan(children: [
-                  const TextSpan(text: 'ETA', style: TextStyle(color: _muted, fontSize: 16)),
-                  TextSpan(
-                    text: _etaText == null ? ' —' : ' $_etaText',
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                Text(
+                  _address ?? 'Locating incident…',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.2,
                   ),
-                ])),
+                ),
+                const SizedBox(height: 5),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'ETA',
+                        style: TextStyle(color: _muted, fontSize: 16),
+                      ),
+                      TextSpan(
+                        text: _etaText == null ? ' —' : ' $_etaText',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -624,14 +713,20 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           border: Border.all(color: _panelBorder),
         ),
         child: Text(
-          _hasActiveDispatch ? 'You are responding (no unit assigned).' : 'No unit assigned to you.',
-          style: const TextStyle(color: AppColors.muted, fontSize: 13),
+          _hasActiveDispatch
+              ? 'You are responding (no unit assigned).'
+              : 'No unit assigned to you.',
+          style: TextStyle(color: context.pal.muted, fontSize: 13),
         ),
       );
     }
     // Everyone crewing my vehicle on this incident.
     final crew = _dispatches
-        .where((x) => x['status'] == 'active' && (x['vehicle_name'] as String?)?.trim() == vehicle)
+        .where(
+          (x) =>
+              x['status'] == 'active' &&
+              (x['vehicle_name'] as String?)?.trim() == vehicle,
+        )
         .toList();
     Map<String, dynamic>? driver;
     final others = <Map<String, dynamic>>[];
@@ -661,20 +756,37 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
               Container(
                 width: 48,
                 height: 48,
-                decoration:
-                    BoxDecoration(color: _orangeTint, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.fire_truck_rounded, color: AppColors.accent, size: 22),
+                decoration: BoxDecoration(
+                  color: _orangeTint,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.fire_truck_rounded,
+                  color: context.pal.accent,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(vehicle,
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                    Text(subtitle,
-                        style: const TextStyle(color: _muted, fontSize: 16, fontWeight: FontWeight.w500)),
+                    Text(
+                      vehicle,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -684,7 +796,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _crewSlot('Driver', driver == null ? null : [driver])),
+              Expanded(
+                child: _crewSlot('Driver', driver == null ? null : [driver]),
+              ),
               const SizedBox(width: 12),
               Expanded(child: _crewSlot('Crew', others)),
             ],
@@ -706,11 +820,13 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label == 'Crew' ? 'Crew · ${members?.length ?? 0}' : label,
-              style: const TextStyle(color: _crewGrey, fontSize: 11)),
+          Text(
+            label == 'Crew' ? 'Crew · ${members?.length ?? 0}' : label,
+            style: TextStyle(color: _crewGrey, fontSize: 11),
+          ),
           const SizedBox(height: 8),
           if (members == null || members.isEmpty)
-            const Text('—', style: TextStyle(color: _muted, fontSize: 13))
+            Text('—', style: TextStyle(color: _muted, fontSize: 13))
           else if (label == 'Driver')
             Text(
               (members.first['responder_name'] as String?) ?? 'Responder',
@@ -770,12 +886,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             // Members do not file the Post-Incident Report (v10 §2.5) — the
             // team captain does, for everyone who went.
             : 'This incident has been resolved. Stand down — your team captain '
-                'files the Post-Incident Report.',
+                  'files the Post-Incident Report.',
       );
     }
     if (_status == 'pending') {
-      return _infoBox(Icons.hourglass_empty,
-          'Awaiting verification by command before responders can be assigned.');
+      return _infoBox(
+        Icons.hourglass_empty,
+        'Awaiting verification by command before responders can be assigned.',
+      );
     }
 
     final children = <Widget>[];
@@ -790,15 +908,22 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         children.add(_infoBox(Icons.check_circle_outline, 'You are on scene.'));
       }
       children.add(const SizedBox(height: 8));
-      children.add(Center(
-        child: TextButton(
-          onPressed: _busy ? null : _withdraw,
-          child: const Text('Withdraw from incident',
-              style: TextStyle(color: _red, fontWeight: FontWeight.w700)),
+      children.add(
+        Center(
+          child: TextButton(
+            onPressed: _busy ? null : _withdraw,
+            child: Text(
+              'Withdraw from incident',
+              style: TextStyle(color: _red, fontWeight: FontWeight.w700),
+            ),
+          ),
         ),
-      ));
+      );
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
   }
 
   List<Widget> _escalationsBlock() {
@@ -806,17 +931,21 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     final fireCrew = isFireCrew(widget.agency);
     return [
       const SizedBox(height: 16),
-      Text(fireCrew ? 'Escalate alarm' : 'Call for help',
-          style: const TextStyle(color: Colors.white, fontSize: 16)),
+      Text(
+        fireCrew ? 'Escalate alarm' : 'Call for help',
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ),
       const SizedBox(height: 4),
-      const Text('Broadcast a code to all responding units',
-          style: TextStyle(color: _muted, fontSize: 12)),
+      Text(
+        'Broadcast a code to all responding units',
+        style: TextStyle(color: _muted, fontSize: 12),
+      ),
       const SizedBox(height: 12),
       if (fireCrew) ...[
         _escalationRow(
           icon: Icons.water_drop_outlined,
           tint: const Color(0x1E3B82F6),
-          iconColor: AppColors.info,
+          iconColor: context.pal.info,
           title: 'Need Water',
           subtitle: 'Request additional water supply',
           onTap: () => _pressCode('FC-6', 'Need Water'),
@@ -836,7 +965,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         _escalationRow(
           icon: Icons.campaign_outlined,
           tint: const Color(0x23EF4444),
-          iconColor: AppColors.live,
+          iconColor: context.pal.live,
           title: 'Escalate to BFP',
           subtitle: 'Request alarm escalation to BFP',
           onTap: _escalateBfp,
@@ -868,7 +997,10 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             Container(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(
+                color: tint,
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: 12),
@@ -876,15 +1008,20 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(color: _muted, fontSize: 11)),
+                  Text(subtitle, style: TextStyle(color: _muted, fontSize: 11)),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: _muted, size: 20),
+            Icon(Icons.chevron_right, color: _muted, size: 20),
           ],
         ),
       ),
@@ -900,20 +1037,32 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         decoration: BoxDecoration(
           gradient: AppColors.accentGradient,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: const [BoxShadow(color: AppColors.accentTint, blurRadius: 24, offset: Offset(0, 8))],
+          boxShadow: [
+            BoxShadow(
+              color: context.pal.accentTint,
+              blurRadius: 24,
+              offset: Offset(0, 8),
+            ),
+          ],
         ),
         child: _busy
             ? const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accentText),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.accentText,
+                ),
               )
-            : Text(label,
+            : Text(
+                label,
                 style: const TextStyle(
-                    color: AppColors.accentText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2)),
+                  color: AppColors.accentText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
       ),
     );
   }
@@ -922,18 +1071,24 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.glass,
+        color: context.pal.glass,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.muted, size: 18),
+          Icon(icon, color: context.pal.muted, size: 18),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(text,
-                style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.4)),
+            child: Text(
+              text,
+              style: TextStyle(
+                color: context.pal.muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
           ),
         ],
       ),
@@ -951,16 +1106,24 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             gradient: AppColors.accentGradient,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: const [BoxShadow(color: AppColors.accentTint, blurRadius: 32, offset: Offset(0, 8))],
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            boxShadow: [
+              BoxShadow(
+                color: context.pal.accentTint,
+                blurRadius: 32,
+                offset: Offset(0, 8),
+              ),
+            ],
           ),
-          child: const Text('REQUEST FIRE OUT',
-              style: TextStyle(
-                color: AppColors.accentText,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.6,
-              )),
+          child: const Text(
+            'REQUEST FIRE OUT',
+            style: TextStyle(
+              color: AppColors.accentText,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.6,
+            ),
+          ),
         ),
       ),
     );

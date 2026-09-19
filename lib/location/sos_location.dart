@@ -58,7 +58,9 @@ class SosLocation {
       // place until the fresh one lands.
       position.value = null;
     }
-    return _inFlight ??= _acquire(requestPermission).whenComplete(() => _inFlight = null);
+    return _inFlight ??= _acquire(
+      requestPermission,
+    ).whenComplete(() => _inFlight = null);
   }
 
   Future<Position?> _acquire(bool requestPermission) async {
@@ -71,9 +73,11 @@ class SosLocation {
     if (perm == LocationPermission.denied && requestPermission) {
       perm = await Geolocator.requestPermission();
     }
-    if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
       if (requestPermission) {
-        problem.value = 'Location permission is off. Allow it so responders can find you.';
+        problem.value =
+            'Location permission is off. Allow it so responders can find you.';
       }
       return null;
     }
@@ -81,7 +85,9 @@ class SosLocation {
     // Something to draw at once while the fresh fix comes in.
     try {
       final last = await Geolocator.getLastKnownPosition();
-      if (last != null && position.value == null && _isRecent(last, sendableAge)) {
+      if (last != null &&
+          position.value == null &&
+          _isRecent(last, sendableAge)) {
         position.value = last;
       }
     } catch (_) {

@@ -45,7 +45,10 @@ class ResponderTracker {
   bool get isSharing => sharingFor.value != null;
 
   /// Share for this dispatch. Harmless to call again for the same one.
-  Future<void> start({required String incidentId, required String dispatchId}) async {
+  Future<void> start({
+    required String incidentId,
+    required String dispatchId,
+  }) async {
     if (sharingFor.value == incidentId && _dispatchId == dispatchId) return;
     await stop();
     if (!await _permitted()) return;
@@ -68,23 +71,26 @@ class ResponderTracker {
   }
 
   void _listen({required bool foreground}) {
-    _sub = Geolocator.getPositionStream(locationSettings: _settings(foreground)).listen(
-      (p) {
-        final first = _latest == null;
-        _latest = p;
-        position.value = p;
-        if (first) _post(); // the first point goes at once, not five seconds later
-      },
-      onError: (Object _) {
-        // The foreground service could not start (a permission the OS
-        // withheld). Keep sharing while the app is open rather than not at all.
-        if (foreground && isSharing) {
-          final failed = _sub;
-          _listen(foreground: false);
-          unawaited(failed?.cancel());
-        }
-      },
-    );
+    _sub = Geolocator.getPositionStream(locationSettings: _settings(foreground))
+        .listen(
+          (p) {
+            final first = _latest == null;
+            _latest = p;
+            position.value = p;
+            if (first) {
+              _post(); // the first point goes at once, not five seconds later
+            }
+          },
+          onError: (Object _) {
+            // The foreground service could not start (a permission the OS
+            // withheld). Keep sharing while the app is open rather than not at all.
+            if (foreground && isSharing) {
+              final failed = _sub;
+              _listen(foreground: false);
+              unawaited(failed?.cancel());
+            }
+          },
+        );
   }
 
   LocationSettings _settings(bool foreground) {
@@ -108,8 +114,11 @@ class ResponderTracker {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) return false;
       var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-      return perm == LocationPermission.whileInUse || perm == LocationPermission.always;
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      return perm == LocationPermission.whileInUse ||
+          perm == LocationPermission.always;
     } catch (_) {
       return false;
     }

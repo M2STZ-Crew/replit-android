@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.sos),
       body: SafeArea(
         bottom: false,
@@ -154,19 +154,19 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   _statusPill(),
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     "YOU'RE COVERED",
                     textAlign: TextAlign.center,
-                    style: AppText.heading2,
+                    style: context.type.heading2,
                   ),
                   const SizedBox(height: 10),
-                  const SizedBox(
+                  SizedBox(
                     width: 290,
                     child: Text(
                       'Hold the dial, take one photo, and your location goes '
                       'to Barangay 76 with it.',
                       textAlign: TextAlign.center,
-                      style: AppText.body,
+                      style: context.type.body,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -190,18 +190,26 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _statusPill() {
     final offline = ReportQueue.instance.offline.value;
     final (Color dot, String text, VoidCallback? onTap) = switch (_locationOk) {
-      false => (AppColors.live, 'Location off — tap to turn on', _fixLocation),
-      _ when offline => (AppColors.warn, 'No signal — reports will wait', null),
-      true => (AppColors.ok, 'Connected, location on', null),
-      null => (AppColors.ok, 'Connected', null),
+      false => (
+        context.pal.live,
+        'Location off — tap to turn on',
+        _fixLocation,
+      ),
+      _ when offline => (
+        context.pal.warn,
+        'No signal — reports will wait',
+        null,
+      ),
+      true => (context.pal.ok, 'Connected, location on', null),
+      null => (context.pal.ok, 'Connected', null),
     };
     final pill = Container(
       constraints: const BoxConstraints(minHeight: 26),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.glass,
+        color: context.pal.glass,
         borderRadius: BorderRadius.circular(AppRadius.chip),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -217,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen>
               text.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppText.eyebrow.copyWith(color: AppColors.label),
+              style: context.type.eyebrow.copyWith(color: context.pal.label),
             ),
           ),
         ],
@@ -255,10 +263,10 @@ class _HomeScreenState extends State<HomeScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.accent.withValues(
+                        context.pal.accent.withValues(
                           alpha: 0.10 + _breathe.value * 0.06,
                         ),
-                        AppColors.accent.withValues(alpha: 0),
+                        context.pal.accent.withValues(alpha: 0),
                       ],
                       stops: const [0.45, 1],
                     ),
@@ -274,8 +282,8 @@ class _HomeScreenState extends State<HomeScreen>
                     value: _hold.value,
                     strokeWidth: 3,
                     strokeCap: StrokeCap.round,
-                    backgroundColor: AppColors.lineStrong,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+                    backgroundColor: context.pal.lineStrong,
+                    valueColor: AlwaysStoppedAnimation(context.pal.accent),
                   ),
                 ),
               ),
@@ -284,20 +292,20 @@ class _HomeScreenState extends State<HomeScreen>
                 height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment(-0.35, -1),
                     end: Alignment(0.35, 1),
                     stops: [0.116, 0.891],
-                    colors: [AppColors.surface, AppColors.surfaceSolid],
+                    colors: [context.pal.surface, context.pal.surfaceSolid],
                   ),
-                  border: Border.all(color: AppColors.lineStrong),
+                  border: Border.all(color: context.pal.lineStrong),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(Art.mark, width: 64, height: 64),
                     const SizedBox(height: 10),
-                    const Text('SOS', style: AppText.dial),
+                    Text('SOS', style: context.type.dial),
                   ],
                 ),
               ),
@@ -322,14 +330,14 @@ class _HomeScreenState extends State<HomeScreen>
             Text(
               label.toUpperCase(),
               textAlign: TextAlign.center,
-              style: AppText.eyebrow.copyWith(color: AppColors.accent),
+              style: context.type.eyebrow.copyWith(color: context.pal.accent),
             ),
             const SizedBox(height: 14),
             Container(
               width: 106,
               height: 3,
               decoration: BoxDecoration(
-                color: AppColors.lineStrong,
+                color: context.pal.lineStrong,
                 borderRadius: BorderRadius.circular(2),
               ),
               alignment: Alignment.centerLeft,
@@ -337,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen>
                 widthFactor: _hold.value,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: context.pal.accent,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -356,17 +364,13 @@ class _HomeScreenState extends State<HomeScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.warning_amber_rounded,
-            size: 20,
-            color: AppColors.live,
-          ),
+          Icon(Icons.warning_amber_rounded, size: 20, color: context.pal.live),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               'Only for real emergencies. Every false alert takes a truck away '
               'from someone who needs it.',
-              style: AppText.detail.copyWith(color: AppColors.textSoft),
+              style: context.type.detail.copyWith(color: context.pal.textSoft),
             ),
           ),
         ],

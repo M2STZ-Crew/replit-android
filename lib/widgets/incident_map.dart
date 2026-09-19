@@ -5,8 +5,6 @@ import 'package:latlong2/latlong.dart';
 import '../theme.dart';
 import '../widgets/map_tiles.dart';
 
-const Color _safeGreen = AppColors.ok;
-
 /// Map centered on an incident with an orange marker, on [MapTiles]' basemap.
 ///
 /// By default it's a static snapshot ([interactive] = false). Pass
@@ -54,7 +52,7 @@ class IncidentMap extends StatelessWidget {
                 height: 30,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: _safeGreen,
+                    color: context.pal.ok,
                     borderRadius: BorderRadius.circular(AppRadius.card),
                     border: Border.all(color: Colors.white, width: 2),
                     boxShadow: const [
@@ -74,7 +72,7 @@ class IncidentMap extends StatelessWidget {
               height: 26,
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.accent,
+                  color: context.pal.accent,
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
                 ),

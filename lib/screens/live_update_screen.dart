@@ -249,7 +249,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   Widget build(BuildContext context) {
     final sheetTop = MediaQuery.sizeOf(context).height * 0.44;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: Stack(
         children: [
           Positioned.fill(child: _map()),
@@ -301,7 +301,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
       options: MapOptions(
         initialCenter: centre ?? _from,
         initialZoom: 15.4,
-        backgroundColor: AppColors.background,
+        backgroundColor: context.pal.background,
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
@@ -315,8 +315,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                 point: centre,
                 radius: kClusterRadiusMetres,
                 useRadiusInMeter: true,
-                color: AppColors.live.withValues(alpha: 0.08),
-                borderColor: AppColors.live.withValues(alpha: 0.45),
+                color: context.pal.live.withValues(alpha: 0.08),
+                borderColor: context.pal.live.withValues(alpha: 0.45),
                 borderStrokeWidth: 1,
               ),
             ],
@@ -333,7 +333,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                     color: const Color(0xEB131313),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.ok.withValues(alpha: 0.4),
+                      color: context.pal.ok.withValues(alpha: 0.4),
                     ),
                   ),
                   alignment: Alignment.center,
@@ -347,7 +347,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                 height: 30,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.forStatus(status),
+                    color: context.pal.forStatus(status),
                     borderRadius: BorderRadius.circular(AppRadius.chip),
                     border: Border.all(color: const Color(0xE6171717)),
                   ),
@@ -362,7 +362,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
               height: 34,
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.28),
+                  color: context.pal.accent.withValues(alpha: 0.28),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
@@ -370,9 +370,12 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                   width: 16,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: context.pal.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.surfaceSolid, width: 3),
+                    border: Border.all(
+                      color: context.pal.surfaceSolid,
+                      width: 3,
+                    ),
                   ),
                 ),
               ),
@@ -388,7 +391,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   Widget _banner() {
     final status = _status;
     final over = residentOver(status);
-    final tone = over ? residentTone(status) : AppColors.live;
+    final tone = over ? residentTone(status, context.pal) : context.pal.live;
     final designation = (_area?['designation'] as String?) ?? 'Your area';
     final shape = BorderRadius.circular(AppRadius.card);
     return ClipRRect(
@@ -428,15 +431,15 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                           : 'YOUR REPORT IS LIVE',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.cardTitleSm,
+                      style: context.type.cardTitleSm,
                     ),
                     const SizedBox(height: 3),
                     Text(
                       designation,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.caption.copyWith(
-                        color: AppColors.textSoft,
+                      style: context.type.caption.copyWith(
+                        color: context.pal.textSoft,
                       ),
                     ),
                   ],
@@ -445,7 +448,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
               const SizedBox(width: 8),
               Text(
                 over ? residentWord(status).toUpperCase() : 'LIVE',
-                style: AppText.tag.copyWith(color: tone),
+                style: context.type.tag.copyWith(color: tone),
               ),
             ],
           ),
@@ -477,13 +480,13 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.label.withValues(alpha: 0.35),
+                      color: context.pal.label.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Eyebrow('Status', color: AppColors.muted),
+                Eyebrow('Status', color: context.pal.muted),
                 const SizedBox(height: 10),
                 // A Wrap, not a Row: at a large font scale the two do not fit
                 // side by side, and a Row squeezed the status to a column one
@@ -496,14 +499,14 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                   children: [
                     Text(
                       residentWord(status).toUpperCase(),
-                      style: AppText.heading2,
+                      style: context.type.heading2,
                     ),
                     if (reported != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
                           'Reported ${_ago(reported)}',
-                          style: AppText.caption,
+                          style: context.type.caption,
                         ),
                       ),
                   ],
@@ -518,8 +521,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                           height: 4,
                           decoration: BoxDecoration(
                             color: i <= at
-                                ? AppColors.accent
-                                : AppColors.lineStrong,
+                                ? context.pal.accent
+                                : context.pal.lineStrong,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -533,15 +536,12 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Eyebrow(
-                        'What happens next',
-                        color: AppColors.muted,
-                      ),
+                      Eyebrow('What happens next', color: context.pal.muted),
                       const SizedBox(height: 12),
                       Text(
                         _next(status),
-                        style: AppText.bodySm.copyWith(
-                          color: AppColors.textSoft,
+                        style: context.type.bodySm.copyWith(
+                          color: context.pal.textSoft,
                         ),
                       ),
                     ],
@@ -549,7 +549,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                 ),
                 const SizedBox(height: 10),
                 _Row(
-                  tint: AppColors.ok,
+                  tint: context.pal.ok,
                   icon: Icons.how_to_reg_outlined,
                   title: others == 0
                       ? 'No neighbours have confirmed yet'
@@ -559,7 +559,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                 if (_shelter != null) ...[
                   const SizedBox(height: 10),
                   _Row(
-                    tint: AppColors.ok,
+                    tint: context.pal.ok,
                     asset: Art.evac,
                     title: (_shelter!['name'] as String?) ?? 'Evacuation site',
                     line: _shelterMetres == null
@@ -582,12 +582,12 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   List<Widget> _moreHelp() {
     return [
       const SizedBox(height: 24),
-      const Eyebrow('Need more help?', color: AppColors.accent),
+      Eyebrow('Need more help?', color: context.pal.accent),
       const SizedBox(height: 8),
-      const Text(
+      Text(
         'Add another kind of responder. They are told where it is straight '
         'away — no new photo.',
-        style: AppText.bodySm,
+        style: context.type.bodySm,
       ),
       const SizedBox(height: 12),
       for (final u in _available) ...[
@@ -595,7 +595,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
           label: u.title,
           glyph: _glyphs[u.key],
           icon: u.icon,
-          color: AppColors.forAgency(u.key),
+          color: context.pal.forAgency(u.key),
           on: _extra.contains(u.key),
           onTap: () => setState(() {
             if (!_extra.remove(u.key)) _extra.add(u.key);
@@ -670,20 +670,19 @@ class _Row extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: AppText.rowTitleLg),
+                Text(title, style: context.type.rowTitleLg),
                 const SizedBox(height: 5),
-                Text(line, style: AppText.caption),
+                Text(line, style: context.type.caption),
               ],
             ),
           ),
           if (trailing != null) ...[
             const SizedBox(width: 10),
-            Text(trailing!, style: AppText.tag.copyWith(color: AppColors.ok)),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: AppColors.ok,
+            Text(
+              trailing!,
+              style: context.type.tag.copyWith(color: context.pal.ok),
             ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: context.pal.ok),
           ],
         ],
       ),
@@ -719,8 +718,8 @@ class _AgencyToggle extends StatelessWidget {
       child: Panel(
         radius: AppRadius.card,
         onTap: onTap,
-        color: on ? color.withValues(alpha: 0.16) : AppColors.glass,
-        border: on ? color : AppColors.line,
+        color: on ? color.withValues(alpha: 0.16) : context.pal.glass,
+        border: on ? color : context.pal.line,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
@@ -742,8 +741,8 @@ class _AgencyToggle extends StatelessWidget {
                 label.toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppText.cardTitleSm.copyWith(
-                  color: on ? AppColors.onBackground : AppColors.textSoft,
+                style: context.type.cardTitleSm.copyWith(
+                  color: on ? context.pal.onBackground : context.pal.textSoft,
                 ),
               ),
             ),
@@ -753,7 +752,7 @@ class _AgencyToggle extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: on ? color : AppColors.muted,
+                  color: on ? color : context.pal.muted,
                   width: 1.5,
                 ),
               ),

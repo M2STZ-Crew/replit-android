@@ -76,31 +76,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     'fire_alert' => (
       'Fire alert',
       Icons.local_fire_department,
-      AppColors.live,
+      context.pal.live,
     ),
     'incident_update' => (
       'Incident update',
       Icons.campaign_outlined,
-      AppColors.accent,
+      context.pal.accent,
     ),
     'responder_dispatch' => (
       'Dispatched unit',
       Icons.local_shipping_outlined,
-      AppColors.accent,
+      context.pal.accent,
     ),
     // Admin routed an incident to this team captain's team (v10 §2.6.2).
     'incident_routed' => (
       'Routed to your team',
       Icons.alt_route_rounded,
-      AppColors.ok,
+      context.pal.ok,
     ),
     'alarm_request' => (
       'Alarm request',
       Icons.notifications_active_outlined,
-      AppColors.live,
+      context.pal.live,
     ),
-    'alarm_executed' => ('Alarm raised', Icons.campaign, AppColors.ok),
-    _ => ('Notification', Icons.notifications_outlined, AppColors.info),
+    'alarm_executed' => ('Alarm raised', Icons.campaign, context.pal.ok),
+    _ => ('Notification', Icons.notifications_outlined, context.pal.info),
   };
 
   String _ago(String? iso) {
@@ -123,7 +123,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final unread = _items.where((n) => n['is_read'] != true).length;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -137,14 +137,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     : GestureDetector(
                         onTap: _markAllRead,
                         behavior: HitTestBehavior.opaque,
-                        child: const Padding(
+                        child: Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: 4,
                             vertical: 12,
                           ),
                           child: Eyebrow(
                             'Mark all read',
-                            color: AppColors.accent,
+                            color: context.pal.accent,
                           ),
                         ),
                       ),
@@ -164,7 +164,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (_error != null) {
       return EmptyState(
         icon: Icons.cloud_off_rounded,
-        tone: AppColors.live,
+        tone: context.pal.live,
         title: 'Could not load alerts',
         body: _error!,
         action: AppButton.secondary('Try again', onPressed: _load),
@@ -174,13 +174,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return const EmptyState(
         icon: Icons.notifications_none_rounded,
         title: 'No alerts yet',
-        body: 'If something is reported near you, an alert appears here so you '
+        body:
+            'If something is reported near you, an alert appears here so you '
             'can confirm or dismiss it.',
       );
     }
     return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceSolid,
+      color: context.pal.accent,
+      backgroundColor: context.pal.surfaceSolid,
       onRefresh: _load,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
@@ -197,8 +198,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     return Panel(
       onTap: () => _tap(n),
-      color: unread ? color.withValues(alpha: 0.08) : AppColors.glassDim,
-      border: unread ? color.withValues(alpha: 0.35) : AppColors.line,
+      color: unread ? color.withValues(alpha: 0.08) : context.pal.glassDim,
+      border: unread ? color.withValues(alpha: 0.35) : context.pal.line,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +219,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       ((n['title'] as String?) ?? '').toUpperCase(),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.cardTitle.copyWith(fontSize: 13),
+                      style: context.type.cardTitle.copyWith(fontSize: 13),
                     ),
                   ],
                 ),
@@ -228,7 +229,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_ago(n['created_at'] as String?), style: AppText.meta),
+                  Text(
+                    _ago(n['created_at'] as String?),
+                    style: context.type.meta,
+                  ),
                   if (unread) ...[
                     const SizedBox(height: 8),
                     LiveDot(color: color, size: 7),
@@ -240,10 +244,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 13),
           Text(
             (n['body'] as String?) ?? '',
-            style: AppText.meta.copyWith(
+            style: context.type.meta.copyWith(
               fontSize: 12,
               height: 17 / 12,
-              color: AppColors.textSoft,
+              color: context.pal.textSoft,
             ),
           ),
         ],

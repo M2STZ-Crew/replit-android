@@ -199,7 +199,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     final designation =
         (_area?['designation'] as String?) ?? widget.designation ?? 'Area';
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
@@ -208,7 +208,9 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
               children: [
                 const BackWell(),
                 const SizedBox(width: 16),
-                Expanded(child: Eyebrow(designation, color: AppColors.accent)),
+                Expanded(
+                  child: Eyebrow(designation, color: context.pal.accent),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -217,7 +219,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
                 padding: const EdgeInsets.only(top: 40),
                 child: _error == null
                     ? const Center(child: CircularProgressIndicator())
-                    : Text(_error!, style: AppText.body),
+                    : Text(_error!, style: context.type.body),
               )
             else
               ..._details(),
@@ -230,11 +232,14 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
 
   List<Widget> _details() {
     final away = _metresAway;
-    final tone = residentTone(_status);
+    final tone = residentTone(_status, context.pal);
     return [
-      Text((_street ?? 'Incident area').toUpperCase(), style: AppText.heading1),
+      Text(
+        (_street ?? 'Incident area').toUpperCase(),
+        style: context.type.heading1,
+      ),
       const SizedBox(height: 6),
-      Text(_place ?? 'Pasay City', style: AppText.body),
+      Text(_place ?? 'Pasay City', style: context.type.body),
       const SizedBox(height: 18),
       Wrap(
         spacing: 8,
@@ -261,16 +266,16 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       height: 140,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.canvas,
+        color: context.pal.canvas,
         borderRadius: BorderRadius.circular(AppRadius.panel),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
       child: FlutterMap(
         options: MapOptions(
           initialCenter: c,
           // ~5 m a pixel here, so the 300 m circle is ~120 px across.
           initialZoom: 14.9,
-          backgroundColor: AppColors.canvas,
+          backgroundColor: context.pal.canvas,
           interactionOptions: const InteractionOptions(
             flags: InteractiveFlag.none,
           ),
@@ -283,8 +288,8 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
                 point: c,
                 radius: kClusterRadiusMetres,
                 useRadiusInMeter: true,
-                color: AppColors.live.withValues(alpha: 0.08),
-                borderColor: AppColors.live.withValues(alpha: 0.45),
+                color: context.pal.live.withValues(alpha: 0.08),
+                borderColor: context.pal.live.withValues(alpha: 0.45),
                 borderStrokeWidth: 1,
               ),
             ],
@@ -297,9 +302,12 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
                 height: 18,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.live,
+                    color: context.pal.live,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.surfaceSolid, width: 3),
+                    border: Border.all(
+                      color: context.pal.surfaceSolid,
+                      width: 3,
+                    ),
                   ),
                 ),
               ),
@@ -334,11 +342,9 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Eyebrow('Confidence', color: AppColors.muted),
-              ),
+              Expanded(child: Eyebrow('Confidence', color: context.pal.muted)),
               if (band != null) ...[
-                Eyebrow(band, color: AppColors.accent),
+                Eyebrow(band, color: context.pal.accent),
                 const SizedBox(width: 8),
               ],
               for (var i = 0; i < 3; i++) ...[
@@ -347,7 +353,9 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
                   width: 12,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: i < filled ? AppColors.accent : AppColors.lineStrong,
+                    color: i < filled
+                        ? context.pal.accent
+                        : context.pal.lineStrong,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -380,7 +388,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Eyebrow('Progress', color: AppColors.muted),
+        Eyebrow('Progress', color: context.pal.muted),
         const SizedBox(height: 12),
         Semantics(
           label: 'Step ${at + 1} of ${kResidentRail.length}',
@@ -393,7 +401,9 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
                   child: Container(
                     height: 4,
                     decoration: BoxDecoration(
-                      color: i <= at ? AppColors.accent : AppColors.lineStrong,
+                      color: i <= at
+                          ? context.pal.accent
+                          : context.pal.lineStrong,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -403,9 +413,9 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Text(residentWord(_status).toUpperCase(), style: AppText.subtitle),
+        Text(residentWord(_status).toUpperCase(), style: context.type.subtitle),
         const SizedBox(height: 5),
-        Text(_meaning(_status), style: AppText.detail),
+        Text(_meaning(_status), style: context.type.detail),
       ],
     );
   }
@@ -428,7 +438,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
         "You're ${_distance(away)} away. A report joins this area only from "
         'within 300 m — if you can see something where you are, use SOS.',
         textAlign: TextAlign.center,
-        style: AppText.caption.copyWith(color: AppColors.label),
+        style: context.type.caption.copyWith(color: context.pal.label),
       );
     }
     return AppButton(
@@ -453,15 +463,15 @@ class _Fact extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 28),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: t == null ? AppColors.glass : t.withValues(alpha: 0.16),
+        color: t == null ? context.pal.glass : t.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(AppRadius.chip),
         border: Border.all(
-          color: t == null ? AppColors.line : t.withValues(alpha: 0.45),
+          color: t == null ? context.pal.line : t.withValues(alpha: 0.45),
         ),
       ),
       child: Text(
         text.toUpperCase(),
-        style: AppText.tag.copyWith(color: t ?? AppColors.textSoft),
+        style: context.type.tag.copyWith(color: t ?? context.pal.textSoft),
       ),
     );
   }
@@ -485,7 +495,7 @@ class _Score extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: AppText.label.copyWith(color: AppColors.textSoft),
+                style: context.type.label.copyWith(color: context.pal.textSoft),
               ),
             ),
             const SizedBox(width: 12),
@@ -493,7 +503,7 @@ class _Score extends StatelessWidget {
               child: Text(
                 value,
                 textAlign: TextAlign.right,
-                style: AppText.caption,
+                style: context.type.caption,
               ),
             ),
           ],
@@ -504,8 +514,8 @@ class _Score extends StatelessWidget {
           child: LinearProgressIndicator(
             value: fraction.clamp(0, 1),
             minHeight: 4,
-            backgroundColor: AppColors.lineStrong,
-            color: AppColors.accent,
+            backgroundColor: context.pal.lineStrong,
+            color: context.pal.accent,
           ),
         ),
       ],

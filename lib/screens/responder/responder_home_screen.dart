@@ -19,13 +19,13 @@ import 'responder_incident_screen.dart';
 import 'responder_incidents_screen.dart';
 import 'responder_status.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _red = AppColors.live;
-const Color _orange = AppColors.accent;
-const Color _green = AppColors.ok;
-const Color _grey = AppColors.muted;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _red = AppColors.live;
+Color _orange = AppColors.accent;
+Color _green = AppColors.ok;
+Color _grey = AppColors.muted;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
 /// Responder dashboard — live counters + a layered operational map. Replaces the
@@ -85,7 +85,10 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
 
   Future<void> _load() async {
     try {
-      final results = await Future.wait([_api.getIncidentStats(), _api.getIncidents()]);
+      final results = await Future.wait([
+        _api.getIncidentStats(),
+        _api.getIncidents(),
+      ]);
       if (!mounted) return;
       setState(() {
         _stats = results[0] as Map<String, dynamic>;
@@ -107,14 +110,25 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
     _checkingDispatch = true;
     try {
       for (final inc in _incidents) {
-        if (!const {'dispatched', 'en_route', 'arrived'}.contains(inc['status'])) continue;
+        if (!const {
+          'dispatched',
+          'en_route',
+          'arrived',
+        }.contains(inc['status'])) {
+          continue;
+        }
         final id = inc['id'] as String;
-        final dispatches = (await _api.getDispatches(id)).cast<Map<String, dynamic>>();
+        final dispatches = (await _api.getDispatches(
+          id,
+        )).cast<Map<String, dynamic>>();
         final mine = dispatches.where(
           (d) => d['responder_id'] == _myId && d['status'] == 'active',
         );
         if (mine.isNotEmpty) {
-          await _tracker.start(incidentId: id, dispatchId: mine.first['id'] as String);
+          await _tracker.start(
+            incidentId: id,
+            dispatchId: mine.first['id'] as String,
+          );
           break;
         }
       }
@@ -203,7 +217,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -219,9 +233,9 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
               child: const Icon(Icons.menu, color: Colors.white, size: 20),
             ),
@@ -249,7 +263,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            const Icon(Icons.my_location, color: _green, size: 18),
+            Icon(Icons.my_location, color: _green, size: 18),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -257,10 +271,10 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 '${designation == null ? '' : ' · $designation'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppText.rowTitle.copyWith(fontSize: 13),
+                style: context.type.rowTitle.copyWith(fontSize: 13),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: _green),
+            Icon(Icons.chevron_right_rounded, color: _green),
           ],
         ),
       ),
@@ -269,9 +283,11 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
 
   Widget _drawer() {
     final name =
-        (widget.me['full_name'] as String?) ?? (widget.me['email'] as String?) ?? 'Responder';
+        (widget.me['full_name'] as String?) ??
+        (widget.me['email'] as String?) ??
+        'Responder';
     return Drawer(
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,28 +299,42 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 children: [
                   const AppLogo(),
                   const SizedBox(height: 16),
-                  Text(name,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(responderAgencyLabel(widget.me['agency_type'] as String?),
-                      style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                  Text(
+                    responderAgencyLabel(widget.me['agency_type'] as String?),
+                    style: TextStyle(color: context.pal.muted, fontSize: 12),
+                  ),
                 ],
               ),
             ),
-            const Divider(color: _panelBorder, height: 1),
-            _navTile(Icons.dashboard_outlined, 'Dashboard', () => Navigator.of(context).pop()),
+            Divider(color: _panelBorder, height: 1),
+            _navTile(
+              Icons.dashboard_outlined,
+              'Dashboard',
+              () => Navigator.of(context).pop(),
+            ),
             _navTile(Icons.list_alt_outlined, 'Incidents', () {
               Navigator.of(context).pop();
               Navigator.of(context)
-                  .push(MaterialPageRoute(
-                      builder: (_) => ResponderIncidentsScreen(me: widget.me)))
+                  .push(
+                    MaterialPageRoute(
+                      builder: (_) => ResponderIncidentsScreen(me: widget.me),
+                    ),
+                  )
                   .then((_) {
-                if (mounted) _load();
-              });
+                    if (mounted) _load();
+                  });
             }),
             const Spacer(),
-            const Divider(color: _panelBorder, height: 1),
+            Divider(color: _panelBorder, height: 1),
             _navTile(Icons.logout, 'Log out', () {
               Navigator.of(context).pop();
               _logout();
@@ -316,10 +346,18 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
     );
   }
 
-  Widget _navTile(IconData icon, String label, VoidCallback onTap, {Color color = Colors.white}) {
+  Widget _navTile(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    Color color = Colors.white,
+  }) {
     return ListTile(
       leading: Icon(icon, color: color, size: 20),
-      title: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      title: Text(
+        label,
+        style: TextStyle(color: color, fontWeight: FontWeight.w500),
+      ),
       onTap: onTap,
     );
   }
@@ -332,13 +370,23 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('${s?['active_incidents'] ?? '–'}', 'Active Incidents',
-                  'In progress now', _red, Icons.warning_amber_rounded),
+              child: _statCard(
+                '${s?['active_incidents'] ?? '–'}',
+                'Active Incidents',
+                'In progress now',
+                _red,
+                Icons.warning_amber_rounded,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _statCard('${s?['pending_verify'] ?? '–'}', 'Pending Verify',
-                  'Awaiting review', _orange, Icons.fact_check_outlined),
+              child: _statCard(
+                '${s?['pending_verify'] ?? '–'}',
+                'Pending Verify',
+                'Awaiting review',
+                _orange,
+                Icons.fact_check_outlined,
+              ),
             ),
           ],
         ),
@@ -346,13 +394,23 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         Row(
           children: [
             Expanded(
-              child: _statCard('${s?['units_deployed'] ?? '–'}', 'Units Deployed',
-                  'On the way or on site', _orange, Icons.local_shipping_outlined),
+              child: _statCard(
+                '${s?['units_deployed'] ?? '–'}',
+                'Units Deployed',
+                'On the way or on site',
+                _orange,
+                Icons.local_shipping_outlined,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _statCard('${s?['units_standby'] ?? '–'}', 'Units Standby',
-                  'Ready to respond', _grey, Icons.groups_outlined),
+              child: _statCard(
+                '${s?['units_standby'] ?? '–'}',
+                'Units Standby',
+                'Ready to respond',
+                _grey,
+                Icons.groups_outlined,
+              ),
             ),
           ],
         ),
@@ -372,7 +430,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
   ) {
     return Panel(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -385,7 +443,10 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.numeral.copyWith(fontSize: 30, color: color),
+                  style: context.type.numeral.copyWith(
+                    fontSize: 30,
+                    color: color,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -397,14 +458,14 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
             title.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppText.cardTitle.copyWith(fontSize: 12),
+            style: context.type.cardTitle.copyWith(fontSize: 12),
           ),
           const SizedBox(height: 5),
           Text(
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppText.meta,
+            style: context.type.meta,
           ),
         ],
       ),
@@ -433,21 +494,21 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                     children: [
                       Text(
                         'LIVE MAP',
-                        style: AppText.cardTitle.copyWith(fontSize: 15),
+                        style: context.type.cardTitle.copyWith(fontSize: 15),
                       ),
                       const SizedBox(height: 5),
                       Text(
                         'Real-time incidents across Pasay City',
-                        style: AppText.meta,
+                        style: context.type.meta,
                       ),
                     ],
                   ),
                 ),
                 Row(
                   children: [
-                    const LiveDot(color: _orange, size: 6),
+                    LiveDot(color: _orange, size: 6),
                     const SizedBox(width: 8),
-                    const Eyebrow('Updating live', color: _orange),
+                    Eyebrow('Updating live', color: _orange),
                   ],
                 ),
               ],
@@ -479,7 +540,9 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: on ? layer.color.withValues(alpha: 0.12) : const Color(0xFF1A1A1A),
+          color: on
+              ? layer.color.withValues(alpha: 0.12)
+              : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: on ? layer.color : const Color(0xFF2A2A2A)),
         ),
@@ -489,7 +552,10 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
             Container(
               width: 14,
               height: 14,
-              decoration: BoxDecoration(color: layer.color, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: layer.color,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 8),
             Text(
@@ -543,7 +609,9 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         final lat = (inc['centroid_lat'] as num?)?.toDouble();
         final lng = (inc['centroid_lng'] as num?)?.toDouble();
         if (lat == null || lng == null) continue;
-        final color = responderStatusColor((inc['status'] as String?) ?? 'pending');
+        final color = responderStatusColor(
+          (inc['status'] as String?) ?? 'pending',
+        );
         markers.add(
           Marker(
             point: LatLng(lat, lng),
@@ -555,10 +623,22 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 decoration: BoxDecoration(
                   color: color,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                  boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 14)],
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.5),
+                      blurRadius: 14,
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.local_fire_department, color: Colors.white, size: 15),
+                child: const Icon(
+                  Icons.local_fire_department,
+                  color: Colors.white,
+                  size: 15,
+                ),
               ),
             ),
           ),
@@ -573,7 +653,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
     final color = responderStatusColor(status);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -599,14 +679,23 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: color.withValues(alpha: 0.5)),
                     ),
-                    child: Text(responderStatusLabel(status),
-                        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800)),
+                    child: Text(
+                      responderStatusLabel(status),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -614,7 +703,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
               Text(
                 '${(inc['report_count'] as num?)?.toInt() ?? 0} reports • '
                 '${(inc['active_dispatch_count'] as num?)?.toInt() ?? 0} responding',
-                style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                style: TextStyle(color: context.pal.muted, fontSize: 13),
               ),
               if (routingLabel(inc, agency: _agency) case final routed?) ...[
                 const SizedBox(height: 10),
@@ -631,7 +720,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     gradient: AppColors.accentGradient,
-          borderRadius: BorderRadius.circular(AppRadius.card),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
                   ),
                   child: const Text(
                     'OPEN INCIDENT',

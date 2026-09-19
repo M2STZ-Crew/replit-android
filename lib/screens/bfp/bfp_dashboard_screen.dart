@@ -20,13 +20,13 @@ import '../subadmin/pending_reports_screen.dart';
 import '../subadmin/subadmin_home_screen.dart';
 import 'bfp_alarm_requests_screen.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _red = AppColors.live;
-const Color _orange = AppColors.accent;
-const Color _green = AppColors.ok;
-const Color _grey = AppColors.muted;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _red = AppColors.live;
+Color _orange = AppColors.accent;
+Color _green = AppColors.ok;
+Color _grey = AppColors.muted;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
 /// BFP team captain's dashboard — live counters, the layered map, and the
@@ -63,7 +63,12 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   late final List<OpsLayer> _layers = opsLayers(_api);
 
   Future<void> _openIncident(Map<String, dynamic> inc) async {
-    final changed = await openCoordinatorIncident(context, incident: inc, me: widget.me, api: _api);
+    final changed = await openCoordinatorIncident(
+      context,
+      incident: inc,
+      me: widget.me,
+      api: _api,
+    );
     if (changed && mounted) _load();
   }
 
@@ -118,8 +123,9 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   }
 
   Future<void> _openAlarmRequests() async {
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const BfpAlarmRequestsScreen()));
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const BfpAlarmRequestsScreen()));
     if (mounted) _load();
   }
 
@@ -170,7 +176,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -186,9 +192,9 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
               child: const Icon(Icons.menu, color: Colors.white, size: 20),
             ),
@@ -200,9 +206,11 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
 
   Widget _drawer() {
     final name =
-        (widget.me['full_name'] as String?) ?? (widget.me['email'] as String?) ?? 'BFP';
+        (widget.me['full_name'] as String?) ??
+        (widget.me['email'] as String?) ??
+        'BFP';
     return Drawer(
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,24 +222,39 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 children: [
                   const AppLogo(),
                   const SizedBox(height: 16),
-                  Text(name,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  const Text('Sub-Admin • BFP',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                  Text(
+                    'Sub-Admin • BFP',
+                    style: TextStyle(color: context.pal.muted, fontSize: 12),
+                  ),
                 ],
               ),
             ),
-            const Divider(color: _panelBorder, height: 1),
-            _navTile(Icons.dashboard_outlined, 'Dashboard', () => Navigator.of(context).pop()),
+            Divider(color: _panelBorder, height: 1),
+            _navTile(
+              Icons.dashboard_outlined,
+              'Dashboard',
+              () => Navigator.of(context).pop(),
+            ),
             _navTile(Icons.list_alt_outlined, 'Incidents', () {
               Navigator.of(context).pop();
               Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (_) => SubAdminHomeScreen(me: widget.me)))
+                  .push(
+                    MaterialPageRoute(
+                      builder: (_) => SubAdminHomeScreen(me: widget.me),
+                    ),
+                  )
                   .then((_) {
-                if (mounted) _load();
-              });
+                    if (mounted) _load();
+                  });
             }),
             _navTile(Icons.campaign_outlined, 'Alarm Requests', () {
               Navigator.of(context).pop();
@@ -244,7 +267,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               _openPendingReports();
             }, count: (_stats?['pending_reports'] as num?)?.toInt() ?? 0),
             const Spacer(),
-            const Divider(color: _panelBorder, height: 1),
+            Divider(color: _panelBorder, height: 1),
             _navTile(Icons.logout, 'Log out', () {
               Navigator.of(context).pop();
               _logout();
@@ -265,7 +288,10 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   }) {
     return ListTile(
       leading: Icon(icon, color: color, size: 20),
-      title: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+      title: Text(
+        label,
+        style: TextStyle(color: color, fontWeight: FontWeight.w500),
+      ),
       trailing: count > 0 ? Tag('$count', color: _red, solid: true) : null,
       onTap: onTap,
     );
@@ -284,13 +310,23 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     return Row(
       children: [
         Expanded(
-          child: _statCard('${s?['active_incidents'] ?? '–'}', 'Active Incidents',
-              'In progress now', _red, Icons.warning_amber_rounded),
+          child: _statCard(
+            '${s?['active_incidents'] ?? '–'}',
+            'Active Incidents',
+            'In progress now',
+            _red,
+            Icons.warning_amber_rounded,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _statCard('${s?['units_deployed'] ?? '–'}', 'Units Deployed',
-              'On the way or on site', _orange, Icons.local_shipping_outlined),
+          child: _statCard(
+            '${s?['units_deployed'] ?? '–'}',
+            'Units Deployed',
+            'On the way or on site',
+            _orange,
+            Icons.local_shipping_outlined,
+          ),
         ),
       ],
     );
@@ -308,7 +344,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   ) {
     return Panel(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -321,7 +357,10 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.numeral.copyWith(fontSize: 30, color: color),
+                  style: context.type.numeral.copyWith(
+                    fontSize: 30,
+                    color: color,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -333,14 +372,14 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
             title.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppText.cardTitle.copyWith(fontSize: 12),
+            style: context.type.cardTitle.copyWith(fontSize: 12),
           ),
           const SizedBox(height: 5),
           Text(
             subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppText.meta,
+            style: context.type.meta,
           ),
         ],
       ),
@@ -356,7 +395,9 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
           color: _panel,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: _pendingAlarms > 0 ? _red.withValues(alpha: 0.5) : _panelBorder,
+            color: _pendingAlarms > 0
+                ? _red.withValues(alpha: 0.5)
+                : _panelBorder,
           ),
         ),
         child: Row(
@@ -368,39 +409,56 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 color: const Color(0x23EF4444),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.campaign_outlined, color: _red, size: 20),
+              child: Icon(Icons.campaign_outlined, color: _red, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Alarm Requests',
-                      style: TextStyle(
-                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Alarm Requests',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     _pendingAlarms > 0
                         ? '$_pendingAlarms pending • review & execute'
                         : 'No pending requests',
-                    style: const TextStyle(color: Color(0xFF71717B), fontSize: 11),
+                    style: const TextStyle(
+                      color: Color(0xFF71717B),
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
             ),
             if (_pendingAlarms > 0)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _red.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: _red.withValues(alpha: 0.5)),
                 ),
-                child: Text('$_pendingAlarms',
-                    style: const TextStyle(color: _red, fontSize: 12, fontWeight: FontWeight.w800)),
+                child: Text(
+                  '$_pendingAlarms',
+                  style: TextStyle(
+                    color: _red,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               )
             else
-              const Icon(Icons.chevron_right, color: _grey, size: 20),
+              Icon(Icons.chevron_right, color: _grey, size: 20),
           ],
         ),
       ),
@@ -427,12 +485,19 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Live Map',
-                          style: TextStyle(
-                              color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                      const Text(
+                        'Live Map',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text('Real-time incidents across Pasay City',
-                          style: AppText.meta),
+                      Text(
+                        'Real-time incidents across Pasay City',
+                        style: context.type.meta,
+                      ),
                     ],
                   ),
                 ),
@@ -441,10 +506,16 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(color: _orange, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: _orange,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
-                    const Text('Updating live', style: TextStyle(color: _orange, fontSize: 10)),
+                    Text(
+                      'Updating live',
+                      style: TextStyle(color: _orange, fontSize: 10),
+                    ),
                   ],
                 ),
               ],
@@ -476,7 +547,9 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: on ? layer.color.withValues(alpha: 0.12) : const Color(0xFF1A1A1A),
+          color: on
+              ? layer.color.withValues(alpha: 0.12)
+              : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: on ? layer.color : const Color(0xFF2A2A2A)),
         ),
@@ -486,15 +559,20 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
             Container(
               width: 14,
               height: 14,
-              decoration: BoxDecoration(color: layer.color, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: layer.color,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 8),
-            Text(layer.label,
-                style: TextStyle(
-                  color: on ? Colors.white : Colors.white.withValues(alpha: 0.7),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                )),
+            Text(
+              layer.label,
+              style: TextStyle(
+                color: on ? Colors.white : Colors.white.withValues(alpha: 0.7),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
@@ -507,7 +585,9 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
       options: const MapOptions(
         initialCenter: _pasay,
         initialZoom: 13,
-        interactionOptions: InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
+        interactionOptions: InteractionOptions(
+          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        ),
       ),
       children: [
         MapTiles.layer(),
@@ -532,24 +612,40 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         final lat = (inc['centroid_lat'] as num?)?.toDouble();
         final lng = (inc['centroid_lng'] as num?)?.toDouble();
         if (lat == null || lng == null) continue;
-        final color = responderStatusColor((inc['status'] as String?) ?? 'pending');
-        markers.add(Marker(
-          point: LatLng(lat, lng),
-          width: 30,
-          height: 30,
-          child: GestureDetector(
-            onTap: () => _incidentSheet(inc),
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 14)],
+        final color = responderStatusColor(
+          (inc['status'] as String?) ?? 'pending',
+        );
+        markers.add(
+          Marker(
+            point: LatLng(lat, lng),
+            width: 30,
+            height: 30,
+            child: GestureDetector(
+              onTap: () => _incidentSheet(inc),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.5),
+                      blurRadius: 14,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.local_fire_department,
+                  color: Colors.white,
+                  size: 15,
+                ),
               ),
-              child: const Icon(Icons.local_fire_department, color: Colors.white, size: 15),
             ),
           ),
-        ));
+        );
       }
     }
     return markers;
@@ -562,7 +658,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     final alarm = (inc['alarm_level'] as String?)?.replaceAll('_', ' ');
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -578,19 +674,33 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text((inc['designation'] as String?) ?? 'Incident',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                    child: Text(
+                      (inc['designation'] as String?) ?? 'Incident',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: color.withValues(alpha: 0.5)),
                     ),
-                    child: Text(responderStatusLabel(status),
-                        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w800)),
+                    child: Text(
+                      responderStatusLabel(status),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -598,16 +708,22 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               Text(
                 '${(inc['report_count'] as num?)?.toInt() ?? 0} reports • '
                 '${(inc['active_dispatch_count'] as num?)?.toInt() ?? 0} responding',
-                style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                style: TextStyle(color: context.pal.muted, fontSize: 13),
               ),
               if (alarm != null && alarm.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(Icons.campaign_outlined, color: _red, size: 16),
+                    Icon(Icons.campaign_outlined, color: _red, size: 16),
                     const SizedBox(width: 8),
-                    Text('Alarm: ${alarm.toUpperCase()}',
-                        style: const TextStyle(color: _red, fontSize: 13, fontWeight: FontWeight.w700)),
+                    Text(
+                      'Alarm: ${alarm.toUpperCase()}',
+                      style: TextStyle(
+                        color: _red,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ],

@@ -22,15 +22,15 @@ import '../responder/responder_status.dart';
 import 'dispatch_screen.dart';
 import 'post_incident_report_screen.dart';
 
-const Color _bg = AppColors.background;
-const Color _sheet = AppColors.surfaceSolid;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _rowBg = AppColors.glassDim;
-const Color _orangeTint = AppColors.accentTint;
-const Color _muted = AppColors.muted;
-const Color _crewGrey = AppColors.muted;
-const Color _red = AppColors.live;
+Color _bg = AppColors.background;
+Color _sheet = AppColors.surfaceSolid;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _rowBg = AppColors.glassDim;
+Color _orangeTint = AppColors.accentTint;
+Color _muted = AppColors.muted;
+Color _crewGrey = AppColors.muted;
+Color _red = AppColors.live;
 
 /// Sub-admin command screen for an ACTIVE (dispatched/en_route/arrived) incident:
 /// live map + responder GPS, address + route ETA, the dispatched unit/crew, and
@@ -53,7 +53,8 @@ class SubAdminIncidentCommandScreen extends StatefulWidget {
       _SubAdminIncidentCommandScreenState();
 }
 
-class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandScreen> {
+class _SubAdminIncidentCommandScreenState
+    extends State<SubAdminIncidentCommandScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
   Timer? _poll;
   final MapController _map = MapController();
@@ -156,11 +157,14 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
       final marks = await geo.placemarkFromCoordinates(p.latitude, p.longitude);
       if (marks.isEmpty) return;
       final m = marks.first;
-      final parts = [m.street, m.subLocality, m.locality]
-          .where((s) => s != null && s.isNotEmpty)
-          .cast<String>()
-          .toList();
-      if (mounted && parts.isNotEmpty) setState(() => _address = parts.take(2).join(', '));
+      final parts = [
+        m.street,
+        m.subLocality,
+        m.locality,
+      ].where((s) => s != null && s.isNotEmpty).cast<String>().toList();
+      if (mounted && parts.isNotEmpty) {
+        setState(() => _address = parts.take(2).join(', '));
+      }
     } catch (_) {
       // address stays null
     }
@@ -170,7 +174,8 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     const r = 6371000.0;
     final dLat = (b.latitude - a.latitude) * math.pi / 180;
     final dLng = (b.longitude - a.longitude) * math.pi / 180;
-    final s = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final s =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(a.latitude * math.pi / 180) *
             math.cos(b.latitude * math.pi / 180) *
             math.sin(dLng / 2) *
@@ -208,11 +213,13 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
       }
     }
     try {
-      final url = 'https://router.project-osrm.org/route/v1/driving/'
+      final url =
+          'https://router.project-osrm.org/route/v1/driving/'
           '${nearest.longitude},${nearest.latitude};${c.longitude},${c.latitude}'
           '?overview=false';
-      final resp =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
+      final resp = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 8));
       final data = jsonDecode(resp.body) as Map<String, dynamic>;
       final routes = data['routes'] as List?;
       if (routes != null && routes.isNotEmpty) {
@@ -255,7 +262,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     ];
     final level = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -268,17 +275,28 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Request alarm escalation',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+              const Text(
+                'Request alarm escalation',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 4),
-              const Text('Sent to BFP for review.',
-                  style: TextStyle(color: AppColors.muted, fontSize: 12)),
+              Text(
+                'Sent to BFP for review.',
+                style: TextStyle(color: context.pal.muted, fontSize: 12),
+              ),
               const SizedBox(height: 14),
               for (final (value, label) in levels)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(label, style: const TextStyle(color: Colors.white)),
-                  trailing: const Icon(Icons.chevron_right, color: _muted),
+                  title: Text(
+                    label,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: _muted),
                   onTap: () => Navigator.of(context).pop(value),
                 ),
             ],
@@ -301,20 +319,29 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Fire out?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        content: const Text('Mark this incident resolved and stop the response.',
-            style: TextStyle(color: AppColors.muted)),
+        backgroundColor: context.pal.surface,
+        title: const Text(
+          'Fire out?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'Mark this incident resolved and stop the response.',
+          style: TextStyle(color: context.pal.muted),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(false),
-            child: const Text('CANCEL', style: TextStyle(color: AppColors.muted)),
+            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
           ),
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(true),
-            child: const Text('FIRE OUT',
-                style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+            child: Text(
+              'FIRE OUT',
+              style: TextStyle(
+                color: context.pal.accent,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
         ],
       ),
@@ -348,13 +375,15 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
 
   Future<void> _openReport() async {
     final navigator = Navigator.of(context);
-    final filed = await navigator.push<bool>(MaterialPageRoute(
-      builder: (_) => PostIncidentReportScreen(
-        areaId: widget.areaId,
-        designation: _incident?['designation'] as String?,
-        api: _api,
+    final filed = await navigator.push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PostIncidentReportScreen(
+          areaId: widget.areaId,
+          designation: _incident?['designation'] as String?,
+          api: _api,
+        ),
       ),
-    ));
+    );
     if (filed == true && mounted) navigator.pop(true);
   }
 
@@ -376,7 +405,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     return Scaffold(
       backgroundColor: _bg,
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
           : Column(
               children: [
                 SizedBox(height: 280, child: _mapHeader()),
@@ -402,14 +431,18 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
         Positioned.fill(
           child: c == null
               ? const PlaceholderBox(
-                  width: double.infinity, height: double.infinity, label: 'NO LOCATION')
+                  width: double.infinity,
+                  height: double.infinity,
+                  label: 'NO LOCATION',
+                )
               : FlutterMap(
                   mapController: _map,
                   options: MapOptions(
                     initialCenter: c,
                     initialZoom: 15.5,
-                    interactionOptions:
-                        const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                    ),
                   ),
                   children: [
                     MapTiles.layer(),
@@ -432,10 +465,19 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
           decoration: BoxDecoration(
             color: _red,
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-            boxShadow: const [BoxShadow(color: Color(0x7FFF544E), blurRadius: 14)],
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 2,
+            ),
+            boxShadow: const [
+              BoxShadow(color: Color(0x7FFF544E), blurRadius: 14),
+            ],
           ),
-          child: const Icon(Icons.local_fire_department, color: Colors.white, size: 15),
+          child: const Icon(
+            Icons.local_fire_department,
+            color: Colors.white,
+            size: 15,
+          ),
         ),
       ),
     ];
@@ -443,20 +485,31 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
       final lat = (r['lat'] as num?)?.toDouble();
       final lng = (r['lng'] as num?)?.toDouble();
       if (lat == null || lng == null) continue;
-      markers.add(Marker(
-        point: LatLng(lat, lng),
-        width: 24,
-        height: 24,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.accent,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-            boxShadow: const [BoxShadow(color: Color(0x7FFF9066), blurRadius: 12)],
+      markers.add(
+        Marker(
+          point: LatLng(lat, lng),
+          width: 24,
+          height: 24,
+          child: Container(
+            decoration: BoxDecoration(
+              color: context.pal.accent,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.3),
+                width: 2,
+              ),
+              boxShadow: const [
+                BoxShadow(color: Color(0x7FFF9066), blurRadius: 12),
+              ],
+            ),
+            child: const Icon(
+              Icons.local_shipping,
+              color: Colors.white,
+              size: 12,
+            ),
           ),
-          child: const Icon(Icons.local_shipping, color: Colors.white, size: 12),
         ),
-      ));
+      );
     }
     return markers;
   }
@@ -475,11 +528,15 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
-              child: const Icon(Icons.settings_outlined, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.settings_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -489,10 +546,12 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
 
   void _accountSheet() {
     final name =
-        (widget.me['full_name'] as String?) ?? (widget.me['email'] as String?) ?? 'Sub-Admin';
+        (widget.me['full_name'] as String?) ??
+        (widget.me['email'] as String?) ??
+        'Sub-Admin';
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -503,11 +562,20 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 16),
-            Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.logout, color: _red),
-              title: const Text('Log out', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.logout, color: _red),
+              title: const Text(
+                'Log out',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _logout();
@@ -525,7 +593,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
     return Transform.translate(
       offset: const Offset(0, -16),
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: _sheet,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -537,7 +605,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
               _addressCard(),
               const SizedBox(height: 12),
               if (_routing != null) ...[
-                Tag(_routing!, color: AppColors.ok, dot: true),
+                Tag(_routing!, color: context.pal.ok, dot: true),
                 const SizedBox(height: 12),
               ],
               if (groups.isEmpty)
@@ -547,8 +615,12 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
                   _unitCard(entry.key, entry.value),
                   const SizedBox(height: 12),
                 ],
-              if (!const {'resolved', 'post_incident_report', 'closed', 'rejected'}
-                  .contains(_status)) ...[
+              if (!const {
+                'resolved',
+                'post_incident_report',
+                'closed',
+                'rejected',
+              }.contains(_status)) ...[
                 AppButton.secondary(
                   'Send more responders',
                   icon: Icons.group_add_outlined,
@@ -557,16 +629,20 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
                 const SizedBox(height: 12),
               ],
               const SizedBox(height: 8),
-              const Text('Escalate alarm',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              const Text(
+                'Escalate alarm',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
               const SizedBox(height: 4),
-              const Text('Broadcast a fire code to all responding units',
-                  style: TextStyle(color: _muted, fontSize: 12)),
+              Text(
+                'Broadcast a fire code to all responding units',
+                style: TextStyle(color: _muted, fontSize: 12),
+              ),
               const SizedBox(height: 12),
               _escalationRow(
                 icon: Icons.water_drop_outlined,
                 tint: const Color(0x1E3B82F6),
-                iconColor: AppColors.info,
+                iconColor: context.pal.info,
                 title: 'Need Water',
                 subtitle: 'Request additional water supply',
                 onTap: () => _pressCode('FC-6', 'Need Water'),
@@ -584,7 +660,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
               _escalationRow(
                 icon: Icons.campaign_outlined,
                 tint: const Color(0x23EF4444),
-                iconColor: AppColors.live,
+                iconColor: context.pal.live,
                 title: 'Escalate to BFP',
                 subtitle: 'Request alarm escalation to BFP',
                 onTap: _escalateBfp,
@@ -611,8 +687,15 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: _orangeTint, borderRadius: BorderRadius.circular(14)),
-            child: const Icon(Icons.location_on_outlined, color: AppColors.accent, size: 20),
+            decoration: BoxDecoration(
+              color: _orangeTint,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.location_on_outlined,
+              color: context.pal.accent,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -624,27 +707,44 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: context.pal.accent,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: 6),
-                    const Text('Live',
-                        style: TextStyle(color: AppColors.accent, fontSize: 11)),
+                    Text(
+                      'Live',
+                      style: TextStyle(color: context.pal.accent, fontSize: 11),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 5),
                 Text(
                   _address ?? 'Locating incident…',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.2),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    height: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 5),
                 Text.rich(
-                  TextSpan(children: [
-                    const TextSpan(text: 'ETA', style: TextStyle(color: _muted, fontSize: 16)),
-                    TextSpan(
-                      text: _etaText == null ? ' —' : ' $_etaText',
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ]),
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'ETA',
+                        style: TextStyle(color: _muted, fontSize: 16),
+                      ),
+                      TextSpan(
+                        text: _etaText == null ? ' —' : ' $_etaText',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -693,8 +793,10 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _panelBorder),
       ),
-      child: const Text('No active units on this incident.',
-          style: TextStyle(color: AppColors.muted, fontSize: 13)),
+      child: Text(
+        'No active units on this incident.',
+        style: TextStyle(color: context.pal.muted, fontSize: 13),
+      ),
     );
   }
 
@@ -730,20 +832,37 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
               Container(
                 width: 48,
                 height: 48,
-                decoration:
-                    BoxDecoration(color: _orangeTint, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.fire_truck_rounded, color: AppColors.accent, size: 22),
+                decoration: BoxDecoration(
+                  color: _orangeTint,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.fire_truck_rounded,
+                  color: context.pal.accent,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(vehicleName,
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                    Text(subtitle,
-                        style: const TextStyle(color: _muted, fontSize: 16, fontWeight: FontWeight.w500)),
+                    Text(
+                      vehicleName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: _muted,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -766,7 +885,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
   Widget _driverBox(Map<String, dynamic>? driver) {
     return Container(
       height: 87,
-      padding: const EdgeInsets.all(13),
+      padding: EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(14),
@@ -776,7 +895,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
+            children: [
               Icon(Icons.local_taxi_outlined, color: _crewGrey, size: 14),
               SizedBox(width: 6),
               Text('Driver', style: TextStyle(color: _crewGrey, fontSize: 11)),
@@ -784,7 +903,9 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
           ),
           const SizedBox(height: 6),
           Text(
-            driver == null ? '—' : ((driver['responder_name'] as String?) ?? 'Responder'),
+            driver == null
+                ? '—'
+                : ((driver['responder_name'] as String?) ?? 'Responder'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: Colors.white, fontSize: 15),
@@ -794,7 +915,7 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
             driver == null ? '' : ((driver['crew_role'] as String?) ?? ''),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: _muted, fontSize: 11),
+            style: TextStyle(color: _muted, fontSize: 11),
           ),
         ],
       ),
@@ -815,14 +936,17 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
         children: [
           Row(
             children: [
-              const Icon(Icons.groups_outlined, color: _crewGrey, size: 14),
+              Icon(Icons.groups_outlined, color: _crewGrey, size: 14),
               const SizedBox(width: 6),
-              Text('Crew · ${crew.length}', style: const TextStyle(color: _crewGrey, fontSize: 11)),
+              Text(
+                'Crew · ${crew.length}',
+                style: TextStyle(color: _crewGrey, fontSize: 11),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           crew.isEmpty
-              ? const Text('—', style: TextStyle(color: _muted, fontSize: 13))
+              ? Text('—', style: TextStyle(color: _muted, fontSize: 13))
               : _avatarStack(crew),
         ],
       ),
@@ -887,7 +1011,10 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
             Container(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(14)),
+              decoration: BoxDecoration(
+                color: tint,
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: 12),
@@ -895,15 +1022,20 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: const TextStyle(color: _muted, fontSize: 11)),
+                  Text(subtitle, style: TextStyle(color: _muted, fontSize: 11)),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: _muted, size: 20),
+            Icon(Icons.chevron_right, color: _muted, size: 20),
           ],
         ),
       ),
@@ -920,23 +1052,29 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
         onPressed: _openReport,
       );
     }
-    final ended = _status == 'resolved' || _status == 'closed' || _status == 'rejected';
+    final ended =
+        _status == 'resolved' || _status == 'closed' || _status == 'rejected';
     if (ended) {
       return Container(
         height: 56,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.glass,
+          color: context.pal.glass,
           borderRadius: BorderRadius.circular(AppRadius.card),
         ),
         child: Text(
-            _status == 'closed'
-                ? 'INCIDENT CLOSED'
-                : _status == 'rejected'
-                    ? 'INCIDENT REJECTED'
-                    : 'INCIDENT RESOLVED',
-            style: const TextStyle(
-                color: AppColors.muted, fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1)),
+          _status == 'closed'
+              ? 'INCIDENT CLOSED'
+              : _status == 'rejected'
+              ? 'INCIDENT REJECTED'
+              : 'INCIDENT RESOLVED',
+          style: TextStyle(
+            color: context.pal.muted,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1,
+          ),
+        ),
       );
     }
     return Opacity(
@@ -948,24 +1086,33 @@ class _SubAdminIncidentCommandScreenState extends State<SubAdminIncidentCommandS
           alignment: Alignment.center,
           decoration: BoxDecoration(
             gradient: AppColors.accentGradient,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: const [
-              BoxShadow(color: AppColors.accentTint, blurRadius: 32, offset: Offset(0, 8)),
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            boxShadow: [
+              BoxShadow(
+                color: context.pal.accentTint,
+                blurRadius: 32,
+                offset: Offset(0, 8),
+              ),
             ],
           ),
           child: _busy
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accentText),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.accentText,
+                  ),
                 )
-              : const Text('FIRE OUT',
+              : const Text(
+                  'FIRE OUT',
                   style: TextStyle(
                     color: AppColors.accentText,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.6,
-                  )),
+                  ),
+                ),
         ),
       ),
     );

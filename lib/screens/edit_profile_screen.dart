@@ -27,10 +27,12 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  late final TextEditingController _name =
-      TextEditingController(text: widget.fullName ?? '');
-  late final TextEditingController _mobile =
-      TextEditingController(text: widget.mobile ?? '');
+  late final TextEditingController _name = TextEditingController(
+    text: widget.fullName ?? '',
+  );
+  late final TextEditingController _mobile = TextEditingController(
+    text: widget.mobile ?? '',
+  );
 
   DateTime? _dob;
   String? _gender;
@@ -80,18 +82,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         gender: _gender,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated.')));
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save. Check your connection.')),
+          const SnackBar(
+            content: Text('Could not save. Check your connection.'),
+          ),
         );
       }
     } finally {
@@ -102,7 +108,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
@@ -117,7 +123,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 18),
               _label('MOBILE NUMBER'),
               const SizedBox(height: 6),
-              _field(_mobile, 'e.g. 0917 123 4567', keyboard: TextInputType.phone),
+              _field(
+                _mobile,
+                'e.g. 0917 123 4567',
+                keyboard: TextInputType.phone,
+              ),
               const SizedBox(height: 18),
               _label('DATE OF BIRTH'),
               const SizedBox(height: 6),
@@ -140,17 +150,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('Edit Profile'.toUpperCase(), style: AppText.screenTitle),
+        Text('Edit Profile'.toUpperCase(), style: context.type.screenTitle),
       ],
     );
   }
 
-  Widget _label(String text) => Eyebrow(text, color: AppColors.label);
+  Widget _label(String text) => Eyebrow(text, color: context.pal.label);
 
   BoxDecoration _box() => BoxDecoration(
-    color: AppColors.inputBg,
+    color: context.pal.inputBg,
     borderRadius: BorderRadius.circular(AppRadius.control),
-    border: Border.all(color: AppColors.line),
+    border: Border.all(color: context.pal.line),
   );
 
   Widget _field(
@@ -177,8 +187,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _dob == null ? 'mm/dd/yyyy' : _pretty(_dob!),
         style: _fieldStyle.copyWith(
           color: _dob == null
-              ? AppColors.label.withValues(alpha: 0.45)
-              : AppColors.onBackground,
+              ? context.pal.label.withValues(alpha: 0.45)
+              : context.pal.onBackground,
         ),
       ),
     ),
@@ -195,15 +205,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         hint: Text(
           'Select',
           style: _fieldStyle.copyWith(
-            color: AppColors.label.withValues(alpha: 0.45),
+            color: context.pal.label.withValues(alpha: 0.45),
           ),
         ),
-        dropdownColor: AppColors.surfaceSolid,
+        dropdownColor: context.pal.surfaceSolid,
         borderRadius: BorderRadius.circular(AppRadius.control),
-        icon: const Icon(
-          Icons.keyboard_arrow_down_rounded,
-          color: AppColors.muted,
-        ),
+        icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.pal.muted),
         style: _fieldStyle,
         items: _genders
             .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -220,7 +227,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   );
 }
 
-const TextStyle _fieldStyle = TextStyle(
+TextStyle _fieldStyle = TextStyle(
   fontSize: 15,
   fontWeight: FontWeight.w500,
   color: AppColors.onBackground,

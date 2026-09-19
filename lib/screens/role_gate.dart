@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'bfp/bfp_dashboard_screen.dart';
 import 'map_screen.dart';
+import 'onboarding_screen.dart';
 import 'observer_handoff_screen.dart';
 import 'responder/responder_home_screen.dart';
 import 'subadmin/subadmin_dashboard_screen.dart';
@@ -54,14 +55,19 @@ class _RoleGateState extends State<RoleGate> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off, color: AppColors.muted, size: 40),
+            Icon(Icons.cloud_off, color: context.pal.muted, size: 40),
             const SizedBox(height: 14),
-            Text(_error!, style: const TextStyle(color: AppColors.muted)),
+            Text(_error!, style: TextStyle(color: context.pal.muted)),
             const SizedBox(height: 14),
             TextButton(
               onPressed: _load,
-              child: const Text('Retry',
-                  style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700)),
+              child: Text(
+                'Retry',
+                style: TextStyle(
+                  color: context.pal.accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),
@@ -70,7 +76,7 @@ class _RoleGateState extends State<RoleGate> {
     final me = _me;
     if (me == null) {
       return _shell(
-        child: const CircularProgressIndicator(color: AppColors.accent),
+        child: CircularProgressIndicator(color: context.pal.accent),
       );
     }
     final role = me['role'] as String?;
@@ -89,12 +95,12 @@ class _RoleGateState extends State<RoleGate> {
       }
       return SubAdminDashboardScreen(me: me);
     }
-    return const MapScreen();
+    return const _CitizenEntry();
   }
 
   Widget _shell({required Widget child}) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: Center(
           child: Column(
@@ -107,6 +113,28 @@ class _RoleGateState extends State<RoleGate> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The resident's way in: the tour the first time, the map ever after.
+///
+/// Reading the flag takes a frame or two, so the wait is the app's own ground
+/// rather than a spinner — a resident opening the app should never see a
+/// loading state before the map they came for.
+class _CitizenEntry extends StatelessWidget {
+  const _CitizenEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: Tour.seen(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Scaffold(backgroundColor: context.pal.background);
+        }
+        return snapshot.data! ? const MapScreen() : const OnboardingScreen();
+      },
     );
   }
 }

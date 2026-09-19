@@ -16,8 +16,10 @@ import '../models/hotline.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
+import '../widgets/map_coach_marks.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
+import 'onboarding_screen.dart' show Tour;
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
@@ -34,11 +36,15 @@ const Color _overlayDense = Color(0xE6171717);
 const Color _markerGround = Color(0xEB131313);
 
 /// One chip in the "Map layers" row, and the layer it switches.
+/// What a layer is drawn in. A role rather than a swatch, so the light and
+/// dark palettes each give it their own value.
+enum _Tone { incident, shelter, hydrant, risk, water, cistern }
+
 class _Layer {
   const _Layer(
     this.key,
     this.label,
-    this.color, {
+    this.tone, {
     this.tag = '',
     this.icon,
     this.asset,
@@ -49,7 +55,16 @@ class _Layer {
   /// Endpoint and cache slot: incidents, evac, risk, hydrants, water, cisterns.
   final String key;
   final String label;
-  final Color color;
+  final _Tone tone;
+
+  Color colour(AppPalette pal) => switch (tone) {
+    _Tone.incident => pal.accentInk,
+    _Tone.shelter => pal.ok,
+    _Tone.hydrant => pal.textSoft,
+    _Tone.risk => pal.live,
+    _Tone.water => pal.coastguard,
+    _Tone.cistern => pal.warn,
+  };
 
   /// The eyebrow on this layer's detail sheet.
   final String tag;
@@ -62,25 +77,25 @@ class _Layer {
 }
 
 // Chip dots and marker edges are the Figma's own colours for each layer.
-const _incidents = _Layer('incidents', 'Incidents', AppColors.accent);
+const _incidents = _Layer('incidents', 'Incidents', _Tone.incident);
 const _shelters = _Layer(
   'evac',
   'Shelters',
-  AppColors.ok,
+  _Tone.shelter,
   tag: 'SHELTER',
   asset: Art.evac,
 );
 const _hydrants = _Layer(
   'hydrants',
   'Hydrants',
-  AppColors.textSoft,
+  _Tone.hydrant,
   tag: 'FIRE HYDRANT',
   asset: Art.hydrant,
 );
 const _risk = _Layer(
   'risk',
   'Risk zones',
-  AppColors.live,
+  _Tone.risk,
   tag: 'RISK AREA',
   icon: Icons.warning_amber_rounded,
   latKey: 'centroid_lat',
@@ -89,19 +104,19 @@ const _risk = _Layer(
 const _water = _Layer(
   'water',
   'Water',
-  AppColors.coastguard,
+  _Tone.water,
   tag: 'BODY OF WATER',
   icon: Icons.waves_rounded,
 );
 const _cisterns = _Layer(
   'cisterns',
   'Cisterns',
-  AppColors.warn,
+  _Tone.cistern,
   tag: 'UNDERGROUND CISTERN',
   icon: Icons.water_damage_outlined,
 );
 
-const List<_Layer> _layers = [
+List<_Layer> _layers = [
   _incidents,
   _shelters,
   _hydrants,
@@ -109,7 +124,7 @@ const List<_Layer> _layers = [
   _water,
   _cisterns,
 ];
-const List<_Layer> _gisLayers = [_risk, _hydrants, _water, _cisterns];
+List<_Layer> _gisLayers = [_risk, _hydrants, _water, _cisterns];
 
 /// "04 Map" and "05 Map — offline queue" from the REPLIT-OVERHAUL Figma — the
 /// citizen home.
@@ -149,6 +164,9 @@ class _MapScreenState extends State<MapScreen> {
   Timer? _poll;
   bool _loading = true;
 
+  /// The map's one pass of coach marks (ONBOARDING T8), shown once.
+  bool _coachMarks = false;
+
   /// The last /areas call could not reach the server.
   bool _offline = false;
   bool _retrying = false;
@@ -178,6 +196,11 @@ class _MapScreenState extends State<MapScreen> {
     _queue.lastRejection.addListener(_onRejection);
     _bootstrap();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _loadAreas());
+    unawaited(
+      Tour.coachMarksSeen().then((seen) {
+        if (mounted && !seen) setState(() => _coachMarks = true);
+      }),
+    );
   }
 
   @override
@@ -468,7 +491,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       // The map runs under the tab bar, and the SOS disc sits over it.
       extendBody: true,
       bottomNavigationBar: const AppNavBar(active: AppTab.map),
@@ -489,6 +512,15 @@ class _MapScreenState extends State<MapScreen> {
                   child: _sheet(clearance),
                 ),
                 Positioned(top: 0, left: 0, right: 0, child: _topControls()),
+                if (_coachMarks)
+                  Positioned.fill(
+                    child: MapCoachMarks(
+                      onDismiss: () {
+                        setState(() => _coachMarks = false);
+                        unawaited(Tour.markCoachMarksSeen());
+                      },
+                    ),
+                  ),
                 if (_loading)
                   const Positioned(
                     top: 0,
@@ -513,12 +545,12 @@ class _MapScreenState extends State<MapScreen> {
     // where flutter_map would put it, and the credit is a licence condition.
     return FlutterMap(
       mapController: _map,
-      options: const MapOptions(
+      options: MapOptions(
         initialCenter: _pasayCenter,
         initialZoom: 13,
         minZoom: 4,
         maxZoom: 18,
-        backgroundColor: AppColors.background,
+        backgroundColor: context.pal.background,
         interactionOptions: InteractionOptions(
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
@@ -552,7 +584,7 @@ class _MapScreenState extends State<MapScreen> {
                 child: Center(
                   child: _MarkerSquare(
                     size: 24,
-                    edge: AppColors.ok.withValues(alpha: 0.4),
+                    edge: context.pal.ok.withValues(alpha: 0.4),
                     asset: Art.evac,
                     glyph: 15,
                     outside: s['outside_pasay'] == true,
@@ -587,17 +619,17 @@ class _MapScreenState extends State<MapScreen> {
                         width: 12,
                         height: 12,
                         decoration: BoxDecoration(
-                          color: AppColors.live.withValues(alpha: 0.3),
+                          color: context.pal.live.withValues(alpha: 0.3),
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.live),
+                          border: Border.all(color: context.pal.live),
                         ),
                       )
                     : _MarkerSquare(
                         size: 22,
-                        edge: layer.color,
+                        edge: layer.colour(context.pal),
                         asset: layer.asset,
                         icon: layer.icon,
-                        iconColor: layer.color,
+                        iconColor: layer.colour(context.pal),
                         glyph: 13,
                       ),
               ),
@@ -645,8 +677,8 @@ class _MapScreenState extends State<MapScreen> {
         Polygon(
           points: shape.outer,
           holePointsList: shape.holes,
-          color: AppColors.live.withValues(alpha: 0.08),
-          borderColor: AppColors.live.withValues(alpha: 0.45),
+          color: context.pal.live.withValues(alpha: 0.08),
+          borderColor: context.pal.live.withValues(alpha: 0.45),
           borderStrokeWidth: 1,
         ),
   ];
@@ -732,31 +764,31 @@ class _MapScreenState extends State<MapScreen> {
             Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(
-                color: AppColors.live,
+              decoration: BoxDecoration(
+                color: context.pal.live,
                 shape: BoxShape.circle,
               ),
             )
           else
-            const LiveDot(color: AppColors.accent),
+            LiveDot(color: context.pal.accent),
           const SizedBox(width: 12),
           Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'BARANGAY 76',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.cardTitleSm,
+                  style: context.type.cardTitleSm,
                 ),
                 const SizedBox(height: 3),
                 Text(
                   line,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.tag.copyWith(color: AppColors.muted),
+                  style: context.type.tag.copyWith(color: context.pal.muted),
                 ),
               ],
             ),
@@ -777,7 +809,7 @@ class _MapScreenState extends State<MapScreen> {
           radius: AppRadius.card,
           width: 48,
           height: 48,
-          edge: AppColors.lineStrong,
+          edge: context.pal.lineStrong,
           child: Center(
             child: Opacity(
               opacity: 0.9,
@@ -811,8 +843,12 @@ class _MapScreenState extends State<MapScreen> {
                 blur: 9,
                 height: 30,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                color: on ? layer.color.withValues(alpha: 0.16) : _overlay,
-                edge: on ? layer.color.withValues(alpha: 0.45) : AppColors.line,
+                color: on
+                    ? layer.colour(context.pal).withValues(alpha: 0.16)
+                    : _overlay,
+                edge: on
+                    ? layer.colour(context.pal).withValues(alpha: 0.45)
+                    : context.pal.line,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -820,15 +856,17 @@ class _MapScreenState extends State<MapScreen> {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: layer.color,
+                        color: layer.colour(context.pal),
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 7),
                     Text(
                       layer.label.toUpperCase(),
-                      style: AppText.tag.copyWith(
-                        color: on ? layer.color : AppColors.label,
+                      style: context.type.tag.copyWith(
+                        color: on
+                            ? layer.colour(context.pal)
+                            : context.pal.label,
                       ),
                     ),
                   ],
@@ -870,7 +908,7 @@ class _MapScreenState extends State<MapScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: context.pal.accent,
                     borderRadius: BorderRadius.circular(AppRadius.control),
                   ),
                   child: const Icon(
@@ -889,14 +927,16 @@ class _MapScreenState extends State<MapScreen> {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppText.subtitle,
+                        style: context.type.subtitle,
                       ),
                       const SizedBox(height: 5),
                       Text(
                         caption,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppText.caption.copyWith(color: AppColors.label),
+                        style: context.type.caption.copyWith(
+                          color: context.pal.label,
+                        ),
                       ),
                     ],
                   ),
@@ -915,7 +955,7 @@ class _MapScreenState extends State<MapScreen> {
     return _Glass(
       radius: AppRadius.panel,
       color: _overlayDense,
-      edge: AppColors.accent.withValues(alpha: 0.45),
+      edge: context.pal.accent.withValues(alpha: 0.45),
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -927,13 +967,13 @@ class _MapScreenState extends State<MapScreen> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.16),
+                  color: context.pal.accent.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.refresh_rounded,
                   size: 17,
-                  color: AppColors.accent,
+                  color: context.pal.accent,
                 ),
               ),
               const SizedBox(width: 12),
@@ -944,14 +984,14 @@ class _MapScreenState extends State<MapScreen> {
                   children: [
                     Text(
                       '$n REPORT${n == 1 ? '' : 'S'} WAITING',
-                      style: AppText.cardTitle,
+                      style: context.type.cardTitle,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _queue.offline.value
                           ? 'Retrying every 15 seconds'
                           : 'Waiting on the server — retrying every 15 seconds',
-                      style: AppText.caption,
+                      style: context.type.caption,
                     ),
                   ],
                 ),
@@ -964,7 +1004,7 @@ class _MapScreenState extends State<MapScreen> {
           Text(
             'Your report and photo are saved on this phone. They send '
             'themselves the second you get signal.',
-            style: AppText.detail.copyWith(color: AppColors.label),
+            style: context.type.detail.copyWith(color: context.pal.label),
           ),
           const SizedBox(height: 14),
           Row(
@@ -1016,7 +1056,7 @@ class _MapScreenState extends State<MapScreen> {
                     width: 38,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.label.withValues(alpha: 0.35),
+                      color: context.pal.label.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1024,9 +1064,9 @@ class _MapScreenState extends State<MapScreen> {
                     alignment: Alignment.centerRight,
                     child: Text(
                       MapTiles.credit,
-                      style: AppText.captionSm.copyWith(
+                      style: context.type.captionSm.copyWith(
                         fontSize: 9,
-                        color: AppColors.faint,
+                        color: context.pal.faint,
                       ),
                     ),
                   ),
@@ -1038,7 +1078,7 @@ class _MapScreenState extends State<MapScreen> {
                   Expanded(
                     child: Eyebrow(
                       offline ? 'Saved on this phone' : 'Active areas near you',
-                      color: AppColors.accent,
+                      color: context.pal.accent,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1048,7 +1088,7 @@ class _MapScreenState extends State<MapScreen> {
                         : _myLoc == null
                         ? 'Pasay City'
                         : 'Within 1.5 km',
-                    color: AppColors.muted,
+                    color: context.pal.muted,
                   ),
                 ],
               ),
@@ -1077,7 +1117,7 @@ class _MapScreenState extends State<MapScreen> {
                 : _myLoc == null
                 ? 'Nothing active in Pasay City right now. That is the good outcome.'
                 : 'Nothing active within 1.5 km. That is the good outcome.',
-            style: AppText.bodySm,
+            style: context.type.bodySm,
           ),
         ),
       for (final e in near) _areaRow(e.area, e.metres),
@@ -1091,7 +1131,7 @@ class _MapScreenState extends State<MapScreen> {
     final street = id == null ? null : _areaStreets[id];
     final reports = (a['report_count'] as num?)?.toInt() ?? 0;
     return _SheetRow(
-      tint: pending ? AppColors.accent : AppColors.live,
+      tint: pending ? context.pal.accent : context.pal.live,
       asset: Art.incident,
       title: (a['designation'] as String?) ?? 'Incident area',
       subtitle:
@@ -1099,10 +1139,10 @@ class _MapScreenState extends State<MapScreen> {
           (metres != null
               ? '${_formatDistance(metres)} away'
               : 'In Pasay City'),
-      edge: pending ? null : AppColors.live.withValues(alpha: 0.45),
+      edge: pending ? null : context.pal.live.withValues(alpha: 0.45),
       signal: _AreaSignal(
         label: pending ? 'Pending' : 'Live',
-        color: pending ? AppColors.warn : AppColors.live,
+        color: pending ? context.pal.warn : context.pal.live,
         reports: reports,
         band: a['confidence_band'] as String?,
       ),
@@ -1114,7 +1154,7 @@ class _MapScreenState extends State<MapScreen> {
     final capacity = (s['capacity'] as num?)?.toInt();
     final name = (s['name'] as String?) ?? 'Evacuation site';
     return _SheetRow(
-      tint: AppColors.ok,
+      tint: context.pal.ok,
       asset: Art.evac,
       title: 'Evacuation site open',
       subtitle: s['outside_pasay'] == true ? '$name · ${s['city']}' : name,
@@ -1122,7 +1162,7 @@ class _MapScreenState extends State<MapScreen> {
           ? null
           : Text(
               'SPACE FOR $capacity',
-              style: AppText.tag.copyWith(color: AppColors.muted),
+              style: context.type.tag.copyWith(color: context.pal.muted),
             ),
       onTap: () => _showEvacSheet(s),
     );
@@ -1134,19 +1174,19 @@ class _MapScreenState extends State<MapScreen> {
     return [
       for (final r in queued.take(2))
         _SheetRow(
-          tint: AppColors.live,
+          tint: context.pal.live,
           asset: Art.incident,
           title: '${_agencyWord(r.agencies)} report',
           subtitle:
               'Queued at ${TimeOfDay.fromDateTime(r.queuedAt).format(context)}',
-          edge: AppColors.accent.withValues(alpha: 0.45),
+          edge: context.pal.accent.withValues(alpha: 0.45),
           signal: Text(
             'QUEUED',
-            style: AppText.tag.copyWith(color: AppColors.accent),
+            style: context.type.tag.copyWith(color: context.pal.accent),
           ),
         ),
       _SheetRow(
-        tint: AppColors.accent,
+        tint: context.pal.accent,
         icon: Icons.layers_outlined,
         title: saved == null ? 'Map layers not saved yet' : 'Map layers cached',
         subtitle: saved == null
@@ -1154,10 +1194,13 @@ class _MapScreenState extends State<MapScreen> {
             : 'Downloaded ${_ago(saved)}',
         signal: saved == null
             ? null
-            : Text('READY', style: AppText.tag.copyWith(color: AppColors.ok)),
+            : Text(
+                'READY',
+                style: context.type.tag.copyWith(color: context.pal.ok),
+              ),
       ),
       _SheetRow(
-        tint: AppColors.ok,
+        tint: context.pal.ok,
         icon: Icons.call_outlined,
         title: 'All ${kHotlines.length} hotlines',
         subtitle: 'Dial without data',
@@ -1209,7 +1252,7 @@ class _MapScreenState extends State<MapScreen> {
       (s['longitude'] as num).toDouble(),
     );
     _detailSheet(
-      accent: AppColors.ok,
+      accent: context.pal.ok,
       asset: Art.evac,
       tag: s['outside_pasay'] == true ? 'SHELTER · OUTSIDE PASAY' : 'SHELTER',
       title: (s['name'] as String?) ?? 'Evacuation site',
@@ -1288,7 +1331,7 @@ class _MapScreenState extends State<MapScreen> {
       rows.add(_DetailRow('Distance', _formatDistance(metres)));
     }
     _detailSheet(
-      accent: layer.color,
+      accent: layer.colour(context.pal),
       icon: layer.icon,
       asset: layer.asset,
       tag: layer.tag,
@@ -1307,7 +1350,7 @@ class _MapScreenState extends State<MapScreen> {
   }) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -1338,7 +1381,7 @@ class _MapScreenState extends State<MapScreen> {
                       children: [
                         Eyebrow(tag, color: accent),
                         const SizedBox(height: 6),
-                        Text(title.toUpperCase(), style: AppText.title),
+                        Text(title.toUpperCase(), style: context.type.title),
                       ],
                     ),
                   ),
@@ -1361,13 +1404,15 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           SizedBox(
             width: 110,
-            child: Eyebrow(row.label, color: AppColors.muted),
+            child: Eyebrow(row.label, color: context.pal.muted),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               row.value,
-              style: AppText.rowValue.copyWith(color: AppColors.onBackground),
+              style: context.type.rowValue.copyWith(
+                color: context.pal.onBackground,
+              ),
             ),
           ),
         ],
@@ -1384,7 +1429,7 @@ class _Glass extends StatelessWidget {
     this.radius = AppRadius.panel,
     this.padding = EdgeInsets.zero,
     this.color = _overlay,
-    this.edge = AppColors.line,
+    this.edge,
     this.blur = 12,
     this.width,
     this.height,
@@ -1394,7 +1439,9 @@ class _Glass extends StatelessWidget {
   final double radius;
   final EdgeInsets padding;
   final Color color;
-  final Color edge;
+
+  /// Defaults to the palette's hairline.
+  final Color? edge;
   final double blur;
   final double? width;
   final double? height;
@@ -1413,7 +1460,7 @@ class _Glass extends StatelessWidget {
           decoration: BoxDecoration(
             color: color,
             borderRadius: shape,
-            border: Border.all(color: edge),
+            border: Border.all(color: edge ?? context.pal.line),
           ),
           child: child,
         ),
@@ -1496,14 +1543,14 @@ class _MarkerSquare extends StatelessWidget {
             width: 13,
             height: 13,
             decoration: BoxDecoration(
-              color: AppColors.ok,
+              color: context.pal.ok,
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.surfaceSolid, width: 1.5),
+              border: Border.all(color: context.pal.surfaceSolid, width: 1.5),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.north_east_rounded,
               size: 8,
-              color: AppColors.surfaceSolid,
+              color: context.pal.surfaceSolid,
             ),
           ),
         ),
@@ -1521,7 +1568,7 @@ class _AreaMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: AppColors.forStatus(status),
+      color: context.pal.forStatus(status),
       borderRadius: BorderRadius.circular(AppRadius.chip),
       border: Border.all(color: const Color(0xE6171717)),
     ),
@@ -1537,7 +1584,7 @@ class _YouAreHere extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: AppColors.accent.withValues(alpha: 0.28),
+      color: context.pal.accent.withValues(alpha: 0.28),
       shape: BoxShape.circle,
     ),
     alignment: Alignment.center,
@@ -1545,9 +1592,9 @@ class _YouAreHere extends StatelessWidget {
       width: 16,
       height: 16,
       decoration: BoxDecoration(
-        color: AppColors.accent,
+        color: context.pal.accent,
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.surfaceSolid, width: 3),
+        border: Border.all(color: context.pal.surfaceSolid, width: 3),
       ),
     ),
   );
@@ -1588,9 +1635,9 @@ class _SheetRow extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 56),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.glass,
+            color: context.pal.glass,
             borderRadius: shape,
-            border: Border.all(color: edge ?? AppColors.line),
+            border: Border.all(color: edge ?? context.pal.line),
           ),
           child: Row(
             children: [
@@ -1616,14 +1663,14 @@ class _SheetRow extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.rowTitle.copyWith(height: 15 / 12),
+                      style: context.type.rowTitle.copyWith(height: 15 / 12),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.caption,
+                      style: context.type.caption,
                     ),
                   ],
                 ),
@@ -1668,11 +1715,14 @@ class _AreaSignal extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label.toUpperCase(), style: AppText.tag.copyWith(color: color)),
+          Text(
+            label.toUpperCase(),
+            style: context.type.tag.copyWith(color: color),
+          ),
           const SizedBox(height: 6),
           Text(
             '$reports ${reports == 1 ? 'REPORT' : 'REPORTS'}',
-            style: AppText.tag.copyWith(color: AppColors.muted),
+            style: context.type.tag.copyWith(color: context.pal.muted),
           ),
           const SizedBox(height: 6),
           Row(
@@ -1684,7 +1734,9 @@ class _AreaSignal extends StatelessWidget {
                   width: 9,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: i < filled ? AppColors.accent : AppColors.lineStrong,
+                    color: i < filled
+                        ? context.pal.accent
+                        : context.pal.lineStrong,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1715,7 +1767,7 @@ class _QueueAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape = BorderRadius.circular(AppRadius.control);
     return Material(
-      color: AppColors.glass,
+      color: context.pal.glass,
       borderRadius: shape,
       child: InkWell(
         borderRadius: shape,
@@ -1724,7 +1776,7 @@ class _QueueAction extends StatelessWidget {
           height: 44,
           decoration: BoxDecoration(
             borderRadius: shape,
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: context.pal.line),
           ),
           alignment: Alignment.center,
           child: busy
@@ -1737,13 +1789,13 @@ class _QueueAction extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (icon != null) ...[
-                      Icon(icon, size: 14, color: AppColors.textSoft),
+                      Icon(icon, size: 14, color: context.pal.textSoft),
                       const SizedBox(width: 8),
                     ],
                     Text(
                       label.toUpperCase(),
-                      style: AppText.eyebrow.copyWith(
-                        color: AppColors.textSoft,
+                      style: context.type.eyebrow.copyWith(
+                        color: context.pal.textSoft,
                       ),
                     ),
                   ],

@@ -31,11 +31,11 @@ String residentWord(String status) => switch (status) {
   _ => '${status[0].toUpperCase()}${status.substring(1)}',
 };
 
-Color residentTone(String status) => switch (status) {
-  'pending' => AppColors.warn,
-  'resolved' => AppColors.ok,
-  'rejected' || 'merged' => AppColors.muted,
-  _ => AppColors.live,
+Color residentTone(String status, AppPalette pal) => switch (status) {
+  'pending' => pal.warn,
+  'resolved' => pal.ok,
+  'rejected' || 'merged' => pal.muted,
+  _ => pal.live,
 };
 
 /// Finished, one way or another: nothing is coming and nothing can be added.

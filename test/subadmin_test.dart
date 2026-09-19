@@ -32,11 +32,28 @@ void main() {
       client: MockClient((req) async {
         final path = req.url.path;
         if (path.endsWith('/available-responders')) {
-          return http.Response(jsonEncode([
-            {'id': 'u1', 'full_name': 'Juan Dela Cruz', 'agency_type': 'fire_volunteer'},
-            {'id': 'u2', 'full_name': 'Maria Santos', 'agency_type': 'fire_volunteer', 'is_busy': true},
-            {'id': 'u3', 'full_name': 'Leo Reyes', 'agency_type': 'fire_volunteer', 'on_this_incident': true},
-          ]), 200);
+          return http.Response(
+            jsonEncode([
+              {
+                'id': 'u1',
+                'full_name': 'Juan Dela Cruz',
+                'agency_type': 'fire_volunteer',
+              },
+              {
+                'id': 'u2',
+                'full_name': 'Maria Santos',
+                'agency_type': 'fire_volunteer',
+                'is_busy': true,
+              },
+              {
+                'id': 'u3',
+                'full_name': 'Leo Reyes',
+                'agency_type': 'fire_volunteer',
+                'on_this_incident': true,
+              },
+            ]),
+            200,
+          );
         }
         if (path == '/equipment') return http.Response(jsonEncode(fleet), 200);
         if (path.endsWith('/dispatch')) {
@@ -67,7 +84,9 @@ void main() {
       }
     });
 
-    testWidgets('someone already responding cannot be sent twice', (tester) async {
+    testWidgets('someone already responding cannot be sent twice', (
+      tester,
+    ) async {
       await pump(tester, DispatchScreen(areaId: 'a1', api: api()));
       expect(find.text('RESPONDING'), findsOneWidget);
       await tester.tap(find.text('Leo Reyes'));
@@ -80,13 +99,29 @@ void main() {
         tester,
         DispatchScreen(
           areaId: 'a1',
-          api: api(fleet: [
-            {'id': 'e1', 'name': 'Apollo', 'category': 'fire_truck', 'status': 'available'},
-            {'id': 'e2', 'name': 'Hermes', 'category': 'fire_truck', 'status': 'in_use'},
-          ]),
+          api: api(
+            fleet: [
+              {
+                'id': 'e1',
+                'name': 'Apollo',
+                'category': 'fire_truck',
+                'status': 'available',
+              },
+              {
+                'id': 'e2',
+                'name': 'Hermes',
+                'category': 'fire_truck',
+                'status': 'in_use',
+              },
+            ],
+          ),
         ),
       );
-      expect(find.text('Hermes'), findsNothing, reason: 'a truck on another call is not offered');
+      expect(
+        find.text('Hermes'),
+        findsNothing,
+        reason: 'a truck on another call is not offered',
+      );
       await tester.tap(find.text('Apollo'));
       await tester.tap(find.text('Juan Dela Cruz'));
       await tester.pump();
@@ -95,7 +130,9 @@ void main() {
       expect(dispatched.single['vehicle_name'], 'Apollo');
     });
 
-    testWidgets('an empty register means no unit row, not a demo fleet', (tester) async {
+    testWidgets('an empty register means no unit row, not a demo fleet', (
+      tester,
+    ) async {
       await pump(tester, DispatchScreen(areaId: 'a1', api: api()));
       expect(find.text('UNIT · OPTIONAL'), findsNothing);
       expect(find.text('Apollo'), findsNothing);
@@ -118,10 +155,25 @@ void main() {
 
     test('a shelter outside Pasay is marked as such', () async {
       final api = ApiClient(
-        client: MockClient((req) async => http.Response(jsonEncode([
-          {'id': 's1', 'latitude': 14.54, 'longitude': 121.0, 'outside_pasay': false},
-          {'id': 's2', 'latitude': 14.48, 'longitude': 121.02, 'outside_pasay': true},
-        ]), 200)),
+        client: MockClient(
+          (req) async => http.Response(
+            jsonEncode([
+              {
+                'id': 's1',
+                'latitude': 14.54,
+                'longitude': 121.0,
+                'outside_pasay': false,
+              },
+              {
+                'id': 's2',
+                'latitude': 14.48,
+                'longitude': 121.02,
+                'outside_pasay': true,
+              },
+            ]),
+            200,
+          ),
+        ),
       );
       final evac = opsLayers(api).firstWhere((l) => l.key == 'evac');
       final points = await evac.load!();
@@ -133,22 +185,38 @@ void main() {
     Widget launcher(Future<void> Function(BuildContext) onTap) => Builder(
       builder: (context) => Scaffold(
         body: Center(
-          child: TextButton(onPressed: () => onTap(context), child: const Text('GO')),
+          child: TextButton(
+            onPressed: () => onTap(context),
+            child: const Text('GO'),
+          ),
         ),
       ),
     );
 
     ApiClient reportApi() => ApiClient(
-      client: MockClient((req) async => http.Response(
-        jsonEncode(req.url.path.endsWith('/dispatches') || req.url.path == '/equipment'
-            ? []
-            : {'id': 'a4', 'designation': 'Area 11', 'status': 'post_incident_report'}),
-        200,
-      )),
+      client: MockClient(
+        (req) async => http.Response(
+          jsonEncode(
+            req.url.path.endsWith('/dispatches') || req.url.path == '/equipment'
+                ? []
+                : {
+                    'id': 'a4',
+                    'designation': 'Area 11',
+                    'status': 'post_incident_report',
+                  },
+          ),
+          200,
+        ),
+      ),
     );
 
-    testWidgets('"later" leaves the report in the tray and says so', (tester) async {
-      await pump(tester, launcher((ctx) => offerPostIncidentReport(ctx, areaId: 'a4')));
+    testWidgets('"later" leaves the report in the tray and says so', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        launcher((ctx) => offerPostIncidentReport(ctx, areaId: 'a4')),
+      );
       await tester.tap(find.text('GO'));
       await tester.pumpAndSettle();
       expect(find.text('Fire out recorded'), findsOneWidget);
@@ -160,7 +228,9 @@ void main() {
     testWidgets('"file now" opens the report', (tester) async {
       await pump(
         tester,
-        launcher((ctx) => offerPostIncidentReport(ctx, areaId: 'a4', api: reportApi())),
+        launcher(
+          (ctx) => offerPostIncidentReport(ctx, areaId: 'a4', api: reportApi()),
+        ),
       );
       await tester.tap(find.text('GO'));
       await tester.pumpAndSettle();
@@ -169,19 +239,28 @@ void main() {
       expect(find.byType(PostIncidentReportScreen), findsOneWidget);
     });
 
-    testWidgets('a coordinator opening a report-due incident lands on the report', (tester) async {
-      await pump(
-        tester,
-        launcher((ctx) => openCoordinatorIncident(
+    testWidgets(
+      'a coordinator opening a report-due incident lands on the report',
+      (tester) async {
+        await pump(
+          tester,
+          launcher(
+            (ctx) => openCoordinatorIncident(
               ctx,
-              incident: const {'id': 'a4', 'designation': 'Area 11', 'status': 'post_incident_report'},
+              incident: const {
+                'id': 'a4',
+                'designation': 'Area 11',
+                'status': 'post_incident_report',
+              },
               me: const {'role': 'sub_admin', 'agency_type': 'bfp'},
               api: reportApi(),
-            )),
-      );
-      await tester.tap(find.text('GO'));
-      await tester.pumpAndSettle();
-      expect(find.byType(PostIncidentReportScreen), findsOneWidget);
-    });
+            ),
+          ),
+        );
+        await tester.tap(find.text('GO'));
+        await tester.pumpAndSettle();
+        expect(find.byType(PostIncidentReportScreen), findsOneWidget);
+      },
+    );
   });
 }

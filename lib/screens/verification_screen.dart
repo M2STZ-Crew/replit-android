@@ -58,7 +58,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -87,7 +87,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget build(BuildContext context) {
     final s = _state;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -96,17 +96,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
             children: [
               const Align(alignment: Alignment.centerLeft, child: BackWell()),
               const SizedBox(height: 28),
-              const Text('VERIFY YOUR ACCOUNT', style: AppText.heading1),
+              Text('VERIFY YOUR ACCOUNT', style: context.type.heading1),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Verification never blocks a report. It tells responders how '
                 'much weight to give what you send.',
-                style: AppText.body,
+                style: context.type.body,
               ),
               const SizedBox(height: 24),
               _progress(s),
               const SizedBox(height: 24),
-              const Eyebrow('Channels', color: AppColors.muted),
+              Eyebrow('Channels', color: context.pal.muted),
               const SizedBox(height: 10),
               _phone(s),
               const SizedBox(height: 8),
@@ -114,17 +114,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
               const SizedBox(height: 8),
               _emailRow(s),
               const SizedBox(height: 24),
-              const Eyebrow('Badges', color: AppColors.muted),
+              Eyebrow('Badges', color: context.pal.muted),
               const SizedBox(height: 10),
-              const Row(
+              Row(
                 children: [
-                  Expanded(child: _Legend('Under 50', AppColors.warn)),
+                  Expanded(child: _Legend('Under 50', context.pal.warn)),
                   SizedBox(width: 8),
-                  Expanded(child: _Legend('50 to 89', AppColors.ok)),
+                  Expanded(child: _Legend('50 to 89', context.pal.ok)),
                   SizedBox(width: 8),
-                  Expanded(child: _Legend('90 to 99', AppColors.ok)),
+                  Expanded(child: _Legend('90 to 99', context.pal.ok)),
                   SizedBox(width: 8),
-                  Expanded(child: _Legend('100', AppColors.ok)),
+                  Expanded(child: _Legend('100', context.pal.ok)),
                 ],
               ),
               const SizedBox(height: 20),
@@ -132,7 +132,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 'Documents are held privately and used only to confirm who '
                 'you are. A National ID is checked by an administrator before '
                 'its 50% applies.',
-                style: AppText.caption,
+                style: context.type.caption,
               ),
             ],
           ),
@@ -154,7 +154,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
               Expanded(
                 child: Text(
                   _loaded ? '$pct%' : '—',
-                  style: AppText.numeralXl.copyWith(color: s.color),
+                  style: context.type.numeralXl.copyWith(
+                    color: s.colour(context.pal),
+                  ),
                 ),
               ),
               Container(
@@ -164,13 +166,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: s.color.withValues(alpha: 0.14),
+                  color: s.colour(context.pal).withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(AppRadius.chip),
-                  border: Border.all(color: s.color.withValues(alpha: 0.4)),
+                  border: Border.all(
+                    color: s.colour(context.pal).withValues(alpha: 0.4),
+                  ),
                 ),
                 child: Text(
                   s.badgeName.toUpperCase(),
-                  style: AppText.tag.copyWith(color: s.color),
+                  style: context.type.tag.copyWith(
+                    color: s.colour(context.pal),
+                  ),
                 ),
               ),
             ],
@@ -181,8 +187,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
             child: LinearProgressIndicator(
               value: pct / 100,
               minHeight: 6,
-              backgroundColor: AppColors.lineStrong,
-              color: s.color,
+              backgroundColor: context.pal.lineStrong,
+              color: s.colour(context.pal),
             ),
           ),
         ],
@@ -196,14 +202,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
       return const _Channel(channel: c, line: 'Verified', done: true);
     }
     if (!kPhoneVerificationOpen) {
-      return const _Channel(
+      return _Channel(
         channel: c,
         line: 'Unavailable while we change SMS provider',
-        lineColor: AppColors.warn,
+        lineColor: context.pal.warn,
         trailing: Icon(
           Icons.error_outline_rounded,
           size: 16,
-          color: AppColors.warn,
+          color: context.pal.warn,
         ),
         dimmed: true,
       );
@@ -221,11 +227,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
       return const _Channel(channel: c, line: 'Verified', done: true);
     }
     if (s.isInReview(c)) {
-      return const _Channel(
+      return _Channel(
         channel: c,
         line: 'Submitted — an administrator is checking it',
-        lineColor: AppColors.warn,
-        trailing: Icon(Icons.schedule_rounded, size: 16, color: AppColors.warn),
+        lineColor: context.pal.warn,
+        trailing: Icon(
+          Icons.schedule_rounded,
+          size: 16,
+          color: context.pal.warn,
+        ),
       );
     }
     return _Channel(
@@ -233,7 +243,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       line: s.isRefused(c)
           ? 'Not accepted — take the photos again'
           : 'Camera only — the photo and selfie must be live',
-      lineColor: s.isRefused(c) ? AppColors.live : null,
+      lineColor: s.isRefused(c) ? context.pal.live : null,
       onTap: _openNationalId,
     );
   }
@@ -275,7 +285,7 @@ class _Channel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tone = done ? AppColors.ok : AppColors.accent;
+    final tone = done ? context.pal.ok : context.pal.accent;
     return Opacity(
       opacity: dimmed ? 0.6 : 1,
       child: Semantics(
@@ -298,7 +308,7 @@ class _Channel extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   '+${channel.percent}%',
-                  style: AppText.cardTitleSm.copyWith(color: tone),
+                  style: context.type.cardTitleSm.copyWith(color: tone),
                 ),
               ),
               const SizedBox(width: 14),
@@ -307,12 +317,12 @@ class _Channel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(channel.label, style: AppText.rowTitleLg),
+                    Text(channel.label, style: context.type.rowTitleLg),
                     const SizedBox(height: 5),
                     Text(
                       line,
-                      style: AppText.caption.copyWith(
-                        color: lineColor ?? AppColors.muted,
+                      style: context.type.caption.copyWith(
+                        color: lineColor ?? context.pal.muted,
                       ),
                     ),
                   ],
@@ -321,15 +331,15 @@ class _Channel extends StatelessWidget {
               const SizedBox(width: 10),
               trailing ??
                   (done
-                      ? const Icon(
+                      ? Icon(
                           Icons.check_rounded,
                           size: 18,
-                          color: AppColors.ok,
+                          color: context.pal.ok,
                         )
-                      : const Icon(
+                      : Icon(
                           Icons.chevron_right_rounded,
                           size: 18,
-                          color: AppColors.accent,
+                          color: context.pal.accent,
                         )),
             ],
           ),
@@ -350,9 +360,9 @@ class _Legend extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
       decoration: BoxDecoration(
-        color: AppColors.glass,
+        color: context.pal.glass,
         borderRadius: BorderRadius.circular(AppRadius.chip),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +376,7 @@ class _Legend extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             label.toUpperCase(),
-            style: AppText.eyebrow.copyWith(color: AppColors.textSoft),
+            style: context.type.eyebrow.copyWith(color: context.pal.textSoft),
           ),
         ],
       ),
@@ -433,12 +443,14 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
             const Center(child: SheetHandle()),
             Row(
               children: [
-                const Expanded(
-                  child: Text('CONFIRM YOUR EMAIL', style: AppText.title),
+                Expanded(
+                  child: Text('CONFIRM YOUR EMAIL', style: context.type.title),
                 ),
                 Text(
                   '+10%',
-                  style: AppText.cardTitleSm.copyWith(color: AppColors.accent),
+                  style: context.type.cardTitleSm.copyWith(
+                    color: context.pal.accent,
+                  ),
                 ),
               ],
             ),
@@ -449,13 +461,13 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
                         'back — your level updates by itself.'
                   : "We'll email you a secure link. Opening it on this phone "
                         'confirms the address.',
-              style: AppText.body,
+              style: context.type.body,
             ),
             if (_message != null) ...[
               const SizedBox(height: 12),
               Text(
                 _message!,
-                style: AppText.caption.copyWith(color: AppColors.accent),
+                style: context.type.caption.copyWith(color: context.pal.accent),
               ),
             ],
             const SizedBox(height: 20),

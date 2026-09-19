@@ -12,7 +12,11 @@ class Session {
 
   bool get isAuthenticated => accessToken != null && accessToken!.isNotEmpty;
 
-  void setTokens({required String accessToken, String? refreshToken, String? email}) {
+  void setTokens({
+    required String accessToken,
+    String? refreshToken,
+    String? email,
+  }) {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     this.email = email;

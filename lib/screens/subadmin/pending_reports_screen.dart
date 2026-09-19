@@ -34,7 +34,10 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final raw = await _api.getIncidents(activeOnly: false, status: 'post_incident_report');
+      final raw = await _api.getIncidents(
+        activeOnly: false,
+        status: 'post_incident_report',
+      );
       if (!mounted) return;
       setState(() {
         _items = raw.cast<Map<String, dynamic>>();
@@ -86,7 +89,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
         if (!didPop) Navigator.of(context).pop(_filedAny);
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.pal.background,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
@@ -96,13 +99,16 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
                 ScreenHeader(
                   eyebrow: 'Post-Incident Reports',
                   title: 'Pending reports',
-                  trailing: IconWellButton(icon: Icons.refresh_rounded, onTap: _load),
+                  trailing: IconWellButton(
+                    icon: Icons.refresh_rounded,
+                    onTap: _load,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Fire out, report not yet filed. Each one stays open until its '
                   'team captain files — for everyone who went.',
-                  style: AppText.body.copyWith(fontSize: 13),
+                  style: context.type.body.copyWith(fontSize: 13),
                 ),
                 const SizedBox(height: 18),
                 Expanded(child: _body()),
@@ -116,25 +122,32 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+      return Center(
+        child: CircularProgressIndicator(color: context.pal.accent),
+      );
     }
     if (_error != null) {
-      return Center(child: Text(_error!, style: const TextStyle(color: AppColors.muted)));
+      return Center(
+        child: Text(_error!, style: TextStyle(color: context.pal.muted)),
+      );
     }
     if (_items.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.task_alt_rounded, color: AppColors.ok, size: 40),
+            Icon(Icons.task_alt_rounded, color: context.pal.ok, size: 40),
             const SizedBox(height: 12),
-            Text('Nothing owed. Every report is filed.', style: AppText.meta),
+            Text(
+              'Nothing owed. Every report is filed.',
+              style: context.type.meta,
+            ),
           ],
         ),
       );
     }
     return RefreshIndicator(
-      color: AppColors.accent,
+      color: context.pal.accent,
       onRefresh: _load,
       child: ListView.separated(
         padding: const EdgeInsets.only(bottom: 24),
@@ -142,10 +155,10 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
         separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (_, i) {
           final inc = _items[i];
-          final tint = AppColors.forStatus('post_incident_report');
+          final tint = context.pal.forStatus('post_incident_report');
           return Panel(
             onTap: () => _open(inc),
-            color: AppColors.glassDim,
+            color: context.pal.glassDim,
             border: tint.withValues(alpha: 0.35),
             child: Row(
               children: [
@@ -156,11 +169,15 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ((inc['designation'] as String?) ?? 'Incident').toUpperCase(),
-                        style: AppText.cardTitle,
+                        ((inc['designation'] as String?) ?? 'Incident')
+                            .toUpperCase(),
+                        style: context.type.cardTitle,
                       ),
                       const SizedBox(height: 6),
-                      Text('Fire out ${_ago(inc['resolved_at'] as String?)}', style: AppText.meta),
+                      Text(
+                        'Fire out ${_ago(inc['resolved_at'] as String?)}',
+                        style: context.type.meta,
+                      ),
                     ],
                   ),
                 ),

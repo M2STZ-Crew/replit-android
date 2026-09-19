@@ -80,26 +80,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _error(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.live),
+      SnackBar(content: Text(message), backgroundColor: context.pal.live),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
           content: [
             const Align(alignment: Alignment.centerLeft, child: BackWell()),
             const SizedBox(height: 28),
-            const Text('CREATE YOUR ACCOUNT', style: AppText.display),
+            Text('CREATE YOUR ACCOUNT', style: context.type.display),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Three fields and you are in. Verifying your number and '
               'ID comes later — reports work either way.',
-              style: AppText.body,
+              style: context.type.body,
             ),
             const SizedBox(height: 46),
             LabeledField(
@@ -110,7 +110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.name],
-                style: AppText.input,
+                style: context.type.input,
                 decoration: const InputDecoration(hintText: 'As on your ID'),
               ),
             ),
@@ -124,7 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 textInputAction: TextInputAction.next,
                 autocorrect: false,
                 autofillHints: const [AutofillHints.email],
-                style: AppText.input,
+                style: context.type.input,
                 decoration: const InputDecoration(hintText: 'you@email.com'),
               ),
             ),
@@ -137,12 +137,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 obscureText: _obscure,
                 textInputAction: TextInputAction.done,
                 autofillHints: const [AutofillHints.newPassword],
-                style: AppText.input,
+                style: context.type.input,
                 decoration: InputDecoration(
                   hintText: 'At least 8 characters',
                   suffixIcon: IconButton(
                     iconSize: 18,
-                    color: AppColors.muted,
+                    color: context.pal.muted,
                     tooltip: _obscure ? 'Show password' : 'Hide password',
                     icon: Icon(
                       _obscure
@@ -198,11 +198,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: _agree ? AppColors.accent : Colors.transparent,
+                color: _agree ? context.pal.accent : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: _agree
                     ? null
-                    : Border.all(color: AppColors.lineStrong, width: 1.5),
+                    : Border.all(color: context.pal.lineStrong, width: 1.5),
               ),
               child: _agree
                   ? const Icon(
@@ -217,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Text(
                 'I agree that my location and reports may be shared with '
                 'Barangay 76 and responding agencies during an emergency.',
-                style: AppText.caption.copyWith(color: AppColors.label),
+                style: context.type.caption.copyWith(color: context.pal.label),
               ),
             ),
           ],
@@ -245,14 +245,14 @@ class _Weight extends StatelessWidget {
         children: [
           Text(
             value,
-            style: AppText.cardTitleSm.copyWith(color: AppColors.accent),
+            style: context.type.cardTitleSm.copyWith(color: context.pal.accent),
           ),
           const SizedBox(height: 4),
           Text(
             label.toUpperCase(),
-            style: AppText.eyebrow.copyWith(
+            style: context.type.eyebrow.copyWith(
               letterSpacing: 0.5,
-              color: AppColors.muted,
+              color: context.pal.muted,
             ),
           ),
         ],

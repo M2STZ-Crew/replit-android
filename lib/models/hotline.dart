@@ -17,6 +17,18 @@ enum HotlineCategory {
   final String label;
 }
 
+/// What colour a hotline row is drawn in — a role, not a swatch, so the
+/// light and dark palettes can each give it their own value.
+enum HotlineTone {
+  emergency,
+  fire,
+  police,
+  medical,
+  barangay,
+  coastguard,
+  neutral,
+}
+
 /// One emergency hotline shown on the HOTLINES tab.
 class Hotline {
   const Hotline({
@@ -26,7 +38,7 @@ class Hotline {
     required this.displayNumber,
     required this.dialNumber,
     required this.icon,
-    required this.tint,
+    required this.tone,
     this.art,
     this.category = HotlineCategory.all,
     this.featured = false,
@@ -49,8 +61,23 @@ class Hotline {
   /// Glyph for the row's well when there is no agency logo ([art]).
   final IconData icon;
 
-  /// The row's colour, as the REPLIT-OVERHAUL hotline frame gives it.
-  final Color tint;
+  /// The row's colour as a role, resolved against the palette in force —
+  /// the REPLIT-OVERHAUL hotline frame's colour in either theme.
+  final HotlineTone tone;
+
+  Color tint(AppPalette pal) => switch (tone) {
+    HotlineTone.emergency => pal.accentInk,
+    HotlineTone.fire => pal.fire,
+    HotlineTone.police => pal.police,
+    HotlineTone.medical => pal.medical,
+    HotlineTone.barangay => pal.barangay,
+    HotlineTone.coastguard => pal.coastguard,
+    HotlineTone.neutral => pal.textSoft,
+  };
+
+  /// True where the row is drawn in the quiet grey rather than an agency
+  /// colour — the traffic and national desks.
+  bool get isNeutral => tone == HotlineTone.neutral;
 
   /// The agency's own logo, where the design has one.
   final String? art;
@@ -69,7 +96,7 @@ class Hotline {
 /// frame lists ten, with some numbers not here (a BFP short code, a hospital,
 /// a DRRMO mobile, Meralco); they are not added on the design's word, because
 /// a hotline nobody on the team has verified is worse than one fewer entry.
-const List<Hotline> kHotlines = [
+List<Hotline> kHotlines = [
   Hotline(
     name: 'National emergency',
     summary: 'Fire, medical or police — anywhere',
@@ -79,7 +106,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '911',
     dialNumber: '911',
     icon: Icons.emergency_share,
-    tint: AppColors.accent,
+    tone: HotlineTone.emergency,
     art: 'assets/design/agency-911.png',
     category: HotlineCategory.all,
     featured: true,
@@ -93,7 +120,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '(02) 8426-0219',
     dialNumber: '0284260219',
     icon: Icons.local_fire_department,
-    tint: AppColors.fire,
+    tone: HotlineTone.fire,
     art: 'assets/design/agency-bfp.png',
     category: HotlineCategory.fire,
   ),
@@ -106,7 +133,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '117',
     dialNumber: '117',
     icon: Icons.local_police,
-    tint: AppColors.police,
+    tone: HotlineTone.police,
     art: 'assets/design/agency-pnp.png',
     category: HotlineCategory.police,
   ),
@@ -119,7 +146,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '(02) 8833-8534',
     dialNumber: '0288338534',
     icon: Icons.call_outlined,
-    tint: AppColors.barangay,
+    tone: HotlineTone.barangay,
     category: HotlineCategory.pasay,
   ),
   Hotline(
@@ -131,7 +158,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '143',
     dialNumber: '143',
     icon: Icons.call_outlined,
-    tint: AppColors.medical,
+    tone: HotlineTone.medical,
     category: HotlineCategory.medical,
   ),
   Hotline(
@@ -143,7 +170,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '136',
     dialNumber: '136',
     icon: Icons.traffic,
-    tint: AppColors.textSoft,
+    tone: HotlineTone.neutral,
     art: 'assets/design/agency-mmda.png',
     category: HotlineCategory.all,
   ),
@@ -156,7 +183,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '(02) 8527-8481',
     dialNumber: '0285278481',
     icon: Icons.call_outlined,
-    tint: AppColors.coastguard,
+    tone: HotlineTone.coastguard,
     category: HotlineCategory.all,
   ),
   Hotline(
@@ -168,7 +195,7 @@ const List<Hotline> kHotlines = [
     displayNumber: '(02) 8911-1406',
     dialNumber: '0289111406',
     icon: Icons.call_outlined,
-    tint: AppColors.barangay,
+    tone: HotlineTone.barangay,
     category: HotlineCategory.all,
   ),
 ];

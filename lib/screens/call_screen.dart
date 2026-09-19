@@ -48,14 +48,14 @@ class _CallScreenState extends State<CallScreen> {
 
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.live),
+      SnackBar(content: Text(message), backgroundColor: context.pal.live),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.hotlines),
       body: SafeArea(
         bottom: false,
@@ -73,11 +73,11 @@ class _CallScreenState extends State<CallScreen> {
                 ),
               ),
             ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
               child: Text(
                 'Tap to dial. These work without data and without signing in.',
-                style: AppText.body,
+                style: context.type.body,
               ),
             ),
             Padding(
@@ -102,7 +102,7 @@ class _CallScreenState extends State<CallScreen> {
                       _filter == HotlineCategory.all
                           ? 'All hotlines'
                           : '${_filter.label} lines',
-                      color: AppColors.accent,
+                      color: context.pal.accent,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -162,7 +162,8 @@ class _HotlineRow extends StatelessWidget {
     // 911 gets the coral treatment; everything else is a plain glass row, so
     // the one number that always works is the one the eye finds first.
     final short = hotline.displayNumber.length <= 5;
-    final neutral = hotline.tint == AppColors.textSoft;
+    final neutral = hotline.isNeutral;
+    final tint = hotline.tint(context.pal);
 
     return Semantics(
       button: true,
@@ -172,11 +173,11 @@ class _HotlineRow extends StatelessWidget {
         radius: AppRadius.card,
         onTap: onTap,
         color: hotline.featured
-            ? AppColors.accent.withValues(alpha: 0.10)
-            : AppColors.glass,
+            ? context.pal.accent.withValues(alpha: 0.10)
+            : context.pal.glass,
         border: hotline.featured
-            ? AppColors.accent.withValues(alpha: 0.45)
-            : AppColors.line,
+            ? context.pal.accent.withValues(alpha: 0.45)
+            : context.pal.line,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
@@ -184,13 +185,13 @@ class _HotlineRow extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: hotline.tint.withValues(alpha: neutral ? 0.10 : 0.16),
+                color: tint.withValues(alpha: neutral ? 0.10 : 0.16),
                 borderRadius: BorderRadius.circular(AppRadius.control),
               ),
               alignment: Alignment.center,
               child: hotline.art != null
                   ? Image.asset(hotline.art!, width: 21, height: 21)
-                  : Icon(hotline.icon, size: 19, color: hotline.tint),
+                  : Icon(hotline.icon, size: 19, color: tint),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -202,14 +203,16 @@ class _HotlineRow extends StatelessWidget {
                     hotline.name.toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppText.cardTitleSm,
+                    style: context.type.cardTitleSm,
                   ),
                   const SizedBox(height: 5),
                   Text(
                     hotline.summary,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppText.caption.copyWith(color: AppColors.label),
+                    style: context.type.caption.copyWith(
+                      color: context.pal.label,
+                    ),
                   ),
                 ],
               ),
@@ -230,18 +233,21 @@ class _HotlineRow extends StatelessWidget {
                     Text(
                       hotline.displayNumber,
                       maxLines: 1,
-                      style: (short ? AppText.numeralSm : AppText.cardTitle)
-                          .copyWith(
-                            color: hotline.featured
-                                ? AppColors.accent
-                                : AppColors.onBackground,
-                          ),
+                      style:
+                          (short
+                                  ? context.type.numeralSm
+                                  : context.type.cardTitle)
+                              .copyWith(
+                                color: hotline.featured
+                                    ? context.pal.accent
+                                    : context.pal.onBackground,
+                              ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       hotline.featured ? 'Toll-free nationwide' : 'Tap to dial',
                       maxLines: 1,
-                      style: AppText.captionSm,
+                      style: context.type.captionSm,
                     ),
                   ],
                 ),

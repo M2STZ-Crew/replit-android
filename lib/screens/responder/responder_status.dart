@@ -9,7 +9,11 @@ import '../../theme.dart';
 /// incident then waits in 'post_incident_report' until its team captain files,
 /// and 'closed' is terminal. Mirrors the post-fire part of OFF_FEED_STATUSES in
 /// app/services/incident.py.
-const Set<String> kAfterFireOut = {'resolved', 'post_incident_report', 'closed'};
+const Set<String> kAfterFireOut = {
+  'resolved',
+  'post_incident_report',
+  'closed',
+};
 
 Color responderStatusColor(String status) {
   switch (status) {
@@ -42,7 +46,8 @@ String responderStatusLabel(String status) => switch (status) {
 /// Response Teams exist in all five agencies (v10 §2.6), but fire codes — Need
 /// Water, Fire Out — are the fire service's. A police, medical or barangay
 /// crew is not offered them.
-bool isFireCrew(String? agency) => agency == 'fire_volunteer' || agency == 'bfp';
+bool isFireCrew(String? agency) =>
+    agency == 'fire_volunteer' || agency == 'bfp';
 
 /// Mirrors POST /alarm-requests: of the Response Teams, only Fire Volunteer
 /// responders may ask BFP to raise the alarm. Anyone else would be refused,
@@ -62,7 +67,9 @@ String? routingLabel(
   if (agency == null) return null;
   final routes = incident['routes'];
   if (routes is List) {
-    final mine = routes.cast<Map<String, dynamic>>().where((r) => r['agency'] == agency);
+    final mine = routes.cast<Map<String, dynamic>>().where(
+      (r) => r['agency'] == agency,
+    );
     if (mine.isEmpty) return null;
     if (orgId != null && mine.any((r) => r['organization_id'] == orgId)) {
       return 'ROUTED TO YOUR TEAM';
@@ -70,7 +77,9 @@ String? routingLabel(
     if (mine.any((r) => r['organization_id'] == null)) {
       return 'ROUTED TO ${responderAgencyLabel(agency).toUpperCase()}';
     }
-    final teams = mine.map((r) => r['organization_name'] as String?).whereType<String>();
+    final teams = mine
+        .map((r) => r['organization_name'] as String?)
+        .whereType<String>();
     return teams.isEmpty ? null : 'ROUTED TO ${teams.join(', ').toUpperCase()}';
   }
   final routed = incident['routed_agencies'];

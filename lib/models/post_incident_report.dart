@@ -38,10 +38,15 @@ class PostIncidentPrefill {
   /// From GET /incidents/{id}/dispatches. Withdrawn dispatches are left out —
   /// those responders did not go. The truck is the one most responders crewed;
   /// the driver is whoever was dispatched in a driver role.
-  factory PostIncidentPrefill.fromDispatches(List<Map<String, dynamic>> dispatches) {
+  factory PostIncidentPrefill.fromDispatches(
+    List<Map<String, dynamic>> dispatches,
+  ) {
     final went = dispatches.where((d) => d['status'] != 'withdrawn').toList()
-      ..sort((a, b) => ((a['dispatched_at'] as String?) ?? '')
-          .compareTo((b['dispatched_at'] as String?) ?? ''));
+      ..sort(
+        (a, b) => ((a['dispatched_at'] as String?) ?? '').compareTo(
+          (b['dispatched_at'] as String?) ?? '',
+        ),
+      );
 
     final trucks = <String, int>{};
     for (final d in went) {
@@ -55,7 +60,9 @@ class PostIncidentPrefill {
 
     Map<String, dynamic>? driver;
     for (final d in went) {
-      if (((d['crew_role'] as String?) ?? '').toLowerCase().contains('driver')) {
+      if (((d['crew_role'] as String?) ?? '').toLowerCase().contains(
+        'driver',
+      )) {
         driver = d;
         break;
       }
@@ -67,7 +74,9 @@ class PostIncidentPrefill {
       final id = d['responder_id'] as String?;
       final name = ((d['responder_name'] as String?) ?? '').trim();
       if (name.isEmpty || (id != null && !seen.add(id))) continue;
-      roster.add(RosterMember(name: name, role: d['crew_role'] as String?, userId: id));
+      roster.add(
+        RosterMember(name: name, role: d['crew_role'] as String?, userId: id),
+      );
     }
 
     return PostIncidentPrefill(

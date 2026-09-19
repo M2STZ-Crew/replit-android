@@ -11,12 +11,12 @@ import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
 import 'responder_status.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _value = AppColors.muted;
-const Color _label = AppColors.label;
-const Color _red = AppColors.live;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _value = AppColors.muted;
+Color _label = AppColors.label;
+Color _red = AppColors.live;
 
 /// Responder's READ-ONLY view of a citizen report: photo, reporter, time,
 /// coordinates, address, verifier, and a map. Verify / reject are a sub-admin
@@ -44,7 +44,8 @@ class ResponderIncidentReportScreen extends StatefulWidget {
       _ResponderIncidentReportScreenState();
 }
 
-class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportScreen> {
+class _ResponderIncidentReportScreenState
+    extends State<ResponderIncidentReportScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
 
   String? _address;
@@ -77,11 +78,15 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
       final placemarks = await geo.placemarkFromCoordinates(lat, lng);
       if (placemarks.isEmpty) return;
       final p = placemarks.first;
-      final parts = [p.street, p.subLocality, p.locality, p.administrativeArea]
-          .where((s) => s != null && s.isNotEmpty)
-          .cast<String>()
-          .toList();
-      if (mounted && parts.isNotEmpty) setState(() => _address = parts.take(3).join(', '));
+      final parts = [
+        p.street,
+        p.subLocality,
+        p.locality,
+        p.administrativeArea,
+      ].where((s) => s != null && s.isNotEmpty).cast<String>().toList();
+      if (mounted && parts.isNotEmpty) {
+        setState(() => _address = parts.take(3).join(', '));
+      }
     } catch (_) {
       // address stays "---"; coordinates still show
     }
@@ -146,7 +151,7 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -160,11 +165,15 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
-              child: const Icon(Icons.settings_outlined, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.settings_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -174,10 +183,12 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
 
   void _accountSheet() {
     final name =
-        (widget.me['full_name'] as String?) ?? (widget.me['email'] as String?) ?? 'Responder';
+        (widget.me['full_name'] as String?) ??
+        (widget.me['email'] as String?) ??
+        'Responder';
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -188,14 +199,25 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 16),
-            Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(responderAgencyLabel(widget.me['agency_type'] as String?),
-                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            Text(
+              responderAgencyLabel(widget.me['agency_type'] as String?),
+              style: TextStyle(color: context.pal.muted, fontSize: 12),
+            ),
             const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.logout, color: _red),
-              title: const Text('Log out', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.logout, color: _red),
+              title: const Text(
+                'Log out',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _logout();
@@ -259,12 +281,14 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
                 ? child
                 : Container(
                     color: const Color(0x7F303030),
-                    child: const Center(
+                    child: Center(
                       child: SizedBox(
                         width: 22,
                         height: 22,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: context.pal.accent,
+                        ),
                       ),
                     ),
                   ),
@@ -302,11 +326,15 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.glass,
+                  color: context.pal.glass,
                   borderRadius: BorderRadius.circular(AppRadius.card),
-                  border: Border.all(color: AppColors.line, width: 0.8),
+                  border: Border.all(color: context.pal.line, width: 0.8),
                 ),
-                child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.chevron_left,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -319,21 +347,25 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
     final out = <Widget>[];
     for (var i = 0; i < pairs.length; i++) {
       if (i > 0) out.add(const SizedBox(height: 16));
-      out.add(Text(
-        pairs[i][0],
-        style: const TextStyle(color: _value, fontSize: 13, height: 1.38),
-      ));
-      out.add(const SizedBox(height: 16));
-      out.add(Text(
-        pairs[i][1],
-        style: const TextStyle(
-          color: _label,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          height: 1.80,
-          letterSpacing: 1,
+      out.add(
+        Text(
+          pairs[i][0],
+          style: TextStyle(color: _value, fontSize: 13, height: 1.38),
         ),
-      ));
+      );
+      out.add(const SizedBox(height: 16));
+      out.add(
+        Text(
+          pairs[i][1],
+          style: TextStyle(
+            color: _label,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            height: 1.80,
+            letterSpacing: 1,
+          ),
+        ),
+      );
     }
     return out;
   }
@@ -370,7 +402,7 @@ class _ResponderIncidentReportScreenState extends State<ResponderIncidentReportS
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: _value),
       ),
-      child: const Text(
+      child: Text(
         'FOR SUB ADMIN ONLY',
         textAlign: TextAlign.center,
         style: TextStyle(

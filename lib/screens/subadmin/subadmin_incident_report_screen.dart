@@ -13,12 +13,12 @@ import '../responder/responder_status.dart';
 import 'dispatch_screen.dart';
 import 'post_incident_report_screen.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _value = AppColors.muted;
-const Color _label = AppColors.label;
-const Color _red = AppColors.live;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _value = AppColors.muted;
+Color _label = AppColors.label;
+Color _red = AppColors.live;
 
 /// Sub-admin's full-screen incident-report / verification view.
 ///
@@ -52,10 +52,12 @@ class SubAdminIncidentReportScreen extends StatefulWidget {
   final ApiClient? api;
 
   @override
-  State<SubAdminIncidentReportScreen> createState() => _SubAdminIncidentReportScreenState();
+  State<SubAdminIncidentReportScreen> createState() =>
+      _SubAdminIncidentReportScreenState();
 }
 
-class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScreen> {
+class _SubAdminIncidentReportScreenState
+    extends State<SubAdminIncidentReportScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
 
   late String _status = widget.status;
@@ -97,10 +99,12 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
       final placemarks = await geo.placemarkFromCoordinates(lat, lng);
       if (placemarks.isEmpty) return;
       final p = placemarks.first;
-      final parts = [p.street, p.subLocality, p.locality, p.administrativeArea]
-          .where((s) => s != null && s.isNotEmpty)
-          .cast<String>()
-          .toList();
+      final parts = [
+        p.street,
+        p.subLocality,
+        p.locality,
+        p.administrativeArea,
+      ].where((s) => s != null && s.isNotEmpty).cast<String>().toList();
       if (mounted && parts.isNotEmpty) {
         setState(() => _address = parts.take(3).join(', '));
       }
@@ -136,7 +140,10 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  Future<void> _run(Future<Map<String, dynamic>> Function() call, String ok) async {
+  Future<void> _run(
+    Future<Map<String, dynamic>> Function() call,
+    String ok,
+  ) async {
     setState(() => _busy = true);
     final navigator = Navigator.of(context);
     try {
@@ -163,41 +170,50 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
       builder: (dctx) {
         final ctrl = TextEditingController();
         return AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text('Reject incident',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          backgroundColor: context.pal.surface,
+          title: const Text(
+            'Reject incident',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          ),
           content: TextField(
             controller: ctrl,
             autofocus: true,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Reason (e.g. false report)',
-              hintStyle: TextStyle(color: AppColors.darkText),
+              hintStyle: TextStyle(color: context.pal.darkText),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(),
-              child: const Text('CANCEL', style: TextStyle(color: AppColors.muted)),
+              child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
             ),
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(ctrl.text.trim()),
-              child:
-                  const Text('REJECT', style: TextStyle(color: _red, fontWeight: FontWeight.w800)),
+              child: Text(
+                'REJECT',
+                style: TextStyle(color: _red, fontWeight: FontWeight.w800),
+              ),
             ),
           ],
         );
       },
     );
     if (reason == null || reason.isEmpty) return;
-    _run(() => _api.rejectIncident(widget.areaId, reason), 'Incident rejected.');
+    _run(
+      () => _api.rejectIncident(widget.areaId, reason),
+      'Incident rejected.',
+    );
   }
 
   // Choose who's going (v10 §2.5 — truck, driver and roles come later, in the
   // Post-Incident Report).
   Future<void> _openDispatch() async {
     final dispatched = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => DispatchScreen(areaId: widget.areaId, api: _api)),
+      MaterialPageRoute(
+        builder: (_) => DispatchScreen(areaId: widget.areaId, api: _api),
+      ),
     );
     if (dispatched == true && mounted) {
       Navigator.of(context).pop(true); // back to home, which reloads
@@ -211,20 +227,29 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Fire out?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        content: const Text('Mark this incident resolved and stop the response.',
-            style: TextStyle(color: AppColors.muted)),
+        backgroundColor: context.pal.surface,
+        title: const Text(
+          'Fire out?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'Mark this incident resolved and stop the response.',
+          style: TextStyle(color: context.pal.muted),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(false),
-            child: const Text('CANCEL', style: TextStyle(color: AppColors.muted)),
+            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
           ),
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(true),
-            child: const Text('FIRE OUT',
-                style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+            child: Text(
+              'FIRE OUT',
+              style: TextStyle(
+                color: context.pal.accent,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
         ],
       ),
@@ -293,7 +318,7 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -307,11 +332,15 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
-              child: const Icon(Icons.settings_outlined, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.settings_outlined,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -321,10 +350,12 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
 
   void _accountSheet() {
     final name =
-        (widget.me['full_name'] as String?) ?? (widget.me['email'] as String?) ?? 'Sub-Admin';
+        (widget.me['full_name'] as String?) ??
+        (widget.me['email'] as String?) ??
+        'Sub-Admin';
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
@@ -335,14 +366,25 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 16),
-            Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text('Sub-Admin • ${responderAgencyLabel(widget.agency)}',
-                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            Text(
+              'Sub-Admin • ${responderAgencyLabel(widget.agency)}',
+              style: TextStyle(color: context.pal.muted, fontSize: 12),
+            ),
             const SizedBox(height: 12),
             ListTile(
-              leading: const Icon(Icons.logout, color: _red),
-              title: const Text('Log out', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.logout, color: _red),
+              title: const Text(
+                'Log out',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 _logout();
@@ -406,12 +448,14 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
                 ? child
                 : Container(
                     color: const Color(0x7F303030),
-                    child: const Center(
+                    child: Center(
                       child: SizedBox(
                         width: 22,
                         height: 22,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: context.pal.accent,
+                        ),
                       ),
                     ),
                   ),
@@ -449,11 +493,15 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.glass,
+                  color: context.pal.glass,
                   borderRadius: BorderRadius.circular(AppRadius.card),
-                  border: Border.all(color: AppColors.line, width: 0.8),
+                  border: Border.all(color: context.pal.line, width: 0.8),
                 ),
-                child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.chevron_left,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -466,21 +514,25 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
     final out = <Widget>[];
     for (var i = 0; i < pairs.length; i++) {
       if (i > 0) out.add(const SizedBox(height: 16));
-      out.add(Text(
-        pairs[i][0],
-        style: const TextStyle(color: _value, fontSize: 13, height: 1.38),
-      ));
-      out.add(const SizedBox(height: 16));
-      out.add(Text(
-        pairs[i][1],
-        style: const TextStyle(
-          color: _label,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          height: 1.80,
-          letterSpacing: 1,
+      out.add(
+        Text(
+          pairs[i][0],
+          style: TextStyle(color: _value, fontSize: 13, height: 1.38),
         ),
-      ));
+      );
+      out.add(const SizedBox(height: 16));
+      out.add(
+        Text(
+          pairs[i][1],
+          style: TextStyle(
+            color: _label,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            height: 1.80,
+            letterSpacing: 1,
+          ),
+        ),
+      );
     }
     return out;
   }
@@ -518,7 +570,9 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
     }
     if (kAfterFireOut.contains(s)) {
       return _infoBanner(
-        s == 'closed' ? 'Closed — Post-Incident Report filed.' : 'This incident has been resolved.',
+        s == 'closed'
+            ? 'Closed — Post-Incident Report filed.'
+            : 'This incident has been resolved.',
       );
     }
     if (s == 'rejected') {
@@ -530,24 +584,38 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
     }
 
     final canVerify = s == 'pending' && widget.agency == 'fire_volunteer';
-    final dispatchable = const {'verified', 'dispatched', 'en_route', 'arrived'}.contains(s);
+    final dispatchable = const {
+      'verified',
+      'dispatched',
+      'en_route',
+      'arrived',
+    }.contains(s);
     final canReject = s == 'pending' || s == 'verified';
 
     final children = <Widget>[];
     if (s == 'pending') {
       if (canVerify) {
-        children.add(Row(
-          children: [
-            Expanded(
-              child: _gradientButton('VERIFY',
-                  () => _run(() => _api.verifyIncident(widget.areaId), 'Incident verified.')),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: _darkButton('REJECT', _reject)),
-          ],
-        ));
+        children.add(
+          Row(
+            children: [
+              Expanded(
+                child: _gradientButton(
+                  'VERIFY',
+                  () => _run(
+                    () => _api.verifyIncident(widget.areaId),
+                    'Incident verified.',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(child: _darkButton('REJECT', _reject)),
+            ],
+          ),
+        );
       } else {
-        children.add(_infoBanner('Only a Fire Volunteer sub-admin can verify incidents.'));
+        children.add(
+          _infoBanner('Only a Fire Volunteer sub-admin can verify incidents.'),
+        );
         children.add(const SizedBox(height: 12));
         children.add(_darkButton('REJECT', _reject));
       }
@@ -557,20 +625,25 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
       children.add(const SizedBox(height: 12));
       final resolve = _darkButton('FIRE OUT', _fireOut);
       if (canReject) {
-        children.add(Row(
-          children: [
-            Expanded(child: resolve),
-            const SizedBox(width: 16),
-            Expanded(child: _darkButton('REJECT', _reject)),
-          ],
-        ));
+        children.add(
+          Row(
+            children: [
+              Expanded(child: resolve),
+              const SizedBox(width: 16),
+              Expanded(child: _darkButton('REJECT', _reject)),
+            ],
+          ),
+        );
       } else {
         children.add(resolve);
       }
     } else {
       children.add(_infoBanner('No actions available for this incident.'));
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
   }
 
   Widget _gradientButton(String label, VoidCallback onTap) {
@@ -582,15 +655,22 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
         decoration: BoxDecoration(
           gradient: AppColors.accentGradient,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: const [
-            BoxShadow(color: AppColors.accentTint, blurRadius: 32, offset: Offset(0, 8)),
+          boxShadow: [
+            BoxShadow(
+              color: context.pal.accentTint,
+              blurRadius: 32,
+              offset: Offset(0, 8),
+            ),
           ],
         ),
         child: _busy
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accentText),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.accentText,
+                ),
               )
             : Text(
                 label,
@@ -616,7 +696,7 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
         decoration: BoxDecoration(
           color: const Color(0xFF262626),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.pal.line),
         ),
         child: Text(
           label,
@@ -638,11 +718,14 @@ class _SubAdminIncidentReportScreenState extends State<SubAdminIncidentReportScr
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.glass,
+        color: context.pal.glass,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
-      child: Text(text, style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.4)),
+      child: Text(
+        text,
+        style: TextStyle(color: context.pal.muted, fontSize: 13, height: 1.4),
+      ),
     );
   }
 }

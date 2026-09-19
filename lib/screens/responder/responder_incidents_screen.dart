@@ -10,14 +10,14 @@ import 'responder_incident_report_screen.dart';
 import 'responder_incident_screen.dart';
 import 'responder_status.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _grey = AppColors.muted;
-const Color _green = AppColors.ok;
-const Color _orange = AppColors.accent;
-const Color _red = AppColors.live;
-const Color _label = AppColors.label;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _grey = AppColors.muted;
+Color _green = AppColors.ok;
+Color _orange = AppColors.accent;
+Color _red = AppColors.live;
+Color _label = AppColors.label;
 
 /// Area-header colour by incident status (matches the sub-admin feed).
 Color _areaColor(String s) {
@@ -71,7 +71,8 @@ class ResponderIncidentsScreen extends StatefulWidget {
   final Map<String, dynamic> me;
 
   @override
-  State<ResponderIncidentsScreen> createState() => _ResponderIncidentsScreenState();
+  State<ResponderIncidentsScreen> createState() =>
+      _ResponderIncidentsScreenState();
 }
 
 class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
@@ -90,7 +91,10 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
   void initState() {
     super.initState();
     _load();
-    _poll = Timer.periodic(const Duration(seconds: 12), (_) => _load(silent: true));
+    _poll = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => _load(silent: true),
+    );
   }
 
   @override
@@ -127,7 +131,9 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
     _reportsLoading.add(areaId);
     try {
       final raw = await _api.getIncidentReports(areaId);
-      if (mounted) setState(() => _reports[areaId] = raw.cast<Map<String, dynamic>>());
+      if (mounted) {
+        setState(() => _reports[areaId] = raw.cast<Map<String, dynamic>>());
+      }
     } catch (_) {
       // leave previous
     } finally {
@@ -146,7 +152,11 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
     });
   }
 
-  Future<void> _openReportDetail(Map<String, dynamic> r, String status, String areaId) async {
+  Future<void> _openReportDetail(
+    Map<String, dynamic> r,
+    String status,
+    String areaId,
+  ) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ResponderIncidentReportScreen(
@@ -203,7 +213,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -215,16 +225,26 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          const Text('Incidents',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          const Text(
+            'Incidents',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -232,7 +252,9 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+      return Center(
+        child: CircularProgressIndicator(color: context.pal.accent),
+      );
     }
     if (_error != null) {
       return _centered(Icons.cloud_off, _error!, retry: true);
@@ -241,8 +263,8 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
       return _centered(Icons.inbox_outlined, 'No incidents right now.');
     }
     return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceSolid,
+      color: context.pal.accent,
+      backgroundColor: context.pal.surfaceSolid,
       onRefresh: _load,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
@@ -276,7 +298,12 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
     final color = _areaColor(status);
     final open = _expanded.contains(id);
     final routed = routingLabel(area, agency: _agency);
-    final actionable = const {'verified', 'dispatched', 'en_route', 'arrived'}.contains(status);
+    final actionable = const {
+      'verified',
+      'dispatched',
+      'en_route',
+      'arrived',
+    }.contains(status);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -285,7 +312,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
           behavior: HitTestBehavior.opaque,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: _panelBorder)),
             ),
             child: Row(
@@ -295,7 +322,8 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ((area['designation'] as String?) ?? 'Area').toUpperCase(),
+                        ((area['designation'] as String?) ?? 'Area')
+                            .toUpperCase(),
                         style: TextStyle(
                           color: color,
                           fontSize: 12,
@@ -313,10 +341,10 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
                 if (actionable)
                   TextButton(
                     onPressed: () => _openIncident(id),
-                    child: const Text(
+                    child: Text(
                       'OPEN',
                       style: TextStyle(
-                        color: AppColors.accent,
+                        color: context.pal.accent,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1,
                       ),
@@ -325,7 +353,11 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
                 AnimatedRotation(
                   turns: open ? 0 : -0.25,
                   duration: const Duration(milliseconds: 150),
-                  child: const Icon(Icons.keyboard_arrow_down, color: _grey, size: 20),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: _grey,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
@@ -339,21 +371,27 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
   Widget _areaReports(String areaId, String status) {
     final reports = _reports[areaId];
     if (reports == null) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.all(20),
         child: Center(
           child: SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: context.pal.accent,
+            ),
           ),
         ),
       );
     }
     if (reports.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.fromLTRB(24, 12, 24, 12),
-        child: Text('No reports in this area.', style: TextStyle(color: AppColors.muted)),
+        child: Text(
+          'No reports in this area.',
+          style: TextStyle(color: context.pal.muted),
+        ),
       );
     }
     return Padding(
@@ -371,7 +409,8 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
 
   Widget _reportCard(Map<String, dynamic> r, String status, String areaId) {
     final (pill, color) = _responderPill(status);
-    final name = (r['reporter_name'] as String?)?.toUpperCase() ?? 'UNKNOWN REPORTER';
+    final name =
+        (r['reporter_name'] as String?)?.toUpperCase() ?? 'UNKNOWN REPORTER';
     final created = r['created_at'] as String?;
     return GestureDetector(
       onTap: () => _openReportDetail(r, status, areaId),
@@ -396,7 +435,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: _label,
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
@@ -404,10 +443,22 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
                       height: 1.6,
                     ),
                   ),
-                  Text(_fmtDate(created),
-                      style: const TextStyle(color: _label, fontSize: 11, letterSpacing: 1)),
-                  Text(_fmtTime(created),
-                      style: const TextStyle(color: _label, fontSize: 11, letterSpacing: 1)),
+                  Text(
+                    _fmtDate(created),
+                    style: TextStyle(
+                      color: _label,
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    _fmtTime(created),
+                    style: TextStyle(
+                      color: _label,
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -421,7 +472,11 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
               ),
               child: Text(
                 pill,
-                style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -456,11 +511,14 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
                     width: size,
                     height: size,
                     color: const Color(0x7F303030),
-                    child: const Center(
+                    child: Center(
                       child: SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: context.pal.accent,
+                        ),
                       ),
                     ),
                   ),
@@ -486,17 +544,28 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.outline, size: 44),
+            Icon(icon, color: context.pal.outline, size: 44),
             const SizedBox(height: 16),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.pal.muted,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
             if (retry) ...[
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => _load(),
-                child: const Text('Retry',
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700)),
+                child: Text(
+                  'Retry',
+                  style: TextStyle(
+                    color: context.pal.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ],

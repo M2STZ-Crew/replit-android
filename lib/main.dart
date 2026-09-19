@@ -38,7 +38,13 @@ class RepLitApp extends StatelessWidget {
     return MaterialApp(
       title: 'RepLiT',
       debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
+      // Both grounds from the hand-off. Which one shows follows the phone:
+      // a resident who has set their phone to light should not be handed a
+      // black screen at noon, and one who has set it to dark should not be
+      // flashbanged at 3am.
+      theme: buildAppTheme(AppPalette.light),
+      darkTheme: buildAppTheme(AppPalette.dark),
+      themeMode: ThemeMode.system,
       scaffoldMessengerKey: PushService.messengerKey,
       navigatorKey: PushService.navigatorKey,
       home: const SplashScreen(),

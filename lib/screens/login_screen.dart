@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.live),
+      SnackBar(content: Text(message), backgroundColor: context.pal.live),
     );
   }
 
@@ -75,21 +75,21 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = await showDialog<String>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('RESET PASSWORD', style: AppText.screenTitle),
+        title: Text('RESET PASSWORD', style: context.type.screenTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Enter your account email and we'll send a reset link.",
-              style: AppText.body,
+              style: context.type.body,
             ),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
-              style: AppText.input,
+              style: context.type.input,
               decoration: const InputDecoration(hintText: 'you@email.com'),
             ),
           ],
@@ -97,18 +97,15 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text(
-              'CANCEL',
-              style: TextStyle(color: AppColors.muted),
-            ),
+            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
           ),
           TextButton(
             onPressed: () =>
                 Navigator.of(dialogCtx).pop(controller.text.trim()),
-            child: const Text(
+            child: Text(
               'SEND LINK',
               style: TextStyle(
-                color: AppColors.accent,
+                color: context.pal.accent,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -136,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         // The sign-up line sits at the foot, as in the frame, and the page
         // still scrolls when the keyboard or a large font scale takes the room.
@@ -144,16 +141,16 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
           content: [
             const SizedBox(height: 120),
-            const Text('WELCOME BACK', style: AppText.display),
+            Text('WELCOME BACK', style: context.type.display),
             const SizedBox(height: 10),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: SizedBox(
                 width: 306,
                 child: Text(
                   'Sign in so responders know who is reporting and '
                   'where to find you.',
-                  style: AppText.body,
+                  style: context.type.body,
                 ),
               ),
             ),
@@ -167,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 textInputAction: TextInputAction.next,
                 autocorrect: false,
                 autofillHints: const [AutofillHints.email],
-                style: AppText.input,
+                style: context.type.input,
                 decoration: const InputDecoration(hintText: 'you@email.com'),
               ),
             ),
@@ -181,12 +178,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 textInputAction: TextInputAction.done,
                 autofillHints: const [AutofillHints.password],
                 onSubmitted: (_) => _submit(),
-                style: AppText.input,
+                style: context.type.input,
                 decoration: InputDecoration(
                   hintText: 'Your password',
                   suffixIcon: IconButton(
                     iconSize: 18,
-                    color: AppColors.muted,
+                    color: context.pal.muted,
                     tooltip: _obscure ? 'Show password' : 'Hide password',
                     // The eye offers what a tap does: see it.
                     icon: Icon(
@@ -205,9 +202,9 @@ class _LoginScreenState extends State<LoginScreen> {
               child: GestureDetector(
                 onTap: _recoverDialog,
                 behavior: HitTestBehavior.opaque,
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 4),
-                  child: Eyebrow('Forgot password?', color: AppColors.label),
+                  child: Eyebrow('Forgot password?', color: context.pal.label),
                 ),
               ),
             ),
@@ -224,17 +221,19 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.verified_user_outlined,
                     size: 18,
-                    color: AppColors.accent,
+                    color: context.pal.accent,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
                       'Locked out? Every hotline still dials without '
                       'signing in.',
-                      style: AppText.caption.copyWith(color: AppColors.label),
+                      style: context.type.caption.copyWith(
+                        color: context.pal.label,
+                      ),
                     ),
                   ),
                 ],
@@ -249,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
             children: [
-              const Text('New to the barangay app?', style: AppText.detail),
+              Text('New to the barangay app?', style: context.type.detail),
               GestureDetector(
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
@@ -259,7 +258,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text(
                     'CREATE ACCOUNT',
-                    style: AppText.action.copyWith(color: AppColors.accent),
+                    style: context.type.action.copyWith(
+                      color: context.pal.accent,
+                    ),
                   ),
                 ),
               ),

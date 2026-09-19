@@ -27,5 +27,7 @@ class ApiConfig {
   /// Medical and Barangay team captains who sign in here — their surface is the
   /// web (Master Context v10 §2.6). Empty until it is deployed, in which case
   /// the app says to ask the Admin for the address rather than inventing one.
-  static const String observerConsoleUrl = String.fromEnvironment('OBSERVER_CONSOLE_URL');
+  static const String observerConsoleUrl = String.fromEnvironment(
+    'OBSERVER_CONSOLE_URL',
+  );
 }

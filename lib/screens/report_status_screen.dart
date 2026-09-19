@@ -123,20 +123,20 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
         : ('Confirming', 0.75);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
           content: [
             Eyebrow(
               _refused ? 'Report closed' : 'Report sent',
-              color: _refused ? AppColors.muted : AppColors.accent,
+              color: _refused ? context.pal.muted : context.pal.accent,
             ),
             const SizedBox(height: 10),
-            const Text(
+            Text(
               'GETTING YOU HELP',
               textAlign: TextAlign.center,
-              style: AppText.heading1,
+              style: context.type.heading1,
             ),
             const SizedBox(height: 10),
             Center(
@@ -151,7 +151,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                             'follows your report until a coordinator '
                             'confirms it.',
                   textAlign: TextAlign.center,
-                  style: AppText.body,
+                  style: context.type.body,
                 ),
               ),
             ),
@@ -203,13 +203,13 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                 AppButton('Track it live', height: 54, onPressed: _follow),
                 const SizedBox(height: 18),
               ],
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.lock_outline_rounded,
                     size: 14,
-                    color: AppColors.muted,
+                    color: context.pal.muted,
                   ),
                   SizedBox(width: 8),
                   Flexible(
@@ -220,7 +220,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.9,
-                        color: AppColors.muted,
+                        color: context.pal.muted,
                       ),
                     ),
                   ),
@@ -252,18 +252,21 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
                 value: fraction,
                 strokeWidth: 3,
                 strokeCap: StrokeCap.round,
-                backgroundColor: AppColors.lineStrong,
-                color: _refused ? AppColors.muted : AppColors.accent,
+                backgroundColor: context.pal.lineStrong,
+                color: _refused ? context.pal.muted : context.pal.accent,
               ),
             ),
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${(fraction * 100).round()}%', style: AppText.numeralXl),
+                Text(
+                  '${(fraction * 100).round()}%',
+                  style: context.type.numeralXl,
+                ),
                 const SizedBox(height: 4),
                 Text(
                   phase.toUpperCase(),
-                  style: AppText.tag.copyWith(color: AppColors.muted),
+                  style: context.type.tag.copyWith(color: context.pal.muted),
                 ),
               ],
             ),
@@ -297,7 +300,7 @@ class _StepRow extends StatelessWidget {
         width: 22,
         height: 22,
         decoration: BoxDecoration(
-          color: (refused ? AppColors.muted : AppColors.ok).withValues(
+          color: (refused ? context.pal.muted : context.pal.ok).withValues(
             alpha: 0.14,
           ),
           borderRadius: BorderRadius.circular(AppRadius.chip),
@@ -305,14 +308,14 @@ class _StepRow extends StatelessWidget {
         child: Icon(
           refused ? Icons.close_rounded : Icons.check_rounded,
           size: 12,
-          color: refused ? AppColors.muted : AppColors.ok,
+          color: refused ? context.pal.muted : context.pal.ok,
         ),
       ),
       _Step.now => Container(
         width: 22,
         height: 22,
         decoration: BoxDecoration(
-          color: AppColors.accent,
+          color: context.pal.accent,
           borderRadius: BorderRadius.circular(AppRadius.chip),
         ),
       ),
@@ -321,12 +324,12 @@ class _StepRow extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 58),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.glass,
+        color: context.pal.glass,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
           color: now
-              ? AppColors.accent.withValues(alpha: 0.45)
-              : AppColors.line,
+              ? context.pal.accent.withValues(alpha: 0.45)
+              : context.pal.line,
         ),
       ),
       child: Row(
@@ -340,15 +343,15 @@ class _StepRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: AppText.rowValue.copyWith(
-                    color: AppColors.onBackground,
+                  style: context.type.rowValue.copyWith(
+                    color: context.pal.onBackground,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   line,
-                  style: AppText.caption.copyWith(
-                    color: now ? AppColors.accent : AppColors.muted,
+                  style: context.type.caption.copyWith(
+                    color: now ? context.pal.accent : context.pal.muted,
                   ),
                 ),
               ],

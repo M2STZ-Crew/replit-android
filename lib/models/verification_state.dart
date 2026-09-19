@@ -71,7 +71,7 @@ class VerificationState {
   bool get complete => badge == 'green_check' || percent >= 100;
 
   /// Yellow under 50%, green from there — the frame's two swatch colours.
-  Color get color => badge == 'yellow' ? AppColors.warn : AppColors.ok;
+  Color colour(AppPalette pal) => badge == 'yellow' ? pal.warn : pal.ok;
 
   String get badgeName => switch (badge) {
     'light_green' => 'Light green',

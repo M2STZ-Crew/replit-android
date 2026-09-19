@@ -171,13 +171,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _about() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceSolid,
+      backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
         ),
       ),
-      builder: (_) => const SafeArea(
+      builder: (_) => SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(24, 10, 24, 28),
           child: Column(
@@ -185,19 +185,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(child: SheetHandle()),
-              Text('ABOUT REPLIT', style: AppText.title),
+              Text('ABOUT REPLIT', style: context.type.title),
               SizedBox(height: 14),
               Text(
                 'RepLiT is Barangay 76\'s emergency reporting network for '
                 'Pasay City. Report an incident, see what is happening near '
                 'you and where the shelters are, learn the basics, and reach '
                 'responders fast.',
-                style: AppText.body,
+                style: context.type.body,
               ),
               SizedBox(height: 14),
               Text(
                 'In a real emergency, hold SOS or call 911.',
-                style: AppText.bodySm,
+                style: context.type.bodySm,
               ),
             ],
           ),
@@ -214,7 +214,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final pushed = Navigator.of(context).canPop();
     final next = _verification.nextStep;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.profile),
       body: SafeArea(
         bottom: false,
@@ -238,15 +238,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
               Row(
                 children: [
-                  const Expanded(
-                    child: Eyebrow('Account details', color: AppColors.muted),
+                  Expanded(
+                    child: Eyebrow('Account details', color: context.pal.muted),
                   ),
                   GestureDetector(
                     onTap: _editProfile,
                     behavior: HitTestBehavior.opaque,
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 4),
-                      child: Eyebrow('Edit', color: AppColors.accent),
+                      child: Eyebrow('Edit', color: context.pal.accent),
                     ),
                   ),
                 ],
@@ -254,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 8),
               _details(),
               const SizedBox(height: 20),
-              const Eyebrow('Settings', color: AppColors.muted),
+              Eyebrow('Settings', color: context.pal.muted),
               const SizedBox(height: 8),
               _Toggle(
                 title: 'Barangay alerts',
@@ -278,7 +278,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: _testing ? null : _sendTest,
               ),
               const SizedBox(height: 20),
-              const Eyebrow('More', color: AppColors.muted),
+              Eyebrow('More', color: context.pal.muted),
               const SizedBox(height: 8),
               _Link(
                 title: 'Your reports',
@@ -314,7 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: Text(
                   'REPLIT · BARANGAY 76 · V1.0.0',
-                  style: AppText.tag.copyWith(color: AppColors.faint),
+                  style: context.type.tag.copyWith(color: context.pal.faint),
                 ),
               ),
             ],
@@ -345,8 +345,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     value: pct / 100,
                     strokeWidth: 3,
                     strokeCap: StrokeCap.round,
-                    backgroundColor: AppColors.lineStrong,
-                    color: v.color,
+                    backgroundColor: context.pal.lineStrong,
+                    color: v.colour(context.pal),
                   ),
                 ),
                 Opacity(
@@ -362,9 +362,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_name.toUpperCase(), style: AppText.headline),
+                Text(_name.toUpperCase(), style: context.type.headline),
                 const SizedBox(height: 7),
-                Tag('$pct% verified', color: v.color),
+                Tag('$pct% verified', color: v.colour(context.pal)),
               ],
             ),
           ),
@@ -400,8 +400,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       excludeSemantics: true,
       child: Panel(
         radius: AppRadius.card,
-        color: AppColors.accent.withValues(alpha: 0.10),
-        border: AppColors.accent.withValues(alpha: 0.45),
+        color: context.pal.accent.withValues(alpha: 0.10),
+        border: context.pal.accent.withValues(alpha: 0.45),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         onTap: _openVerification,
         child: Row(
@@ -411,20 +411,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title, style: AppText.rowTitleLg),
+                  Text(title, style: context.type.rowTitleLg),
                   const SizedBox(height: 5),
                   Text(
                     line,
-                    style: AppText.caption.copyWith(color: AppColors.label),
+                    style: context.type.caption.copyWith(
+                      color: context.pal.label,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 18,
-              color: AppColors.accent,
+              color: context.pal.accent,
             ),
           ],
         ),
@@ -443,7 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Email',
             value: _email ?? '—',
             action: emailOk ? 'Verified' : 'Verify',
-            actionColor: emailOk ? AppColors.ok : AppColors.accent,
+            actionColor: emailOk ? context.pal.ok : context.pal.accent,
             onTap: emailOk ? null : _openVerification,
           ),
           const Divider(),
@@ -453,7 +455,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             value: _mobile ?? 'Not added yet',
             muted: _mobile == null,
             action: _mobile == null ? 'Add' : null,
-            actionColor: AppColors.accent,
+            actionColor: context.pal.accent,
             onTap: _mobile == null ? _editProfile : null,
           ),
         ],
@@ -491,17 +493,20 @@ class _DetailRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         child: Row(
           children: [
-            Icon(icon, size: 17, color: AppColors.accent),
+            Icon(icon, size: 17, color: context.pal.accent),
             const SizedBox(width: 14),
-            SizedBox(width: 58, child: Eyebrow(label, color: AppColors.muted)),
+            SizedBox(
+              width: 58,
+              child: Eyebrow(label, color: context.pal.muted),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppText.rowValue.copyWith(
-                  color: muted ? AppColors.muted : AppColors.onBackground,
+                style: context.type.rowValue.copyWith(
+                  color: muted ? context.pal.muted : context.pal.onBackground,
                 ),
               ),
             ),
@@ -509,7 +514,7 @@ class _DetailRow extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 action!.toUpperCase(),
-                style: AppText.tag.copyWith(color: actionColor),
+                style: context.type.tag.copyWith(color: actionColor),
               ),
             ],
           ],
@@ -547,9 +552,9 @@ class _Toggle extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: AppText.label),
+                Text(title, style: context.type.label),
                 const SizedBox(height: 5),
-                Text(line, style: AppText.caption),
+                Text(line, style: context.type.caption),
               ],
             ),
           ),
@@ -588,9 +593,9 @@ class _Link extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, style: AppText.label),
+                Text(title, style: context.type.label),
                 const SizedBox(height: 5),
-                Text(line, style: AppText.caption),
+                Text(line, style: context.type.caption),
               ],
             ),
           ),
@@ -601,10 +606,10 @@ class _Link extends StatelessWidget {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(
+              : Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
-                  color: AppColors.muted,
+                  color: context.pal.muted,
                 ),
         ],
       ),

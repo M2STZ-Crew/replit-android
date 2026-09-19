@@ -16,33 +16,13 @@ import 'report_status_screen.dart';
 
 /// One choice in "Who should respond": the agency the server knows, the word
 /// a resident knows, and the frame's colour and glyph for it.
-typedef _Agency = ({String key, String label, Color color, String glyph});
+typedef _Agency = ({String key, String label, String glyph});
 
 const List<_Agency> _agencies = [
-  (
-    key: 'fire_volunteer',
-    label: 'Fire',
-    color: AppColors.fire,
-    glyph: Art.agFire,
-  ),
-  (
-    key: 'medical',
-    label: 'Medical',
-    color: AppColors.medical,
-    glyph: Art.agMedical,
-  ),
-  (
-    key: 'police',
-    label: 'Police',
-    color: AppColors.police,
-    glyph: Art.agPolice,
-  ),
-  (
-    key: 'barangay',
-    label: 'Barangay',
-    color: AppColors.barangay,
-    glyph: Art.agBarangay,
-  ),
+  (key: 'fire_volunteer', label: 'Fire', glyph: Art.agFire),
+  (key: 'medical', label: 'Medical', glyph: Art.agMedical),
+  (key: 'police', label: 'Police', glyph: Art.agPolice),
+  (key: 'barangay', label: 'Barangay', glyph: Art.agBarangay),
 ];
 
 /// "08 Report" from the REPLIT-OVERHAUL Figma — "What are we sending?".
@@ -118,7 +98,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
 
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.live),
+      SnackBar(content: Text(message), backgroundColor: context.pal.live),
     );
   }
 
@@ -263,7 +243,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
     return Scaffold(
       // The report frame sits on the canvas, not the ground: the viewfinder
       // is a camera surface and the screen darkens around it.
-      backgroundColor: AppColors.canvas,
+      backgroundColor: context.pal.canvas,
       body: SafeArea(
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
@@ -280,34 +260,39 @@ class _SosReportScreenState extends State<SosReportScreen> {
               ],
             ),
             const SizedBox(height: 28),
-            const Text('WHAT ARE WE SENDING?', style: AppText.heading1),
+            Text('WHAT ARE WE SENDING?', style: context.type.heading1),
             const SizedBox(height: 32),
-            const Eyebrow('Who should respond', color: AppColors.muted),
+            Eyebrow('Who should respond', color: context.pal.muted),
             const SizedBox(height: 10),
             _agencyGrid(),
             const SizedBox(height: 28),
-            const Row(
+            Row(
               children: [
                 Expanded(
-                  child: Eyebrow('Photo of the scene', color: AppColors.muted),
+                  child: Eyebrow(
+                    'Photo of the scene',
+                    color: context.pal.muted,
+                  ),
                 ),
-                Eyebrow('Required', color: AppColors.accent),
+                Eyebrow('Required', color: context.pal.accent),
               ],
             ),
             const SizedBox(height: 10),
             _viewfinder(),
             const SizedBox(height: 24),
-            const Eyebrow('Anything else', color: AppColors.muted),
+            Eyebrow('Anything else', color: context.pal.muted),
             const SizedBox(height: 10),
             TextField(
               controller: _notes,
               minLines: 1,
               maxLines: 4,
-              style: AppText.bodySm.copyWith(color: AppColors.onBackground),
+              style: context.type.bodySm.copyWith(
+                color: context.pal.onBackground,
+              ),
               decoration: InputDecoration(
                 hintText: 'Optional — what responders should know',
-                hintStyle: AppText.bodySm.copyWith(
-                  color: AppColors.label.withValues(alpha: 0.45),
+                hintStyle: context.type.bodySm.copyWith(
+                  color: context.pal.label.withValues(alpha: 0.45),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -325,7 +310,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   'Pinpointing your location — your report sends the moment '
                   'it is found.',
                   textAlign: TextAlign.center,
-                  style: AppText.caption.copyWith(color: AppColors.accent),
+                  style: context.type.caption.copyWith(
+                    color: context.pal.accent,
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -346,7 +333,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
   /// be untrue: the location goes with the report, on "Send report".)
   Widget _locationChip() {
     final fixed = _position != null;
-    final tone = fixed ? AppColors.ok : AppColors.warn;
+    final tone = fixed ? context.pal.ok : context.pal.warn;
     return Container(
       constraints: const BoxConstraints(minHeight: 24),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -359,16 +346,16 @@ class _SosReportScreenState extends State<SosReportScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (fixed)
-            const Icon(Icons.check_rounded, size: 12, color: AppColors.ok)
+            Icon(Icons.check_rounded, size: 12, color: context.pal.ok)
           else
-            const LiveDot(color: AppColors.warn, size: 6),
+            LiveDot(color: context.pal.warn, size: 6),
           const SizedBox(width: 7),
           Flexible(
             child: Text(
               fixed ? 'LOCATION LOCKED' : 'FINDING YOUR LOCATION',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppText.tag.copyWith(color: tone),
+              style: context.type.tag.copyWith(color: tone),
             ),
           ),
         ],
@@ -413,10 +400,12 @@ class _SosReportScreenState extends State<SosReportScreen> {
             constraints: const BoxConstraints(minHeight: 68),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: on ? a.color.withValues(alpha: 0.16) : AppColors.glass,
+              color: on
+                  ? context.pal.forAgency(a.key).withValues(alpha: 0.16)
+                  : context.pal.glass,
               borderRadius: shape,
               border: Border.all(
-                color: on ? a.color : AppColors.line,
+                color: on ? context.pal.forAgency(a.key) : context.pal.line,
                 width: on ? 1.5 : 1,
               ),
             ),
@@ -426,7 +415,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: a.color.withValues(alpha: 0.16),
+                    color: context.pal.forAgency(a.key).withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(AppRadius.chip),
                   ),
                   alignment: Alignment.center,
@@ -439,8 +428,10 @@ class _SosReportScreenState extends State<SosReportScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       a.label.toUpperCase(),
-                      style: AppText.cardTitleSm.copyWith(
-                        color: on ? AppColors.onBackground : AppColors.textSoft,
+                      style: context.type.cardTitleSm.copyWith(
+                        color: on
+                            ? context.pal.onBackground
+                            : context.pal.textSoft,
                       ),
                     ),
                   ),
@@ -452,7 +443,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: on ? a.color : AppColors.muted,
+                      color: on
+                          ? context.pal.forAgency(a.key)
+                          : context.pal.muted,
                       width: 1.5,
                     ),
                   ),
@@ -462,7 +455,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: a.color,
+                            color: context.pal.forAgency(a.key),
                             shape: BoxShape.circle,
                           ),
                         )
@@ -492,9 +485,11 @@ class _SosReportScreenState extends State<SosReportScreen> {
           height: 214,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: AppColors.canvas,
+            color: context.pal.canvas,
             borderRadius: BorderRadius.circular(AppRadius.panel),
-            border: Border.all(color: AppColors.accent.withValues(alpha: 0.45)),
+            border: Border.all(
+              color: context.pal.accent.withValues(alpha: 0.45),
+            ),
           ),
           child: Stack(
             fit: StackFit.expand,
@@ -511,7 +506,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   ),
                 ),
               ),
-              const CustomPaint(painter: _BracketPainter()),
+              CustomPaint(painter: _BracketPainter(context.pal.accentInk)),
               Positioned(
                 left: 17,
                 right: 17,
@@ -523,8 +518,8 @@ class _SosReportScreenState extends State<SosReportScreen> {
                         leading: Container(
                           width: 6,
                           height: 6,
-                          decoration: const BoxDecoration(
-                            color: AppColors.live,
+                          decoration: BoxDecoration(
+                            color: context.pal.live,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -532,11 +527,11 @@ class _SosReportScreenState extends State<SosReportScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const _FrameChip(
+                    _FrameChip(
                       leading: Icon(
                         Icons.photo_camera_outlined,
                         size: 12,
-                        color: AppColors.onBackground,
+                        color: context.pal.onBackground,
                       ),
                       text: 'Retake',
                     ),
@@ -577,7 +572,7 @@ class _FrameChip extends StatelessWidget {
               text.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppText.tag.copyWith(color: AppColors.onBackground),
+              style: context.type.tag.copyWith(color: context.pal.onBackground),
             ),
           ),
         ],
@@ -589,7 +584,9 @@ class _FrameChip extends StatelessWidget {
 /// The viewfinder's four coral corner brackets: 32px arms, 8px corner
 /// radius, 15px in from each edge.
 class _BracketPainter extends CustomPainter {
-  const _BracketPainter();
+  const _BracketPainter(this.accent);
+
+  final Color accent;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -597,7 +594,7 @@ class _BracketPainter extends CustomPainter {
     const arm = 32.0;
     const r = 8.0;
     final paint = Paint()
-      ..color = AppColors.accent
+      ..color = accent
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -622,5 +619,5 @@ class _BracketPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BracketPainter oldDelegate) => false;
+  bool shouldRepaint(_BracketPainter old) => old.accent != accent;
 }

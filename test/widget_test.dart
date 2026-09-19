@@ -97,7 +97,10 @@ void main() {
         expect(find.text('VERIFY YOUR IDENTITY'), findsOneWidget);
         // Camera-only, deliberately: a gallery pick is how someone submits
         // an ID that is not theirs. Nothing on this screen may offer one.
-        expect(find.textContaining('gallery', findRichText: true), findsNothing);
+        expect(
+          find.textContaining('gallery', findRichText: true),
+          findsNothing,
+        );
         expect(find.textContaining('choose'), findsNothing);
         expect(find.textContaining('Choose'), findsNothing);
       });
@@ -162,9 +165,16 @@ void main() {
   group('design tokens', () {
     test('every area_status has its own colour', () {
       const statuses = [
-        'pending', 'verified', 'dispatched', 'en_route',
-        'arrived', 'resolved', 'post_incident_report', 'closed',
-        'rejected', 'merged',
+        'pending',
+        'verified',
+        'dispatched',
+        'en_route',
+        'arrived',
+        'resolved',
+        'post_incident_report',
+        'closed',
+        'rejected',
+        'merged',
       ];
       final seen = <Color>{};
       for (final status in statuses) {

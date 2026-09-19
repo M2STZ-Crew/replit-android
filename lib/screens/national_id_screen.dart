@@ -7,7 +7,7 @@ import '../api/api_client.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 
-const Color _safeGreen = AppColors.ok;
+Color _safeGreen = AppColors.ok;
 
 /// National ID verification (+50%) via the manual-review path.
 ///
@@ -56,9 +56,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     try {
       final shot = await _picker.pickImage(
         source: ImageSource.camera,
-        preferredCameraDevice: front
-            ? CameraDevice.front
-            : CameraDevice.rear,
+        preferredCameraDevice: front ? CameraDevice.front : CameraDevice.rear,
         imageQuality: 70,
         maxWidth: 1600,
       );
@@ -101,11 +99,16 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
       _error = null;
     });
     try {
-      await _api.submitNationalIdManual(idBytes: _idBytes!, selfieBytes: _selfieBytes!);
+      await _api.submitNationalIdManual(
+        idBytes: _idBytes!,
+        selfieBytes: _selfieBytes!,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Submitted for review. An admin will award +50% once approved.'),
+        SnackBar(
+          content: Text(
+            'Submitted for review. An admin will award +50% once approved.',
+          ),
           backgroundColor: _safeGreen,
         ),
       );
@@ -113,7 +116,12 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not submit. Check your connection and try again.');
+      if (mounted) {
+        setState(
+          () =>
+              _error = 'Could not submit. Check your connection and try again.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -122,7 +130,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
@@ -131,20 +139,20 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
             children: [
               _topBar(),
               const SizedBox(height: 26),
-              const IconWell(
-                tint: AppColors.accent,
+              IconWell(
+                tint: context.pal.accent,
                 icon: Icons.badge_outlined,
                 size: 56,
                 glyph: 28,
               ),
               const SizedBox(height: 18),
-              const Text('VERIFY YOUR IDENTITY', style: AppText.title),
+              Text('VERIFY YOUR IDENTITY', style: context.type.title),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 'Photograph your government ID and take a matching selfie. '
                 'Both must be taken now with the camera — saved pictures are '
                 'not accepted. An administrator reviews them and awards +50%.',
-                style: AppText.body,
+                style: context.type.body,
               ),
               const SizedBox(height: 26),
               _uploadSlot(
@@ -166,27 +174,27 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                 const SizedBox(height: 14),
                 Panel(
                   radius: AppRadius.control,
-                  color: AppColors.live.withValues(alpha: 0.09),
-                  border: AppColors.live.withValues(alpha: 0.4),
+                  color: context.pal.live.withValues(alpha: 0.09),
+                  border: context.pal.live.withValues(alpha: 0.4),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.error_outline_rounded,
                         size: 17,
-                        color: AppColors.live,
+                        color: context.pal.live,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _error!,
-                          style: AppText.meta.copyWith(
+                          style: context.type.meta.copyWith(
                             fontSize: 12,
                             height: 16 / 12,
-                            color: AppColors.textSoft,
+                            color: context.pal.textSoft,
                           ),
                         ),
                       ),
@@ -210,7 +218,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('National ID'.toUpperCase(), style: AppText.screenTitle),
+        Text('National ID'.toUpperCase(), style: context.type.screenTitle),
       ],
     );
   }
@@ -229,10 +237,10 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
         height: 150,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.glassDim,
+          color: context.pal.glassDim,
           borderRadius: BorderRadius.circular(AppRadius.panel),
           border: Border.all(
-            color: filled ? _safeGreen : AppColors.lineStrong,
+            color: filled ? _safeGreen : context.pal.lineStrong,
           ),
         ),
         child: filled
@@ -247,13 +255,13 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                       height: 24,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.canvas.withValues(alpha: 0.85),
+                        color: context.pal.canvas.withValues(alpha: 0.85),
                         borderRadius: BorderRadius.circular(AppRadius.chip),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.check_circle_rounded,
                             color: _safeGreen,
                             size: 13,
@@ -261,8 +269,8 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                           const SizedBox(width: 7),
                           Text(
                             'TAP TO RETAKE',
-                            style: AppText.tag.copyWith(
-                              color: AppColors.onBackground,
+                            style: context.type.tag.copyWith(
+                              color: context.pal.onBackground,
                             ),
                           ),
                         ],
@@ -275,15 +283,15 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconWell(
-                    tint: AppColors.accent,
+                    tint: context.pal.accent,
                     icon: icon,
                     size: 44,
                     glyph: 22,
                   ),
                   const SizedBox(height: 12),
-                  Eyebrow(label, color: AppColors.accent),
+                  Eyebrow(label, color: context.pal.accent),
                   const SizedBox(height: 6),
-                  Text(hint, style: AppText.meta),
+                  Text(hint, style: context.type.meta),
                 ],
               ),
       ),
@@ -301,23 +309,19 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   Widget _privacyNote() {
     return Panel(
       radius: AppRadius.control,
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.lock_outline_rounded,
-            size: 16,
-            color: AppColors.accent,
-          ),
+          Icon(Icons.lock_outline_rounded, size: 16, color: context.pal.accent),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Your ID and selfie are held in private storage and shared only '
               'with the reviewing administrator. The +50% applies once it is '
               'approved.',
-              style: AppText.meta.copyWith(height: 16 / 11),
+              style: context.type.meta.copyWith(height: 16 / 11),
             ),
           ),
         ],

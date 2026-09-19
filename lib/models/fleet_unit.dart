@@ -28,7 +28,9 @@ class FleetUnit {
     final description = (e['description'] as String?)?.trim();
     final type = category == 'fire_truck'
         ? 'Fire Truck'
-        : (description != null && description.isNotEmpty ? description : (category ?? 'Unit'));
+        : (description != null && description.isNotEmpty
+              ? description
+              : (category ?? 'Unit'));
     return FleetUnit(
       id: e['id'] as String,
       name: (e['name'] as String?) ?? 'Unit',

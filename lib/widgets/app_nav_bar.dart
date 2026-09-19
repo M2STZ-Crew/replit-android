@@ -95,10 +95,10 @@ class AppNavBar extends StatelessWidget {
             bottom: 0,
             height: _tabs + below,
             child: DecoratedBox(
-              decoration: const BoxDecoration(
-                color: AppColors.background,
+              decoration: BoxDecoration(
+                color: context.pal.background,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(top: BorderSide(color: AppColors.line)),
+                border: Border(top: BorderSide(color: context.pal.line)),
               ),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(8, 0, 8, below),
@@ -146,7 +146,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.onBackground : AppColors.muted;
+    final color = selected ? context.pal.onBackground : context.pal.muted;
     return Semantics(
       button: true,
       selected: selected,
@@ -166,14 +166,14 @@ class _NavItem extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(tab.icon!, width: 24, height: 24, color: color),
+                Image.asset(tab.icon!, width: 22, height: 22, color: color),
                 const SizedBox(height: 5),
                 Text(
                   tab.label,
                   maxLines: 1,
                   style: selected
-                      ? AppText.labelSm.copyWith(color: color)
-                      : AppText.caption.copyWith(color: color),
+                      ? context.type.labelSm.copyWith(color: color)
+                      : context.type.caption.copyWith(color: color),
                 ),
               ],
             ),
@@ -207,24 +207,26 @@ class _SosDisc extends StatelessWidget {
           height: 72,
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: context.pal.background,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: AppColors.accent.withValues(alpha: active ? 0.55 : 0.26),
+                color: context.pal.accent.withValues(
+                  alpha: active ? 0.55 : 0.26,
+                ),
                 blurRadius: active ? 22 : 7,
                 spreadRadius: active ? 1 : 0,
               ),
             ],
           ),
-          child: const DecoratedBox(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 begin: Alignment(-0.21, -1),
                 end: Alignment(0.21, 1),
                 stops: [0.076, 0.916],
-                colors: [AppColors.gradientStart, AppColors.gradientEnd],
+                colors: [context.pal.gradientStart, context.pal.gradientEnd],
               ),
             ),
             child: Center(

@@ -28,19 +28,24 @@ Future<bool> openCoordinatorIncident(
   final navigator = Navigator.of(context);
 
   if (const {'dispatched', 'en_route', 'arrived'}.contains(status)) {
-    return await navigator.push<bool>(MaterialPageRoute(
-          builder: (_) => SubAdminIncidentCommandScreen(areaId: areaId, me: me, api: api),
-        )) ==
+    return await navigator.push<bool>(
+          MaterialPageRoute(
+            builder: (_) =>
+                SubAdminIncidentCommandScreen(areaId: areaId, me: me, api: api),
+          ),
+        ) ==
         true;
   }
   if (status == 'post_incident_report') {
-    return await navigator.push<bool>(MaterialPageRoute(
-          builder: (_) => PostIncidentReportScreen(
-            areaId: areaId,
-            designation: incident['designation'] as String?,
-            api: api,
+    return await navigator.push<bool>(
+          MaterialPageRoute(
+            builder: (_) => PostIncidentReportScreen(
+              areaId: areaId,
+              designation: incident['designation'] as String?,
+              api: api,
+            ),
           ),
-        )) ==
+        ) ==
         true;
   }
 
@@ -52,20 +57,22 @@ Future<bool> openCoordinatorIncident(
   }
   if (!context.mounted) return false;
   if (reports.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No reports to review yet.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('No reports to review yet.')));
     return false;
   }
-  return await navigator.push<bool>(MaterialPageRoute(
-        builder: (_) => SubAdminIncidentReportScreen(
-          report: (reports.first as Map).cast<String, dynamic>(),
-          areaId: areaId,
-          status: status,
-          agency: me['agency_type'] as String?,
-          me: me,
-          api: api,
+  return await navigator.push<bool>(
+        MaterialPageRoute(
+          builder: (_) => SubAdminIncidentReportScreen(
+            report: (reports.first as Map).cast<String, dynamic>(),
+            areaId: areaId,
+            status: status,
+            agency: me['agency_type'] as String?,
+            me: me,
+            api: api,
+          ),
         ),
-      )) ==
+      ) ==
       true;
 }

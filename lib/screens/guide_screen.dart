@@ -36,7 +36,7 @@ class GuideScreen extends StatelessWidget {
     final rest = kGuideArticles.where((g) => g != featured).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.guides),
       body: SafeArea(
         bottom: false,
@@ -54,9 +54,9 @@ class GuideScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 22),
-                const Text(
+                Text(
                   'Short steps to follow while help is on the way.',
-                  style: AppText.body,
+                  style: context.type.body,
                 ),
                 const SizedBox(height: 32),
                 _FeaturedGuide(
@@ -66,12 +66,12 @@ class GuideScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 Row(
                   children: [
-                    const Expanded(
-                      child: Eyebrow('All guides', color: AppColors.accent),
+                    Expanded(
+                      child: Eyebrow('All guides', color: context.pal.accent),
                     ),
                     Eyebrow(
                       '${kGuideArticles.length} lessons',
-                      color: AppColors.muted,
+                      color: context.pal.muted,
                     ),
                   ],
                 ),
@@ -124,14 +124,14 @@ class _FeaturedGuide extends StatelessWidget {
       label: 'Start here: ${article.title}. Open the full guide.',
       child: Panel(
         padding: const EdgeInsets.all(20),
-        border: AppColors.accent.withValues(alpha: 0.45),
+        border: context.pal.accent.withValues(alpha: 0.45),
         gradient: LinearGradient(
           begin: const Alignment(-0.27, -1),
           end: const Alignment(0.27, 1),
           stops: const [0.12, 0.87],
           colors: [
-            AppColors.accent.withValues(alpha: 0.13),
-            AppColors.live.withValues(alpha: 0.06),
+            context.pal.accent.withValues(alpha: 0.13),
+            context.pal.live.withValues(alpha: 0.06),
           ],
         ),
         onTap: onTap,
@@ -144,13 +144,13 @@ class _FeaturedGuide extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.live.withValues(alpha: 0.16),
+                    color: context.pal.live.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(AppRadius.control),
                   ),
                   alignment: Alignment.center,
                   child: fire
                       ? Image.asset(Art.incident, width: 20, height: 20)
-                      : Icon(article.icon, size: 20, color: AppColors.live),
+                      : Icon(article.icon, size: 20, color: context.pal.live),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -160,12 +160,14 @@ class _FeaturedGuide extends StatelessWidget {
                     children: [
                       Text(
                         'START HERE · ${article.readMins} MIN READ',
-                        style: AppText.tag.copyWith(color: AppColors.accent),
+                        style: context.type.tag.copyWith(
+                          color: context.pal.accent,
+                        ),
                       ),
                       const SizedBox(height: 5),
                       Text(
                         article.title.toUpperCase(),
-                        style: AppText.headline,
+                        style: context.type.headline,
                       ),
                     ],
                   ),
@@ -182,14 +184,18 @@ class _FeaturedGuide extends StatelessWidget {
                     width: 13,
                     child: Text(
                       '${i + 1}',
-                      style: AppText.labelSm.copyWith(color: AppColors.accent),
+                      style: context.type.labelSm.copyWith(
+                        color: context.pal.accent,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 11),
                   Expanded(
                     child: Text(
                       step,
-                      style: AppText.detail.copyWith(color: AppColors.textSoft),
+                      style: context.type.detail.copyWith(
+                        color: context.pal.textSoft,
+                      ),
                     ),
                   ),
                 ],
@@ -225,19 +231,21 @@ class _GuideRow extends StatelessWidget {
                 article.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppText.rowValue.copyWith(color: AppColors.onBackground),
+                style: context.type.rowValue.copyWith(
+                  color: context.pal.onBackground,
+                ),
               ),
             ),
             const SizedBox(width: 14),
             Text(
               '${article.readMins} MIN',
-              style: AppText.tag.copyWith(color: AppColors.muted),
+              style: context.type.tag.copyWith(color: context.pal.muted),
             ),
             const SizedBox(width: 14),
-            const Icon(
+            Icon(
               Icons.chevron_right_rounded,
               size: 16,
-              color: AppColors.muted,
+              color: context.pal.muted,
             ),
           ],
         ),

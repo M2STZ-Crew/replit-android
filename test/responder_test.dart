@@ -24,7 +24,8 @@ class StreamGeo extends GeolocatorPlatform {
   Future<bool> isLocationServiceEnabled() async => true;
 
   @override
-  Future<LocationPermission> checkPermission() async => LocationPermission.whileInUse;
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.whileInUse;
 
   @override
   Stream<Position> getPositionStream({LocationSettings? locationSettings}) {
@@ -70,21 +71,38 @@ void main() {
   group('routing, as the responder sees it', () {
     const detail = {
       'routes': [
-        {'agency': 'medical', 'organization_id': 'org-ems', 'organization_name': 'Pasay EMS'},
-        {'agency': 'police', 'organization_id': null, 'organization_name': null},
+        {
+          'agency': 'medical',
+          'organization_id': 'org-ems',
+          'organization_name': 'Pasay EMS',
+        },
+        {
+          'agency': 'police',
+          'organization_id': null,
+          'organization_name': null,
+        },
       ],
     };
 
     test('a route to my own team says so', () {
-      expect(routingLabel(detail, agency: 'medical', orgId: 'org-ems'), 'ROUTED TO YOUR TEAM');
+      expect(
+        routingLabel(detail, agency: 'medical', orgId: 'org-ems'),
+        'ROUTED TO YOUR TEAM',
+      );
     });
 
     test('a route to the agency as a whole names the agency', () {
-      expect(routingLabel(detail, agency: 'police', orgId: 'org-x'), 'ROUTED TO POLICE');
+      expect(
+        routingLabel(detail, agency: 'police', orgId: 'org-x'),
+        'ROUTED TO POLICE',
+      );
     });
 
     test('a route to another team in my agency names that team', () {
-      expect(routingLabel(detail, agency: 'medical', orgId: 'org-other'), 'ROUTED TO PASAY EMS');
+      expect(
+        routingLabel(detail, agency: 'medical', orgId: 'org-other'),
+        'ROUTED TO PASAY EMS',
+      );
     });
 
     test('nothing routed to my agency, no label', () {
@@ -93,8 +111,13 @@ void main() {
     });
 
     test('a feed summary only knows the agencies', () {
-      const summary = {'routed_agencies': ['fire_volunteer']};
-      expect(routingLabel(summary, agency: 'fire_volunteer'), 'ROUTED TO FIRE VOLUNTEER');
+      const summary = {
+        'routed_agencies': ['fire_volunteer'],
+      };
+      expect(
+        routingLabel(summary, agency: 'fire_volunteer'),
+        'ROUTED TO FIRE VOLUNTEER',
+      );
       expect(routingLabel(summary, agency: 'police'), isNull);
     });
   });
@@ -108,7 +131,11 @@ void main() {
       client: MockClient((req) async {
         posted.add(jsonDecode(req.body) as Map<String, dynamic>);
         return http.Response(
-          jsonEncode({'message': status == 200 ? 'Location recorded.' : 'No active dispatch.'}),
+          jsonEncode({
+            'message': status == 200
+                ? 'Location recorded.'
+                : 'No active dispatch.',
+          }),
           status,
         );
       }),
@@ -124,32 +151,41 @@ void main() {
     // pending timer (the five-second beat) before tearDown runs.
     tearDown(() => tracker.stop());
 
-    testWidgets('the first point goes at once, then the latest every five seconds', (tester) async {
-      await tester.pumpWidget(const SizedBox());
-      tracker.api = server();
-      await tracker.start(incidentId: 'a1', dispatchId: 'd1');
-      expect(tracker.sharingFor.value, 'a1');
+    testWidgets(
+      'the first point goes at once, then the latest every five seconds',
+      (tester) async {
+        await tester.pumpWidget(const SizedBox());
+        tracker.api = server();
+        await tracker.start(incidentId: 'a1', dispatchId: 'd1');
+        expect(tracker.sharingFor.value, 'a1');
 
-      geo.streams.single.add(at(14.500));
-      await tester.pump();
-      expect(posted, hasLength(1));
-      expect(posted.single['dispatch_id'], 'd1');
+        geo.streams.single.add(at(14.500));
+        await tester.pump();
+        expect(posted, hasLength(1));
+        expect(posted.single['dispatch_id'], 'd1');
 
-      // Three fixes inside one beat: only the newest is sent.
-      geo.streams.single
-        ..add(at(14.501))
-        ..add(at(14.502))
-        ..add(at(14.503));
-      await tester.pump(const Duration(seconds: 5));
-      expect(posted, hasLength(2));
-      expect(posted.last['lat'], 14.503);
+        // Three fixes inside one beat: only the newest is sent.
+        geo.streams.single
+          ..add(at(14.501))
+          ..add(at(14.502))
+          ..add(at(14.503));
+        await tester.pump(const Duration(seconds: 5));
+        expect(posted, hasLength(2));
+        expect(posted.last['lat'], 14.503);
 
-      await tester.pump(const Duration(seconds: 5));
-      expect(posted, hasLength(3), reason: 'the beat keeps going with no new fix');
-      await tracker.stop();
-    });
+        await tester.pump(const Duration(seconds: 5));
+        expect(
+          posted,
+          hasLength(3),
+          reason: 'the beat keeps going with no new fix',
+        );
+        await tracker.stop();
+      },
+    );
 
-    testWidgets('it stops by itself once the dispatch has ended', (tester) async {
+    testWidgets('it stops by itself once the dispatch has ended', (
+      tester,
+    ) async {
       await tester.pumpWidget(const SizedBox());
       tracker.api = server(status: 403); // fire out, or withdrawn
       await tracker.start(incidentId: 'a1', dispatchId: 'd1');
@@ -158,10 +194,16 @@ void main() {
       expect(tracker.isSharing, isFalse);
 
       await tester.pump(const Duration(seconds: 15));
-      expect(posted, hasLength(1), reason: 'nothing more is sent after the refusal');
+      expect(
+        posted,
+        hasLength(1),
+        reason: 'nothing more is sent after the refusal',
+      );
     });
 
-    testWidgets('opening the incident again does not start a second stream', (tester) async {
+    testWidgets('opening the incident again does not start a second stream', (
+      tester,
+    ) async {
       await tester.pumpWidget(const SizedBox());
       tracker.api = server();
       await tracker.start(incidentId: 'a1', dispatchId: 'd1');
@@ -170,22 +212,25 @@ void main() {
       await tracker.stop();
     });
 
-    testWidgets('a refused foreground service still shares while the app is open', (tester) async {
-      await tester.pumpWidget(const SizedBox());
-      tracker.api = server();
-      await tracker.start(incidentId: 'a1', dispatchId: 'd1');
-      expect(geo.settings.first, isA<AndroidSettings>());
+    testWidgets(
+      'a refused foreground service still shares while the app is open',
+      (tester) async {
+        await tester.pumpWidget(const SizedBox());
+        tracker.api = server();
+        await tracker.start(incidentId: 'a1', dispatchId: 'd1');
+        expect(geo.settings.first, isA<AndroidSettings>());
 
-      geo.streams.first.addError(Exception('foreground service not allowed'));
-      await tester.pump();
-      expect(geo.settings, hasLength(2));
-      expect(geo.settings.last, isNot(isA<AndroidSettings>()));
-      expect(tracker.isSharing, isTrue);
+        geo.streams.first.addError(Exception('foreground service not allowed'));
+        await tester.pump();
+        expect(geo.settings, hasLength(2));
+        expect(geo.settings.last, isNot(isA<AndroidSettings>()));
+        expect(tracker.isSharing, isTrue);
 
-      geo.streams.last.add(at(14.5));
-      await tester.pump();
-      expect(posted, hasLength(1));
-      await tracker.stop();
-    });
+        geo.streams.last.add(at(14.5));
+        await tester.pump();
+        expect(posted, hasLength(1));
+        await tracker.stop();
+      },
+    );
   });
 }

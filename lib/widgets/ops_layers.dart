@@ -39,36 +39,69 @@ class OpsLayer {
 List<OpsPoint> _points(List<dynamic> rows, String latKey, String lngKey) => [
   for (final r in rows.cast<Map<String, dynamic>>())
     if (r[latKey] != null && r[lngKey] != null)
-      OpsPoint(LatLng((r[latKey] as num).toDouble(), (r[lngKey] as num).toDouble())),
+      OpsPoint(
+        LatLng((r[latKey] as num).toDouble(), (r[lngKey] as num).toDouble()),
+      ),
 ];
 
 /// The layers, in chip order. 'incidents' is first and has no loader.
 List<OpsLayer> opsLayers(ApiClient api) => [
-  const OpsLayer('incidents', 'Incidents', AppColors.live, null),
+  OpsLayer('incidents', 'Incidents', AppColors.live, null),
   OpsLayer('evac', 'Evacuation Sites', AppColors.ok, () async {
     final rows = (await api.getEvacuationSites()).cast<Map<String, dynamic>>();
     return [
       for (final r in rows)
         if (r['latitude'] != null && r['longitude'] != null)
           OpsPoint(
-            LatLng((r['latitude'] as num).toDouble(), (r['longitude'] as num).toDouble()),
+            LatLng(
+              (r['latitude'] as num).toDouble(),
+              (r['longitude'] as num).toDouble(),
+            ),
             outside: r['outside_pasay'] == true,
           ),
     ];
   }),
-  OpsLayer('risk', 'Risk Areas', AppColors.accent,
-      () async => _points(await api.getRiskZones(), 'centroid_lat', 'centroid_lng')),
-  OpsLayer('hydrants', 'Fire Hydrants', AppColors.muted,
-      () async => _points(await api.getHydrants(), 'latitude', 'longitude')),
-  OpsLayer('water', 'Bodies of Water', const Color(0xFF4EA8FF),
-      () async => _points(await api.getBodiesOfWater(), 'latitude', 'longitude')),
-  OpsLayer('cisterns', 'Cisterns', const Color(0xFF9A8CFF),
-      () async => _points(await api.getUndergroundCisterns(), 'latitude', 'longitude')),
+  OpsLayer(
+    'risk',
+    'Risk Areas',
+    AppColors.accent,
+    () async =>
+        _points(await api.getRiskZones(), 'centroid_lat', 'centroid_lng'),
+  ),
+  OpsLayer(
+    'hydrants',
+    'Fire Hydrants',
+    AppColors.muted,
+    () async => _points(await api.getHydrants(), 'latitude', 'longitude'),
+  ),
+  OpsLayer(
+    'water',
+    'Bodies of Water',
+    const Color(0xFF4EA8FF),
+    () async => _points(await api.getBodiesOfWater(), 'latitude', 'longitude'),
+  ),
+  OpsLayer(
+    'cisterns',
+    'Cisterns',
+    const Color(0xFF9A8CFF),
+    () async =>
+        _points(await api.getUndergroundCisterns(), 'latitude', 'longitude'),
+  ),
   // Static reference lists held in the app — there is no station GIS table.
-  OpsLayer('fire', 'Fire Department', AppColors.live,
-      () async => [for (final f in kFireStations) OpsPoint(LatLng(f.lat, f.lng))]),
-  OpsLayer('police', 'Police Department', AppColors.info,
-      () async => [for (final f in kPoliceStations) OpsPoint(LatLng(f.lat, f.lng))]),
+  OpsLayer(
+    'fire',
+    'Fire Department',
+    AppColors.live,
+    () async => [for (final f in kFireStations) OpsPoint(LatLng(f.lat, f.lng))],
+  ),
+  OpsLayer(
+    'police',
+    'Police Department',
+    AppColors.info,
+    () async => [
+      for (final f in kPoliceStations) OpsPoint(LatLng(f.lat, f.lng)),
+    ],
+  ),
 ];
 
 /// The marker for one GIS point: a small dot, or for a shelter outside Pasay
@@ -97,7 +130,10 @@ Marker opsMarker(OpsLayer layer, OpsPoint p) {
       decoration: BoxDecoration(
         color: layer.color,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 1.5),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.6),
+          width: 1.5,
+        ),
       ),
     ),
   );

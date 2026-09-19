@@ -36,23 +36,30 @@ Future<bool> offerPostIncidentReport(
     context: context,
     barrierDismissible: false,
     builder: (dctx) => AlertDialog(
-      backgroundColor: AppColors.surface,
-      title: const Text('Fire out recorded',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-      content: const Text(
+      backgroundColor: context.pal.surface,
+      title: const Text(
+        'Fire out recorded',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+      ),
+      content: Text(
         'File the Post-Incident Report now — truck, driver, roster and equipment? '
         'The incident closes when it is filed. You can also do it later from Pending reports.',
-        style: TextStyle(color: AppColors.muted),
+        style: TextStyle(color: context.pal.muted),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dctx).pop(false),
-          child: const Text('LATER', style: TextStyle(color: AppColors.muted)),
+          child: Text('LATER', style: TextStyle(color: context.pal.muted)),
         ),
         TextButton(
           onPressed: () => Navigator.of(dctx).pop(true),
-          child: const Text('FILE NOW',
-              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+          child: Text(
+            'FILE NOW',
+            style: TextStyle(
+              color: context.pal.accent,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       ],
     ),
@@ -61,13 +68,21 @@ Future<bool> offerPostIncidentReport(
   if (fileNow == true) {
     final filed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => PostIncidentReportScreen(areaId: areaId, designation: designation, api: api),
+        builder: (_) => PostIncidentReportScreen(
+          areaId: areaId,
+          designation: designation,
+          api: api,
+        ),
       ),
     );
     return filed == true;
   }
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Fire out. The Post-Incident Report is waiting in Pending reports.')),
+    const SnackBar(
+      content: Text(
+        'Fire out. The Post-Incident Report is waiting in Pending reports.',
+      ),
+    ),
   );
   return false;
 }
@@ -92,7 +107,8 @@ class PostIncidentReportScreen extends StatefulWidget {
   final ApiClient? api;
 
   @override
-  State<PostIncidentReportScreen> createState() => _PostIncidentReportScreenState();
+  State<PostIncidentReportScreen> createState() =>
+      _PostIncidentReportScreenState();
 }
 
 class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
@@ -130,7 +146,13 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   @override
   void dispose() {
     for (final c in [
-      _truck, _truckType, _driver, _memberName, _memberRole, _equipmentItem, _notes,
+      _truck,
+      _truckType,
+      _driver,
+      _memberName,
+      _memberRole,
+      _equipmentItem,
+      _notes,
     ]) {
       c.dispose();
     }
@@ -223,21 +245,28 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
-        title: const Text('File and close?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        content: const Text(
+        title: const Text(
+          'File and close?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
           'The report is saved once and cannot be edited. Filing it closes the incident.',
-          style: TextStyle(color: AppColors.muted),
+          style: TextStyle(color: context.pal.muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(false),
-            child: const Text('REVIEW', style: TextStyle(color: AppColors.muted)),
+            child: Text('REVIEW', style: TextStyle(color: context.pal.muted)),
           ),
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(true),
-            child: const Text('FILE REPORT',
-                style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+            child: Text(
+              'FILE REPORT',
+              style: TextStyle(
+                color: context.pal.accent,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
         ],
       ),
@@ -279,10 +308,12 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   Widget build(BuildContext context) {
     final missing = _missing;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: _loading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+            ? Center(
+                child: CircularProgressIndicator(color: context.pal.accent),
+              )
             : ListView(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                 children: [
@@ -298,15 +329,25 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                     _unitChips(),
                     const SizedBox(height: 12),
                   ],
-                  _field(_truck, 'Unit name or plate', onChanged: (_) => _truckEquipmentId = null),
+                  _field(
+                    _truck,
+                    'Unit name or plate',
+                    onChanged: (_) => _truckEquipmentId = null,
+                  ),
                   const SizedBox(height: 10),
                   _field(_truckType, 'Unit type'),
                   const SizedBox(height: 24),
                   _section('Driver'),
-                  _field(_driver, 'Driver name', onChanged: (_) => _driverUserId = null),
+                  _field(
+                    _driver,
+                    'Driver name',
+                    onChanged: (_) => _driverUserId = null,
+                  ),
                   const SizedBox(height: 24),
                   _section('Roster · ${_roster.length}'),
-                  ..._roster.asMap().entries.map((e) => _memberRow(e.key, e.value)),
+                  ..._roster.asMap().entries.map(
+                    (e) => _memberRow(e.key, e.value),
+                  ),
                   _addMemberRow(),
                   const SizedBox(height: 24),
                   _section('Equipment taken · ${_equipment.length}'),
@@ -320,7 +361,10 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                     onSubmitted: _addEquipment,
                     trailing: IconButton(
                       onPressed: () => _addEquipment(_equipmentItem.text),
-                      icon: const Icon(Icons.add_circle_outline, color: AppColors.accent),
+                      icon: Icon(
+                        Icons.add_circle_outline,
+                        color: context.pal.accent,
+                      ),
                       tooltip: 'Add item',
                     ),
                   ),
@@ -331,7 +375,10 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                   if (missing.isNotEmpty) ...[
                     Text(
                       'Still needed: ${missing.join(', ')}',
-                      style: AppText.meta.copyWith(color: AppColors.warn, height: 1.4),
+                      style: context.type.meta.copyWith(
+                        color: context.pal.warn,
+                        height: 1.4,
+                      ),
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -348,23 +395,28 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   }
 
   Widget _intro() {
-    final at = _resolvedAt == null ? null : DateTime.tryParse(_resolvedAt!)?.toLocal();
+    final at = _resolvedAt == null
+        ? null
+        : DateTime.tryParse(_resolvedAt!)?.toLocal();
     final when = at == null
         ? null
         : '${at.hour % 12 == 0 ? 12 : at.hour % 12}:${at.minute.toString().padLeft(2, '0')} '
-            '${at.hour < 12 ? 'AM' : 'PM'}';
+              '${at.hour < 12 ? 'AM' : 'PM'}';
     return Panel(
-      color: AppColors.glassDim,
+      color: context.pal.glassDim,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const IconWell(tint: AppColors.accent, icon: Icons.assignment_turned_in_outlined),
+          IconWell(
+            tint: context.pal.accent,
+            icon: Icons.assignment_turned_in_outlined,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
               '${when == null ? 'Fire out.' : 'Fire out at $when.'} File this once, for everyone '
               'who went. It closes the incident and cannot be edited afterwards.',
-              style: AppText.body.copyWith(fontSize: 13),
+              style: context.type.body.copyWith(fontSize: 13),
             ),
           ),
         ],
@@ -374,7 +426,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
 
   Widget _section(String label) => Padding(
     padding: const EdgeInsets.only(bottom: 10),
-    child: Eyebrow(label, color: AppColors.label),
+    child: Eyebrow(label, color: context.pal.label),
   );
 
   Widget _field(
@@ -406,17 +458,23 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
             label: Text(u.name),
             selected: _truckEquipmentId == u.id,
             onSelected: (_) => _pickUnit(u),
-            selectedColor: AppColors.accentTint,
-            backgroundColor: AppColors.glass,
+            selectedColor: context.pal.accentTint,
+            backgroundColor: context.pal.glass,
             side: BorderSide(
-              color: _truckEquipmentId == u.id ? AppColors.accent : AppColors.line,
+              color: _truckEquipmentId == u.id
+                  ? context.pal.accent
+                  : context.pal.line,
             ),
             labelStyle: TextStyle(
-              color: _truckEquipmentId == u.id ? AppColors.accent : AppColors.textSoft,
+              color: _truckEquipmentId == u.id
+                  ? context.pal.accent
+                  : context.pal.textSoft,
               fontWeight: FontWeight.w700,
             ),
             showCheckmark: false,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.chip)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.chip),
+            ),
           ),
       ],
     );
@@ -427,7 +485,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Panel(
         radius: AppRadius.control,
-        color: AppColors.glassDim,
+        color: context.pal.glassDim,
         padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
         child: Row(
           children: [
@@ -435,17 +493,24 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(m.name, style: AppText.rowTitle.copyWith(fontSize: 13)),
+                  Text(
+                    m.name,
+                    style: context.type.rowTitle.copyWith(fontSize: 13),
+                  ),
                   if (m.role != null && m.role!.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    Text(m.role!, style: AppText.meta),
+                    Text(m.role!, style: context.type.meta),
                   ],
                 ],
               ),
             ),
             IconButton(
               onPressed: () => setState(() => _roster.removeAt(index)),
-              icon: const Icon(Icons.close_rounded, color: AppColors.muted, size: 18),
+              icon: Icon(
+                Icons.close_rounded,
+                color: context.pal.muted,
+                size: 18,
+              ),
               tooltip: 'Remove ${m.name}',
             ),
           ],
@@ -459,10 +524,16 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       children: [
         Expanded(flex: 3, child: _field(_memberName, 'Name')),
         const SizedBox(width: 8),
-        Expanded(flex: 2, child: _field(_memberRole, 'Role', onSubmitted: (_) => _addMember())),
+        Expanded(
+          flex: 2,
+          child: _field(_memberRole, 'Role', onSubmitted: (_) => _addMember()),
+        ),
         IconButton(
           onPressed: _addMember,
-          icon: const Icon(Icons.person_add_alt_1_outlined, color: AppColors.accent),
+          icon: Icon(
+            Icons.person_add_alt_1_outlined,
+            color: context.pal.accent,
+          ),
           tooltip: 'Add to roster',
         ),
       ],
@@ -471,7 +542,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
 
   Widget _equipmentChips() {
     if (_equipment.isEmpty) {
-      return Text('Nothing added yet.', style: AppText.meta);
+      return Text('Nothing added yet.', style: context.type.meta);
     }
     return Wrap(
       spacing: 8,
@@ -481,11 +552,16 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
           InputChip(
             label: Text(item),
             onDeleted: () => setState(() => _equipment.remove(item)),
-            backgroundColor: AppColors.glass,
-            side: const BorderSide(color: AppColors.line),
-            labelStyle: const TextStyle(color: AppColors.textSoft, fontWeight: FontWeight.w600),
-            deleteIconColor: AppColors.muted,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.chip)),
+            backgroundColor: context.pal.glass,
+            side: BorderSide(color: context.pal.line),
+            labelStyle: TextStyle(
+              color: context.pal.textSoft,
+              fontWeight: FontWeight.w600,
+            ),
+            deleteIconColor: context.pal.muted,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.chip),
+            ),
           ),
       ],
     );
@@ -493,7 +569,9 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
 
   Widget _suggestions() {
     final left = kCommonEquipment
-        .where((s) => !_equipment.any((e) => e.toLowerCase() == s.toLowerCase()))
+        .where(
+          (s) => !_equipment.any((e) => e.toLowerCase() == s.toLowerCase()),
+        )
         .toList();
     if (left.isEmpty) return const SizedBox.shrink();
     return Wrap(
@@ -505,9 +583,11 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
             label: Text('+ $s'),
             onPressed: () => _addEquipment(s),
             backgroundColor: Colors.transparent,
-            side: const BorderSide(color: AppColors.line),
-            labelStyle: const TextStyle(color: AppColors.label, fontSize: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.chip)),
+            side: BorderSide(color: context.pal.line),
+            labelStyle: TextStyle(color: context.pal.label, fontSize: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.chip),
+            ),
           ),
       ],
     );

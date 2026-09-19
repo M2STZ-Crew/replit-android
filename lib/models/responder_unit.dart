@@ -15,12 +15,28 @@ class ResponderUnit {
 /// report picker and the live "add more help" list (which excludes the ones
 /// already requested).
 const List<ResponderUnit> kResponderUnits = [
-  ResponderUnit('fire_volunteer', 'Fire Department', 'HERCULES FIRE VOLUNTEER',
-      Icons.local_fire_department),
-  ResponderUnit('police', 'Police Department', 'PASAY POLICE STATION',
-      Icons.local_police_outlined),
-  ResponderUnit('medical', 'Medical Support', 'METRO PASAY HOSPITAL',
-      Icons.medical_services_outlined),
-  ResponderUnit('barangay', 'Barangay Personnel', 'BARANGAY 76, BARANGAY HALL',
-      Icons.groups_outlined),
+  ResponderUnit(
+    'fire_volunteer',
+    'Fire Department',
+    'HERCULES FIRE VOLUNTEER',
+    Icons.local_fire_department,
+  ),
+  ResponderUnit(
+    'police',
+    'Police Department',
+    'PASAY POLICE STATION',
+    Icons.local_police_outlined,
+  ),
+  ResponderUnit(
+    'medical',
+    'Medical Support',
+    'METRO PASAY HOSPITAL',
+    Icons.medical_services_outlined,
+  ),
+  ResponderUnit(
+    'barangay',
+    'Barangay Personnel',
+    'BARANGAY 76, BARANGAY HALL',
+    Icons.groups_outlined,
+  ),
 ];

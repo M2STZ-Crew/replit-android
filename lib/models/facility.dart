@@ -19,16 +19,49 @@ class Facility {
 }
 
 const List<Facility> kFireStations = [
-  Facility('Pasay City Central Fire Station', 'BFP — F.B. Harrison St', FacilityKind.fire,
-      14.5377, 120.9969),
-  Facility('Tramo Fire Sub-Station', 'BFP — Tramo, Pasay', FacilityKind.fire, 14.5440, 121.0005),
-  Facility('NAIA Fire Station', 'BFP — Airport district', FacilityKind.fire, 14.5110, 121.0130),
+  Facility(
+    'Pasay City Central Fire Station',
+    'BFP — F.B. Harrison St',
+    FacilityKind.fire,
+    14.5377,
+    120.9969,
+  ),
+  Facility(
+    'Tramo Fire Sub-Station',
+    'BFP — Tramo, Pasay',
+    FacilityKind.fire,
+    14.5440,
+    121.0005,
+  ),
+  Facility(
+    'NAIA Fire Station',
+    'BFP — Airport district',
+    FacilityKind.fire,
+    14.5110,
+    121.0130,
+  ),
 ];
 
 const List<Facility> kPoliceStations = [
-  Facility('Pasay City Police Station', 'PNP — City Headquarters', FacilityKind.police,
-      14.5402, 120.9958),
-  Facility('Police Station 1 — Malibay', 'PNP — Malibay', FacilityKind.police, 14.5455, 120.9990),
-  Facility('Police Station 2 — Maricaban', 'PNP — Maricaban', FacilityKind.police, 14.5300,
-      121.0050),
+  Facility(
+    'Pasay City Police Station',
+    'PNP — City Headquarters',
+    FacilityKind.police,
+    14.5402,
+    120.9958,
+  ),
+  Facility(
+    'Police Station 1 — Malibay',
+    'PNP — Malibay',
+    FacilityKind.police,
+    14.5455,
+    120.9990,
+  ),
+  Facility(
+    'Police Station 2 — Maricaban',
+    'PNP — Maricaban',
+    FacilityKind.police,
+    14.5300,
+    121.0050,
+  ),
 ];

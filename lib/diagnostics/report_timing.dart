@@ -51,8 +51,9 @@ class ReportTiming {
     if (!_clock.isRunning) return null;
     _clock.stop();
     String s(Duration d) => '${(d.inMilliseconds / 1000).toStringAsFixed(1)}s';
-    final line = StringBuffer('[report-timing] origin=$_origin outcome=$outcome ')
-      ..write('total=${s(_clock.elapsed)}');
+    final line = StringBuffer(
+      '[report-timing] origin=$_origin outcome=$outcome ',
+    )..write('total=${s(_clock.elapsed)}');
     for (final (step, at) in _marks) {
       line.write(' $step=${s(at)}');
     }

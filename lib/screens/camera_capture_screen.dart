@@ -197,7 +197,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.live),
+      SnackBar(content: Text(message), backgroundColor: context.pal.live),
     );
   }
 
@@ -251,7 +251,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.canvas,
+      backgroundColor: context.pal.canvas,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -283,14 +283,14 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
                     children: [
                       const BackWell(),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Eyebrow('Step 2 of 3', color: AppColors.accent),
+                            Eyebrow('Step 2 of 3', color: context.pal.accent),
                             SizedBox(height: 6),
-                            Text('SHOW THEM', style: AppText.screenTitle),
+                            Text('SHOW THEM', style: context.type.screenTitle),
                           ],
                         ),
                       ),
@@ -323,10 +323,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         !_camReady ||
         !c.value.isInitialized ||
         c.value.previewSize == null) {
-      return const ColoredBox(
+      return ColoredBox(
         color: Colors.black,
         child: Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
+          child: CircularProgressIndicator(color: context.pal.accent),
         ),
       );
     }
@@ -345,10 +345,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
   Widget _cameraError() {
     return ColoredBox(
-      color: AppColors.canvas,
+      color: context.pal.canvas,
       child: EmptyState(
         icon: Icons.no_photography_outlined,
-        tone: AppColors.live,
+        tone: context.pal.live,
         title: 'Camera unavailable',
         body:
             '$_camError\n\nA live photo of the scene is required to send a '
@@ -370,15 +370,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       height: 92,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.canvas,
+        color: context.pal.canvas,
         borderRadius: BorderRadius.circular(AppRadius.control),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.55)),
+        border: Border.all(color: context.pal.accent.withValues(alpha: 0.55)),
       ),
       child: _position == null
-          ? const Center(
+          ? Center(
               child: Icon(
                 Icons.location_searching,
-                color: AppColors.muted,
+                color: context.pal.muted,
                 size: 22,
               ),
             )
@@ -404,12 +404,12 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     return Panel(
       // A tap retries when the fix failed (location off, permission denied).
       onTap: problem != null ? () => _location.warmUp() : null,
-      color: AppColors.surfaceSolid.withValues(alpha: 0.92),
+      color: context.pal.surfaceSolid.withValues(alpha: 0.92),
       padding: const EdgeInsets.all(18),
       child: Row(
         children: [
-          const IconWell(
-            tint: AppColors.accent,
+          IconWell(
+            tint: context.pal.accent,
             icon: Icons.location_on,
             size: 40,
             glyph: 20,
@@ -420,13 +420,13 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Eyebrow('Geotagged', color: AppColors.accent),
+                Eyebrow('Geotagged', color: context.pal.accent),
                 const SizedBox(height: 6),
                 Text(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.cardTitle.copyWith(fontSize: 15),
+                  style: context.type.cardTitle.copyWith(fontSize: 15),
                 ),
                 const SizedBox(height: 5),
                 Text(
@@ -435,9 +435,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
                       : _coords(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.meta.copyWith(
+                  style: context.type.meta.copyWith(
                     color: _position == null && problem != null
-                        ? AppColors.live
+                        ? context.pal.live
                         : null,
                   ),
                 ),
@@ -454,9 +454,9 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSolid.withValues(alpha: 0.92),
+        color: context.pal.surfaceSolid.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(AppRadius.sheet),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -490,16 +490,16 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
           height: 48,
           decoration: BoxDecoration(
             color: active
-                ? AppColors.accent.withValues(alpha: 0.18)
-                : AppColors.glass,
+                ? context.pal.accent.withValues(alpha: 0.18)
+                : context.pal.glass,
             shape: BoxShape.circle,
             border: Border.all(
-              color: active ? AppColors.accent : AppColors.line,
+              color: active ? context.pal.accent : context.pal.line,
             ),
           ),
           child: Icon(
             icon,
-            color: active ? AppColors.accent : AppColors.onBackground,
+            color: active ? context.pal.accent : context.pal.onBackground,
             size: 21,
           ),
         ),
@@ -522,14 +522,14 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: AppColors.onBackground.withValues(alpha: 0.9),
+              color: context.pal.onBackground.withValues(alpha: 0.9),
               width: 3,
             ),
           ),
           padding: const EdgeInsets.all(5),
           child: DecoratedBox(
-            decoration: const BoxDecoration(
-              color: AppColors.onBackground,
+            decoration: BoxDecoration(
+              color: context.pal.onBackground,
               shape: BoxShape.circle,
             ),
             child: _capturing

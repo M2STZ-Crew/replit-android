@@ -7,8 +7,6 @@ import '../theme.dart';
 import '../api/api_client.dart';
 import '../screens/notifications_screen.dart';
 
-const Color _red = AppColors.live;
-
 /// A bell icon button (40×40, matching the app-bar icon boxes) with an unread
 /// badge. Tap opens the in-app notification inbox. Polls the unread count every
 /// 20 s and refreshes on return. Drop into any top bar.
@@ -47,9 +45,9 @@ class _NotificationBellState extends State<NotificationBell> {
   }
 
   Future<void> _open() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
     _refresh();
   }
 
@@ -67,13 +65,13 @@ class _NotificationBellState extends State<NotificationBell> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.notifications_none_rounded,
-                color: AppColors.onBackground,
+                color: context.pal.onBackground,
                 size: 19,
               ),
             ),
@@ -87,16 +85,16 @@ class _NotificationBellState extends State<NotificationBell> {
                   constraints: const BoxConstraints(minWidth: 18),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: _red,
+                    color: context.pal.live,
                     borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: AppColors.background, width: 2),
+                    border: Border.all(color: context.pal.background, width: 2),
                   ),
                   child: Text(
                     _unread > 9 ? '9+' : '$_unread',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.onBackground,
+                      color: context.pal.onBackground,
                     ),
                   ),
                 ),

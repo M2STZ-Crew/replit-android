@@ -46,7 +46,7 @@ class GuideDetailScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Could not open the dialler for ${h.displayNumber}.'),
-        backgroundColor: AppColors.live,
+        backgroundColor: context.pal.live,
       ),
     );
   }
@@ -56,7 +56,7 @@ class GuideDetailScreen extends StatelessWidget {
     final hotline = _hotline;
     var n = 0;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
@@ -65,17 +65,17 @@ class GuideDetailScreen extends StatelessWidget {
               children: [
                 const BackWell(),
                 const SizedBox(width: 16),
-                Expanded(child: Eyebrow(_kicker, color: AppColors.accent)),
+                Expanded(child: Eyebrow(_kicker, color: context.pal.accent)),
               ],
             ),
             const SizedBox(height: 24),
-            Text(article.title.toUpperCase(), style: AppText.heading1),
+            Text(article.title.toUpperCase(), style: context.type.heading1),
             const SizedBox(height: 10),
-            Text(article.intro, style: AppText.body),
+            Text(article.intro, style: context.type.body),
             const SizedBox(height: 20),
             for (final (i, section) in article.sections.indexed) ...[
               if (i > 0) const SizedBox(height: 18),
-              Eyebrow(section.heading, color: AppColors.muted),
+              Eyebrow(section.heading, color: context.pal.muted),
               const SizedBox(height: 10),
               for (final (j, point) in section.points.indexed) ...[
                 if (j > 0) const SizedBox(height: 10),
@@ -86,17 +86,17 @@ class GuideDetailScreen extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
+                Icon(
                   Icons.info_outline_rounded,
                   size: 14,
-                  color: AppColors.muted,
+                  color: context.pal.muted,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'General guidance, not medical advice. If someone is in '
                     'danger, send an SOS or call 911 first.',
-                    style: AppText.caption,
+                    style: context.type.caption,
                   ),
                 ),
               ],
@@ -133,14 +133,14 @@ class _Step extends StatelessWidget {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.16),
+              color: context.pal.accent.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(AppRadius.chip),
             ),
             alignment: Alignment.center,
             child: Text(
               '$number',
-              style: AppText.action.copyWith(
-                color: AppColors.accent,
+              style: context.type.action.copyWith(
+                color: context.pal.accent,
                 letterSpacing: 0,
               ),
             ),
@@ -149,7 +149,7 @@ class _Step extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: AppText.bodySm.copyWith(color: AppColors.textSoft),
+              style: context.type.bodySm.copyWith(color: context.pal.textSoft),
             ),
           ),
         ],
@@ -169,7 +169,7 @@ class _CallButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final shape = BorderRadius.circular(AppRadius.card);
     return Material(
-      color: AppColors.accent.withValues(alpha: 0.16),
+      color: context.pal.accent.withValues(alpha: 0.16),
       borderRadius: shape,
       child: InkWell(
         borderRadius: shape,
@@ -179,22 +179,22 @@ class _CallButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: shape,
-            border: Border.all(color: AppColors.accent.withValues(alpha: 0.45)),
+            border: Border.all(
+              color: context.pal.accent.withValues(alpha: 0.45),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.call_outlined,
-                size: 16,
-                color: AppColors.accent,
-              ),
+              Icon(Icons.call_outlined, size: 16, color: context.pal.accent),
               const SizedBox(width: 10),
               Flexible(
                 child: Text(
                   label.toUpperCase(),
                   textAlign: TextAlign.center,
-                  style: AppText.action.copyWith(color: AppColors.accent),
+                  style: context.type.action.copyWith(
+                    color: context.pal.accent,
+                  ),
                 ),
               ),
             ],

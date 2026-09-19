@@ -176,7 +176,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -200,7 +200,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     if (_error != null && _reports == null) {
       return EmptyState(
         icon: Icons.cloud_off_rounded,
-        tone: AppColors.live,
+        tone: context.pal.live,
         title: 'Could not load your reports',
         body: _error!,
         action: AppButton.secondary('Try again', onPressed: _load),
@@ -227,7 +227,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     }
 
     return RefreshIndicator(
-      color: AppColors.accent,
+      color: context.pal.accent,
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -243,7 +243,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                 child: StatTile(
                   value: '$active',
                   label: 'Active',
-                  color: active > 0 ? AppColors.live : null,
+                  color: active > 0 ? context.pal.live : null,
                 ),
               ),
               const SizedBox(width: 8),
@@ -251,7 +251,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                 child: StatTile(
                   value: '$resolved',
                   label: 'Resolved',
-                  color: AppColors.ok,
+                  color: context.pal.ok,
                 ),
               ),
             ],
@@ -270,8 +270,8 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
               Eyebrow(
                 label,
                 color: label == 'This month'
-                    ? AppColors.accent
-                    : AppColors.label,
+                    ? context.pal.accent
+                    : context.pal.label,
               ),
               const SizedBox(height: 12),
               for (final r in group) ...[
@@ -284,12 +284,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 1),
                 child: Icon(
                   Icons.lock_outline_rounded,
                   size: 15,
-                  color: AppColors.muted,
+                  color: context.pal.muted,
                 ),
               ),
               const SizedBox(width: 10),
@@ -298,7 +298,9 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                   'Other residents never see your name or your photos — '
                   'only the responders and barangay staff handling the '
                   'incident do.',
-                  style: AppText.caption.copyWith(color: AppColors.muted),
+                  style: context.type.caption.copyWith(
+                    color: context.pal.muted,
+                  ),
                 ),
               ),
             ],
@@ -332,7 +334,7 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = residentStatus(report['area_status'] as String?);
     final over = residentOver(status);
-    final tone = residentTone(status);
+    final tone = residentTone(status, context.pal);
     final asked = [
       for (final a in (report['selected_agencies'] as List? ?? const []))
         ?_agencies['$a'],
@@ -380,14 +382,14 @@ class _ReportCard extends StatelessWidget {
                         title.toUpperCase(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppText.cardTitle,
+                        style: context.type.cardTitle,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _when(_createdAt(report)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppText.caption,
+                        style: context.type.caption,
                       ),
                     ],
                   ),
@@ -400,7 +402,7 @@ class _ReportCard extends StatelessWidget {
             Divider(
               height: 1,
               thickness: 1,
-              color: over ? AppColors.line : tone.withValues(alpha: 0.16),
+              color: over ? context.pal.line : tone.withValues(alpha: 0.16),
             ),
             const SizedBox(height: 13),
             Row(
@@ -410,16 +412,16 @@ class _ReportCard extends StatelessWidget {
                     footer,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppText.caption.copyWith(
-                      color: over ? AppColors.muted : AppColors.label,
+                    style: context.type.caption.copyWith(
+                      color: over ? context.pal.muted : context.pal.label,
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   over ? 'DETAILS' : 'TRACK',
-                  style: AppText.eyebrow.copyWith(
-                    color: over ? AppColors.label : AppColors.accent,
+                  style: context.type.eyebrow.copyWith(
+                    color: over ? context.pal.label : context.pal.accent,
                   ),
                 ),
               ],
@@ -429,17 +431,17 @@ class _ReportCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.info_outline_rounded,
                     size: 15,
-                    color: AppColors.warn,
+                    color: context.pal.warn,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Being double-checked — the photo and your phone '
                       'disagreed on where it was taken.',
-                      style: AppText.caption,
+                      style: context.type.caption,
                     ),
                   ),
                 ],

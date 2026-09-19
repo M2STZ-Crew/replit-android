@@ -60,7 +60,7 @@ class HelpCenterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.pal.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
@@ -69,17 +69,17 @@ class HelpCenterScreen extends StatelessWidget {
             children: [
               _topBar(context),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Frequently asked',
                 style: TextStyle(
-                  color: AppColors.muted,
+                  color: context.pal.muted,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1,
                 ),
               ),
               const SizedBox(height: 12),
-              ..._faqs.map(_faqTile),
+              ..._faqs.map((faq) => _faqTile(context, faq)),
               const SizedBox(height: 20),
               _emergencyCard(context),
             ],
@@ -94,31 +94,31 @@ class HelpCenterScreen extends StatelessWidget {
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('Help Center'.toUpperCase(), style: AppText.screenTitle),
+        Text('Help Center'.toUpperCase(), style: context.type.screenTitle),
       ],
     );
   }
 
-  Widget _faqTile(_Faq faq) {
+  Widget _faqTile(BuildContext context, _Faq faq) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Panel(
         padding: EdgeInsets.zero,
-        color: AppColors.glassDim,
+        color: context.pal.glassDim,
         child: Theme(
-          data: ThemeData.dark().copyWith(dividerColor: Colors.transparent),
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
-            iconColor: AppColors.accent,
-            collapsedIconColor: AppColors.muted,
+            iconColor: context.pal.accentInk,
+            collapsedIconColor: context.pal.muted,
             tilePadding: const EdgeInsets.symmetric(horizontal: 18),
             childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
             title: Text(
               faq.question,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 18 / 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.onBackground,
+                color: context.pal.onBackground,
               ),
             ),
             children: [
@@ -126,10 +126,10 @@ class HelpCenterScreen extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   faq.answer,
-                  style: AppText.meta.copyWith(
+                  style: context.type.meta.copyWith(
                     fontSize: 12,
                     height: 18 / 12,
-                    color: AppColors.textSoft,
+                    color: context.pal.textSoft,
                   ),
                 ),
               ),
@@ -143,20 +143,20 @@ class HelpCenterScreen extends StatelessWidget {
   Widget _emergencyCard(BuildContext context) {
     return Panel(
       padding: const EdgeInsets.all(20),
-      color: AppColors.accent.withValues(alpha: 0.09),
-      border: AppColors.accent.withValues(alpha: 0.4),
+      color: context.pal.accent.withValues(alpha: 0.09),
+      border: context.pal.accent.withValues(alpha: 0.4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Eyebrow('In a real emergency', color: AppColors.accent),
+          Eyebrow('In a real emergency', color: context.pal.accent),
           const SizedBox(height: 10),
           Text(
             'Hold the SOS button, or dial a hotline directly. Do not wait if '
             'lives are at risk.',
-            style: AppText.meta.copyWith(
+            style: context.type.meta.copyWith(
               fontSize: 13,
               height: 19 / 13,
-              color: AppColors.textSoft,
+              color: context.pal.textSoft,
             ),
           ),
           const SizedBox(height: 16),

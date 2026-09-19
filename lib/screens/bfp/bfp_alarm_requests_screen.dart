@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../theme.dart';
 
-const Color _bg = AppColors.background;
-const Color _panel = AppColors.glassDim;
-const Color _panelBorder = AppColors.line;
-const Color _muted = AppColors.muted;
-const Color _label = AppColors.label;
-const Color _green = AppColors.ok;
-const Color _amber = AppColors.warn;
-const Color _red = AppColors.live;
+Color _bg = AppColors.background;
+Color _panel = AppColors.glassDim;
+Color _panelBorder = AppColors.line;
+Color _muted = AppColors.muted;
+Color _label = AppColors.label;
+Color _green = AppColors.ok;
+Color _amber = AppColors.warn;
+Color _red = AppColors.live;
 
 /// BFP alarm-request review queue: Fire-Volunteer sub-admins/responders raise
 /// alarm-escalation requests; a BFP sub-admin executes (applies the alarm level)
@@ -40,7 +40,10 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
   void initState() {
     super.initState();
     _load();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _load(silent: true));
+    _poll = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _load(silent: true),
+    );
   }
 
   @override
@@ -52,7 +55,9 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
   Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() => _loading = true);
     try {
-      final raw = await _api.getAlarmRequests(status: _pendingOnly ? 'pending' : null);
+      final raw = await _api.getAlarmRequests(
+        status: _pendingOnly ? 'pending' : null,
+      );
       if (!mounted) return;
       setState(() {
         _requests = raw.cast<Map<String, dynamic>>();
@@ -62,7 +67,9 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e is ApiException ? e.message : 'Could not load alarm requests.';
+          _error = e is ApiException
+              ? e.message
+              : 'Could not load alarm requests.';
           _loading = false;
         });
       }
@@ -108,24 +115,28 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Execute alarm?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+        backgroundColor: context.pal.surface,
+        title: const Text(
+          'Execute alarm?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
         content: Text(
           'Apply ${_levelLabel(req['requested_alarm_level'] as String)} to '
           '${(req['area_designation'] as String?) ?? 'this incident'}? '
           'This sets the incident alarm level and notifies responding units.',
-          style: const TextStyle(color: AppColors.muted),
+          style: TextStyle(color: context.pal.muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(false),
-            child: const Text('CANCEL', style: TextStyle(color: AppColors.muted)),
+            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
           ),
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(true),
-            child: const Text('EXECUTE',
-                style: TextStyle(color: _green, fontWeight: FontWeight.w800)),
+            child: Text(
+              'EXECUTE',
+              style: TextStyle(color: _green, fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
@@ -152,26 +163,31 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
       builder: (dctx) {
         final ctrl = TextEditingController();
         return AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text('Reject alarm request',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          backgroundColor: context.pal.surface,
+          title: const Text(
+            'Reject alarm request',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          ),
           content: TextField(
             controller: ctrl,
             autofocus: true,
             style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Reason (optional)',
-              hintStyle: TextStyle(color: AppColors.darkText),
+              hintStyle: TextStyle(color: context.pal.darkText),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(),
-              child: const Text('CANCEL', style: TextStyle(color: AppColors.muted)),
+              child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
             ),
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(ctrl.text.trim()),
-              child: const Text('REJECT', style: TextStyle(color: _red, fontWeight: FontWeight.w800)),
+              child: Text(
+                'REJECT',
+                style: TextStyle(color: _red, fontWeight: FontWeight.w800),
+              ),
             ),
           ],
         );
@@ -213,7 +229,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _panel,
         border: Border(bottom: BorderSide(color: _panelBorder)),
       ),
@@ -225,16 +241,26 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.glass,
+                color: context.pal.glass,
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.pal.line),
               ),
-              child: const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.chevron_left,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          const Text('Alarm Requests',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+          const Text(
+            'Alarm Requests',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -264,9 +290,13 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: on ? AppColors.accent.withValues(alpha: 0.12) : const Color(0xFF1A1A1A),
+          color: on
+              ? context.pal.accent.withValues(alpha: 0.12)
+              : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: on ? AppColors.accent : const Color(0xFF2A2A2A)),
+          border: Border.all(
+            color: on ? context.pal.accent : const Color(0xFF2A2A2A),
+          ),
         ),
         child: Text(
           label,
@@ -282,7 +312,9 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+      return Center(
+        child: CircularProgressIndicator(color: context.pal.accent),
+      );
     }
     if (_error != null) {
       return _centered(Icons.cloud_off, _error!, retry: true);
@@ -294,8 +326,8 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
       );
     }
     return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceSolid,
+      color: context.pal.accent,
+      backgroundColor: context.pal.surfaceSolid,
       onRefresh: _load,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -309,7 +341,8 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
   Widget _card(Map<String, dynamic> req) {
     final status = (req['status'] as String?) ?? 'pending';
     final (pillText, pillColor) = _statusPill(status);
-    final area = (req['area_designation'] as String?)?.toUpperCase() ?? 'INCIDENT';
+    final area =
+        (req['area_designation'] as String?)?.toUpperCase() ?? 'INCIDENT';
     final level = _levelLabel(req['requested_alarm_level'] as String);
     final justification = (req['justification'] as String?)?.trim();
     final by = (req['requested_by_name'] as String?) ?? 'Unknown';
@@ -327,53 +360,96 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
         children: [
           Row(
             children: [
-              Text(area,
-                  style: const TextStyle(
-                      color: _label, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              Text(
+                area,
+                style: TextStyle(
+                  color: _label,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: pillColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: pillColor.withValues(alpha: 0.5)),
                 ),
-                child: Text(pillText,
-                    style: TextStyle(color: pillColor, fontSize: 10, fontWeight: FontWeight.w800)),
+                child: Text(
+                  pillText,
+                  style: TextStyle(
+                    color: pillColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.campaign_outlined, color: AppColors.accent, size: 18),
+              Icon(
+                Icons.campaign_outlined,
+                color: context.pal.accent,
+                size: 18,
+              ),
               const SizedBox(width: 8),
-              Text(level,
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+              Text(
+                level,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
           if (justification != null && justification.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(justification,
-                style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.4)),
+            Text(
+              justification,
+              style: TextStyle(
+                color: context.pal.muted,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
           ],
           const SizedBox(height: 10),
-          Text('Requested by $by • ${_fmtWhen(req['created_at'] as String?)}',
-              style: const TextStyle(color: _muted, fontSize: 11)),
+          Text(
+            'Requested by $by • ${_fmtWhen(req['created_at'] as String?)}',
+            style: TextStyle(color: _muted, fontSize: 11),
+          ),
           if (status == 'pending') ...[
             const SizedBox(height: 14),
             Row(
               children: [
-                Expanded(child: _gradientButton('EXECUTE', busy, () => _execute(req))),
+                Expanded(
+                  child: _gradientButton('EXECUTE', busy, () => _execute(req)),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: _outlineButton('REJECT', busy, () => _reject(req))),
+                Expanded(
+                  child: _outlineButton('REJECT', busy, () => _reject(req)),
+                ),
               ],
             ),
-          ] else if ((req['review_notes'] as String?)?.trim().isNotEmpty == true) ...[
+          ] else if ((req['review_notes'] as String?)?.trim().isNotEmpty ==
+              true) ...[
             const SizedBox(height: 10),
-            Text('Note: ${req['review_notes']}',
-                style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.4)),
+            Text(
+              'Note: ${req['review_notes']}',
+              style: TextStyle(
+                color: context.pal.muted,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
           ],
         ],
       ),
@@ -394,14 +470,20 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
             ? const SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.accentText),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.accentText,
+                ),
               )
-            : Text(label,
+            : Text(
+                label,
                 style: const TextStyle(
-                    color: AppColors.accentText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1)),
+                  color: AppColors.accentText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
       ),
     );
   }
@@ -416,9 +498,15 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: _red, width: 2),
         ),
-        child: Text(label,
-            style: const TextStyle(
-                color: _red, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: _red,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
+        ),
       ),
     );
   }
@@ -430,17 +518,28 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.outline, size: 44),
+            Icon(icon, color: context.pal.outline, size: 44),
             const SizedBox(height: 16),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.muted, fontSize: 14, height: 1.5)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.pal.muted,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
             if (retry) ...[
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => _load(),
-                child: const Text('Retry',
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700)),
+                child: Text(
+                  'Retry',
+                  style: TextStyle(
+                    color: context.pal.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ],

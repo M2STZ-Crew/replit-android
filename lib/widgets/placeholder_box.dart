@@ -24,9 +24,9 @@ class PlaceholderBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.glassDim,
+        color: context.pal.glassDim,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.pal.line),
       ),
       // FittedBox because a placeholder is often given a small fixed box; at a
       // large system font scale the label would otherwise overflow it.
@@ -36,10 +36,10 @@ class PlaceholderBox extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.faint, size: width * 0.28),
+            Icon(icon, color: context.pal.faint, size: width * 0.28),
             if (label.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(label, style: AppText.eyebrow),
+              Text(label, style: context.type.eyebrow),
             ],
           ],
         ),
