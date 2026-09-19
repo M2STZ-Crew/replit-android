@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'api/push_service.dart';
 import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
+import 'widgets/responsive_frame.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
 
@@ -52,6 +53,10 @@ class RepLitApp extends StatelessWidget {
         themeMode: light ? ThemeMode.light : ThemeMode.dark,
         scaffoldMessengerKey: PushService.messengerKey,
         navigatorKey: PushService.navigatorKey,
+        // On a tablet the app keeps the column the design was drawn in
+        // rather than stretching it across the room.
+        builder: (context, child) =>
+            ResponsiveFrame(child: child ?? const SizedBox.shrink()),
         home: const SplashScreen(),
       ),
     );
