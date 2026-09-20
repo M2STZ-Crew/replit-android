@@ -219,7 +219,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
       for (final r in reports) residentStatus(r['area_status'] as String?),
     ];
     final active = statuses.where((s) => !residentOver(s)).length;
-    final resolved = statuses.where((s) => s == 'resolved').length;
+    final resolved = statuses.where((s) => s == 'fire_out').length;
 
     final sections = <String, List<Map<String, dynamic>>>{};
     for (final r in reports) {
@@ -346,7 +346,7 @@ class _ReportCard extends StatelessWidget {
     final flagged = report['gps_discrepancy_flag'] == true;
 
     final footer = switch (status) {
-      'resolved' => [?designation, 'resolved'].join(' · '),
+      'fire_out' => [?designation, 'fire out'].join(' · '),
       'rejected' => 'Closed — it could not be confirmed',
       'merged' => 'Joined to a neighbouring incident',
       _ when designation == null => 'Waiting to be grouped with others',

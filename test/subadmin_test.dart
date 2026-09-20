@@ -7,7 +7,6 @@ import 'package:http/testing.dart';
 
 import 'package:replit/api/api_client.dart';
 import 'package:replit/screens/subadmin/coordinator_nav.dart';
-import 'package:replit/screens/subadmin/dispatch_screen.dart';
 import 'package:replit/screens/subadmin/post_incident_report_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/ops_layers.dart';
@@ -25,119 +24,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('dispatch asks only who is going', () {
-    late List<Map<String, dynamic>> dispatched;
+  // v11 removed the dispatch screen (Master Context §2.5): choosing a truck and
+  // a crew while the incident was live was the paperwork that slowed the
+  // response down. Accept sends the crew, and who actually went is recorded
+  // afterwards on the Post-Incident Report. The tests that drove that screen
+  // went with it.
 
-    ApiClient api({List<Map<String, dynamic>> fleet = const []}) => ApiClient(
-      client: MockClient((req) async {
-        final path = req.url.path;
-        if (path.endsWith('/available-responders')) {
-          return http.Response(
-            jsonEncode([
-              {
-                'id': 'u1',
-                'full_name': 'Juan Dela Cruz',
-                'agency_type': 'fire_volunteer',
-              },
-              {
-                'id': 'u2',
-                'full_name': 'Maria Santos',
-                'agency_type': 'fire_volunteer',
-                'is_busy': true,
-              },
-              {
-                'id': 'u3',
-                'full_name': 'Leo Reyes',
-                'agency_type': 'fire_volunteer',
-                'on_this_incident': true,
-              },
-            ]),
-            200,
-          );
-        }
-        if (path == '/equipment') return http.Response(jsonEncode(fleet), 200);
-        if (path.endsWith('/dispatch')) {
-          dispatched.add(jsonDecode(req.body) as Map<String, dynamic>);
-          return http.Response(jsonEncode({'id': 'a1'}), 200);
-        }
-        return http.Response('{}', 404);
-      }),
-    );
-
-    setUp(() => dispatched = []);
-
-    testWidgets('nothing is required but choosing people', (tester) async {
-      await pump(tester, DispatchScreen(areaId: 'a1', api: api()));
-      expect(find.text('CHOOSE WHO IS GOING'), findsOneWidget);
-
-      await tester.tap(find.text('Juan Dela Cruz'));
-      await tester.tap(find.text('Maria Santos'));
-      await tester.pump();
-      await tester.tap(find.text('DISPATCH 2 RESPONDERS'));
-      await tester.pumpAndSettle();
-
-      expect(dispatched.map((d) => d['responder_id']), ['u1', 'u2']);
-      // No truck, driver or role was asked for — those go in the report.
-      for (final d in dispatched) {
-        expect(d.containsKey('vehicle_name'), isFalse);
-        expect(d.containsKey('crew_role'), isFalse);
-      }
-    });
-
-    testWidgets('someone already responding cannot be sent twice', (
-      tester,
-    ) async {
-      await pump(tester, DispatchScreen(areaId: 'a1', api: api()));
-      expect(find.text('RESPONDING'), findsOneWidget);
-      await tester.tap(find.text('Leo Reyes'));
-      await tester.pump();
-      expect(find.text('CHOOSE WHO IS GOING'), findsOneWidget);
-    });
-
-    testWidgets('a truck can be tagged when it is known', (tester) async {
-      await pump(
-        tester,
-        DispatchScreen(
-          areaId: 'a1',
-          api: api(
-            fleet: [
-              {
-                'id': 'e1',
-                'name': 'Apollo',
-                'category': 'fire_truck',
-                'status': 'available',
-              },
-              {
-                'id': 'e2',
-                'name': 'Hermes',
-                'category': 'fire_truck',
-                'status': 'in_use',
-              },
-            ],
-          ),
-        ),
-      );
-      expect(
-        find.text('Hermes'),
-        findsNothing,
-        reason: 'a truck on another call is not offered',
-      );
-      await tester.tap(find.text('Apollo'));
-      await tester.tap(find.text('Juan Dela Cruz'));
-      await tester.pump();
-      await tester.tap(find.text('DISPATCH 1 RESPONDER'));
-      await tester.pumpAndSettle();
-      expect(dispatched.single['vehicle_name'], 'Apollo');
-    });
-
-    testWidgets('an empty register means no unit row, not a demo fleet', (
-      tester,
-    ) async {
-      await pump(tester, DispatchScreen(areaId: 'a1', api: api()));
-      expect(find.text('UNIT · OPTIONAL'), findsNothing);
-      expect(find.text('Apollo'), findsNothing);
-    });
-  });
 
   group('the staff map layers', () {
     test('every chip has data behind it', () {

@@ -160,12 +160,11 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       m < 1000 ? '${m.round()} m' : '${(m / 1000).toStringAsFixed(1)} km';
 
   static String _meaning(String status) => switch (status) {
-    'pending' => 'Waiting for a Fire Volunteer coordinator to confirm it.',
-    'verified' => 'Confirmed. Responders are being assigned.',
-    'dispatched' => 'A crew has been sent.',
+    'reported' => 'Waiting for a responding agency to accept it.',
+    'verified' => 'Accepted. A crew is being sent.',
     'en_route' => 'Responders are on the way.',
     'arrived' => 'Responders are on scene.',
-    'resolved' => 'Resolved. Responders have finished here.',
+    'fire_out' => 'Fire out. Responders have finished here.',
     'rejected' => 'Closed — it could not be confirmed as an incident.',
     'merged' => 'Joined to a neighbouring area.',
     _ => '',

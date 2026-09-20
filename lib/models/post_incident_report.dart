@@ -97,10 +97,15 @@ List<String> missingPostIncidentFields({
   required String driverName,
   required List<RosterMember> roster,
   required List<String> equipment,
+  bool falseAlarm = false,
+  String falseAlarmNote = '',
 }) => [
   if (truckLabel.trim().isEmpty) 'unit',
   if (truckType.trim().isEmpty) 'unit type',
   if (driverName.trim().isEmpty) 'driver',
   if (roster.isEmpty) 'roster',
   if (equipment.isEmpty) 'equipment taken',
+  // v11 §2.5.3: mirrors the server's check, so the captain is told here rather
+  // than after a refused submit.
+  if (falseAlarm && falseAlarmNote.trim().isEmpty) 'what the team found',
 ];

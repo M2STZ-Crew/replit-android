@@ -1133,12 +1133,12 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _areaRow(Map<String, dynamic> a, double? metres) {
-    final pending = a['status'] == 'pending';
+    final reported = a['status'] == 'reported';
     final id = a['id'] as String?;
     final street = id == null ? null : _areaStreets[id];
     final reports = (a['report_count'] as num?)?.toInt() ?? 0;
     return _SheetRow(
-      tint: pending ? context.pal.accent : context.pal.live,
+      tint: reported ? context.pal.accent : context.pal.live,
       asset: Art.incident,
       title: (a['designation'] as String?) ?? 'Incident area',
       subtitle:
@@ -1146,10 +1146,10 @@ class _MapScreenState extends State<MapScreen> {
           (metres != null
               ? '${_formatDistance(metres)} away'
               : 'In Pasay City'),
-      edge: pending ? null : context.pal.live.withValues(alpha: 0.45),
+      edge: reported ? null : context.pal.live.withValues(alpha: 0.45),
       signal: _AreaSignal(
-        label: pending ? 'Pending' : 'Live',
-        color: pending ? context.pal.warn : context.pal.live,
+        label: reported ? 'Reported' : 'Live',
+        color: reported ? context.pal.warn : context.pal.live,
         reports: reports,
         band: a['confidence_band'] as String?,
       ),

@@ -76,7 +76,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
       if (!mounted) return;
       setState(() => _area = area);
       // Confirmed or closed: nothing more for this screen to wait on.
-      if (_status != 'pending') _poll?.cancel();
+      if (_status != 'reported') _poll?.cancel();
     } catch (_) {
       // Keep the last reading; the next tick tries again.
     }
@@ -87,7 +87,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen> {
   int? get _reports => (_area?['report_count'] as num?)?.toInt();
 
   bool get _confirmed =>
-      _status != null && _status != 'pending' && _status != 'rejected';
+      _status != null && _status != 'reported' && _status != 'rejected';
 
   bool get _refused => _status == 'rejected';
 

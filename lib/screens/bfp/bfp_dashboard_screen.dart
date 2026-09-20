@@ -613,7 +613,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         final lng = (inc['centroid_lng'] as num?)?.toDouble();
         if (lat == null || lng == null) continue;
         final color = responderStatusColor(
-          (inc['status'] as String?) ?? 'pending',
+          (inc['status'] as String?) ?? 'reported',
         );
         markers.add(
           Marker(
@@ -653,7 +653,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
 
   // Read-only incident info (BFP cannot verify/dispatch).
   void _incidentSheet(Map<String, dynamic> inc) {
-    final status = (inc['status'] as String?) ?? 'pending';
+    final status = (inc['status'] as String?) ?? 'reported';
     final color = responderStatusColor(status);
     final alarm = (inc['alarm_level'] as String?)?.replaceAll('_', ' ');
     showModalBottomSheet<void>(

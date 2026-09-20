@@ -204,7 +204,7 @@ void main() {
     });
 
     test('every post-fire status counts as after fire out', () {
-      expect(kAfterFireOut, {'resolved', 'post_incident_report', 'closed'});
+      expect(kAfterFireOut, {'fire_out', 'post_incident_report', 'closed'});
     });
   });
 

@@ -10,7 +10,6 @@ import '../../widgets/incident_map.dart';
 import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
-import 'dispatch_screen.dart';
 import 'post_incident_report_screen.dart';
 
 Color _bg = AppColors.background;
@@ -207,18 +206,8 @@ class _SubAdminIncidentReportScreenState
     );
   }
 
-  // Choose who's going (v10 §2.5 — truck, driver and roles come later, in the
-  // Post-Incident Report).
-  Future<void> _openDispatch() async {
-    final dispatched = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => DispatchScreen(areaId: widget.areaId, api: _api),
-      ),
-    );
-    if (dispatched == true && mounted) {
-      Navigator.of(context).pop(true); // back to home, which reloads
-    }
-  }
+  // v11 removed the dispatch screen (§2.5): Accept sends the crew, and who
+  // actually went is recorded afterwards on the Post-Incident Report.
 
   /// Fire out from review: the incident moves to the Post-Incident Report step,
   /// and the report is offered now or left in the tray — the same as from the
@@ -583,27 +572,26 @@ class _SubAdminIncidentReportScreenState
       );
     }
 
-    final canVerify = s == 'pending' && widget.agency == 'fire_volunteer';
+    final canVerify = s == 'reported' && widget.agency == 'fire_volunteer';
     final dispatchable = const {
       'verified',
-      'dispatched',
       'en_route',
       'arrived',
     }.contains(s);
-    final canReject = s == 'pending' || s == 'verified';
+    final canReject = s == 'reported' || s == 'verified';
 
     final children = <Widget>[];
-    if (s == 'pending') {
+    if (s == 'reported') {
       if (canVerify) {
         children.add(
           Row(
             children: [
               Expanded(
                 child: _gradientButton(
-                  'VERIFY',
+                  'ACCEPT',
                   () => _run(
-                    () => _api.verifyIncident(widget.areaId),
-                    'Incident verified.',
+                    () => _api.acceptIncident(widget.areaId),
+                    'Accepted. Responders are on the way.',
                   ),
                 ),
               ),
@@ -620,9 +608,8 @@ class _SubAdminIncidentReportScreenState
         children.add(_darkButton('REJECT', _reject));
       }
     } else if (dispatchable) {
-      // Verified onwards: dispatch responders, then fire out / reject.
-      children.add(_gradientButton('DISPATCH RESPONDERS', _openDispatch));
-      children.add(const SizedBox(height: 12));
+      // Accepted onwards: the crew is already rolling, so the only calls left
+      // here are fire out and — while nobody has arrived — reject.
       final resolve = _darkButton('FIRE OUT', _fireOut);
       if (canReject) {
         children.add(

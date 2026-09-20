@@ -278,7 +278,7 @@ void main() {
           jsonEncode({
             'id': 'a1',
             'designation': 'Area 1.2',
-            'status': 'pending',
+            'status': 'reported',
             'centroid_lat': 14.5394,
             'centroid_lng': 121.0014,
             'report_count': 1,

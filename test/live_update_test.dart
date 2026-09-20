@@ -11,7 +11,7 @@ import 'package:replit/theme.dart';
 
 /// "10 Live tracking": the resident's own incident, followed live.
 void main() {
-  ApiClient api({String status = 'dispatched', int reports = 3}) => ApiClient(
+  ApiClient api({String status = 'en_route', int reports = 3}) => ApiClient(
     client: MockClient((req) async {
       if (req.url.path.endsWith('/map/evacuation-sites')) {
         return http.Response(
@@ -84,7 +84,7 @@ void main() {
 
       expect(find.text('YOUR REPORT IS LIVE'), findsOneWidget);
       expect(find.text('Area 1.2'), findsOneWidget);
-      expect(find.text('DISPATCHED'), findsOneWidget);
+      expect(find.text('EN ROUTE'), findsOneWidget);
       expect(find.text('Reported 4 min ago'), findsOneWidget);
       expect(find.text('WHAT HAPPENS NEXT'), findsOneWidget);
       expect(find.text('2 neighbours confirmed'), findsOneWidget);
@@ -118,11 +118,11 @@ void main() {
     expect(find.text('MEDICAL SUPPORT'), findsOneWidget);
   });
 
-  testWidgets('once resolved it says so and stops offering help', (
+  testWidgets('once the fire is out it says so and stops offering help', (
     tester,
   ) async {
     await pump(tester, api(status: 'post_incident_report'));
-    expect(find.text('YOUR REPORT IS RESOLVED'), findsOneWidget);
+    expect(find.text('YOUR REPORT IS FIRE OUT'), findsOneWidget);
     expect(find.text('NEED MORE HELP?'), findsNothing);
   });
 }

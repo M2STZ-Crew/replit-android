@@ -515,9 +515,12 @@ class ApiClient {
     return _decode(resp);
   }
 
-  /// List response_team users a sub-admin can dispatch (crew picker):
+  /// Response team members, for the Post-Incident Report roster picker:
   /// GET /incidents/{id}/available-responders. Each item has full_name,
   /// agency_type, organization_id, is_busy, on_this_incident.
+  ///
+  /// v11 removed manual dispatch, so this no longer feeds a dispatch screen —
+  /// it feeds "who actually went", filed afterwards (§2.5.3).
   Future<List<dynamic>> getAvailableResponders(String id) async {
     final resp = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}/incidents/$id/available-responders'),
@@ -529,30 +532,10 @@ class ApiClient {
     return jsonDecode(resp.body) as List<dynamic>;
   }
 
-  /// Manually dispatch one response_team user (sub-admin): POST
-  /// /incidents/{id}/dispatch. One call per responder; vehicleName + crewRole
-  /// record which truck they crew and in what role.
-  Future<Map<String, dynamic>> dispatchResponder(
-    String id, {
-    required String responderId,
-    String? organizationId,
-    String? vehicleName,
-    String? crewRole,
-    String? notes,
-  }) async {
-    final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/dispatch'),
-      headers: _jsonAuth,
-      body: jsonEncode({
-        'responder_id': responderId,
-        'organization_id': ?organizationId,
-        'vehicle_name': ?vehicleName,
-        'crew_role': ?crewRole,
-        'notes': ?notes,
-      }),
-    );
-    return _decode(resp);
-  }
+  // v11 removed manual dispatch (§2.5): choosing a truck and a crew while the
+  // incident was live was the paperwork that slowed the response down. The
+  // truck, driver and roster are recorded afterwards on the Post-Incident
+  // Report instead.
 
   /// List the caller's organization equipment (fleet): GET /equipment.
   Future<List<dynamic>> getEquipment() async {
@@ -652,14 +635,9 @@ class ApiClient {
     return _decode(resp);
   }
 
-  /// Advance to en route: POST /incidents/{id}/en-route.
-  Future<Map<String, dynamic>> markEnRoute(String id) async {
-    final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/en-route'),
-      headers: _auth,
-    );
-    return _decode(resp);
-  }
+  // v11 has no markEnRoute: the first Accept carries an incident through
+  // verified into en_route in one act (§2.5.1), so a responder opening it is
+  // already rolling. Arrived is the next thing they press.
 
   /// Advance to arrived: POST /incidents/{id}/arrived.
   Future<Map<String, dynamic>> markArrived(String id) async {
@@ -670,19 +648,8 @@ class ApiClient {
     return _decode(resp);
   }
 
-  /// Withdraw a dispatch: POST /incidents/{id}/dispatches/{dispatchId}/withdraw.
-  Future<Map<String, dynamic>> withdrawDispatch(
-    String id,
-    String dispatchId,
-  ) async {
-    final resp = await _client.post(
-      Uri.parse(
-        '${ApiConfig.baseUrl}/incidents/$id/dispatches/$dispatchId/withdraw',
-      ),
-      headers: _auth,
-    );
-    return _decode(resp);
-  }
+  // Withdraw went with manual dispatch (§2.5): there is no assignment to take
+  // back. A responder who did not go simply is not on the report's roster.
 
   /// List dispatches on an incident: GET /incidents/{id}/dispatches.
   Future<List<dynamic>> getDispatches(String id) async {
@@ -750,10 +717,16 @@ class ApiClient {
     return jsonDecode(resp.body) as List<dynamic>;
   }
 
-  /// Verify an incident (Fire-Vol sub-admin): POST /incidents/{id}/verify.
-  Future<Map<String, dynamic>> verifyIncident(String id) async {
+  /// Accept an incident: POST /incidents/{id}/accept (v11 §2.5.1).
+  ///
+  /// Replaces the old verify call. The first Accept carries the incident
+  /// Reported -> Verified -> En route in one act, so a coordinator commits and
+  /// the crew rolls in a single tap. A later Accept from another agency records
+  /// that they are coming too and leaves the status alone. Pressing twice as
+  /// the same person does nothing.
+  Future<Map<String, dynamic>> acceptIncident(String id) async {
     final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/verify'),
+      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/accept'),
       headers: _auth,
     );
     return _decode(resp);
@@ -792,6 +765,8 @@ class ApiClient {
     required List<Map<String, dynamic>> roster,
     required List<String> equipmentTaken,
     String? notes,
+    bool falseAlarm = false,
+    String? falseAlarmNote,
   }) async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/incidents/$id/post-incident-report'),
@@ -805,6 +780,10 @@ class ApiClient {
         'roster': roster,
         'equipment_taken': equipmentTaken,
         'notes': ?notes,
+        // v11 §2.5.3: the team reached the scene and found nothing. The server
+        // requires the narrative whenever the flag is set.
+        'false_alarm': falseAlarm,
+        'false_alarm_note': ?falseAlarmNote,
       }),
     );
     return _decode(resp);

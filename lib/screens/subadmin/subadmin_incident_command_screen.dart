@@ -19,7 +19,6 @@ import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
-import 'dispatch_screen.dart';
 import 'post_incident_report_screen.dart';
 
 Color _bg = AppColors.background;
@@ -615,19 +614,6 @@ class _SubAdminIncidentCommandScreenState
                   _unitCard(entry.key, entry.value),
                   const SizedBox(height: 12),
                 ],
-              if (!const {
-                'resolved',
-                'post_incident_report',
-                'closed',
-                'rejected',
-              }.contains(_status)) ...[
-                AppButton.secondary(
-                  'Send more responders',
-                  icon: Icons.group_add_outlined,
-                  onPressed: _sendMore,
-                ),
-                const SizedBox(height: 12),
-              ],
               const SizedBox(height: 8),
               const Text(
                 'Escalate alarm',
@@ -769,20 +755,8 @@ class _SubAdminIncidentCommandScreenState
     return m;
   }
 
-  /// Send more people to a live incident — the review screen's dispatch is
-  /// only reachable before the response starts.
-  Future<void> _sendMore() async {
-    final sent = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => DispatchScreen(
-          areaId: widget.areaId,
-          designation: _incident?['designation'] as String?,
-          api: _api,
-        ),
-      ),
-    );
-    if (sent == true && mounted) _refresh();
-  }
+  // v11 removed 'send more responders' with manual dispatch (§2.5):
+  // responders self-select onto an accepted incident instead.
 
   Widget _emptyUnits() {
     return Container(
@@ -1053,7 +1027,7 @@ class _SubAdminIncidentCommandScreenState
       );
     }
     final ended =
-        _status == 'resolved' || _status == 'closed' || _status == 'rejected';
+        _status == 'fire_out' || _status == 'closed' || _status == 'rejected';
     if (ended) {
       return Container(
         height: 56,

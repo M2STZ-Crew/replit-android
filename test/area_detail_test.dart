@@ -14,7 +14,7 @@ import 'package:replit/theme.dart';
 /// "I see it too" is offered only where the report would actually join.
 void main() {
   // The server's own terms (clustering.py): N = 3/10, S = 1 − 84/300, V = .42.
-  Map<String, dynamic> area({String status = 'dispatched'}) => {
+  Map<String, dynamic> area({String status = 'en_route'}) => {
     'id': 'a1',
     'designation': 'Area 1.2',
     'status': status,
@@ -35,7 +35,7 @@ void main() {
   const here200m = LatLng(14.5396, 121.0014);
   const here2km = LatLng(14.5234, 121.0014);
 
-  ApiClient api({String status = 'dispatched', bool mine = false}) => ApiClient(
+  ApiClient api({String status = 'en_route', bool mine = false}) => ApiClient(
     client: MockClient((req) async {
       if (req.url.path.endsWith('/reports/mine')) {
         return http.Response(
@@ -100,7 +100,7 @@ void main() {
         expect(find.text('Spread 84 m'), findsOneWidget);
         expect(find.text('Reporters average 42%'), findsOneWidget);
         // The status chip and the progress line both name it.
-        expect(find.text('DISPATCHED'), findsNWidgets(2));
+        expect(find.text('EN ROUTE'), findsNWidgets(2));
         expect(find.text('I SEE IT TOO — ADD MY REPORT'), findsOneWidget);
       },
     );
@@ -136,7 +136,7 @@ void main() {
       ),
     );
     // A crew's Post-Incident Report is internal: residents see "resolved".
-    expect(find.text('RESOLVED'), findsNWidgets(2));
+    expect(find.text('FIRE OUT'), findsNWidgets(2));
     expect(find.text('I SEE IT TOO — ADD MY REPORT'), findsNothing);
   });
 }

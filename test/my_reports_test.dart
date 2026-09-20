@@ -151,8 +151,8 @@ void main() {
 
   testWidgets('a filed Post-Incident Report reads as resolved', (tester) async {
     await pump(tester, api([sample[2]]));
-    expect(find.text('RESOLVED'), findsWidgets);
-    expect(find.text('Area 1 · resolved'), findsOneWidget);
+    expect(find.text('FIRE OUT'), findsWidgets);
+    expect(find.text('Area 1 · fire out'), findsOneWidget);
     expect(find.text('DETAILS'), findsOneWidget);
     expect(find.text('TRACK'), findsNothing);
     expect(

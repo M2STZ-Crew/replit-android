@@ -12,7 +12,7 @@ import 'package:replit/theme.dart';
 /// "09 Submitting" — "Getting you help". Every step it ticks is one the
 /// server has done; the one it holds open is the coordinator's confirmation.
 void main() {
-  ApiClient api({String status = 'pending', int reports = 3}) => ApiClient(
+  ApiClient api({String status = 'reported', int reports = 3}) => ApiClient(
     client: MockClient(
       (_) async => http.Response(
         jsonEncode({

@@ -56,7 +56,7 @@ void main() {
     {
       'id': 'near',
       'designation': 'Area 1.2',
-      'status': 'pending',
+      'status': 'reported',
       'centroid_lat': 14.5410,
       'centroid_lng': 121.0014,
       'report_count': 1,
@@ -65,7 +65,7 @@ void main() {
     {
       'id': 'far',
       'designation': 'Area 9.1',
-      'status': 'dispatched',
+      'status': 'en_route',
       'centroid_lat': 14.5830,
       'centroid_lng': 121.0014,
       'report_count': 3,
@@ -146,7 +146,7 @@ void main() {
       expect(find.text('WITHIN 1.5 KM'), findsOneWidget);
       expect(find.text('Area 1.2'), findsOneWidget);
       expect(find.text('Area 9.1'), findsNothing, reason: 'about 5 km away');
-      expect(find.text('PENDING'), findsOneWidget);
+      expect(find.text('REPORTED'), findsOneWidget);
       expect(find.text('1 REPORT'), findsOneWidget);
       expect(find.text('Evacuation site open'), findsOneWidget);
       expect(find.text('SPACE FOR 480'), findsOneWidget);

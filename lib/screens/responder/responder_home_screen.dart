@@ -110,11 +110,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
     _checkingDispatch = true;
     try {
       for (final inc in _incidents) {
-        if (!const {
-          'dispatched',
-          'en_route',
-          'arrived',
-        }.contains(inc['status'])) {
+        if (!const {'en_route', 'arrived'}.contains(inc['status'])) {
           continue;
         }
         final id = inc['id'] as String;
@@ -610,7 +606,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         final lng = (inc['centroid_lng'] as num?)?.toDouble();
         if (lat == null || lng == null) continue;
         final color = responderStatusColor(
-          (inc['status'] as String?) ?? 'pending',
+          (inc['status'] as String?) ?? 'reported',
         );
         markers.add(
           Marker(
@@ -649,7 +645,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
   }
 
   void _incidentSheet(Map<String, dynamic> inc) {
-    final status = (inc['status'] as String?) ?? 'pending';
+    final status = (inc['status'] as String?) ?? 'reported';
     final color = responderStatusColor(status);
     showModalBottomSheet<void>(
       context: context,

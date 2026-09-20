@@ -220,21 +220,18 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   }
 
   static String _next(String status) => switch (status) {
-    'pending' =>
+    'reported' =>
       'Barangay 76 has your location and photo. A Fire Volunteer coordinator '
           'confirms it next. Stay somewhere safe — this screen updates as the '
           'incident moves.',
     'verified' =>
-      'Confirmed. Responders are being assigned now. Stay somewhere safe and '
-          'keep this screen open — it updates as the incident moves.',
-    'dispatched' =>
-      'A crew has been sent. Stay somewhere safe and keep this screen open — '
-          'it updates as the incident moves.',
+      'Accepted. A crew is being sent now. Stay somewhere safe and keep this '
+          'screen open — it updates as the incident moves.',
     'en_route' =>
       'Responders are on their way. Keep the street clear and stay somewhere '
           'safe.',
     'arrived' => 'Responders are on scene. Follow their instructions.',
-    'resolved' =>
+    'fire_out' =>
       'Resolved. Thank you for reporting — it is how help found '
           'the place.',
     'rejected' =>

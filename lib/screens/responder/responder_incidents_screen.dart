@@ -23,11 +23,10 @@ Color _label = AppColors.label;
 Color _areaColor(String s) {
   switch (s) {
     case 'verified':
-    case 'resolved':
+    case 'fire_out':
     case 'post_incident_report':
     case 'closed':
       return _green;
-    case 'dispatched':
     case 'en_route':
     case 'arrived':
       return _orange;
@@ -43,12 +42,11 @@ Color _areaColor(String s) {
   switch (s) {
     case 'verified':
       return ('RESPOND', _green);
-    case 'dispatched':
     case 'en_route':
       return ('RESPONDING', _orange);
     case 'arrived':
       return ('ACTIVE', _red);
-    case 'resolved':
+    case 'fire_out':
     case 'post_incident_report':
     case 'closed':
       return ('RESOLVED', _green);
@@ -294,13 +292,12 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
 
   Widget _areaSection(Map<String, dynamic> area) {
     final id = area['id'] as String;
-    final status = (area['status'] as String?) ?? 'pending';
+    final status = (area['status'] as String?) ?? 'reported';
     final color = _areaColor(status);
     final open = _expanded.contains(id);
     final routed = routingLabel(area, agency: _agency);
     final actionable = const {
       'verified',
-      'dispatched',
       'en_route',
       'arrived',
     }.contains(status);

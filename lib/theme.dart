@@ -116,16 +116,17 @@ class AppColors {
     colors: [gradientStart, Color(0xFFFF734E)],
   );
 
-  /// One colour per public.area_status value, on the v2 palette. The two v10
-  /// statuses (Master Context §2.5) follow fire out: the Post-Incident Report
-  /// is owed, then filed and the incident closed. Both match the web consoles.
+  /// One colour per public.area_status value, on the v2 palette. v11 renamed
+  /// the operator-facing set (§2.5) and dropped 'dispatched': Accept carries an
+  /// incident from Reported straight to En route, so there is no step between
+  /// them to colour. Fire out is followed by the Post-Incident Report being
+  /// owed, then filed and the incident closed. Matches both web consoles.
   static Color forStatus(String? status) => switch (status) {
-    'pending' => warn,
+    'reported' => warn,
     'verified' => const Color(0xFF42A5F5),
-    'dispatched' => info,
     'en_route' => accent,
     'arrived' => live,
-    'resolved' => ok,
+    'fire_out' => ok,
     'post_incident_report' => const Color(0xFF2DD4BF),
     'closed' => const Color(0xFF16A34A),
     'rejected' => const Color(0xFF9E9E9E),
@@ -264,12 +265,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   /// What an incident's status looks like in this theme.
   Color forStatus(String? status) => switch (status) {
-    'pending' => warn,
+    'reported' => warn,
     'verified' => isLight ? const Color(0xFF1565C0) : const Color(0xFF42A5F5),
-    'dispatched' => info,
     'en_route' => accentInk,
     'arrived' => live,
-    'resolved' => ok,
+    'fire_out' => ok,
     'post_incident_report' => coastguard,
     'closed' => isLight ? const Color(0xFF0F7A34) : const Color(0xFF16A34A),
     'rejected' => isLight ? const Color(0xFF6B6B6B) : const Color(0xFF9E9E9E),

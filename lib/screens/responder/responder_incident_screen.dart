@@ -124,7 +124,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     }
   }
 
-  String get _status => (_incident?['status'] as String?) ?? 'pending';
+  String get _status => (_incident?['status'] as String?) ?? 'reported';
 
   /// "Routed to your team" when Admin has sent this incident your way (§2.6.2).
   String? get _routing => _incident == null
@@ -132,7 +132,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       : routingLabel(_incident!, agency: widget.agency, orgId: widget.orgId);
   bool get _hasActiveDispatch => _myDispatch != null;
   bool get _active =>
-      const {'dispatched', 'en_route', 'arrived'}.contains(_status);
+      const {'en_route', 'arrived'}.contains(_status);
   bool get _shouldStream => _hasActiveDispatch && _active;
 
   LatLng? get _centroid {
@@ -326,19 +326,11 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     () => _api.selfDispatch(widget.incidentId),
     'You are now responding.',
   );
-  void _enRoute() =>
-      _action(() => _api.markEnRoute(widget.incidentId), 'Marked en route.');
+  // v11: no _enRoute. Accept already moved the incident there (§2.5.1), and
+  // no _withdraw — there is no assignment to take back now that manual
+  // dispatch is gone.
   void _arrived() =>
       _action(() => _api.markArrived(widget.incidentId), 'Marked on scene.');
-
-  void _withdraw() {
-    final d = _myDispatch;
-    if (d == null) return;
-    _action(
-      () => _api.withdrawDispatch(widget.incidentId, d['id'] as String),
-      'You withdrew from this incident.',
-    );
-  }
 
   Future<void> _pressCode(String codeNumber, String label) async {
     if (_pressing) return;
@@ -889,7 +881,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                   'files the Post-Incident Report.',
       );
     }
-    if (_status == 'pending') {
+    if (_status == 'reported') {
       return _infoBox(
         Icons.hourglass_empty,
         'Awaiting verification by command before responders can be assigned.',
@@ -900,25 +892,11 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     if (!_hasActiveDispatch) {
       children.add(_gradientButton('RESPOND TO THIS INCIDENT', _respond));
     } else {
-      if (_status == 'dispatched') {
-        children.add(_gradientButton('MARK EN ROUTE', _enRoute));
-      } else if (_status == 'en_route') {
+      if (_status == 'en_route') {
         children.add(_gradientButton('MARK ARRIVED', _arrived));
       } else if (_status == 'arrived') {
         children.add(_infoBox(Icons.check_circle_outline, 'You are on scene.'));
       }
-      children.add(const SizedBox(height: 8));
-      children.add(
-        Center(
-          child: TextButton(
-            onPressed: _busy ? null : _withdraw,
-            child: Text(
-              'Withdraw from incident',
-              style: TextStyle(color: _red, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
-      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

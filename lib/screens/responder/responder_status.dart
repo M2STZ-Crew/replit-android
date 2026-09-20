@@ -10,7 +10,7 @@ import '../../theme.dart';
 /// and 'closed' is terminal. Mirrors the post-fire part of OFF_FEED_STATUSES in
 /// app/services/incident.py.
 const Set<String> kAfterFireOut = {
-  'resolved',
+  'fire_out',
   'post_incident_report',
   'closed',
 };
@@ -19,12 +19,11 @@ Color responderStatusColor(String status) {
   switch (status) {
     case 'verified':
       return AppColors.info; // blue
-    case 'dispatched':
     case 'en_route':
       return const Color(0xFFFF9066); // orange
     case 'arrived':
       return AppColors.ok; // green
-    case 'resolved':
+    case 'fire_out':
       return AppColors.ok;
     case 'post_incident_report':
     case 'closed':

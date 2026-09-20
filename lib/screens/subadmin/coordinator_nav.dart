@@ -23,11 +23,11 @@ Future<bool> openCoordinatorIncident(
   required Map<String, dynamic> me,
   required ApiClient api,
 }) async {
-  final status = (incident['status'] as String?) ?? 'pending';
+  final status = (incident['status'] as String?) ?? 'reported';
   final areaId = incident['id'] as String;
   final navigator = Navigator.of(context);
 
-  if (const {'dispatched', 'en_route', 'arrived'}.contains(status)) {
+  if (const {'en_route', 'arrived'}.contains(status)) {
     return await navigator.push<bool>(
           MaterialPageRoute(
             builder: (_) =>

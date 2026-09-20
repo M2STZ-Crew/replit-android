@@ -122,6 +122,12 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   final _equipmentItem = TextEditingController();
   final _notes = TextEditingController();
 
+  /// v11 §2.5.3: the team reached the scene and found nothing — a prank, a fire
+  /// already out, the wrong address. The narrative is required when it is set,
+  /// on the server and here, so "false alarm" is never an unexplained tick.
+  bool _falseAlarm = false;
+  final _falseAlarmNote = TextEditingController();
+
   List<FleetUnit> _fleet = const [];
   String? _truckEquipmentId;
   String? _driverUserId;
@@ -153,6 +159,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       _memberRole,
       _equipmentItem,
       _notes,
+      _falseAlarmNote,
     ]) {
       c.dispose();
     }
@@ -236,6 +243,8 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     driverName: _driver.text,
     roster: _roster,
     equipment: _equipment,
+    falseAlarm: _falseAlarm,
+    falseAlarmNote: _falseAlarmNote.text,
   );
 
   void _toast(String m) =>
@@ -286,6 +295,8 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         roster: _roster.map((m) => m.toJson()).toList(),
         equipmentTaken: List.of(_equipment),
         notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+        falseAlarm: _falseAlarm,
+        falseAlarmNote: _falseAlarm ? _falseAlarmNote.text.trim() : null,
       );
       if (!mounted) return;
       _toast('Post-Incident Report filed. Incident closed.');
@@ -371,6 +382,30 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                   const SizedBox(height: 24),
                   _section('Notes · optional'),
                   _field(_notes, 'Anything command should know', maxLines: 4),
+                  const SizedBox(height: 24),
+                  _section('False alarm'),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    value: _falseAlarm,
+                    onChanged: (v) => setState(() => _falseAlarm = v),
+                    activeThumbColor: context.pal.accent,
+                    title: Text(
+                      'We arrived and found nothing',
+                      style: context.type.body,
+                    ),
+                    subtitle: Text(
+                      'A prank, a fire already out, or the wrong address.',
+                      style: context.type.meta,
+                    ),
+                  ),
+                  if (_falseAlarm) ...[
+                    const SizedBox(height: 8),
+                    _field(
+                      _falseAlarmNote,
+                      'What did the team actually find? (required)',
+                      maxLines: 3,
+                    ),
+                  ],
                   const SizedBox(height: 28),
                   if (missing.isNotEmpty) ...[
                     Text(

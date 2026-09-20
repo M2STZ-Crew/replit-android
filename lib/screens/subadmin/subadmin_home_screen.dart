@@ -26,12 +26,11 @@ Color _label = AppColors.label;
 Color _areaColor(String s) {
   switch (s) {
     case 'verified':
-    case 'resolved':
+    case 'fire_out':
     case 'closed':
       return _green;
     case 'post_incident_report':
       return AppColors.forStatus(s);
-    case 'dispatched':
     case 'en_route':
     case 'arrived':
       return _orange;
@@ -295,7 +294,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
 
   Widget _areaSection(Map<String, dynamic> area) {
     final id = area['id'] as String;
-    final status = (area['status'] as String?) ?? 'pending';
+    final status = (area['status'] as String?) ?? 'reported';
     final color = _areaColor(status);
     final open = _expanded.contains(id);
     return Column(
@@ -573,7 +572,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
     String areaId,
   ) async {
     // Active (dispatched onwards) → command screen; otherwise the verify screen.
-    final active = const {'dispatched', 'en_route', 'arrived'}.contains(status);
+    final active = const {'en_route', 'arrived'}.contains(status);
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => active

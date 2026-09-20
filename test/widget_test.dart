@@ -165,12 +165,11 @@ void main() {
   group('design tokens', () {
     test('every area_status has its own colour', () {
       const statuses = [
-        'pending',
+        'reported',
         'verified',
-        'dispatched',
         'en_route',
         'arrived',
-        'resolved',
+        'fire_out',
         'post_incident_report',
         'closed',
         'rejected',

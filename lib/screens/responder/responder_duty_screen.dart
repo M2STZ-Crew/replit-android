@@ -91,9 +91,7 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
     }
     for (final i in incidents) {
       final status = '${i['status']}';
-      if (status == 'dispatched' ||
-          status == 'en_route' ||
-          status == 'arrived') {
+      if (status == 'en_route' || status == 'arrived') {
         if (i['i_am_dispatched'] == true) return i;
       }
     }
