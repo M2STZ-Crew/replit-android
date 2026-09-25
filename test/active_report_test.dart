@@ -109,6 +109,97 @@ void main() {
     });
   });
 
+  group('recovering it from the server', () {
+    String ago(Duration d) =>
+        DateTime.now().subtract(d).toUtc().toIso8601String();
+
+    Map<String, dynamic> row(
+      String id,
+      String status, {
+      Duration age = const Duration(minutes: 5),
+    }) => {
+      'id': id,
+      'area_id': 'area-$id',
+      'area_designation': 'Area $id',
+      'area_status': status,
+      'device_lat': 14.5378,
+      'device_lng': 121.0014,
+      'selected_agencies': ['fire_volunteer', 'police'],
+      'created_at': ago(age),
+    };
+
+    late int asked;
+    ApiClient serverWith(List<Map<String, dynamic>> rows) => ApiClient(
+      client: MockClient((_) async {
+        asked++;
+        return http.Response(jsonEncode(rows), 200);
+      }),
+    );
+
+    setUp(() {
+      asked = 0;
+      Session.instance.accessToken = 'token';
+    });
+    tearDown(() => Session.instance.accessToken = null);
+
+    test('finds a live report the phone lost track of', () async {
+      final found = await ActiveReportStore.recover(
+        api: serverWith([
+          row('new', 'en_route'),
+          row('old', 'fire_out', age: const Duration(hours: 1)),
+        ]),
+      );
+      expect(found?.reportId, 'new');
+      expect(found?.areaId, 'area-new');
+      expect(found?.agencies, ['fire_volunteer', 'police']);
+      expect(ActiveReportStore.mine?.reportId, 'new', reason: 'kept from now');
+    });
+
+    for (final status in [
+      'fire_out',
+      'post_incident_report',
+      'closed',
+      'rejected',
+      'merged',
+    ]) {
+      test('a $status report holds nobody back', () async {
+        expect(
+          await ActiveReportStore.recover(api: serverWith([row('r', status)])),
+          isNull,
+        );
+      });
+    }
+
+    test('nor does one nobody picked up in twelve hours', () async {
+      final found = await ActiveReportStore.recover(
+        api: serverWith([row('r', 'reported', age: const Duration(hours: 13))]),
+      );
+      expect(found, isNull);
+    });
+
+    test("the phone's own record wins, without asking", () async {
+      await ActiveReportStore.start(report());
+      final found = await ActiveReportStore.recover(
+        api: serverWith([row('other', 'en_route')]),
+      );
+      expect(found?.reportId, 'r1');
+      expect(asked, 0);
+    });
+
+    test('adding help is remembered on the report', () async {
+      await ActiveReportStore.start(report());
+      await ActiveReportStore.addAgencies('a1', const ['barangay', 'medical']);
+      expect(ActiveReportStore.mine?.agencies, [
+        'fire_volunteer',
+        'medical',
+        'barangay',
+      ]);
+      // Help for some other incident does not touch this one.
+      await ActiveReportStore.addAgencies('a9', const ['police']);
+      expect(ActiveReportStore.mine?.agencies, isNot(contains('police')));
+    });
+  });
+
   group('SOS', () {
     ApiClient areaApi() => ApiClient(
       client: MockClient(

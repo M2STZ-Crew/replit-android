@@ -4,15 +4,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/api/api_client.dart';
+import 'package:replit/api/session.dart';
+import 'package:replit/models/active_report.dart';
 import 'package:replit/screens/live_update_screen.dart';
 import 'package:replit/theme.dart';
 
 /// "10 Live tracking": the resident's own incident, followed live.
 void main() {
+  /// What the server has on the resident's own report in this area.
+  var asked = <String>['fire_volunteer'];
+  final added = <List<String>>[];
+
   ApiClient api({String status = 'en_route', int reports = 3}) => ApiClient(
     client: MockClient((req) async {
+      if (req.url.path.endsWith('/reports/mine')) {
+        return http.Response(
+          jsonEncode([
+            {'id': 'r1', 'area_id': 'a1', 'selected_agencies': asked},
+            {
+              'id': 'r0',
+              'area_id': 'a0',
+              'selected_agencies': ['police'],
+            },
+          ]),
+          200,
+        );
+      }
+      if (req.url.path.endsWith('/request-agencies')) {
+        final more = [
+          for (final a in (jsonDecode(req.body)['agencies'] as List)) '$a',
+        ];
+        added.add(more);
+        asked = {...asked, ...more}.toList();
+        return http.Response(
+          jsonEncode({'area_id': 'a1', 'agencies': asked, 'message': 'ok'}),
+          200,
+        );
+      }
       if (req.url.path.endsWith('/map/evacuation-sites')) {
         return http.Response(
           jsonEncode([
@@ -44,6 +75,14 @@ void main() {
       );
     }),
   );
+
+  setUp(() {
+    asked = ['fire_volunteer'];
+    added.clear();
+    SharedPreferences.setMockInitialValues({});
+    ActiveReportStore.reset();
+    Session.instance.email = 'm.reyes@gmail.com';
+  });
 
   Future<void> pump(
     WidgetTester tester,
@@ -116,6 +155,68 @@ void main() {
     expect(find.text('NEED MORE HELP?'), findsOneWidget);
     expect(find.text('FIRE DEPARTMENT'), findsNothing, reason: 'already asked');
     expect(find.text('MEDICAL SUPPORT'), findsOneWidget);
+  });
+
+  Finder sheet() => find.descendant(
+    of: find.byType(ListView),
+    matching: find.byType(Scrollable),
+  );
+
+  testWidgets('help added on an earlier visit is not offered again', (
+    tester,
+  ) async {
+    // Added last time; this visit was only told about the SOS choice.
+    asked = ['fire_volunteer', 'medical'];
+    await pump(tester, api());
+    await tester.scrollUntilVisible(
+      find.text('CHOOSE WHO TO ADD'),
+      200,
+      scrollable: sheet(),
+    );
+    expect(find.text('MEDICAL SUPPORT'), findsNothing);
+    expect(find.text('FIRE DEPARTMENT'), findsNothing);
+    expect(
+      find.text('POLICE DEPARTMENT'),
+      findsOneWidget,
+      reason: 'police was asked for on a different incident',
+    );
+  });
+
+  testWidgets('adding help takes it off the list and remembers it', (
+    tester,
+  ) async {
+    await ActiveReportStore.start(
+      ActiveReport(
+        owner: 'm.reyes@gmail.com',
+        reportId: 'r1',
+        areaId: 'a1',
+        lat: 14.5378,
+        lng: 121.0014,
+        submittedAt: DateTime.now(),
+        agencies: const ['fire_volunteer'],
+      ),
+    );
+    await pump(tester, api());
+    await tester.scrollUntilVisible(
+      find.text('CHOOSE WHO TO ADD'),
+      200,
+      scrollable: sheet(),
+    );
+    await tester.tap(find.text('MEDICAL SUPPORT'));
+    await tester.pump();
+    await tester.tap(find.text('ADD MORE HELP'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(added, [
+      ['medical'],
+    ]);
+    expect(find.text('MEDICAL SUPPORT'), findsNothing);
+    expect(
+      ActiveReportStore.mine?.agencies,
+      containsAll(['fire_volunteer', 'medical']),
+      reason: 'the next Track it live starts from this',
+    );
   });
 
   testWidgets('once the fire is out it says so and stops offering help', (

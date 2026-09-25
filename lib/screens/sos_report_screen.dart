@@ -120,6 +120,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
   }
 
   Future<void> _requestHelp() async {
+    // A report can have gone out while this one was being written — one that
+    // waited offline, say. One report at a time: go to that one instead.
+    if (ReportStatusScreen.redirectIfReporting(context)) return;
     final agencies = _selected.entries
         .where((e) => e.value)
         .map((e) => e.key)
@@ -167,6 +170,14 @@ class _SosReportScreenState extends State<SosReportScreen> {
       await _showSuccess(data, agencies, pos);
     } on ApiException catch (e) {
       timing.finish(outcome: 'rejected');
+      // 409: the server has a live report from this person that the phone
+      // had lost track of. Follow that one rather than leave them here.
+      if (e.statusCode == 409 &&
+          await ActiveReportStore.recover(api: _api) != null &&
+          mounted &&
+          ReportStatusScreen.redirectIfReporting(context)) {
+        return;
+      }
       _toast(e.message);
     } catch (_) {
       // No answer at all — no signal, most likely. With a fix in hand the
@@ -239,7 +250,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
     );
     await ActiveReportStore.start(report);
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(ReportStatusScreen.route(report));
+    // Over the map, with the dial and this form gone: Back from the report
+    // is the map, not a filled-in form or a dial to send it again.
+    ReportStatusScreen.showOverMap(context, report);
   }
 
   // -------------------------------------------------------------- build ---

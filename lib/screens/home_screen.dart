@@ -6,10 +6,12 @@ import '../api/push_service.dart';
 import '../api/report_queue.dart';
 import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
+import '../models/active_report.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'camera_capture_screen.dart';
+import 'report_status_screen.dart';
 
 /// "07 SOS" from the REPLIT-OVERHAUL Figma — the screen behind the SOS disc.
 ///
@@ -54,6 +56,18 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addObserver(this);
     ReportQueue.instance.offline.addListener(_rebuild);
     _checkLocation();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkReporting());
+  }
+
+  /// One report at a time: with one already out, the dial is not where the
+  /// resident belongs. The server is asked too, for a report this phone lost
+  /// track of (a reinstall, a second phone).
+  Future<void> _checkReporting() async {
+    if (!mounted || ReportStatusScreen.redirectIfReporting(context)) return;
+    final report = await ActiveReportStore.recover();
+    if (mounted && report != null) {
+      ReportStatusScreen.redirectIfReporting(context);
+    }
   }
 
   @override
@@ -110,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _startHold() {
+    if (ReportStatusScreen.redirectIfReporting(context)) return;
     HapticFeedback.selectionClick();
     // The three seconds of the hold are free time for the GPS: start the fix
     // now rather than when the camera opens (v10 §6). Without asking for

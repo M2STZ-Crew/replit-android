@@ -116,7 +116,9 @@ void main() {
       await see(tester, find.text('Fire out'));
       expect(find.text('Once responders are on scene'), findsOneWidget);
       expect(find.text('TRACK IT LIVE'), findsOneWidget);
-      expect(find.text('Report a different emergency'), findsOneWidget);
+      // One report at a time: something else is a call, not a second report.
+      expect(find.text('Something else? Call a hotline'), findsOneWidget);
+      expect(find.textContaining('different emergency'), findsNothing);
       expect(find.text('DONE'), findsNothing, reason: 'nothing is over yet');
     });
   }
@@ -182,6 +184,34 @@ void main() {
     expect(find.text('TRACK IT LIVE'), findsNothing);
     expect(find.text('DONE'), findsOneWidget);
     expect(find.text('Fire out'), findsNothing);
+  });
+
+  testWidgets('Track it live does not offer help already added', (
+    tester,
+  ) async {
+    await ActiveReportStore.start(report());
+    // Medical was added on an earlier visit to Live tracking.
+    await ActiveReportStore.addAgencies('a1', const ['medical']);
+    await pump(tester, api());
+
+    await see(tester, find.text('TRACK IT LIVE'));
+    await tester.tap(find.text('TRACK IT LIVE'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await tester.scrollUntilVisible(
+      find.text('CHOOSE WHO TO ADD'),
+      200,
+      scrollable: find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(find.text('MEDICAL SUPPORT'), findsNothing);
+    expect(find.text('FIRE DEPARTMENT'), findsNothing);
+    expect(find.text('POLICE DEPARTMENT'), findsOneWidget);
   });
 
   testWidgets('a merged area is followed to where the report went', (

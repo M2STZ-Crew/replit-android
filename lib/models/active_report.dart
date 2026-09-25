@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
 import '../api/session.dart';
+import 'resident_status.dart';
 
 /// The report a resident sent and is still following.
 ///
@@ -49,17 +50,27 @@ class ActiveReport {
   bool get isStale => DateTime.now().difference(submittedAt) > staleAfter;
 
   ActiveReport movedTo({required String areaId, String? designation}) =>
-      ActiveReport(
-        owner: owner,
-        reportId: reportId,
-        areaId: areaId,
-        designation: designation ?? this.designation,
-        lat: lat,
-        lng: lng,
-        submittedAt: submittedAt,
-        agencies: agencies,
-        message: message,
-      );
+      _copy(areaId: areaId, designation: designation);
+
+  /// The same report with more kinds of help asked for ("Add more help").
+  ActiveReport withAgencies(Iterable<String> more) =>
+      _copy(agencies: {...agencies, ...more}.toList());
+
+  ActiveReport _copy({
+    String? areaId,
+    String? designation,
+    List<String>? agencies,
+  }) => ActiveReport(
+    owner: owner,
+    reportId: reportId,
+    areaId: areaId ?? this.areaId,
+    designation: designation ?? this.designation,
+    lat: lat,
+    lng: lng,
+    submittedAt: submittedAt,
+    agencies: agencies ?? this.agencies,
+    message: message,
+  );
 
   Map<String, dynamic> toJson() => {
     'owner': owner,
@@ -179,6 +190,59 @@ abstract final class ActiveReportStore {
     } catch (_) {
       // It is in Your reports regardless; only the shortcut is lost.
     }
+  }
+
+  /// Agencies were added to the report in progress: remember them, so the
+  /// next "Track it live" does not offer them again.
+  static Future<void> addAgencies(String areaId, Iterable<String> more) async {
+    final report = mine;
+    if (report == null || report.areaId != areaId) return;
+    await start(report.withAgencies(more));
+  }
+
+  /// The report in progress, asking the server when the phone has none.
+  ///
+  /// The phone's record goes with a reinstall, cleared app data or a second
+  /// phone, but the server still refuses a second report while one is live —
+  /// so without this the app would offer a dial that can only fail. Picks the
+  /// newest report from the last [ActiveReport.staleAfter] whose incident is
+  /// still going on, the same rule the server applies.
+  static Future<ActiveReport?> recover({ApiClient? api}) async {
+    final local = mine;
+    if (local != null) return local;
+    if (!Session.instance.isAuthenticated) return null;
+    try {
+      final reports = await (api ?? ApiClient()).getMyReports();
+      // Newest first, as the server lists them.
+      for (final raw in reports) {
+        final r = raw as Map<String, dynamic>;
+        final at = DateTime.tryParse('${r['created_at']}')?.toLocal();
+        if (at == null) continue;
+        if (DateTime.now().difference(at) > ActiveReport.staleAfter) break;
+        final status = r['area_status'] as String?;
+        if (status == null || residentOver(residentStatus(status))) continue;
+        final lat = (r['device_lat'] as num?)?.toDouble();
+        final lng = (r['device_lng'] as num?)?.toDouble();
+        if (lat == null || lng == null) continue;
+        final report = ActiveReport(
+          owner: Session.instance.email ?? '',
+          reportId: r['id'] as String?,
+          areaId: r['area_id'] as String?,
+          designation: (r['area_designation'] as String?) ?? '—',
+          lat: lat,
+          lng: lng,
+          submittedAt: at,
+          agencies: [
+            for (final a in (r['selected_agencies'] as List? ?? const [])) '$a',
+          ],
+        );
+        await start(report);
+        return report;
+      }
+    } catch (_) {
+      // No answer: the server still turns a second report down, and says why.
+    }
+    return null;
   }
 
   @visibleForTesting

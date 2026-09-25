@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../api/api_client.dart';
+import '../models/active_report.dart';
 import '../models/resident_status.dart';
 import '../models/responder_unit.dart';
 import '../theme.dart';
@@ -49,8 +50,9 @@ class LiveUpdateScreen extends StatefulWidget {
   final double lat;
   final double lng;
 
-  /// Agencies the citizen already requested when filing the report; these are
-  /// hidden from the "add more help" list so they can't be requested twice.
+  /// Agencies the citizen already asked for, as far as the caller knows. The
+  /// server's record is read too; neither is offered again under "add more
+  /// help".
   final List<String> alreadySelected;
   final ApiClient? api;
 
@@ -68,9 +70,15 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   double? _shelterMetres;
   final List<LatLng> _shelters = [];
 
-  late final List<ResponderUnit> _available = kResponderUnits
-      .where((u) => !widget.alreadySelected.contains(u.key))
-      .toList();
+  /// Every agency already asked for on this incident. Null until the
+  /// server has said, so "add more help" never flashes up with one that was
+  /// added on an earlier visit and then takes it away again.
+  Set<String>? _asked;
+
+  List<ResponderUnit> get _available => [
+    for (final u in kResponderUnits)
+      if (!(_asked ?? const {}).contains(u.key)) u,
+  ];
   final Set<String> _extra = {};
   bool _adding = false;
 
@@ -99,8 +107,26 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   }
 
   Future<void> _load() async {
-    await Future.wait([_refreshStatus(), _loadNearestShelter()]);
+    await Future.wait([_refreshStatus(), _loadNearestShelter(), _loadAsked()]);
     if (mounted) setState(() => _loading = false);
+  }
+
+  /// What was asked for on this incident: at the SOS, and on any visit here
+  /// since — the server appends those to the resident's own report.
+  Future<void> _loadAsked() async {
+    final asked = {...widget.alreadySelected};
+    try {
+      for (final raw in await _api.getMyReports()) {
+        final r = raw as Map<String, dynamic>;
+        if (r['area_id'] != widget.areaId) continue;
+        asked.addAll([
+          for (final a in (r['selected_agencies'] as List? ?? const [])) '$a',
+        ]);
+      }
+    } catch (_) {
+      // What the caller passed is all there is to go on.
+    }
+    if (mounted) setState(() => _asked = asked);
   }
 
   Future<void> _refreshStatus() async {
@@ -186,10 +212,16 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
     final extras = _extra.toList();
     setState(() => _adding = true);
     try {
-      await _api.requestAreaAgencies(widget.areaId, extras);
+      final result = await _api.requestAreaAgencies(widget.areaId, extras);
+      final now = [
+        ...extras,
+        for (final a in (result['agencies'] as List? ?? const [])) '$a',
+      ];
+      // Remembered on the phone too, for the next time this screen opens.
+      await ActiveReportStore.addAgencies(widget.areaId, now);
       if (!mounted) return;
       setState(() {
-        _available.removeWhere((u) => extras.contains(u.key));
+        _asked = {...?_asked, ...now};
         _extra.clear();
       });
       _refreshStatus();
@@ -568,7 +600,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                     onTap: _showMeTheWay,
                   ),
                 ],
-                if (!residentOver(status) && _available.isNotEmpty)
+                if (!residentOver(status) &&
+                    _asked != null &&
+                    _available.isNotEmpty)
                   ..._moreHelp(),
               ],
             ),

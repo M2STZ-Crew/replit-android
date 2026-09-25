@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../api/report_queue.dart';
 import '../models/active_report.dart';
 import '../models/resident_status.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
-import 'home_screen.dart';
 import 'live_update_screen.dart';
 
 /// "09 Submitting" from the REPLIT-OVERHAUL Figma — "Getting you help" — and
@@ -27,7 +27,9 @@ import 'live_update_screen.dart';
 ///
 /// Leaving is allowed — the map is one Back away — but the report is not
 /// lost: pressing SOS again, or reopening the app, comes back here
-/// ([ActiveReportStore]). It lets go when the resident presses Done.
+/// ([ActiveReportStore]). It lets go when the resident presses Done, and until
+/// then it is the only report they can have: the dial does not start a second
+/// one, and the server refuses it.
 class ReportStatusScreen extends StatefulWidget {
   const ReportStatusScreen({
     super.key,
@@ -90,6 +92,47 @@ class ReportStatusScreen extends StatefulWidget {
       return;
     }
     await nav.push(route(report));
+  }
+
+  /// One report at a time: a resident who already has one out is taken to
+  /// it instead of starting another — or, while it still waits on the phone
+  /// for a signal, to the map, which shows it. True when they were sent on.
+  static bool redirectIfReporting(BuildContext context) {
+    final messenger = ScaffoldMessenger.of(context);
+    final report = ActiveReportStore.mine;
+    if (report != null) {
+      showOverMap(context, report);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'You already have a report in progress. It stays open until the '
+            'fire is out.',
+          ),
+        ),
+      );
+      return true;
+    }
+    if (ReportQueue.instance.pending.value.isNotEmpty) {
+      AppNavBar.switchTo(context, AppTab.map);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your report is saved on this phone. It sends itself when the '
+            'signal is back.',
+          ),
+        ),
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /// The report with only the map under it, so Back is the map — never the
+  /// SOS dial or the form it was sent from.
+  static void showOverMap(BuildContext context, ActiveReport report) {
+    final nav = Navigator.of(context);
+    AppNavBar.switchTo(context, AppTab.map);
+    nav.push(route(report));
   }
 
   @override
@@ -200,13 +243,19 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
   void _follow() {
     final id = _areaId;
     if (id == null) return;
+    // Everything asked for so far — at the SOS and on earlier visits to Live
+    // tracking — so none of it is offered again.
+    final active = ActiveReportStore.mine;
+    final asked = active != null && active.reportId == widget.reportId
+        ? active.agencies
+        : widget.selectedAgencies;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => LiveUpdateScreen(
           areaId: id,
           lat: widget.lat,
           lng: widget.lng,
-          alreadySelected: widget.selectedAgencies,
+          alreadySelected: asked,
         ),
       ),
     );
@@ -224,12 +273,9 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
     AppNavBar.switchTo(context, AppTab.map);
   }
 
-  /// A second, different emergency. The first report is still followed.
-  void _reportAnother() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const HomeScreen()));
-  }
+  /// A different emergency while this one is live: not a second report,
+  /// which the server refuses, but a call.
+  void _callHotline() => AppNavBar.switchTo(context, AppTab.hotlines);
 
   @override
   Widget build(BuildContext context) {
@@ -363,13 +409,13 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                 if (_areaId != null)
                   AppButton('Track it live', height: 54, onPressed: _follow),
                 TextButton(
-                  onPressed: _reportAnother,
+                  onPressed: _callHotline,
                   style: TextButton.styleFrom(
                     foregroundColor: context.pal.label,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: Text(
-                    'Report a different emergency',
+                    'Something else? Call a hotline',
                     style: context.type.label.copyWith(
                       color: context.pal.label,
                     ),

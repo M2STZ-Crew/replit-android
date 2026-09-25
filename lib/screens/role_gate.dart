@@ -189,9 +189,14 @@ class _ResumeReportState extends State<_ResumeReport> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final report = ActiveReportStore.mine;
-      if (mounted && report != null) ReportStatusScreen.open(context, report);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // The phone's record, or the server's for a report this phone lost
+      // track of — a reinstall, cleared data, a second phone.
+      final report =
+          ActiveReportStore.mine ?? await ActiveReportStore.recover();
+      if (mounted && report != null && !ReportStatusScreen.isShowing) {
+        ReportStatusScreen.open(context, report);
+      }
     });
   }
 
