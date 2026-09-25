@@ -66,6 +66,9 @@ class _SubAdminIncidentReportScreenState
   String? _verifiedByName;
   String? _rejectionReason;
 
+  /// Agencies that have pressed Accept on this incident (v11 §2.5.1).
+  List<String> _acceptedAgencies = const [];
+
   double? get _lat => (widget.report['device_lat'] as num?)?.toDouble();
   double? get _lng => (widget.report['device_lng'] as num?)?.toDouble();
 
@@ -87,6 +90,10 @@ class _SubAdminIncidentReportScreenState
         _status = (detail['status'] as String?) ?? _status;
         _verifiedByName = detail['verified_by_name'] as String?;
         _rejectionReason = detail['rejection_reason'] as String?;
+        _acceptedAgencies = [
+          for (final a in (detail['accepted_agencies'] as List? ?? const []))
+            '$a',
+        ];
       });
     } catch (_) {
       // keep the status passed in; verifier just stays "---"
@@ -572,7 +579,13 @@ class _SubAdminIncidentReportScreenState
       );
     }
 
-    final canVerify = s == 'reported' && widget.agency == 'fire_volunteer';
+    // v11 §2.5.1: any coordinator's Accept verifies a reported incident and
+    // sends responders — BFP's as well as the Fire Volunteers'. Once someone
+    // has, a second agency's Accept says it is coming too; it moves nothing.
+    final joinable =
+        s != 'reported' &&
+        widget.agency != null &&
+        !_acceptedAgencies.contains(widget.agency);
     final dispatchable = const {
       'verified',
       'en_route',
@@ -582,32 +595,36 @@ class _SubAdminIncidentReportScreenState
 
     final children = <Widget>[];
     if (s == 'reported') {
-      if (canVerify) {
-        children.add(
-          Row(
-            children: [
-              Expanded(
-                child: _gradientButton(
-                  'ACCEPT',
-                  () => _run(
-                    () => _api.acceptIncident(widget.areaId),
-                    'Accepted. Responders are on the way.',
-                  ),
+      children.add(
+        Row(
+          children: [
+            Expanded(
+              child: _gradientButton(
+                'ACCEPT',
+                () => _run(
+                  () => _api.acceptIncident(widget.areaId),
+                  'Accepted. Responders are on the way.',
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(child: _darkButton('REJECT', _reject)),
-            ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: _darkButton('REJECT', _reject)),
+          ],
+        ),
+      );
+    } else if (dispatchable) {
+      if (joinable) {
+        children.add(
+          _gradientButton(
+            'ACCEPT — WE\'RE COMING TOO',
+            () => _run(
+              () => _api.acceptIncident(widget.areaId),
+              'Accepted. The other teams can see you are coming.',
+            ),
           ),
         );
-      } else {
-        children.add(
-          _infoBanner('Only a Fire Volunteer sub-admin can verify incidents.'),
-        );
         children.add(const SizedBox(height: 12));
-        children.add(_darkButton('REJECT', _reject));
       }
-    } else if (dispatchable) {
       // Accepted onwards: the crew is already rolling, so the only calls left
       // here are fire out and — while nobody has arrived — reject.
       final resolve = _darkButton('FIRE OUT', _fireOut);

@@ -32,13 +32,11 @@ const LatLng _pasay = LatLng(14.5378, 121.0014);
 /// BFP team captain's dashboard — live counters, the layered map, and the
 /// alarm-request review queue (BFP's exclusive authority).
 ///
-/// Since v9 BFP is a coordinator (Master Context v10 §2.6.1): it rejects,
-/// dispatches, declares fire out and presses fire codes; only verifying is the
-/// Fire Volunteer's. This screen used to follow the older rule — "BFP has
-/// read-only view of incidents" — and with the Admin Console now Admin-only a
-/// BFP captain had nowhere left to act. Incidents now open the same coordinator
-/// screens a Fire Volunteer captain uses ([openCoordinatorIncident]); the
-/// review screen itself withholds Verify from BFP.
+/// BFP is a coordinator (Master Context v10 §2.6.1): it rejects, declares fire
+/// out and presses fire codes, and since v11 its Accept verifies an incident
+/// just as a Fire Volunteer's does (§2.5.1). Incidents open the same
+/// coordinator screens a Fire Volunteer captain uses
+/// ([openCoordinatorIncident]).
 class BfpDashboardScreen extends StatefulWidget {
   const BfpDashboardScreen({super.key, required this.me});
 
