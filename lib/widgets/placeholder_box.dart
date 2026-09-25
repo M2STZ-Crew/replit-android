@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
@@ -20,6 +22,12 @@ class PlaceholderBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A box told to fill its parent (double.infinity) takes its icon size from
+    // the side that is finite, or a default. An infinite icon cannot be laid
+    // out: the captain's incident screen used to fail this way whenever a
+    // report's photo was missing or would not load.
+    final finite = [width, height].where((v) => v.isFinite);
+    final side = finite.isEmpty ? 120.0 : finite.reduce(math.min);
     return Container(
       width: width,
       height: height,
@@ -36,7 +44,7 @@ class PlaceholderBox extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: context.pal.faint, size: width * 0.28),
+            Icon(icon, color: context.pal.faint, size: side * 0.28),
             if (label.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(label, style: context.type.eyebrow),
