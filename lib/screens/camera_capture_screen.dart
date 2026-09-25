@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
+import '../models/active_report.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/incident_map.dart';
@@ -57,6 +58,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   @override
   void initState() {
     super.initState();
+    ReportComposer.enter();
     WidgetsBinding.instance.addObserver(this);
     _location.position.addListener(_onPosition);
     _location.problem.addListener(_onPosition);
@@ -69,6 +71,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
   @override
   void dispose() {
+    ReportComposer.leave();
     WidgetsBinding.instance.removeObserver(this);
     _location.position.removeListener(_onPosition);
     _location.problem.removeListener(_onPosition);

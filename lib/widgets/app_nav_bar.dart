@@ -4,7 +4,9 @@ import '../screens/call_screen.dart';
 import '../screens/guide_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/map_screen.dart';
+import '../models/active_report.dart';
 import '../screens/profile_screen.dart';
+import '../screens/report_status_screen.dart';
 import '../theme.dart';
 import 'design.dart';
 
@@ -161,6 +163,16 @@ class AppNavBar extends StatelessWidget {
   }
 
   void _go(BuildContext context, AppTab tab) {
+    // With a report already out, SOS goes back to it rather than to a blank
+    // dial: a second hold would send a second report of the same fire. The
+    // report screen keeps a way to report something different.
+    if (tab == AppTab.sos) {
+      final report = ActiveReportStore.mine;
+      if (report != null) {
+        ReportStatusScreen.open(context, report);
+        return;
+      }
+    }
     if (tab == active) return;
     switchTo(context, tab);
   }

@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../api/api_client.dart';
+import '../api/session.dart';
 import '../api/report_queue.dart';
 import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
+import '../models/active_report.dart';
 import '../sound/sound_cues.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
@@ -82,11 +84,13 @@ class _SosReportScreenState extends State<SosReportScreen> {
   @override
   void initState() {
     super.initState();
+    ReportComposer.enter();
     _location.position.addListener(_rebuild);
   }
 
   @override
   void dispose() {
+    ReportComposer.leave();
     _location.position.removeListener(_rebuild);
     _notes.dispose();
     super.dispose();
@@ -220,20 +224,22 @@ class _SosReportScreenState extends State<SosReportScreen> {
     } catch (_) {
       when = DateTime.now();
     }
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => ReportStatusScreen(
-          designation: (data['area_designation'] as String?) ?? '—',
-          message: data['message'] as String?,
-          areaId: data['area_id'] as String?,
-          lat: pos.latitude,
-          lng: pos.longitude,
-          submittedAt: when,
-          selectedAgencies: agencies,
-        ),
-      ),
+    // From here the report is the thing the app is for: reopening the app or
+    // pressing SOS again comes back to it, until the resident says Done.
+    final report = ActiveReport(
+      owner: Session.instance.email ?? '',
+      reportId: data['id'] as String?,
+      areaId: data['area_id'] as String?,
+      designation: (data['area_designation'] as String?) ?? '—',
+      lat: pos.latitude,
+      lng: pos.longitude,
+      submittedAt: when,
+      agencies: agencies,
+      message: data['message'] as String?,
     );
+    await ActiveReportStore.start(report);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(ReportStatusScreen.route(report));
   }
 
   // -------------------------------------------------------------- build ---

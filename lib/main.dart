@@ -10,6 +10,9 @@ import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
+import 'api/session.dart';
+import 'models/active_report.dart';
+import 'screens/report_status_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,19 +27,59 @@ Future<void> main() async {
   // The ground the app draws on is a choice made inside it, so it has to be
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
+  // A report in progress survives the app being closed: read it now so the
+  // first screen after sign-in can go straight back to it.
+  await ActiveReportStore.load();
   // A report saved with no signal in an earlier session starts retrying now,
   // and says so wherever the person is in the app when it finally goes.
   unawaited(ReportQueue.instance.load());
-  ReportQueue.instance.delivered.listen((_) {
+  ReportQueue.instance.delivered.listen((report) {
     PushService.messengerKey.currentState?.showSnackBar(
       const SnackBar(content: Text('Your saved report was sent.')),
+    );
+    // Now it is a real report, follow it like any other.
+    unawaited(
+      ActiveReportStore.adoptDelivered(
+        lat: report.lat,
+        lng: report.lng,
+        agencies: report.agencies,
+      ),
     );
   });
   runApp(const RepLitApp());
 }
 
-class RepLitApp extends StatelessWidget {
+class RepLitApp extends StatefulWidget {
   const RepLitApp({super.key});
+
+  @override
+  State<RepLitApp> createState() => _RepLitAppState();
+}
+
+class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Back from the background with a report still out: go to it. Not while
+  /// they are part-way through writing a new one, and never twice.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (!Session.instance.isAuthenticated || ReportComposer.active) return;
+    final report = ActiveReportStore.mine;
+    final nav = PushService.navigatorKey.currentState;
+    if (report == null || nav == null || ReportStatusScreen.isShowing) return;
+    nav.push(ReportStatusScreen.route(report));
+  }
 
   @override
   Widget build(BuildContext context) {

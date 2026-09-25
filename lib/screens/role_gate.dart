@@ -6,8 +6,10 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'bfp/bfp_dashboard_screen.dart';
 import 'login_screen.dart';
+import '../models/active_report.dart';
 import 'map_screen.dart';
 import 'onboarding_screen.dart';
+import 'report_status_screen.dart';
 import 'observer_handoff_screen.dart';
 import 'responder/responder_duty_screen.dart';
 import 'subadmin/subadmin_dashboard_screen.dart';
@@ -162,8 +164,37 @@ class _CitizenEntry extends StatelessWidget {
         if (!snapshot.hasData) {
           return Scaffold(backgroundColor: context.pal.background);
         }
-        return snapshot.data! ? const MapScreen() : const OnboardingScreen();
+        return snapshot.data!
+            ? const _ResumeReport(child: MapScreen())
+            : const OnboardingScreen();
       },
     );
   }
+}
+
+/// Opens the resident's report in progress over the map, if they have one.
+///
+/// Over the map rather than instead of it, so Back from the report is the map
+/// — the app's home — and not the end of the app.
+class _ResumeReport extends StatefulWidget {
+  const _ResumeReport({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ResumeReport> createState() => _ResumeReportState();
+}
+
+class _ResumeReportState extends State<_ResumeReport> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final report = ActiveReportStore.mine;
+      if (mounted && report != null) ReportStatusScreen.open(context, report);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
