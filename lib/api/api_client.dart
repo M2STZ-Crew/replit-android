@@ -15,9 +15,23 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// The stored session is over and could not be renewed: sign in again.
+///
+/// Distinct from a plain 401 so screens can tell "your session expired" from
+/// "the network is down" and react differently. A retry cannot fix this one —
+/// only signing in can — so anything that catches it should send the user to
+/// the login screen rather than offering a button that will fail again.
+class SessionExpiredException extends ApiException {
+  SessionExpiredException()
+    : super(401, 'Your session has ended. Please sign in again.');
+}
+
 class ApiClient {
   ApiClient({http.Client? client}) : _client = client ?? http.Client();
   final http.Client _client;
+
+  /// A refresh already under way, shared by every caller that hits a 401.
+  static Future<bool>? _refreshing;
 
   Future<void> login({required String email, required String password}) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/auth/login');
@@ -249,11 +263,11 @@ class ApiClient {
   /// Returns role, full_name, email, phone, verified_percent (0–100), and badge
   /// (yellow | light_green | green | green_check).
   Future<Map<String, dynamic>> getMe() async {
-    final resp = await _client.get(
-      Uri.parse('${ApiConfig.baseUrl}/auth/me'),
-      headers: {
-        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
-      },
+    final resp = await _authed(
+      () => _client.get(
+        Uri.parse('${ApiConfig.baseUrl}/auth/me'),
+        headers: _auth,
+      ),
     );
     return _decode(resp);
   }
@@ -823,6 +837,66 @@ class ApiClient {
       throw ApiException(resp.statusCode, 'Failed to load $layer.');
     }
     return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  /// Trade the stored refresh token for a new session. True when it worked.
+  ///
+  /// Supabase rotates the refresh token on every use, so two concurrent
+  /// refreshes would race and one would present a token the server has already
+  /// retired. Callers therefore share a single in-flight attempt.
+  Future<bool> _refreshSession() {
+    final inFlight = _refreshing;
+    if (inFlight != null) return inFlight;
+    final attempt = _doRefresh();
+    _refreshing = attempt;
+    return attempt.whenComplete(() => _refreshing = null);
+  }
+
+  Future<bool> _doRefresh() async {
+    final token = Session.instance.refreshToken;
+    if (token == null || token.isEmpty) return false;
+    try {
+      final resp = await _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': token}),
+      );
+      if (resp.statusCode >= 400) return false;
+      _storeSession(jsonDecode(resp.body) as Map<String, dynamic>);
+      await Session.instance.persist();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Send an authenticated request, renewing the session once if it has lapsed.
+  ///
+  /// Access tokens last about an hour, so any app left alone overnight wakes up
+  /// with a dead one. Without this the request simply failed and the stored
+  /// token stayed dead for good: every retry re-sent it, and the only way out
+  /// was to clear the app's data. Now a 401 spends the refresh token, and the
+  /// request is replayed with the new access token. [send] is a closure rather
+  /// than a prepared request so the replay picks up that new token.
+  ///
+  /// If the refresh token is missing or also expired the session is cleared —
+  /// leaving dead credentials on the device is what made this stick — and
+  /// [SessionExpiredException] is thrown for the caller to route to login.
+  Future<http.Response> _authed(
+    Future<http.Response> Function() send,
+  ) async {
+    final first = await send();
+    if (first.statusCode != 401) return first;
+    if (!await _refreshSession()) {
+      await Session.instance.clear();
+      throw SessionExpiredException();
+    }
+    final second = await send();
+    if (second.statusCode == 401) {
+      await Session.instance.clear();
+      throw SessionExpiredException();
+    }
+    return second;
   }
 
   void _storeSession(Map<String, dynamic> data) {

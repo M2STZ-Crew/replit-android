@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../api/session.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import 'bfp/bfp_dashboard_screen.dart';
+import 'login_screen.dart';
 import 'map_screen.dart';
 import 'onboarding_screen.dart';
 import 'observer_handoff_screen.dart';
@@ -43,9 +45,29 @@ class _RoleGateState extends State<RoleGate> {
     try {
       final me = await _api.getMe();
       if (mounted) setState(() => _me = me);
+    } on SessionExpiredException {
+      // The stored session was too old to renew. The client has already cleared
+      // it, so send the user to sign in rather than showing an error whose only
+      // button re-sends the same dead token.
+      await _signInAgain();
     } catch (_) {
       if (mounted) setState(() => _error = 'Could not load your account.');
     }
+  }
+
+  /// Drop whatever is stored and start again at the login screen.
+  ///
+  /// Also offered on an ordinary failure, so a resident is never cornered on
+  /// this screen. Before this, an unrecoverable state here could only be
+  /// escaped by clearing the app's data from Android settings — which is not
+  /// something to ask of someone with a fire to report.
+  Future<void> _signInAgain() async {
+    await Session.instance.clear();
+    if (!mounted) return;
+    await Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -67,6 +89,13 @@ class _RoleGateState extends State<RoleGate> {
                   color: context.pal.accent,
                   fontWeight: FontWeight.w700,
                 ),
+              ),
+            ),
+            TextButton(
+              onPressed: _signInAgain,
+              child: Text(
+                'Sign in again',
+                style: TextStyle(color: context.pal.muted),
               ),
             ),
           ],
