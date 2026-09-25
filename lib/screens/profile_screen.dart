@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../app_version.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
 import '../models/verification_state.dart';
@@ -324,7 +325,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               Center(
                 child: Text(
-                  'REPLIT · BARANGAY 76 · V1.0.0',
+                  // The build as App Distribution lists it: "1.11.0 (57)".
+                  [
+                    'REPLIT · BARANGAY 76',
+                    if (AppVersion.label.isNotEmpty) 'V${AppVersion.label}',
+                  ].join(' · '),
                   style: context.type.tag.copyWith(color: context.pal.faint),
                 ),
               ),

@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/api/api_client.dart';
+import 'package:replit/app_version.dart';
 import 'package:replit/models/verification_state.dart';
 import 'package:replit/screens/profile_screen.dart';
 import 'package:replit/screens/verification_screen.dart';
@@ -93,6 +95,29 @@ void main() {
         expect(find.text('Language'), findsNothing);
       });
     }
+
+    testWidgets('shows the build as App Distribution lists it', (tester) async {
+      // What CI stamps on a release: pubspec's name, the run number as build.
+      PackageInfo.setMockInitialValues(
+        appName: 'RepLiT',
+        packageName: 'com.example.replit',
+        version: '1.11.0',
+        buildNumber: '57',
+        buildSignature: '',
+      );
+      await AppVersion.load();
+      addTearDown(() => AppVersion.label = '');
+      expect(AppVersion.label, '1.11.0 (57)');
+
+      await pump(tester, ProfileScreen(api: api()));
+      final footer = find.text('REPLIT · BARANGAY 76 · V1.11.0 (57)');
+      await tester.scrollUntilVisible(
+        footer,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(footer, findsOneWidget);
+    });
 
     testWidgets('an ID in review is not asked for again', (tester) async {
       await pump(tester, ProfileScreen(api: api(idStatus: 'manual_review')));

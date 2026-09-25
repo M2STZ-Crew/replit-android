@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import 'api/push_service.dart';
+import 'app_version.dart';
 import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
@@ -27,6 +28,8 @@ Future<void> main() async {
   // The ground the app draws on is a choice made inside it, so it has to be
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
+  // "1.11.0 (57)", as App Distribution lists this build.
+  await AppVersion.load();
   // A report in progress survives the app being closed: read it now so the
   // first screen after sign-in can go straight back to it.
   await ActiveReportStore.load();

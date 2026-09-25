@@ -57,6 +57,9 @@ dependencies:
   # Already in the lock through camera/image_picker; declared because the
   # offline report queue keeps its photos in the app documents directory.
   path_provider: ^2.1.6
+  # Already in the lock through geolocator; declared because the profile shows
+  # the installed build's version the way App Distribution lists it.
+  package_info_plus: ^10.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

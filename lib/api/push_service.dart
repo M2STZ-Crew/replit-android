@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../app_version.dart';
 import '../screens/live_update_screen.dart';
 import '../screens/neighbour_alert_screen.dart';
 import '../screens/responder/responder_incident_screen.dart';
@@ -37,6 +38,10 @@ class PushService {
 
   final ApiClient _api = ApiClient();
   String? _token;
+
+  /// Sent with the device, so the server knows which build each phone runs.
+  static String? get _version =>
+      AppVersion.label.isEmpty ? null : AppVersion.label;
   bool _listenersReady = false;
 
   /// Whether the user has emergency alerts switched on (default true).
@@ -88,7 +93,7 @@ class PushService {
       await _api.registerDevice(
         fcmToken: token,
         deviceName: 'RepLiT Android',
-        appVersion: '1.0.0',
+        appVersion: _version,
       );
       await _pushLocation();
     } catch (_) {
@@ -129,7 +134,7 @@ class PushService {
       await _api.registerDevice(
         fcmToken: token,
         deviceName: 'RepLiT Android',
-        appVersion: '1.0.0',
+        appVersion: _version,
       );
     } catch (_) {
       // ignore
