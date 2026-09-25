@@ -81,6 +81,16 @@ class AppColors {
   static const Color ok = Color(0xFF22C55E); // resolved, verified, ready
   static const Color warn = Color(0xFFFACC15); // pending, needs attention
 
+  // Map markers (REPLIT-OVERHAUL 04 Map: Marker/*). Solid plates carrying a
+  // white glyph, so they read the same over the dark and the light basemap.
+  static const Color markerWater = Color(0xFF2E7BD6); // hydrants, water
+  static const Color markerShelter = Color(0xFF1F9D55); // evacuation sites
+  static const Color markerShelterEdge = Color(0x6622C55E);
+  static const Color markerPlate = Color(0xFF201E1C); // neutral: hospital
+  static const Color markerLive = Color(0xFFE5342E); // a live incident
+  static const Color markerYou = Color(0xFFE8622F); // your position
+  static const Color markerEdge = Color(0xFFCFCFCF); // Neutral/Marker
+
   // Interaction states from the COMPONENTS page. Hover and pressed are a
   // token overlay laid over the same fill, so a theme change carries them;
   // focus is a ring drawn outside the control, never a fill change.

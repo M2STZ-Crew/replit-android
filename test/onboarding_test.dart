@@ -141,7 +141,13 @@ void main() {
     var dismissed = false;
     await pump(
       tester,
-      Scaffold(body: MapCoachMarks(onDismiss: () => dismissed = true)),
+      Scaffold(
+        body: MapCoachMarks(
+          sosLift: 100,
+          area: const Offset(120, 320),
+          onDismiss: () => dismissed = true,
+        ),
+      ),
     );
     expect(find.text('Reports group into Areas'), findsOneWidget);
     expect(find.text('SOS lives here'), findsOneWidget);
@@ -153,5 +159,52 @@ void main() {
     await tester.tap(find.text('Got it'));
     await tester.pump();
     expect(dismissed, isTrue);
+  });
+
+  final rings = find.byWidgetPredicate(
+    (w) => w.runtimeType.toString() == '_Halo',
+  );
+
+  testWidgets('the rings go round the SOS disc and the Area it is given', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      Scaffold(
+        body: MapCoachMarks(
+          sosLift: 100,
+          area: const Offset(120, 320),
+          onDismiss: () {},
+        ),
+      ),
+    );
+    final centres = [
+      for (var i = 0; i < rings.evaluate().length; i++)
+        tester.getCenter(rings.at(i)),
+    ];
+    expect(centres, contains(const Offset(120, 320)));
+    expect(centres, contains(const Offset(201, 874 - 100)));
+
+    // Each callout sits beside its own ring, not over the other one.
+    final areaCard = tester.getRect(find.text('Reports group into Areas'));
+    final sosCard = tester.getRect(find.text('SOS lives here'));
+    expect(areaCard.top, greaterThan(320 + 48));
+    expect(sosCard.bottom, lessThan(874 - 100 - 48));
+    expect(areaCard.bottom, lessThan(sosCard.top));
+  });
+
+  testWidgets('with no Area on screen it rings only SOS and sits over the '
+      'sheet', (tester) async {
+    await pump(
+      tester,
+      Scaffold(
+        body: MapCoachMarks(sosLift: 100, sheetTop: 500, onDismiss: () {}),
+      ),
+    );
+    expect(rings, findsOneWidget);
+    expect(
+      tester.getRect(find.text('Reports group into Areas')).bottom,
+      lessThan(500),
+    );
   });
 }

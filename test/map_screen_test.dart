@@ -13,6 +13,7 @@ import 'package:replit/api/report_queue.dart';
 import 'package:replit/models/hotline.dart';
 import 'package:replit/screens/map_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/widgets/map_coach_marks.dart';
 
 /// The citizen map ("04 Map" and "05 Map — offline queue"): what the sheet
 /// says with signal, and what it says without.
@@ -185,4 +186,31 @@ void main() {
       },
     );
   }
+
+  Finder named(String type) =>
+      find.byWidgetPredicate((w) => w.runtimeType.toString() == type);
+
+  testWidgets('the coach marks ring an Area on the map and the SOS disc', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(tester.takeException(), isNull);
+
+    final rings = named('_Halo');
+    expect(rings, findsNWidgets(2), reason: 'an Area is on screen');
+    final centres = [for (var i = 0; i < 2; i++) tester.getCenter(rings.at(i))];
+    bool ringed(Offset target) =>
+        centres.any((c) => (c - target).distance < 1.5);
+
+    final area = tester.getCenter(named('_AreaMarker').first);
+    expect(ringed(area), isTrue, reason: 'ring $centres, marker $area');
+    final disc = tester.getCenter(named('_Disc'));
+    expect(ringed(disc), isTrue, reason: 'ring $centres, disc $disc');
+
+    await tester.tap(find.text('Got it'));
+    await tester.pump();
+    expect(find.byType(MapCoachMarks), findsNothing);
+  });
 }

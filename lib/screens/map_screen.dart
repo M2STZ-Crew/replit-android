@@ -13,6 +13,7 @@ import '../api/api_client.dart';
 import '../api/map_cache.dart';
 import '../api/report_queue.dart';
 import '../models/hotline.dart';
+import '../models/resident_status.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
@@ -38,10 +39,6 @@ Color _overlay(AppPalette pal) =>
 Color _overlayDense(AppPalette pal) =>
     pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.94 : 0.9);
 
-/// The ground under a map marker glyph: #131313 at 92%.
-/// A marker plate: nearly opaque, so a glyph on it reads over any tile.
-Color _markerGround(AppPalette pal) => pal.background.withValues(alpha: 0.92);
-
 /// One chip in the "Map layers" row, and the layer it switches.
 /// What a layer is drawn in. A role rather than a swatch, so the light and
 /// dark palettes each give it their own value.
@@ -63,6 +60,14 @@ class _Layer {
   final String key;
   final String label;
   final _Tone tone;
+
+  /// The solid plate a marker of this layer sits on (04 Map: Marker/*).
+  Color get markerFill => switch (tone) {
+    _Tone.hydrant || _Tone.water => AppColors.markerWater,
+    _Tone.shelter => AppColors.markerShelter,
+    _Tone.risk => AppColors.markerLive,
+    _Tone.cistern || _Tone.incident => AppColors.markerPlate,
+  };
 
   Color colour(AppPalette pal) => switch (tone) {
     _Tone.incident => pal.accentInk,
@@ -173,6 +178,18 @@ class _MapScreenState extends State<MapScreen> {
 
   /// The map's one pass of coach marks (ONBOARDING T8), shown once.
   bool _coachMarks = false;
+
+  /// What the coach marks point at, read from the last layout: an Area
+  /// marker in the open map, and where the areas sheet begins.
+  Offset? _coachArea;
+  double? _coachSheetTop;
+
+  /// The map has laid out once, so its camera can place a point on screen.
+  bool _mapReady = false;
+
+  final GlobalKey _stackKey = GlobalKey();
+  final GlobalKey _controlsKey = GlobalKey();
+  final GlobalKey _sheetKey = GlobalKey();
 
   /// The last /areas call could not reach the server.
   bool _offline = false;
@@ -494,6 +511,52 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // -------------------------------------------------------- coach marks ---
+  /// Finds what the coach marks ring: the nearest Area whose marker is in
+  /// the open map, between the top controls and the sheet, clear of both by
+  /// the ring's radius. Reads the last layout, so it runs after a frame.
+  void _placeCoachMarks() {
+    if (!mounted || !_coachMarks || !_mapReady) return;
+    final stack = _stackKey.currentContext?.findRenderObject();
+    final controls = _controlsKey.currentContext?.findRenderObject();
+    final sheet = _sheetKey.currentContext?.findRenderObject();
+    if (stack is! RenderBox || controls is! RenderBox || sheet is! RenderBox) {
+      return;
+    }
+    if (!stack.hasSize || !controls.hasSize || !sheet.hasSize) return;
+
+    final sheetTop = sheet.localToGlobal(Offset.zero, ancestor: stack).dy;
+    final openTop = controls
+        .localToGlobal(Offset(0, controls.size.height), ancestor: stack)
+        .dy;
+    const reach = 48.0; // the ring's radius
+    Offset? area;
+    if (_on.contains('incidents')) {
+      final camera = _map.camera;
+      for (final a in [for (final e in _nearbyAreas()) e.area, ..._areas]) {
+        final p = camera.latLngToScreenOffset(
+          LatLng(
+            (a['centroid_lat'] as num).toDouble(),
+            (a['centroid_lng'] as num).toDouble(),
+          ),
+        );
+        if (p.dx >= reach &&
+            p.dx <= stack.size.width - reach &&
+            p.dy >= openTop + reach &&
+            p.dy <= sheetTop - reach) {
+          area = p;
+          break;
+        }
+      }
+    }
+    if (area != _coachArea || sheetTop != _coachSheetTop) {
+      setState(() {
+        _coachArea = area;
+        _coachSheetTop = sheetTop;
+      });
+    }
+  }
+
   // -------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
@@ -508,7 +571,13 @@ class _MapScreenState extends State<MapScreen> {
           // read here, below the Scaffold, not from the State's context.
           builder: (context) {
             final clearance = MediaQuery.paddingOf(context).bottom;
+            if (_coachMarks) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => _placeCoachMarks(),
+              );
+            }
             return Stack(
+              key: _stackKey,
               children: [
                 Positioned.fill(child: _mapLayer()),
                 const Positioned.fill(child: IgnorePointer(child: _Vignette())),
@@ -516,12 +585,22 @@ class _MapScreenState extends State<MapScreen> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: _sheet(clearance),
+                  child: KeyedSubtree(key: _sheetKey, child: _sheet(clearance)),
                 ),
-                Positioned(top: 0, left: 0, right: 0, child: _topControls()),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: KeyedSubtree(key: _controlsKey, child: _topControls()),
+                ),
                 if (_coachMarks)
                   Positioned.fill(
                     child: MapCoachMarks(
+                      // The disc rises half its height above the bar, so its
+                      // centre sits on the bar's top edge.
+                      sosLift: clearance - AppNavBar.overhang,
+                      area: _coachArea,
+                      sheetTop: _coachSheetTop,
                       onDismiss: () {
                         setState(() => _coachMarks = false);
                         unawaited(Tour.markCoachMarksSeen());
@@ -561,6 +640,12 @@ class _MapScreenState extends State<MapScreen> {
         interactionOptions: InteractionOptions(
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
+        onMapReady: () {
+          _mapReady = true;
+          _placeCoachMarks();
+        },
+        // The map recentres on the fix after the marks are up; follow it.
+        onPositionChanged: (_, _) => _placeCoachMarks(),
       ),
       children: [
         MapTiles.layer(light: context.pal.isLight),
@@ -591,7 +676,8 @@ class _MapScreenState extends State<MapScreen> {
                 child: Center(
                   child: _MarkerSquare(
                     size: 24,
-                    edge: context.pal.ok.withValues(alpha: 0.4),
+                    fill: AppColors.markerShelter,
+                    edge: AppColors.markerShelterEdge,
                     asset: Art.evac,
                     glyph: 15,
                     outside: s['outside_pasay'] == true,
@@ -633,11 +719,11 @@ class _MapScreenState extends State<MapScreen> {
                       )
                     : _MarkerSquare(
                         size: 22,
-                        edge: layer.colour(context.pal),
+                        fill: layer.markerFill,
+                        edge: AppColors.markerEdge,
                         asset: layer.asset,
                         icon: layer.icon,
-                        iconColor: layer.colour(context.pal),
-                        glyph: 13,
+                        glyph: 14,
                       ),
               ),
             ),
@@ -727,18 +813,9 @@ class _MapScreenState extends State<MapScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: _localityPill(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _avatar(),
-              ],
-            ),
+            // Just the locality: "04 Map" has no avatar here - Profile is a
+            // tab on the bar since the overhaul.
+            Align(alignment: Alignment.centerLeft, child: _localityPill()),
             const SizedBox(height: 16),
             if (queued.isNotEmpty)
               _queueCard(queued)
@@ -801,29 +878,6 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _avatar() {
-    return Semantics(
-      button: true,
-      label: 'Your profile',
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: () => AppNavBar.switchTo(context, AppTab.profile),
-        child: _Glass(
-          radius: AppRadius.card,
-          width: 48,
-          height: 48,
-          edge: context.pal.lineStrong,
-          child: Center(
-            child: Opacity(
-              opacity: 0.9,
-              child: Image.asset(Art.avatar, width: 28, height: 28),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -1438,7 +1492,6 @@ class _Glass extends StatelessWidget {
     this.color,
     this.edge,
     this.blur = 12,
-    this.width,
     this.height,
   });
 
@@ -1452,7 +1505,6 @@ class _Glass extends StatelessWidget {
   /// Defaults to the palette's hairline.
   final Color? edge;
   final double blur;
-  final double? width;
   final double? height;
 
   @override
@@ -1463,7 +1515,6 @@ class _Glass extends StatelessWidget {
       child: BackdropFilter.grouped(
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
-          width: width,
           height: height,
           padding: padding,
           decoration: BoxDecoration(
@@ -1506,23 +1557,26 @@ class _Vignette extends StatelessWidget {
 
 /// A rounded-square marker: a glyph on the near-black ground, edged in the
 /// layer's colour. [outside] adds the "outside Pasay" arrow (v10 §2.4).
+/// A map marker as "04 Map" draws it: a solid plate at the marker radius, a
+/// 1px edge, and the glyph in white - so it reads the same over the dark and
+/// the light basemap.
 class _MarkerSquare extends StatelessWidget {
   const _MarkerSquare({
     required this.size,
+    required this.fill,
     required this.edge,
     required this.glyph,
     this.asset,
     this.icon,
-    this.iconColor,
     this.outside = false,
   });
 
   final double size;
+  final Color fill;
   final Color edge;
   final double glyph;
   final String? asset;
   final IconData? icon;
-  final Color? iconColor;
   final bool outside;
 
   @override
@@ -1531,17 +1585,19 @@ class _MarkerSquare extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: _markerGround(context.pal),
+        color: fill,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: edge),
       ),
       alignment: Alignment.center,
       child: asset != null
-          ? Opacity(
-              opacity: 0.92,
-              child: Image.asset(asset!, width: glyph, height: glyph),
+          ? Image.asset(
+              asset!,
+              width: glyph,
+              height: glyph,
+              color: Colors.white,
             )
-          : Icon(icon, size: glyph, color: iconColor),
+          : Icon(icon, size: glyph, color: Colors.white),
     );
     if (!outside) return square;
     return Stack(
@@ -1578,37 +1634,50 @@ class _AreaMarker extends StatelessWidget {
   final String? status;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: context.pal.forStatus(status),
-      borderRadius: BorderRadius.circular(AppRadius.chip),
-      border: Border.all(
-        color: context.pal.surfaceSolid.withValues(alpha: 0.9),
+  Widget build(BuildContext context) {
+    // As a resident sees it: yellow while it waits to be accepted, red once
+    // responders are on it, green when the fire is out. The yellow plate
+    // takes a dark glyph - white on yellow is unreadable.
+    final (Color fill, Color glyph) = switch (residentStatus(status)) {
+      'reported' => (AppColors.warn, const Color(0xFF131313)),
+      'fire_out' => (AppColors.ok, Colors.white),
+      'rejected' || 'merged' => (AppColors.markerPlate, AppColors.markerEdge),
+      _ => (AppColors.markerLive, Colors.white),
+    };
+    return Container(
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+        border: Border.all(
+          color: context.pal.surfaceSolid.withValues(alpha: 0.9),
+        ),
       ),
-    ),
-    alignment: Alignment.center,
-    child: Image.asset(Art.incident, width: 17, height: 17),
-  );
+      alignment: Alignment.center,
+      child: Image.asset(Art.incident, width: 17, height: 17, color: glyph),
+    );
+  }
 }
 
-/// You: a coral dot ringed in the sheet colour, inside a soft coral disc.
+/// You, as "04 Map" draws "Your position": a 34px square plate in
+/// Marker/You, and on it a coral dot ringed in the sheet colour.
+///
+/// The frame's plate also covers the soft accuracy halo it was drawn over -
+/// it reads like a frame fill left on - but it is what the design shows, so
+/// it is what this draws.
 class _YouAreHere extends StatelessWidget {
   const _YouAreHere();
 
   @override
   Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: context.pal.accent.withValues(alpha: 0.28),
-      shape: BoxShape.circle,
-    ),
+    color: AppColors.markerYou,
     alignment: Alignment.center,
     child: Container(
-      width: 16,
-      height: 16,
+      width: 13,
+      height: 13,
       decoration: BoxDecoration(
-        color: context.pal.accent,
+        color: AppColors.accent,
         shape: BoxShape.circle,
-        border: Border.all(color: context.pal.surfaceSolid, width: 3),
+        border: Border.all(color: const Color(0xFF171717), width: 3),
       ),
     ),
   );
