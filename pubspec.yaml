@@ -16,7 +16,14 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+# MAJOR.MINOR.PATCH+build. MINOR tracks the Master Context generation, so
+# 1.11.x is the app that implements Master Context v11 and the same number is
+# declared by the backend and both consoles.
+#
+# The +1 here is only a placeholder: CI passes --build-number=<github run
+# number>, which is what becomes the Android versionCode. That has to rise on
+# every build or Android refuses the install, and a run number always does.
+version: 1.11.0+1
 
 environment:
   sdk: ^3.11.1
