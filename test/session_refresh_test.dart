@@ -115,6 +115,8 @@ void main() {
     expect(refreshes, 1);
   });
 
+  _wrongServerTests();
+
   test('a server error is not mistaken for an expired session', () async {
     var refreshes = 0;
     final api = ApiClient(
@@ -129,5 +131,39 @@ void main() {
     // user out because the backend was briefly down would be its own bug.
     expect(refreshes, 0);
     expect(Session.instance.isAuthenticated, isTrue);
+  });
+}
+
+/// A build carries its backend address, baked in at compile time. One shipped
+/// pointing at `onrender.co` instead of `onrender.com` — someone else's domain,
+/// which answers with a redirect to a page of HTML. The app then tried to read
+/// that HTML as JSON, threw a FormatException nobody caught by type, and every
+/// screen reported it as "could not reach the server". The cause was invisible
+/// to the person holding the phone and to anyone helping them.
+void _wrongServerTests() {
+  group('pointed at the wrong server', () {
+    test('an HTML reply says the address is wrong, and names it', () async {
+      final api = ApiClient(
+        client: MockClient(
+          (_) async => http.Response('<html><body>Redirecting to another site</body></html>', 200),
+        ),
+      );
+
+      await expectLater(
+        api.getMe(),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.message,
+            'message',
+            allOf(contains('did not reply with RepLiT data'), contains('install')),
+          ),
+        ),
+      );
+    });
+
+    test('an empty body is still fine, since some endpoints return none', () async {
+      final api = ApiClient(client: MockClient((_) async => http.Response('', 200)));
+      expect(await api.getMe(), isEmpty);
+    });
   });
 }

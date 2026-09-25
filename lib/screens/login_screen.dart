@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../api/api_config.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
 import '../theme.dart';
@@ -57,7 +58,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError(e.message);
     } catch (_) {
       _showError(
-        'Could not reach the server. Check the API URL in api_config.dart.',
+        'Could not reach RepLiT at ${ApiConfig.host}. Check your internet '
+        'connection, then try again. If it keeps failing, install the latest '
+        'version of the app.',
       );
     } finally {
       if (mounted) setState(() => _loading = false);

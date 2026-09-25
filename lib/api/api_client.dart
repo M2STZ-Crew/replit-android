@@ -908,9 +908,23 @@ class ApiClient {
   }
 
   Map<String, dynamic> _decode(http.Response resp) {
-    final Map<String, dynamic> body = resp.body.isNotEmpty
-        ? jsonDecode(resp.body) as Map<String, dynamic>
-        : <String, dynamic>{};
+    Map<String, dynamic> body;
+    try {
+      body = resp.body.isNotEmpty
+          ? jsonDecode(resp.body) as Map<String, dynamic>
+          : <String, dynamic>{};
+    } catch (_) {
+      // Not JSON. The backend always answers with JSON, so this means the app
+      // is talking to something that is not RepLiT — which in practice means
+      // the address was baked into the build wrongly. It used to surface as a
+      // FormatException that no caller expected, so every screen reported it as
+      // "could not reach the server" and the real cause stayed invisible.
+      throw ApiException(
+        resp.statusCode,
+        'The server at ${ApiConfig.host} did not reply with RepLiT data. '
+        'This build points at the wrong address — install the latest version.',
+      );
+    }
     if (resp.statusCode >= 400) {
       final message =
           (body['message'] as String?) ??

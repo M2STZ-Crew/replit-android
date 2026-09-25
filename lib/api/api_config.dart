@@ -23,6 +23,15 @@ class ApiConfig {
     defaultValue: 'http://10.0.2.2:8000',
   );
 
+  /// Just the host, for showing a person which server their build talks to.
+  ///
+  /// Worth surfacing because the address is baked in at build time: a tester
+  /// holding an older APK cannot tell, and neither can anyone helping them. A
+  /// build once shipped pointing at `onrender.co` instead of `onrender.com` —
+  /// someone else's domain, which answered with a redirect — and the app could
+  /// only say that it could not reach the server.
+  static String get host => Uri.parse(baseUrl).host;
+
   /// Where the Observer Console (observer-web) is served, shown to Police,
   /// Medical and Barangay team captains who sign in here — their surface is the
   /// web (Master Context v10 §2.6). Empty until it is deployed, in which case
