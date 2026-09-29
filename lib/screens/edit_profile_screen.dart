@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
+import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 
@@ -30,8 +32,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _name = TextEditingController(
     text: widget.fullName ?? '',
   );
+  // Shown the way it is typed (0917 123 4567), whatever form it was saved in.
   late final TextEditingController _mobile = TextEditingController(
-    text: widget.mobile ?? '',
+    text: localPhMobile(widget.mobile).isEmpty
+        ? (widget.mobile ?? '')
+        : localPhMobile(widget.mobile),
   );
 
   DateTime? _dob;
@@ -125,8 +130,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 6),
               _field(
                 _mobile,
-                'e.g. 0917 123 4567',
+                kPhMobileHint,
                 keyboard: TextInputType.phone,
+                formatters: const [PhMobileFormatter()],
               ),
               const SizedBox(height: 18),
               _label('DATE OF BIRTH'),
@@ -167,10 +173,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     TextEditingController c,
     String hint, {
     TextInputType? keyboard,
+    List<TextInputFormatter>? formatters,
   }) {
     return TextField(
       controller: c,
       keyboardType: keyboard,
+      inputFormatters: formatters,
       style: _fieldStyle,
       decoration: InputDecoration(hintText: hint),
     );

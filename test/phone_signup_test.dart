@@ -92,7 +92,7 @@ void main() {
     String mobile = '0917 123 4567',
   }) async {
     await tester.enterText(field('As on your ID'), 'Juan dela Cruz');
-    await tester.enterText(field('0917 123 4567'), mobile);
+    await tester.enterText(field('09XX XXX XXXX'), mobile);
     await tester.enterText(field('you@email.com'), 'juan@example.com');
     await tester.enterText(field('At least 8 characters'), 'long-enough-1');
     await tap(tester, find.textContaining('I agree that my location'));
@@ -191,7 +191,7 @@ void main() {
     testWidgets('by mobile number, first', (tester) async {
       await pump(tester, LoginScreen(api: api()));
       expect(find.text('MOBILE NUMBER'), findsOneWidget);
-      await tester.enterText(field('0917 123 4567'), '0917 123 4567');
+      await tester.enterText(field('09XX XXX XXXX'), '0917 123 4567');
       await tester.enterText(field('Your password'), 'long-enough-1');
       await tap(tester, find.text('SIGN IN'));
 
@@ -224,7 +224,7 @@ void main() {
         'message': 'Invalid login credentials',
       });
       await pump(tester, LoginScreen(api: api()));
-      await tester.enterText(field('0917 123 4567'), '09171234567');
+      await tester.enterText(field('09XX XXX XXXX'), '09171234567');
       await tester.enterText(field('Your password'), 'nope');
       await tap(tester, find.text('SIGN IN'));
       expect(
@@ -236,7 +236,7 @@ void main() {
 
     testWidgets('a landline is caught before sending', (tester) async {
       await pump(tester, LoginScreen(api: api()));
-      await tester.enterText(field('0917 123 4567'), '02 8123 4567');
+      await tester.enterText(field('09XX XXX XXXX'), '02 8123 4567');
       await tester.enterText(field('Your password'), 'x');
       await tap(tester, find.text('SIGN IN'));
       expect(

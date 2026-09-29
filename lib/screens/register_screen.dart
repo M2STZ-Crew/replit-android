@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../api/push_service.dart';
@@ -146,11 +145,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.telephoneNumber],
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+ -]')),
-                ],
+                inputFormatters: const [PhMobileFormatter()],
                 style: context.type.input,
-                decoration: const InputDecoration(hintText: '0917 123 4567'),
+                decoration: const InputDecoration(hintText: kPhMobileHint),
               ),
             ),
             const SizedBox(height: 14),

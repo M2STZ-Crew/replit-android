@@ -337,9 +337,9 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       controller: _phone,
       keyboardType: TextInputType.phone,
       style: _fieldStyle(context),
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ -]'))],
+      inputFormatters: const [PhMobileFormatter()],
       decoration: InputDecoration(
-        hintText: '0917 123 4567',
+        hintText: kPhMobileHint,
         prefixIcon: Icon(
           Icons.phone_outlined,
           size: 18,
