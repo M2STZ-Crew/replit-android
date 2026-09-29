@@ -123,7 +123,7 @@ void main() {
 
       expect(find.text('YOUR REPORT IS LIVE'), findsOneWidget);
       expect(find.text('Area 1.2'), findsOneWidget);
-      expect(find.text('EN ROUTE'), findsOneWidget);
+      expect(find.text('ON THE WAY'), findsOneWidget);
       expect(find.text('Reported 4 min ago'), findsOneWidget);
       expect(find.text('WHAT HAPPENS NEXT'), findsOneWidget);
       expect(find.text('2 neighbours confirmed'), findsOneWidget);

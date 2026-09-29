@@ -26,8 +26,11 @@ String residentStatus(String? status) =>
     : (status ?? 'reported');
 
 /// The status in a word or two, sentence case.
+///
+/// Plain words for residents: "On the way", not the dispatcher's "En route".
+/// Staff screens keep their own terms.
 String residentWord(String status) => switch (status) {
-  'en_route' => 'En route',
+  'en_route' => 'On the way',
   'arrived' => 'On scene',
   'fire_out' => 'Fire out',
   'rejected' => 'Not confirmed',

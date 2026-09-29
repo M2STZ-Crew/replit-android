@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
+import 'api/phone_gate.dart';
 import 'api/push_service.dart';
 import 'app_version.dart';
 import 'api/report_queue.dart';
@@ -13,7 +14,9 @@ import 'theme.dart';
 import 'theme_choice.dart';
 import 'api/session.dart';
 import 'models/active_report.dart';
+import 'screens/phone_verify_screen.dart';
 import 'screens/report_status_screen.dart';
+import 'screens/role_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +52,25 @@ Future<void> main() async {
       ),
     );
   });
+  // A request refused mid-session because the account's phone is not
+  // verified: show the gate over whatever was open. Verified, the app starts
+  // again from RoleGate, which now lets the resident through.
+  PhoneGate.onTrip = () {
+    final nav = PushService.navigatorKey.currentState;
+    if (nav == null || !Session.instance.isAuthenticated) return;
+    PhoneGate.opened();
+    nav.push(
+      MaterialPageRoute(
+        builder: (_) => PhoneVerifyScreen(
+          gate: true,
+          onVerified: () => nav.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const RoleGate()),
+            (route) => false,
+          ),
+        ),
+      ),
+    );
+  };
   runApp(const RepLitApp());
 }
 

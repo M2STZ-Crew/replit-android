@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/map_cache.dart';
 import '../api/report_queue.dart';
+import '../location/live_position.dart';
 import '../models/hotline.dart';
 import '../models/resident_status.dart';
 import '../theme.dart';
@@ -218,6 +219,10 @@ class _MapScreenState extends State<MapScreen> {
     _queue.pending.addListener(_rebuild);
     _queue.offline.addListener(_rebuild);
     _queue.lastRejection.addListener(_onRejection);
+    // Distances follow the resident as they move, not the fix the map opened
+    // with.
+    LivePosition.instance.acquire();
+    LivePosition.instance.here.addListener(_onMoved);
     _bootstrap();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _loadAreas());
     unawaited(
@@ -233,6 +238,8 @@ class _MapScreenState extends State<MapScreen> {
     _queue.pending.removeListener(_rebuild);
     _queue.offline.removeListener(_rebuild);
     _queue.lastRejection.removeListener(_onRejection);
+    LivePosition.instance.here.removeListener(_onMoved);
+    LivePosition.instance.release();
     super.dispose();
   }
 
@@ -389,12 +396,38 @@ class _MapScreenState extends State<MapScreen> {
         _myLoc = here;
         _accuracy = pos.accuracy;
       });
+      // Also where the live stream starts, now that permission is settled.
+      LivePosition.instance.offer(here, accuracy: pos.accuracy);
       if (recenter) _map.move(here, 15.2);
+      _streetFrom = here;
       _street = await _streetAt(here);
       if (mounted) setState(() {});
       _lookUpAreaStreets();
     } catch (_) {
       // ignore — map stays on its current view
+    }
+  }
+
+  /// Where [_street] was looked up, so it is looked up again only after a
+  /// real walk — the geocoder is a network call, not something to run on
+  /// every ten metres.
+  LatLng? _streetFrom;
+
+  /// The resident moved: every distance on the map is measured again.
+  void _onMoved() {
+    final here = LivePosition.instance.here.value;
+    if (here == null || !mounted) return;
+    setState(() {
+      _myLoc = here;
+      _accuracy = LivePosition.instance.accuracy ?? _accuracy;
+    });
+    final from = _streetFrom;
+    if (from != null && metresBetween(from, here) > 150) {
+      _streetFrom = here;
+      _streetAt(here).then((street) {
+        if (street != null && mounted) setState(() => _street = street);
+      });
+      _lookUpAreaStreets();
     }
   }
 
@@ -448,9 +481,7 @@ class _MapScreenState extends State<MapScreen> {
     return const Distance().as(LengthUnit.Meter, me, LatLng(lat, lng));
   }
 
-  static String _formatDistance(double metres) => metres < 1000
-      ? '${metres.round()} m'
-      : '${(metres / 1000).toStringAsFixed(1)} km';
+  static String _formatDistance(double metres) => formatDistance(metres);
 
   /// Areas within 1.5 km, nearest first. With no fix nothing can be measured,
   /// so the newest two stand in (the list arrives newest first).

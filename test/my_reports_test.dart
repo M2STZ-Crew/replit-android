@@ -123,7 +123,7 @@ void main() {
       expect(find.text('1'), findsOneWidget, reason: 'resolved');
       expect(find.text('THIS MONTH'), findsOneWidget);
       expect(find.text('FIRE + MEDICAL REPORT'), findsOneWidget);
-      expect(find.text('EN ROUTE'), findsOneWidget);
+      expect(find.text('ON THE WAY'), findsOneWidget);
       expect(find.text('Area 3 · high confidence'), findsOneWidget);
       expect(find.text('Waiting to be grouped with others'), findsOneWidget);
 

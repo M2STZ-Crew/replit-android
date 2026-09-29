@@ -4,12 +4,20 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 import 'api_config.dart';
+import 'phone_gate.dart';
 import 'session.dart';
 
 class ApiException implements Exception {
-  ApiException(this.statusCode, this.message);
+  ApiException(this.statusCode, this.message, {this.code, this.details});
   final int statusCode;
   final String message;
+
+  /// The backend's machine-readable `error` (e.g. `phone_code_cooldown`), when
+  /// it sent one. Screens branch on this, never on the wording of [message].
+  final String? code;
+
+  /// The backend's `details` object, e.g. `{retry_after_seconds: 42}`.
+  final Map<String, dynamic>? details;
 
   @override
   String toString() => message;
@@ -204,6 +212,22 @@ class ApiClient {
       headers: {
         'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
       },
+    );
+    return _decode(resp);
+  }
+
+  /// Track It Live for an incident the caller reported: GET /areas/{id}/tracking.
+  ///
+  /// The same snapshot the `track:<id>` socket channel pushes — status, the
+  /// incident's position, and each responding unit's label and position. The
+  /// socket is the normal source; this is the first read and the fallback
+  /// while the socket is down. 403 for anyone who did not report it.
+  Future<Map<String, dynamic>> getTracking(String areaId) async {
+    final resp = await _authed(
+      () => _client.get(
+        Uri.parse('${ApiConfig.baseUrl}/areas/$areaId/tracking'),
+        headers: _auth,
+      ),
     );
     return _decode(resp);
   }
@@ -405,31 +429,33 @@ class ApiClient {
     return (body['message'] as String?) ?? 'Verification email sent.';
   }
 
-  /// Phone OTP (+40%) step 1: POST /verification/phone/request.
-  Future<String> requestPhoneOtp(String phone) async {
-    final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/verification/phone/request'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
-      },
-      body: jsonEncode({'phone': phone}),
+  /// Phone OTP step 1: POST /verification/phone/request.
+  ///
+  /// The number may be typed any usual way (0917 123 4567, +63 917…); the
+  /// server normalises it. Returns {message, phone, sent, expires_in_seconds,
+  /// resend_after_seconds}. `sent` is false when the number is already
+  /// verified on this account. A 429 carries `details.retry_after_seconds`.
+  Future<Map<String, dynamic>> requestPhoneOtp(String phone) async {
+    final resp = await _authed(
+      () => _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/verification/phone/request'),
+        headers: _jsonAuth,
+        body: jsonEncode({'phone': phone}),
+      ),
     );
-    final body = _decode(resp);
-    return (body['message'] as String?) ?? 'Verification code sent via SMS.';
+    return _decode(resp);
   }
 
   /// Phone OTP (+40%) step 2: POST /verification/phone/verify.
   ///
   /// Returns {verified, verified_percent, badge, message}.
   Future<Map<String, dynamic>> verifyPhoneOtp(String code) async {
-    final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/verification/phone/verify'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
-      },
-      body: jsonEncode({'code': code}),
+    final resp = await _authed(
+      () => _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/verification/phone/verify'),
+        headers: _jsonAuth,
+        body: jsonEncode({'code': code}),
+      ),
     );
     return _decode(resp);
   }
@@ -882,9 +908,7 @@ class ApiClient {
   /// If the refresh token is missing or also expired the session is cleared —
   /// leaving dead credentials on the device is what made this stick — and
   /// [SessionExpiredException] is thrown for the caller to route to login.
-  Future<http.Response> _authed(
-    Future<http.Response> Function() send,
-  ) async {
+  Future<http.Response> _authed(Future<http.Response> Function() send) async {
     final first = await send();
     if (first.statusCode != 401) return first;
     if (!await _refreshSession()) {
@@ -929,7 +953,22 @@ class ApiClient {
       final message =
           (body['message'] as String?) ??
           'Request failed (${resp.statusCode}).';
-      throw ApiException(resp.statusCode, message);
+      final code = body['error'] is String ? body['error'] as String : null;
+      final details = body['details'] is Map<String, dynamic>
+          ? body['details'] as Map<String, dynamic>
+          : null;
+      // A citizen whose phone is not verified is refused everywhere but the
+      // verification routes. Whichever screen hit it, the answer is the same:
+      // show the gate. RoleGate catches it at start-up; this catches the rest.
+      if (resp.statusCode == 403 && code == PhoneGate.errorCode) {
+        PhoneGate.trip();
+      }
+      throw ApiException(
+        resp.statusCode,
+        message,
+        code: code,
+        details: details,
+      );
     }
     return body;
   }

@@ -6,9 +6,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../api/api_client.dart';
+import '../api/tracking_socket.dart';
+import '../location/live_position.dart';
 import '../models/active_report.dart';
 import '../models/resident_status.dart';
 import '../models/responder_unit.dart';
+import '../models/tracking.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/map_tiles.dart';
@@ -23,17 +26,36 @@ const Map<String, String> _glyphs = {
   'barangay': Art.agBarangay,
 };
 
-/// "10 Live tracking" from the REPLIT-OVERHAUL Figma: the resident's own
-/// incident, followed live. Polls GET /areas/{id} for the real status and
-/// GET /map/evacuation-sites for the nearest safe place.
+/// "10 Live tracking" from the REPLIT-OVERHAUL Figma — Track It Live: the
+/// resident's own incident, followed live.
+///
+/// Reported → Verified → On the way → On scene → Fire out, as a labelled rail.
+/// Once the incident is on the way, each responding unit is on the map as a
+/// moving marker, and in the sheet as "Apollo · On the way · 850 m from the
+/// fire". Deliberately no line between truck and fire: the truck's route is
+/// its own business, and a drawn road would promise an arrival time nobody
+/// computed.
+///
+/// Where it comes from. The server pushes a fresh snapshot over the socket
+/// (`track:<areaId>`, see [TrackingSocket]) after every responder fix and
+/// every status change. While the socket is down — no signal, the server
+/// waking up — the screen polls GET /areas/{id}/tracking instead, so it never
+/// freezes. GET /areas/{id} still supplies what the snapshot does not carry
+/// (how many reports, when). The snapshot names units, never people: a
+/// truck's name or "Unit 2", and its brigade. Someone who did not report this
+/// incident — a neighbour opening it from an alert — is refused the snapshot
+/// and sees the status without the trucks.
+///
+/// A position nobody has updated for a minute is not hidden but greyed and
+/// labelled "location lost", and it keeps counting by itself: when a phone
+/// goes quiet, no new snapshot arrives to say so.
 ///
 /// Kept from before, below the frame's content, because both work: the way
 /// to the nearest shelter, and "add more help" (POST /areas/{id}/
 /// request-agencies). Left out on purpose: the frame's "I'm safe — stand
 /// down" — no endpoint lets a resident withdraw a report, and a button that
 /// looks like it calls off a truck but does not is the worst kind to ship
-/// (§2.7.1). Responder ETAs and unit names are staff-only, so the sheet shows
-/// the status, the corroboration and what happens next instead.
+/// (§2.7.1).
 class LiveUpdateScreen extends StatefulWidget {
   const LiveUpdateScreen({
     super.key,
@@ -42,6 +64,7 @@ class LiveUpdateScreen extends StatefulWidget {
     required this.lng,
     this.alreadySelected = const [],
     this.api,
+    this.feed,
   });
 
   final String areaId;
@@ -56,15 +79,39 @@ class LiveUpdateScreen extends StatefulWidget {
   final List<String> alreadySelected;
   final ApiClient? api;
 
+  /// Where live snapshots come from. The screen opens a [TrackingSocket] when
+  /// none is given; tests give their own.
+  final TrackingFeed? feed;
+
   @override
   State<LiveUpdateScreen> createState() => _LiveUpdateScreenState();
 }
 
-class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
+class _LiveUpdateScreenState extends State<LiveUpdateScreen>
+    with WidgetsBindingObserver {
   late final ApiClient _api = widget.api ?? ApiClient();
+  late final TrackingFeed _feed =
+      widget.feed ?? TrackingSocket(widget.areaId, api: _api);
+  StreamSubscription<Map<String, dynamic>>? _feedSub;
   Timer? _poll;
+  int _ticks = 0;
   Map<String, dynamic>? _area;
   bool _loading = true;
+
+  /// The status as last heard, from the snapshot or the area read.
+  String? _rawStatus;
+  TrackingSnapshot? _snap;
+
+  /// The server will not show this account the units (it did not report
+  /// this incident). The status still shows.
+  bool _trackingDenied = false;
+
+  final MapController _camera = MapController();
+  bool _mapReady = false;
+
+  /// Whether the camera has been moved to take in the trucks. Once only: after
+  /// that the resident decides where the map looks.
+  bool _framed = false;
 
   Map<String, dynamic>? _shelter;
   double? _shelterMetres;
@@ -85,30 +132,197 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   LatLng get _from => LatLng(widget.lat, widget.lng);
 
   LatLng? get _centre {
+    final snap = _snap;
+    if (snap != null) return snap.centre;
     final lat = (_area?['centroid_lat'] as num?)?.toDouble();
     final lng = (_area?['centroid_lng'] as num?)?.toDouble();
     return lat == null || lng == null ? null : LatLng(lat, lng);
   }
 
-  String get _status => residentStatus(_area?['status'] as String?);
+  String get _status => residentStatus(_rawStatus);
   int get _reports => (_area?['report_count'] as num?)?.toInt() ?? 0;
+
+  /// The units to draw. The server sends none outside On the way and On scene.
+  List<TrackedUnit> get _units =>
+      _trackingDenied ? const [] : (_snap?.units ?? const []);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _feedSub = _feed.snapshots.listen(_onSnapshot);
+    _feed.live.addListener(_rebuild);
+    _feed.denied.addListener(_onFeedDenied);
+    _feed.start();
     _load();
-    _poll = Timer.periodic(const Duration(seconds: 6), (_) => _refreshStatus());
+    _startPolling();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _poll?.cancel();
+    _feed.live.removeListener(_rebuild);
+    _feed.denied.removeListener(_onFeedDenied);
+    unawaited(_feedSub?.cancel());
+    // The screen closes only the socket it opened; a feed handed in belongs
+    // to whoever handed it in.
+    if (widget.feed == null) unawaited(_feed.dispose());
+    _camera.dispose();
     super.dispose();
   }
 
+  void _rebuild() {
+    if (mounted) setState(() {});
+  }
+
+  void _startPolling() {
+    _poll?.cancel();
+    _poll = Timer.periodic(const Duration(seconds: 6), (_) => _tick());
+  }
+
+  /// In the background there is nobody to show a truck to: close the socket
+  /// and stop polling, and catch up at once on the way back.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _feed.pause();
+      _poll?.cancel();
+      _poll = null;
+    } else if (state == AppLifecycleState.resumed && _poll == null) {
+      if (!_trackingDenied) _feed.resume();
+      _startPolling();
+      _tick(catchUp: true);
+    }
+  }
+
+  /// Every six seconds. With the socket live the snapshots arrive by
+  /// themselves, so this only re-reads the area now and then and lets "last
+  /// seen" count on. With it down, this is how the screen keeps moving.
+  void _tick({bool catchUp = false}) {
+    _ticks++;
+    final live = _feed.live.value;
+    if (!_trackingDenied && (!live || catchUp)) unawaited(_refreshTracking());
+    if (_trackingDenied || catchUp || _ticks % (live ? 5 : 2) == 0) {
+      unawaited(_refreshStatus());
+    } else if (_units.isNotEmpty) {
+      _rebuild();
+    }
+  }
+
   Future<void> _load() async {
-    await Future.wait([_refreshStatus(), _loadNearestShelter(), _loadAsked()]);
+    await Future.wait([
+      _refreshStatus(),
+      _refreshTracking(),
+      _loadNearestShelter(),
+      _loadAsked(),
+    ]);
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _refreshTracking() async {
+    if (_trackingDenied) return;
+    try {
+      _onSnapshot(await _api.getTracking(widget.areaId));
+    } on ApiException catch (e) {
+      if (e.statusCode == 403 || e.statusCode == 404) _deny();
+    } catch (_) {
+      // No signal: keep what is on screen; the next tick tries again.
+    }
+  }
+
+  void _onFeedDenied() {
+    if (_feed.denied.value) _deny();
+  }
+
+  void _deny() {
+    if (_trackingDenied || !mounted) return;
+    _feed.pause();
+    setState(() => _trackingDenied = true);
+  }
+
+  void _onSnapshot(Map<String, dynamic> json) {
+    final snap = TrackingSnapshot.tryParse(json);
+    if (snap == null || !mounted) return;
+    setState(() {
+      _snap = snap;
+      _adopt(snap.status);
+    });
+    _frameOnce();
+  }
+
+  /// Take a status from either source — but never a step back along the
+  /// rail: an area read that set out before the socket's snapshot must not
+  /// undo it when it lands.
+  void _adopt(String? raw) {
+    if (raw == null) return;
+    final next = kResidentRail.indexOf(residentStatus(raw));
+    final now = kResidentRail.indexOf(residentStatus(_rawStatus));
+    if (_rawStatus != null && next >= 0 && now >= 0 && next < now) return;
+    _rawStatus = raw;
+  }
+
+  /// Bring the trucks into view the first time there are any to see.
+  void _frameOnce() {
+    final snap = _snap;
+    final centre = _centre;
+    if (!_mapReady || _framed || !mounted || snap == null || centre == null) {
+      return;
+    }
+    final points = [
+      centre,
+      for (final u in _units)
+        if (!snap.isStale(u)) u.position!,
+    ];
+    if (points.length < 2) return;
+    _framed = true;
+    final height = MediaQuery.sizeOf(context).height;
+    try {
+      _camera.fitCamera(
+        CameraFit.coordinates(
+          coordinates: points,
+          // The sheet covers the lower part of the map; frame what is left.
+          padding: EdgeInsets.fromLTRB(56, 130, 56, height * 0.56 + 40),
+          maxZoom: 16.5,
+        ),
+      );
+    } catch (_) {
+      // A screen too small to frame into: the map stays on the fire.
+    }
+  }
+
+  void _focus(TrackedUnit unit) {
+    final at = unit.position;
+    if (at == null || !_mapReady) return;
+    _camera.move(at, 16.2);
+  }
+
+  /// "Hercules Fire Brigade · On the way · 850 m from the fire".
+  String _unitLine(TrackedUnit u) {
+    final snap = _snap!;
+    final org = u.organization?.trim() ?? '';
+    final String state;
+    final at = u.position;
+    if (at == null) {
+      state = 'Waiting for its location';
+    } else if (snap.isStale(u)) {
+      final age = snap.ageOf(u);
+      state = age == null
+          ? 'Location lost'
+          : 'Location lost · last seen ${_since(age)}';
+    } else {
+      final d = metresBetween(at, snap.centre);
+      state = d <= snap.arrivalRadiusMetres
+          ? 'On scene'
+          : 'On the way · ${formatDistance(d)} from the fire';
+    }
+    return org.isEmpty ? state : '$org · $state';
+  }
+
+  static String _since(Duration d) {
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes} min ago';
+    return '${d.inHours} h ago';
   }
 
   /// What was asked for on this incident: at the SOS, and on any visit here
@@ -132,7 +346,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   Future<void> _refreshStatus() async {
     try {
       final area = await _api.getArea(widget.areaId);
-      if (mounted) setState(() => _area = area);
+      if (!mounted) return;
+      setState(() {
+        _area = area;
+        _adopt(area['status'] as String?);
+      });
     } catch (_) {
       // keep the last known status
     }
@@ -251,7 +469,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
     return '${d.inDays} ${d.inDays == 1 ? 'day' : 'days'} ago';
   }
 
-  static String _next(String status) => switch (status) {
+  String _next(String status) => switch (status) {
     'reported' =>
       'Barangay 76 has your location and photo. A Fire Volunteer coordinator '
           'confirms it next. Stay somewhere safe — this screen updates as the '
@@ -260,9 +478,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
       'Accepted. A crew is being sent now. Stay somewhere safe and keep this '
           'screen open — it updates as the incident moves.',
     'en_route' =>
-      'Responders are on their way. Keep the street clear and stay somewhere '
-          'safe.',
-    'arrived' => 'Responders are on scene. Follow their instructions.',
+      'Responders are on the way. Keep the street clear and stay somewhere '
+          'safe.${_units.isEmpty ? '' : ' The map shows where they are.'}',
+    'arrived' => 'Responders are at the fire. Follow their instructions.',
     'fire_out' =>
       'Resolved. Thank you for reporting — it is how help found '
           'the place.',
@@ -326,10 +544,16 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
   Widget _map() {
     final centre = _centre;
     final status = _status;
+    final units = _units;
     return FlutterMap(
+      mapController: _camera,
       options: MapOptions(
         initialCenter: centre ?? _from,
         initialZoom: 15.4,
+        onMapReady: () {
+          _mapReady = true;
+          _frameOnce();
+        },
         backgroundColor: context.pal.background,
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
@@ -413,6 +637,10 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
             ),
           ],
         ),
+        // Above the fire and the resident, so a truck is never hidden under
+        // them. No polyline: see the class comment.
+        if (units.isNotEmpty && _snap != null)
+          _UnitsLayer(units: units, snapshot: _snap!),
         MapTiles.attribution(),
       ],
     );
@@ -543,24 +771,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    for (var i = 0; i < kResidentRail.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 4),
-                      Expanded(
-                        child: Container(
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: i <= at
-                                ? context.pal.accent
-                                : context.pal.lineStrong,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                _rail(at),
+                ..._responders(status),
                 const SizedBox(height: 22),
                 Panel(
                   padding: const EdgeInsets.all(18),
@@ -612,6 +824,90 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
     );
   }
 
+  /// The five steps, each named, the current one in full colour.
+  Widget _rail(int at) {
+    return Semantics(
+      label: at < 0
+          ? residentWord(_status)
+          : 'Step ${at + 1} of ${kResidentRail.length}: '
+                '${residentWord(kResidentRail[at])}',
+      excludeSemantics: true,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < kResidentRail.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: i <= at
+                          ? context.pal.accent
+                          : context.pal.lineStrong,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    residentWord(kResidentRail[i]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.type.meta.copyWith(
+                      color: i == at
+                          ? context.pal.onBackground
+                          : context.pal.muted,
+                      fontWeight: i == at ? FontWeight.w700 : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Each responding unit, or — on the way but no position yet — a line
+  /// saying the crew will appear.
+  List<Widget> _responders(String status) {
+    final snap = _snap;
+    if (_trackingDenied || snap == null) return const [];
+    final units = _units;
+    if (units.isEmpty) {
+      if (status != 'en_route') return const [];
+      return [
+        const SizedBox(height: 18),
+        _Row(
+          tint: context.pal.accent,
+          icon: Icons.fire_truck,
+          title: 'A crew is on the way',
+          line: 'You will see the truck here when it shares its location.',
+        ),
+      ];
+    }
+    return [
+      const SizedBox(height: 22),
+      Eyebrow('Responders', color: context.pal.muted),
+      const SizedBox(height: 10),
+      for (final u in units) ...[
+        _Row(
+          tint: snap.isStale(u)
+              ? context.pal.muted
+              : context.pal.forAgency(u.agency),
+          icon: Icons.fire_truck,
+          title: u.label,
+          line: _unitLine(u),
+          onTap: u.position == null ? null : () => _focus(u),
+        ),
+        const SizedBox(height: 10),
+      ],
+    ];
+  }
+
   List<Widget> _moreHelp() {
     return [
       const SizedBox(height: 24),
@@ -644,6 +940,144 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen> {
         onPressed: _adding || _extra.isEmpty ? null : _addMoreHelp,
       ),
     ];
+  }
+}
+
+/// The responding units on the map, gliding from one fix to the next rather
+/// than jumping five seconds at a time.
+class _UnitsLayer extends StatefulWidget {
+  const _UnitsLayer({required this.units, required this.snapshot});
+
+  final List<TrackedUnit> units;
+  final TrackingSnapshot snapshot;
+
+  @override
+  State<_UnitsLayer> createState() => _UnitsLayerState();
+}
+
+class _UnitsLayerState extends State<_UnitsLayer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _glide = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+    value: 1,
+  );
+  final Map<String, LatLng> _from = {};
+  final Map<String, LatLng> _to = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _retarget();
+  }
+
+  @override
+  void didUpdateWidget(_UnitsLayer old) {
+    super.didUpdateWidget(old);
+    _retarget();
+  }
+
+  @override
+  void dispose() {
+    _glide.dispose();
+    super.dispose();
+  }
+
+  /// Start each marker from wherever it is drawn now, so a fix that lands
+  /// mid-glide bends the path instead of snapping back.
+  void _retarget() {
+    final t = Curves.easeInOut.transform(_glide.value);
+    final drawn = {for (final k in _to.keys) k: _at(k, t)};
+    _from.clear();
+    _to.clear();
+    var moved = false;
+    for (final u in widget.units) {
+      final p = u.position;
+      if (p == null) continue;
+      final start = drawn[u.key] ?? p;
+      _from[u.key] = start;
+      _to[u.key] = p;
+      moved = moved || start != p;
+    }
+    if (moved) {
+      _glide.forward(from: 0);
+    } else {
+      _glide.value = 1;
+    }
+  }
+
+  LatLng _at(String key, double t) {
+    final a = _from[key]!;
+    final b = _to[key]!;
+    return LatLng(
+      a.latitude + (b.latitude - a.latitude) * t,
+      a.longitude + (b.longitude - a.longitude) * t,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glide,
+      builder: (context, _) {
+        final t = Curves.easeInOut.transform(_glide.value);
+        return MarkerLayer(
+          markers: [
+            for (final u in widget.units)
+              if (_to.containsKey(u.key))
+                Marker(
+                  point: _at(u.key, t),
+                  width: 38,
+                  height: 38,
+                  child: _UnitMarker(
+                    label: u.label,
+                    colour: widget.snapshot.isStale(u)
+                        ? context.pal.muted
+                        : context.pal.forAgency(u.agency),
+                    stale: widget.snapshot.isStale(u),
+                  ),
+                ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _UnitMarker extends StatelessWidget {
+  const _UnitMarker({
+    required this.label,
+    required this.colour,
+    required this.stale,
+  });
+
+  final String label;
+  final Color colour;
+  final bool stale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: stale ? '$label, location lost' : label,
+      child: Opacity(
+        opacity: stale ? 0.6 : 1,
+        child: Container(
+          decoration: BoxDecoration(
+            color: colour,
+            shape: BoxShape.circle,
+            border: Border.all(color: context.pal.surfaceSolid, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 6,
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.fire_truck, size: 18, color: Colors.white),
+        ),
+      ),
+    );
   }
 }
 

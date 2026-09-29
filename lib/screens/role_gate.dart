@@ -11,6 +11,7 @@ import 'map_screen.dart';
 import 'onboarding_screen.dart';
 import 'report_status_screen.dart';
 import 'observer_handoff_screen.dart';
+import 'phone_verify_screen.dart';
 import 'responder/responder_duty_screen.dart';
 import 'subadmin/subadmin_dashboard_screen.dart';
 
@@ -18,7 +19,13 @@ import 'subadmin/subadmin_dashboard_screen.dart';
 /// role from GET /auth/me: response_team → the responder console; a coordinator
 /// sub-admin (Fire Volunteer, BFP) → their console; an observer sub-admin
 /// (Police, Medical, Barangay) → a pointer to the Observer Console on the web;
-/// everyone else → the citizen app.
+/// everyone else → the citizen app — once their phone is verified.
+///
+/// The phone gate: the server refuses a resident account that has not verified
+/// a mobile number, so the app shows the verification screen first rather than
+/// a map full of errors. It asks the server (`phone_verification_required` on
+/// /auth/me) instead of deciding for itself, so switching the gate off on the
+/// server lets everyone through without a new build.
 ///
 /// The citizen app now opens on the map, not the SOS dial. That is the v2
 /// design's arrangement: residents open the app to see what is happening, and
@@ -125,6 +132,16 @@ class _RoleGateState extends State<RoleGate> {
         return BfpDashboardScreen(me: me);
       }
       return SubAdminDashboardScreen(me: me);
+    }
+    if (me['phone_verification_required'] == true) {
+      return PhoneVerifyScreen(
+        gate: true,
+        initialPhone: (me['mobile'] as String?) ?? (me['phone'] as String?),
+        onVerified: () {
+          setState(() => _me = null);
+          _load();
+        },
+      );
     }
     return const _CitizenEntry();
   }

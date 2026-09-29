@@ -1,51 +1,138 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
+import '../api/phone_gate.dart';
+import '../api/session.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import 'login_screen.dart';
 
 Color _safeGreen = AppColors.ok;
 
-/// Phone OTP verification (+40%). Two steps in one screen:
-///  1. Enter mobile number (E.164) → POST /verification/phone/request.
-///  2. Enter the SMS code → POST /verification/phone/verify.
+/// Phone verification by SMS code, sent through Semaphore. Two steps on one
+/// screen: the number (POST /verification/phone/request), then the code
+/// (POST /verification/phone/verify).
 ///
-/// Note: the backend's Twilio is a trial account and PH SMS delivery is blocked,
-/// so the code may not actually arrive in this build — surfaced to the user.
+/// Two ways in:
+/// - From Verification, as one channel of the trust level (+40%). Back
+///   returns there.
+/// - As the gate ([gate]): a resident account cannot use RepLiT until its
+///   number is verified — the server refuses it everywhere else. There is no
+///   Back. There is a way to call 911, because being unverified must never
+///   stand between someone and help, and a way to sign out.
+///
+/// The server owns every rule — code length, expiry, attempts, the wait
+/// between texts, the daily limit — and says which one applied. This screen
+/// only reads what it was told: the countdown on "Send again" comes from the
+/// server's own number, not a guess.
 class PhoneVerifyScreen extends StatefulWidget {
-  const PhoneVerifyScreen({super.key});
+  const PhoneVerifyScreen({
+    super.key,
+    this.gate = false,
+    this.initialPhone,
+    this.onVerified,
+    this.api,
+  });
+
+  /// Shown as the gate rather than from Verification.
+  final bool gate;
+
+  /// The number the resident gave when they signed up, to start from.
+  final String? initialPhone;
+
+  /// Called once the number is verified. Without it the screen pops `true`.
+  final VoidCallback? onVerified;
+  final ApiClient? api;
 
   @override
   State<PhoneVerifyScreen> createState() => _PhoneVerifyScreenState();
 }
 
 class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
-  final ApiClient _api = ApiClient();
-  final TextEditingController _phone = TextEditingController(text: '+63');
+  late final ApiClient _api = widget.api ?? ApiClient();
+  late final TextEditingController _phone = TextEditingController(
+    text: _local(widget.initialPhone),
+  );
   final TextEditingController _code = TextEditingController();
 
   bool _codeSent = false;
   bool _busy = false;
+  String? _sentTo;
   String? _error;
   String? _info;
 
+  int _resendIn = 0;
+  Timer? _countdown;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.gate) PhoneGate.opened();
+  }
+
   @override
   void dispose() {
+    if (widget.gate) PhoneGate.closed();
+    _countdown?.cancel();
     _phone.dispose();
     _code.dispose();
     super.dispose();
   }
 
-  bool get _phoneValid =>
-      RegExp(r'^\+[1-9]\d{6,14}$').hasMatch(_phone.text.trim());
+  /// +639171234567 → 0917 123 4567, the way people write their own number.
+  static String _local(String? raw) {
+    final digits = (raw ?? '').replaceAll(RegExp(r'\D'), '');
+    final String national;
+    if (digits.startsWith('63') && digits.length == 12) {
+      national = '0${digits.substring(2)}';
+    } else if (digits.startsWith('09') && digits.length == 11) {
+      national = digits;
+    } else {
+      return '';
+    }
+    return '${national.substring(0, 4)} ${national.substring(4, 7)} '
+        '${national.substring(7)}';
+  }
+
+  /// A Philippine mobile number in any usual form. The server checks again.
+  static bool looksLikePhMobile(String raw) {
+    final d = raw.replaceAll(RegExp(r'\D'), '');
+    return (d.startsWith('09') && d.length == 11) ||
+        (d.startsWith('639') && d.length == 12) ||
+        (d.startsWith('9') && d.length == 10);
+  }
+
+  void _startCountdown(int seconds) {
+    _countdown?.cancel();
+    setState(() => _resendIn = seconds);
+    if (seconds <= 0) return;
+    _countdown = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      setState(() => _resendIn--);
+      if (_resendIn <= 0) t.cancel();
+    });
+  }
+
+  /// The server's words, except where they were written for us, not for a
+  /// resident.
+  static String _say(ApiException e) => switch (e.code) {
+    'semaphore_not_configured' =>
+      'We cannot send texts right now. Please try again later.',
+    'external_service_error' =>
+      'We could not send the text. Please try again in a minute.',
+    _ => e.message,
+  };
 
   Future<void> _sendCode() async {
-    if (!_phoneValid) {
-      setState(
-        () => _error =
-            'Enter a valid number in E.164 format, e.g. +639171234567.',
-      );
+    if (!looksLikePhMobile(_phone.text)) {
+      setState(() => _error = 'Enter a mobile number like 0917 123 4567.');
       return;
     }
     setState(() {
@@ -54,20 +141,35 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       _info = null;
     });
     try {
-      final msg = await _api.requestPhoneOtp(_phone.text.trim());
-      if (mounted) {
+      final r = await _api.requestPhoneOtp(_phone.text.trim());
+      if (!mounted) return;
+      if (r['sent'] == false) {
+        // Already verified on this account: nothing to send, nothing to wait for.
+        _done();
+        return;
+      }
+      _code.clear();
+      setState(() {
+        _codeSent = true;
+        _sentTo = _local(r['phone'] as String?);
+        _info = r['message'] as String?;
+      });
+      _startCountdown((r['resend_after_seconds'] as num?)?.toInt() ?? 60);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = _say(e));
+      final wait = (e.details?['retry_after_seconds'] as num?)?.toInt();
+      if (e.code == 'phone_code_cooldown' && wait != null) {
+        // A code is already on its way: let them type it.
         setState(() {
           _codeSent = true;
-          _info = msg;
+          _sentTo ??= _local(_phone.text);
         });
+        _startCountdown(wait);
       }
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _error = 'Could not send the code. Check your connection.',
-        );
+        setState(() => _error = 'Could not send the code. Check your signal.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -77,7 +179,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
   Future<void> _verify() async {
     final code = _code.text.trim();
     if (code.length < 4) {
-      setState(() => _error = 'Enter the code from the SMS.');
+      setState(() => _error = 'Enter the code from the text message.');
       return;
     }
     setState(() {
@@ -85,119 +187,168 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       _error = null;
     });
     try {
-      final result = await _api.verifyPhoneOtp(code);
-      final pct = (result['verified_percent'] as num?)?.toInt() ?? 0;
+      await _api.verifyPhoneOtp(code);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Phone verified! Trust level is now $pct%.'),
+          content: const Text('Your number is verified.'),
           backgroundColor: _safeGreen,
         ),
       );
-      Navigator.of(context).pop(true);
+      _done();
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) setState(() => _error = _say(e));
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _error = 'Could not verify the code. Check your connection.',
-        );
+        setState(() => _error = 'Could not check the code. Check your signal.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
+  void _done() {
+    final onVerified = widget.onVerified;
+    if (onVerified != null) {
+      onVerified();
+    } else {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  Future<void> _call911() async {
+    try {
+      await launchUrl(Uri(scheme: 'tel', path: '911'));
+    } catch (_) {
+      // No dialer (a tablet): the number is on the button.
+    }
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await _api.logout();
+    } catch (_) {}
+    await Session.instance.clear();
+    if (!mounted) return;
+    await Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.pal.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _topBar(),
-              const SizedBox(height: 24),
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: context.pal.accentTint,
-                  borderRadius: BorderRadius.circular(16),
+    return PopScope(
+      canPop: !widget.gate,
+      child: Scaffold(
+        backgroundColor: context.pal.background,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _topBar(),
+                const SizedBox(height: 24),
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: context.pal.accentTint,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.smartphone,
+                    color: context.pal.accent,
+                    size: 28,
+                  ),
                 ),
-                child: Icon(
-                  Icons.smartphone,
-                  color: context.pal.accent,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Verify your mobile',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.8,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _codeSent
-                    ? 'Enter the 6-digit code we sent to ${_phone.text.trim()}.'
-                    : 'We will send a one-time SMS code to confirm your number (+40%).',
-                style: TextStyle(
-                  color: context.pal.muted,
-                  fontSize: 14,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (!_codeSent) _phoneField() else _codeField(),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(
-                  _error!,
-                  style: TextStyle(color: context.pal.live, fontSize: 13),
+                  'Verify your number',
+                  style: TextStyle(
+                    color: context.pal.onBackground,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.8,
+                  ),
                 ),
-              ],
-              if (_info != null && _error == null) ...[
-                const SizedBox(height: 12),
-                Text(_info!, style: TextStyle(color: _safeGreen, fontSize: 13)),
-              ],
-              const SizedBox(height: 20),
-              _primaryButton(),
-              if (_codeSent) ...[
                 const SizedBox(height: 8),
-                Center(
-                  child: TextButton(
-                    onPressed: _busy ? null : _sendCode,
-                    child: Text(
-                      'Resend code',
-                      style: TextStyle(
-                        color: context.pal.accent,
-                        fontWeight: FontWeight.w700,
+                Text(
+                  _codeSent
+                      ? 'Enter the code we sent to ${_sentTo ?? 'your phone'}.'
+                      : widget.gate
+                      ? 'We will send a 6-digit code to your phone by text. '
+                            'You need to do this once before you can use RepLiT.'
+                      : 'We will send a 6-digit code to your phone by text. '
+                            'It adds 40% to your trust level.',
+                  style: TextStyle(
+                    color: context.pal.muted,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                if (!_codeSent) _phoneField() else _codeField(),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _error!,
+                    style: TextStyle(color: context.pal.live, fontSize: 13),
+                  ),
+                ],
+                if (_info != null && _error == null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _info!,
+                    style: TextStyle(color: _safeGreen, fontSize: 13),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                AppButton(
+                  _codeSent ? 'Verify code' : 'Send code',
+                  busy: _busy,
+                  onPressed: _busy ? null : (_codeSent ? _verify : _sendCode),
+                ),
+                if (_codeSent) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton(
+                      onPressed: _busy || _resendIn > 0 ? null : _sendCode,
+                      child: Text(
+                        _resendIn > 0
+                            ? 'Send again in $_resendIn s'
+                            : 'Send the code again',
+                        style: TextStyle(
+                          color: _resendIn > 0
+                              ? context.pal.muted
+                              : context.pal.accent,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Center(
-                  child: TextButton(
-                    onPressed: _busy
-                        ? null
-                        : () => setState(() => _codeSent = false),
-                    child: Text(
-                      'Change number',
-                      style: TextStyle(color: context.pal.muted),
+                  Center(
+                    child: TextButton(
+                      onPressed: _busy
+                          ? null
+                          : () => setState(() {
+                              _codeSent = false;
+                              _error = null;
+                              _info = null;
+                            }),
+                      child: Text(
+                        'Use a different number',
+                        style: TextStyle(color: context.pal.muted),
+                      ),
                     ),
                   ),
-                ),
+                ],
+                const SizedBox(height: 16),
+                _privacyNote(),
+                if (widget.gate) ..._gateExits(),
               ],
-              const SizedBox(height: 16),
-              _trialNote(),
-            ],
+            ),
           ),
         ),
       ),
@@ -207,9 +358,8 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
   Widget _topBar() {
     return Row(
       children: [
-        const BackWell(),
-        const SizedBox(width: 16),
-        Text('Mobile Number'.toUpperCase(), style: context.type.screenTitle),
+        if (!widget.gate) ...[const BackWell(), const SizedBox(width: 16)],
+        Text('Mobile number'.toUpperCase(), style: context.type.screenTitle),
       ],
     );
   }
@@ -218,10 +368,10 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
     return TextField(
       controller: _phone,
       keyboardType: TextInputType.phone,
-      style: _fieldStyle,
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))],
+      style: _fieldStyle(context),
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+ -]'))],
       decoration: InputDecoration(
-        hintText: '+63 917 123 4567',
+        hintText: '0917 123 4567',
         prefixIcon: Icon(
           Icons.phone_outlined,
           size: 18,
@@ -236,45 +386,31 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       controller: _code,
       keyboardType: TextInputType.number,
       autofocus: true,
-      maxLength: 10,
+      maxLength: 8,
       textAlign: TextAlign.center,
-      style: _fieldStyle.copyWith(
-        fontSize: 19,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 6,
-      ),
+      autofillHints: const [AutofillHints.oneTimeCode],
+      style: _fieldStyle(
+        context,
+      ).copyWith(fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: 6),
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       decoration: const InputDecoration(hintText: '••••••', counterText: ''),
     );
   }
 
-  Widget _primaryButton() {
-    return AppButton(
-      _codeSent ? 'Verify code' : 'Send code',
-      busy: _busy,
-      onPressed: _busy ? null : (_codeSent ? _verify : _sendCode),
-    );
-  }
-
-  /// Stated plainly rather than hidden: the SMS gateway is a trial account, so
-  /// a Philippine number will not receive the code in this build. Someone
-  /// tapping "Send code" and hearing nothing deserves to know why.
-  Widget _trialNote() {
+  Widget _privacyNote() {
     return Panel(
       radius: AppRadius.control,
-      color: context.pal.warn.withValues(alpha: 0.08),
-      border: context.pal.warn.withValues(alpha: 0.35),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: context.pal.warn),
+          Icon(Icons.lock_outline_rounded, size: 16, color: context.pal.muted),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'SMS runs through a trial gateway, so a Philippine number may not '
-              'receive the code in this build. A paid sender is needed before '
-              'release.',
+              'We use your number to check that you are a real person, and to '
+              'contact you about your reports. We never ask for this code by '
+              'call or chat. Do not share it.',
               style: context.type.meta.copyWith(
                 height: 16 / 11,
                 color: context.pal.textSoft,
@@ -285,10 +421,42 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       ),
     );
   }
+
+  /// Help first, then the way out: nobody is stuck behind this screen.
+  List<Widget> _gateExits() => [
+    const SizedBox(height: 24),
+    Panel(
+      radius: AppRadius.card,
+      color: context.pal.live.withValues(alpha: 0.10),
+      border: context.pal.live.withValues(alpha: 0.4),
+      onTap: _call911,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Icon(Icons.phone_in_talk_rounded, color: context.pal.live),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Emergency now? Call 911',
+              style: context.type.rowTitleLg,
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: context.pal.live),
+        ],
+      ),
+    ),
+    const SizedBox(height: 8),
+    Center(
+      child: TextButton(
+        onPressed: _busy ? null : _signOut,
+        child: Text('Sign out', style: TextStyle(color: context.pal.muted)),
+      ),
+    ),
+  ];
 }
 
-TextStyle _fieldStyle = TextStyle(
+TextStyle _fieldStyle(BuildContext context) => TextStyle(
   fontSize: 15,
   fontWeight: FontWeight.w500,
-  color: AppColors.onBackground,
+  color: context.pal.onBackground,
 );

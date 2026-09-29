@@ -100,7 +100,7 @@ void main() {
         expect(find.text('Spread 84 m'), findsOneWidget);
         expect(find.text('Reporters average 42%'), findsOneWidget);
         // The status chip and the progress line both name it.
-        expect(find.text('EN ROUTE'), findsNWidgets(2));
+        expect(find.text('ON THE WAY'), findsNWidgets(2));
         expect(find.text('I SEE IT TOO — ADD MY REPORT'), findsOneWidget);
       },
     );

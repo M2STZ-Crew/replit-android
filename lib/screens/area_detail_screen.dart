@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../api/api_client.dart';
 import '../diagnostics/report_timing.dart';
+import '../location/live_position.dart';
 import '../location/sos_location.dart';
 import '../models/resident_status.dart';
 import '../theme.dart';
@@ -43,7 +44,8 @@ class AreaDetailScreen extends StatefulWidget {
   /// Shown while the area loads.
   final String? designation;
 
-  /// Where the viewer is, when the map already knows.
+  /// Where the viewer was when they tapped, if the map knew. The screen then
+  /// follows them: the distance is measured again as they move.
   final LatLng? here;
   final ApiClient? api;
 
@@ -65,9 +67,15 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   /// /reports/mine answers.
   bool? _mine;
 
+  /// Where the viewer is now.
+  LatLng? _here;
+
   @override
   void initState() {
     super.initState();
+    _here = widget.here ?? LivePosition.instance.here.value;
+    LivePosition.instance.acquire();
+    LivePosition.instance.here.addListener(_onMoved);
     _load();
     _checkMine();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _load());
@@ -76,7 +84,14 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    LivePosition.instance.here.removeListener(_onMoved);
+    LivePosition.instance.release();
     super.dispose();
+  }
+
+  void _onMoved() {
+    final here = LivePosition.instance.here.value;
+    if (here != null && mounted) setState(() => _here = here);
   }
 
   Future<void> _load() async {
@@ -145,7 +160,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
 
   double? get _metresAway {
     final c = _centre;
-    final me = widget.here;
+    final me = _here;
     if (c == null || me == null) return null;
     return const Distance().as(LengthUnit.Meter, me, c);
   }
@@ -156,8 +171,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
 
   int get _reports => (_area?['report_count'] as num?)?.toInt() ?? 0;
 
-  static String _distance(double m) =>
-      m < 1000 ? '${m.round()} m' : '${(m / 1000).toStringAsFixed(1)} km';
+  static String _distance(double m) => formatDistance(m);
 
   static String _meaning(String status) => switch (status) {
     'reported' => 'Waiting for a responding agency to accept it.',
