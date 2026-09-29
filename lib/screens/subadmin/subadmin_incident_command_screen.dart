@@ -9,14 +9,17 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
+import '../../api/live_refresh.dart';
 import '../../api/push_service.dart';
 import '../../api/session.dart';
+import '../../location/responder_tracker.dart';
 import '../../models/fleet_unit.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
+import '../directions_screen.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
@@ -32,10 +35,15 @@ Color _muted = AppColors.muted;
 Color _crewGrey = AppColors.muted;
 Color _red = AppColors.live;
 
-/// Sub-admin command screen for an ACTIVE (dispatched/en_route/arrived) incident:
-/// live map + responder GPS, address + route ETA, the dispatched unit/crew, and
-/// the escalation actions (Need Water / Need Assistance = fire codes; Escalate to
-/// BFP = alarm request; FIRE OUT = resolve).
+/// A coordinator's command screen for a live (on the way / on scene) incident:
+/// live map + responder GPS, address + route ETA and the road route to the
+/// fire, who is responding, the escalations (Need Water / Need Assistance =
+/// fire codes; Escalate to BFP = alarm request) and FIRE OUT.
+///
+/// v12 §2.5: the coordinator may go too — **Respond** attaches them like any
+/// responder and shares their location ([ResponderTracker]) — mark Arrived,
+/// and **Reject** while nobody is on scene (a mistaken verify), which releases
+/// everyone responding. It follows the incident on the live socket.
 class SubAdminIncidentCommandScreen extends StatefulWidget {
   const SubAdminIncidentCommandScreen({
     super.key,
@@ -59,6 +67,10 @@ class _SubAdminIncidentCommandScreenState
 
   late final ApiClient _api = widget.api ?? ApiClient();
   Timer? _poll;
+  final ResponderTracker _tracker = ResponderTracker.instance;
+  late final LiveRefresh _live = LiveRefresh([
+    incidentChannel(widget.areaId),
+  ], _refresh);
   final MapController _map = MapController();
 
   Map<String, dynamic>? _incident;
@@ -95,12 +107,16 @@ class _SubAdminIncidentCommandScreenState
   void initState() {
     super.initState();
     _loadAll();
+    _live.start();
     _poll = Timer.periodic(const Duration(seconds: 6), (_) => _refresh());
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    unawaited(_live.dispose());
+    // Like a responder's, a coordinator's location sharing outlives this
+    // screen: it stops when their response ends.
     _follow.dispose();
     super.dispose();
   }
@@ -128,6 +144,7 @@ class _SubAdminIncidentCommandScreenState
         if (num != null && id != null) _fireCodeIds[num] = id;
       }
       setState(() => _loading = false);
+      _syncStreaming();
       final c = _centroid;
       if (c != null) _reverseGeocode(c);
       _computeEta();
@@ -149,6 +166,7 @@ class _SubAdminIncidentCommandScreenState
         _dispatches = (results[1] as List).cast<Map<String, dynamic>>();
         _responders = (results[2] as List).cast<Map<String, dynamic>>();
       });
+      _syncStreaming();
       _computeEta();
     } catch (_) {
       // keep last good data
@@ -316,6 +334,185 @@ class _SubAdminIncidentCommandScreenState
     } catch (_) {
       if (mounted) _toast('Could not request escalation.');
     }
+  }
+
+  /// This coordinator's own active response, if they are going.
+  Map<String, dynamic>? get _myDispatch {
+    final myId = widget.me['id'];
+    for (final d in _dispatches) {
+      if (d['responder_id'] == myId && d['status'] == 'active') return d;
+    }
+    return null;
+  }
+
+  /// Share location while responding to a live incident; stop when the
+  /// response ends here (rejected, fire out). The tracker also stops itself
+  /// when the server refuses a point.
+  void _syncStreaming() {
+    final dispatchId = _myDispatch?['id'] as String?;
+    final live = const {'en_route', 'arrived'}.contains(_status);
+    if (dispatchId != null && live) {
+      _tracker.start(incidentId: widget.areaId, dispatchId: dispatchId);
+    } else if (_tracker.sharingFor.value == widget.areaId) {
+      _tracker.stop();
+    }
+  }
+
+  Future<void> _act(
+    Future<Map<String, dynamic>> Function() call,
+    String ok,
+  ) async {
+    setState(() => _busy = true);
+    try {
+      await call();
+      if (mounted) _toast(ok);
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    } catch (_) {
+      if (mounted) _toast('Action failed. Check your connection.');
+    } finally {
+      await _refresh();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _respond() => _act(
+    () => _api.selfDispatch(widget.areaId),
+    'You are responding. Your location is shared while you go.',
+  );
+
+  void _arrived() =>
+      _act(() => _api.markArrived(widget.areaId), 'Marked on scene.');
+
+  Future<void> _reject() async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dctx) {
+        final ctrl = TextEditingController();
+        return AlertDialog(
+          backgroundColor: context.pal.surface,
+          title: const Text(
+            'Reject incident',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Anyone responding will be told to stand down.',
+                style: TextStyle(color: context.pal.muted, fontSize: 13),
+              ),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Reason (e.g. verified by mistake)',
+                  hintStyle: TextStyle(color: context.pal.darkText),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dctx).pop(),
+              child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dctx).pop(ctrl.text.trim()),
+              child: Text(
+                'REJECT',
+                style: TextStyle(color: _red, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (reason == null || reason.isEmpty || !mounted) return;
+    setState(() => _busy = true);
+    final navigator = Navigator.of(context);
+    try {
+      await _api.rejectIncident(widget.areaId, reason);
+      if (!mounted) return;
+      _toast('Incident rejected. Anyone responding was stood down.');
+      navigator.pop(true);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast(e.message);
+        await _refresh();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast('Could not reject. Check your connection.');
+      }
+    }
+  }
+
+  void _route() {
+    final c = _centroid;
+    if (c == null) return;
+    openRouteToFire(
+      context,
+      lat: c.latitude,
+      lng: c.longitude,
+      name: (_incident?['designation'] as String?) ?? 'The fire',
+    );
+  }
+
+  /// Respond / Arrived / Reject for this coordinator, by where things stand.
+  Widget _myResponse() {
+    final mine = _myDispatch;
+    final buttons = <Widget>[];
+    if (_status == 'en_route' || _status == 'arrived') {
+      if (mine == null) {
+        buttons.add(
+          AppButton(
+            "Respond — I'm going",
+            height: 52,
+            busy: _busy,
+            onPressed: _busy ? null : _respond,
+          ),
+        );
+      } else if (_status == 'en_route') {
+        buttons.add(
+          AppButton(
+            'Mark arrived',
+            height: 52,
+            busy: _busy,
+            onPressed: _busy ? null : _arrived,
+          ),
+        );
+      } else {
+        buttons.add(
+          Text(
+            'You are on scene.',
+            style: TextStyle(color: _muted, fontSize: 13),
+          ),
+        );
+      }
+    }
+    if (_status == 'en_route') {
+      buttons.addAll([
+        const SizedBox(height: 10),
+        AppButton.secondary(
+          'Reject incident',
+          height: 48,
+          onPressed: _busy ? null : _reject,
+        ),
+      ]);
+    }
+    if (buttons.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: buttons,
+      ),
+    );
   }
 
   Future<void> _fireOut() async {
@@ -608,6 +805,7 @@ class _SubAdminIncidentCommandScreenState
             children: [
               _addressCard(),
               const SizedBox(height: 12),
+              _myResponse(),
               if (_routing != null) ...[
                 Tag(_routing!, color: context.pal.ok, dot: true),
                 const SizedBox(height: 12),
@@ -720,6 +918,26 @@ class _SubAdminIncidentCommandScreenState
                   ),
                 ),
                 const SizedBox(height: 5),
+                if (_centroid != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _route,
+                      icon: Icon(
+                        Icons.directions,
+                        size: 18,
+                        color: context.pal.accent,
+                      ),
+                      label: Text(
+                        'ROUTE TO THE FIRE',
+                        style: TextStyle(
+                          color: context.pal.accent,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
                 Text.rich(
                   TextSpan(
                     children: [

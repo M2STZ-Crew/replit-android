@@ -9,11 +9,13 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
+import '../../api/live_refresh.dart';
 import '../../location/responder_tracker.dart';
 import '../../models/fleet_unit.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
+import '../directions_screen.dart';
 import 'responder_status.dart';
 import '../../widgets/you_are_here.dart';
 
@@ -29,11 +31,15 @@ Color _youGreen = AppColors.ok;
 Color _otherBlue = AppColors.info;
 Color _red = AppColors.live;
 
-/// The responder's active-incident command screen: live map (incident + other
-/// responders + my GPS), address + route ETA, my unit/crew, the respond →
-/// en-route → arrived progression, the field escalations (Need Water / Need
-/// Assistance / Escalate to BFP), and REQUEST FIRE OUT (signals command via
-/// the Fire-Out code; the sub-admin resolves).
+/// The responder's incident screen: live map (incident + other responders +
+/// my GPS), address + route ETA and the road route to the fire, my unit/crew,
+/// the verify → respond → arrived progression (v12 §2.5: a responder may
+/// verify a new report themselves, and respond once it is verified), the field
+/// escalations (Need Water / Need Assistance / Escalate to BFP), and REQUEST
+/// FIRE OUT (signals command via the Fire-Out code; the coordinator resolves).
+///
+/// It follows the incident on the live socket ([LiveRefresh]), so a verify,
+/// respond or reject by someone else shows here at once.
 ///
 /// Location sharing is [ResponderTracker]'s, not this screen's: it starts here
 /// when the responder has an active dispatch and carries on after they leave,
@@ -68,6 +74,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   final MapController _map = MapController();
   final ResponderTracker _tracker = ResponderTracker.instance;
   Timer? _poll;
+  late final LiveRefresh _live = LiveRefresh([
+    incidentChannel(widget.incidentId),
+  ], () => _load(silent: true));
 
   Map<String, dynamic>? _incident;
   List<Map<String, dynamic>> _responders = [];
@@ -98,6 +107,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     _tracker.sharingFor.addListener(_onTracker);
     _load();
     _loadStatics();
+    _live.start();
     _poll = Timer.periodic(
       const Duration(seconds: 6),
       (_) => _load(silent: true),
@@ -107,6 +117,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    unawaited(_live.dispose());
     // The tracker keeps sharing after this screen closes — that is the point.
     _tracker.position.removeListener(_onTracker);
     _tracker.sharingFor.removeListener(_onTracker);
@@ -319,6 +330,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       await _load(silent: true);
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
+      // Refused because the screen was behind (someone else acted first):
+      // show what is true now rather than leave the stale button up.
+      await _load(silent: true);
     } catch (_) {
       if (mounted) _toast('Action failed. Check your connection.');
     } finally {
@@ -326,10 +340,26 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     }
   }
 
+  void _verify() => _action(
+    () => _api.verifyIncident(widget.incidentId),
+    'Verified. Respond if you are going.',
+  );
+
   void _respond() => _action(
     () => _api.selfDispatch(widget.incidentId),
-    'You are now responding.',
+    'You are responding. Your location is shared while you go.',
   );
+
+  void _route() {
+    final c = _centroid;
+    if (c == null) return;
+    openRouteToFire(
+      context,
+      lat: c.latitude,
+      lng: c.longitude,
+      name: (_incident?['designation'] as String?) ?? 'The fire',
+    );
+  }
   // v11: no _enRoute. Accept already moved the incident there (§2.5.1), and
   // no _withdraw — there is no assignment to take back now that manual
   // dispatch is gone.
@@ -655,6 +685,26 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                   ),
                 ),
                 const SizedBox(height: 5),
+                if (_centroid != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _route,
+                      icon: Icon(
+                        Icons.directions,
+                        size: 18,
+                        color: context.pal.accent,
+                      ),
+                      label: Text(
+                        'ROUTE TO THE FIRE',
+                        style: TextStyle(
+                          color: context.pal.accent,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
                 Text.rich(
                   TextSpan(
                     children: [
@@ -870,9 +920,18 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       );
     }
     if (_status == 'reported') {
-      return _infoBox(
-        Icons.hourglass_empty,
-        'Awaiting verification by command before responders can be assigned.',
+      // v12: whoever sees it first may verify — no waiting for a captain.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _infoBox(
+            Icons.help_outline,
+            'New report. Check the photo and location, then verify it if it is '
+            'a real fire. Verifying sends nobody; you choose to respond after.',
+          ),
+          const SizedBox(height: 12),
+          _gradientButton('VERIFY THIS INCIDENT', _verify),
+        ],
       );
     }
 

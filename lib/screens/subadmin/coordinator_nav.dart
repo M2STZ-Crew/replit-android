@@ -6,13 +6,13 @@ import 'subadmin_incident_command_screen.dart';
 import 'subadmin_incident_report_screen.dart';
 
 /// Where a coordinator — a Fire Volunteer or BFP team captain — goes for an
-/// incident (Master Context v10 §2.6.1: both coordinate; only Fire Volunteer
-/// verifies, which the review screen enforces):
+/// incident (Master Context v12 §2.5: both verify, both may respond):
 ///
-///  * live response (dispatched, en route, on scene) → the command screen;
+///  * live response (on the way, on scene) → the command screen, where they
+///    may join, mark arrived, reject before anyone is on scene, or fire out;
 ///  * fire out with the report still owed → the Post-Incident Report;
-///  * before the response (pending, verified) → the review screen, where the
-///    reports are and where verify / reject / dispatch / fire out are.
+///  * before the response (new, verified) → the review screen, where the
+///    reports are and where verify / respond / reject / fire out are.
 ///
 /// Shared by both captains' dashboards and the "routed to your team" push, so a
 /// BFP captain lands in the same place a Fire Volunteer captain does. Returns

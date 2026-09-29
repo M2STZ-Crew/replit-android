@@ -16,14 +16,40 @@ import '../widgets/you_are_here.dart';
 
 Color _safeGreen = AppColors.ok;
 
-/// A route, as the directions screen draws and measures it.
-typedef RouteResult = ({List<LatLng> points, double metres});
+/// A route, as the directions screen draws and measures it. [seconds] is the
+/// routing service's own travel time, when it gave one.
+typedef RouteResult = ({List<LatLng> points, double metres, double? seconds});
+
+/// Where the directions lead: a citizen walking to a shelter, or a responder
+/// or coordinator driving to a fire.
+enum DirectionsTo { shelter, fire }
+
+/// Road directions from the phone's live position to a fire. The incident's
+/// coordinates must exist — callers offer the button only when they do.
+Future<void> openRouteToFire(
+  BuildContext context, {
+  required double lat,
+  required double lng,
+  required String name,
+}) {
+  return Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => DirectionsScreen(
+        destLat: lat,
+        destLng: lng,
+        destName: name,
+        to: DirectionsTo.fire,
+      ),
+    ),
+  );
+}
 
 /// Fetches a route between two points; null when no route could be found.
 typedef RouteFetcher = Future<RouteResult?> Function(LatLng from, LatLng to);
 
-/// Directions to an evacuation site, in the app, the way Google Maps walks
-/// you there.
+/// Directions in the app, the way Google Maps takes you there: a citizen to
+/// an evacuation site on foot, or a responder or coordinator to the fire by
+/// road ([to]).
 ///
 /// The route comes from OSRM's public demo server (free, no key). Once it is
 /// drawn, the screen keeps up with the walker:
@@ -32,10 +58,16 @@ typedef RouteFetcher = Future<RouteResult?> Function(LatLng from, LatLng to);
 /// - stray more than [offRouteMetres] from the route and a new one is fetched
 ///   from where they are (at most every 30 s);
 /// - Start puts the map in follow-and-turn mode, so the way they face is up;
-/// - within [arrivedWithinMetres] of the shelter it says they have arrived.
+/// - close enough to the destination, it says they have arrived — 30 m for a
+///   shelter, 100 m for a fire (the radius the server uses for On scene).
 ///
-/// If no route can be found it falls back to a straight line and says so, so
-/// the heading and distance still show.
+/// The route starts from the phone's live GPS. For a fire there is no other
+/// honest starting point: with location off or refused the screen says so and
+/// offers to try again, and draws no route rather than inventing one. A shelter
+/// route may start from where the citizen sent their report ([originLat]).
+///
+/// If no road route can be found it falls back to a straight line and says so,
+/// so the heading and distance still show.
 class DirectionsScreen extends StatefulWidget {
   const DirectionsScreen({
     super.key,
@@ -45,6 +77,7 @@ class DirectionsScreen extends StatefulWidget {
     this.originLat,
     this.originLng,
     this.fetchRoute,
+    this.to = DirectionsTo.shelter,
   });
 
   final double destLat;
@@ -56,11 +89,17 @@ class DirectionsScreen extends StatefulWidget {
   /// Where routes come from: OSRM when none is given. Tests give their own.
   final RouteFetcher? fetchRoute;
 
+  /// A shelter on foot, or a fire by road.
+  final DirectionsTo to;
+
   /// Further than this from the route counts as off it.
   static const double offRouteMetres = 50;
 
-  /// This close to the shelter counts as there.
+  /// This close to a shelter counts as there.
   static const double arrivedWithinMetres = 30;
+
+  /// This close to a fire counts as there: the server's On scene radius.
+  static const double atTheFireWithinMetres = 100;
 
   @override
   State<DirectionsScreen> createState() => _DirectionsScreenState();
@@ -77,8 +116,18 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   LatLng? _origin;
   List<LatLng> _route = [];
   double? _routeMeters;
+  double? _routeSeconds;
   bool _loading = true;
   bool _isApprox = false;
+
+  /// No GPS and no other honest starting point: nothing to route from.
+  bool _noLocation = false;
+
+  bool get _toFire => widget.to == DirectionsTo.fire;
+
+  double get _arrivedWithin => _toFire
+      ? DirectionsScreen.atTheFireWithinMetres
+      : DirectionsScreen.arrivedWithinMetres;
 
   /// Where the walker is, and where that puts them on the route.
   LatLng? _here;
@@ -110,6 +159,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   }
 
   Future<void> _refineLocationThenRoute() async {
+    if (_noLocation) setState(() => _noLocation = false);
     // Best-effort: use the freshest GPS as the start point.
     try {
       if (await Geolocator.isLocationServiceEnabled()) {
@@ -126,9 +176,17 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         }
       }
     } catch (_) {
-      // keep the passed origin
+      // keep the passed origin, if there is one
     }
-    _origin ??= _dest;
+    if (!mounted) return;
+    if (_origin == null) {
+      // Never route from a made-up point: say what is missing instead.
+      setState(() {
+        _noLocation = true;
+        _loading = false;
+      });
+      return;
+    }
     await _loadRoute(first: true);
   }
 
@@ -150,7 +208,11 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     ];
     final metres = (route['distance'] as num?)?.toDouble();
     if (points.length < 2 || metres == null) return null;
-    return (points: points, metres: metres);
+    return (
+      points: points,
+      metres: metres,
+      seconds: (route['duration'] as num?)?.toDouble(),
+    );
   }
 
   /// The route from [_origin]. The first time, it frames the whole route and
@@ -178,6 +240,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     setState(() {
       _route = route.points;
       _routeMeters = route.metres;
+      _routeSeconds = route.seconds;
       _isApprox = false;
       _loading = false;
       _rerouting = false;
@@ -191,6 +254,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     setState(() {
       _route = [_origin!, _dest];
       _routeMeters = _distance.as(LengthUnit.Meter, _origin!, _dest);
+      _routeSeconds = null;
       _isApprox = true;
       _loading = false;
       _progress = _here == null ? null : RouteProgress.of(_route, _here!);
@@ -224,9 +288,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       return;
     }
     final progress = RouteProgress.of(_route, here);
-    final there =
-        _distance.as(LengthUnit.Meter, here, _dest) <=
-        DirectionsScreen.arrivedWithinMetres;
+    final there = _distance.as(LengthUnit.Meter, here, _dest) <= _arrivedWithin;
     setState(() {
       _here = here;
       _progress = progress;
@@ -271,7 +333,18 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   double get _remaining => _progress?.remainingMetres ?? _routeMeters ?? 0;
 
-  int get _walkMinutes => (_remaining / 1.39 / 60).ceil(); // ~5 km/h
+  /// Minutes left: walking pace to a shelter (~5 km/h); to a fire, the
+  /// route's own driving pace, or ~30 km/h without one.
+  int get _minutesLeft {
+    final metresPerSecond = !_toFire
+        ? 1.39
+        : (_routeSeconds != null &&
+              _routeSeconds! > 0 &&
+              (_routeMeters ?? 0) > 0)
+        ? _routeMeters! / _routeSeconds!
+        : 30000 / 3600;
+    return (_remaining / metresPerSecond / 60).ceil();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -285,14 +358,18 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       backgroundColor: context.pal.background,
       body: Stack(
         children: [
-          if (origin != null)
+          if (origin != null || _noLocation)
             FlutterMap(
               mapController: _map,
               options: MapOptions(
-                initialCameraFit: CameraFit.coordinates(
-                  coordinates: [origin, _dest],
-                  padding: const EdgeInsets.fromLTRB(60, 120, 60, 260),
-                ),
+                initialCenter: _dest,
+                initialZoom: 16,
+                initialCameraFit: origin == null
+                    ? null
+                    : CameraFit.coordinates(
+                        coordinates: [origin, _dest],
+                        padding: const EdgeInsets.fromLTRB(60, 120, 60, 260),
+                      ),
                 interactionOptions: kMapGestures,
                 onMapEvent: _follow.onMapEvent,
               ),
@@ -405,13 +482,35 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   Widget _destMarker() => Container(
     decoration: BoxDecoration(
-      color: _safeGreen,
+      color: _toFire ? context.pal.live : _safeGreen,
       borderRadius: BorderRadius.circular(AppRadius.card),
       border: Border.all(color: Colors.white, width: 2),
-      boxShadow: const [BoxShadow(color: Color(0x9922C55E), blurRadius: 12)],
+      boxShadow: [
+        BoxShadow(
+          color: (_toFire ? context.pal.live : _safeGreen).withValues(
+            alpha: 0.6,
+          ),
+          blurRadius: 12,
+        ),
+      ],
     ),
-    child: const Icon(Icons.home_outlined, color: Colors.white, size: 20),
+    child: Icon(
+      _toFire ? Icons.local_fire_department : Icons.home_outlined,
+      color: Colors.white,
+      size: 20,
+    ),
   );
+
+  Color get _tone => _toFire ? context.pal.live : _safeGreen;
+
+  Widget get _destIcon => _toFire
+      ? IconWell(
+          tint: context.pal.live,
+          icon: Icons.local_fire_department,
+          size: 40,
+          glyph: 20,
+        )
+      : IconWell(tint: _safeGreen, asset: Art.evac, size: 40, glyph: 20);
 
   /// What to tell the walker under the numbers, if anything.
   String? get _note {
@@ -432,21 +531,61 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   }
 
   Widget _routeCard() {
+    if (_noLocation) {
+      return Panel(
+        padding: const EdgeInsets.all(20),
+        color: context.pal.surfaceSolid.withValues(alpha: 0.94),
+        border: context.pal.warn.withValues(alpha: 0.6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.location_off_outlined, color: context.pal.warn),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Eyebrow(
+                    'Your location is off',
+                    color: context.pal.warn,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'We cannot see where you are, so there is no route to draw. Turn '
+              'on location and allow RepLiT to use it, then try again. The map '
+              'shows where ${widget.destName} is.',
+              style: context.type.bodySm,
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              'Try again',
+              height: 48,
+              onPressed: _refineLocationThenRoute,
+            ),
+          ],
+        ),
+      );
+    }
     if (_arrived) {
       return Panel(
         padding: const EdgeInsets.all(20),
         color: context.pal.surfaceSolid.withValues(alpha: 0.94),
-        border: _safeGreen,
+        border: _tone,
         child: Row(
           children: [
-            IconWell(tint: _safeGreen, asset: Art.evac, size: 40, glyph: 20),
+            _destIcon,
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Eyebrow('You have arrived', color: _safeGreen),
+                  Eyebrow(
+                    _toFire ? 'You are at the fire' : 'You have arrived',
+                    color: _tone,
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     widget.destName.toUpperCase(),
@@ -465,13 +604,13 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     return Panel(
       padding: const EdgeInsets.all(20),
       color: context.pal.surfaceSolid.withValues(alpha: 0.94),
-      border: _safeGreen.withValues(alpha: 0.5),
+      border: _tone.withValues(alpha: 0.5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              IconWell(tint: _safeGreen, asset: Art.evac, size: 40, glyph: 20),
+              _destIcon,
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -479,8 +618,12 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Eyebrow(
-                      _navigating ? 'On your way' : 'Route to safety',
-                      color: _safeGreen,
+                      _navigating
+                          ? 'On your way'
+                          : _toFire
+                          ? 'Route to the fire'
+                          : 'Route to safety',
+                      color: _tone,
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -506,9 +649,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               ),
               Expanded(
                 child: _metric(
-                  Icons.directions_walk,
-                  _loading ? '—' : '~$_walkMinutes min',
-                  'on foot',
+                  _toFire ? Icons.directions_car : Icons.directions_walk,
+                  _loading ? '—' : '~$_minutesLeft min',
+                  _toFire ? 'driving' : 'on foot',
                 ),
               ),
             ],

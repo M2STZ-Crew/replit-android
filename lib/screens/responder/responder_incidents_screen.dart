@@ -9,6 +9,7 @@ import '../../widgets/placeholder_box.dart';
 import 'responder_incident_report_screen.dart';
 import 'responder_incident_screen.dart';
 import 'responder_status.dart';
+import '../../api/live_refresh.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -74,6 +75,12 @@ class ResponderIncidentsScreen extends StatefulWidget {
 }
 
 class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
+  /// Re-read the moment any incident this agency sees changes (v12).
+  late final LiveRefresh _live = LiveRefresh(
+    agencyChannels(widget.me['agency_type'] as String?),
+    () => _load(silent: true),
+  );
+
   final ApiClient _api = ApiClient();
   Timer? _poll;
 
@@ -89,6 +96,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
   void initState() {
     super.initState();
     _load();
+    _live.start();
     _poll = Timer.periodic(
       const Duration(seconds: 12),
       (_) => _load(silent: true),
@@ -98,6 +106,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    unawaited(_live.dispose());
     super.dispose();
   }
 
@@ -296,7 +305,9 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
     final color = _areaColor(status);
     final open = _expanded.contains(id);
     final routed = routingLabel(area, agency: _agency);
+    // v12: a new report can be opened and verified by a responder too.
     final actionable = const {
+      'reported',
       'verified',
       'en_route',
       'arrived',

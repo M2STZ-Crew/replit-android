@@ -557,7 +557,11 @@ class ApiClient {
     return _decode(resp);
   }
 
-  /// Self-select onto a verified incident: POST /incidents/{id}/self-dispatch.
+  /// Respond — "I am going": POST /incidents/{id}/self-dispatch (v12 §2.5.2).
+  ///
+  /// Open to responders and to Fire Volunteer / BFP coordinators once an
+  /// incident is verified. The first to respond puts it On the way; responding
+  /// twice to the same incident is refused (409).
   Future<Map<String, dynamic>> selfDispatch(String id, {String? notes}) async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/incidents/$id/self-dispatch'),
@@ -769,16 +773,14 @@ class ApiClient {
     return jsonDecode(resp.body) as List<dynamic>;
   }
 
-  /// Accept an incident: POST /incidents/{id}/accept (v11 §2.5.1).
+  /// Verify — "this is a real fire": POST /incidents/{id}/verify (v12 §2.5.1).
   ///
-  /// Replaces the old verify call. The first Accept carries the incident
-  /// Reported -> Verified -> En route in one act, so a coordinator commits and
-  /// the crew rolls in a single tap. A later Accept from another agency records
-  /// that they are coming too and leaves the status alone. Pressing twice as
-  /// the same person does nothing.
-  Future<Map<String, dynamic>> acceptIncident(String id) async {
+  /// Sends nobody. The first verify moves the incident Reported -> Verified;
+  /// then anyone going responds ([selfDispatch]). Responders may verify as well
+  /// as captains. A responder finding it already verified is told to respond.
+  Future<Map<String, dynamic>> verifyIncident(String id) async {
     final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/accept'),
+      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/verify'),
       headers: _auth,
     );
     return _decode(resp);

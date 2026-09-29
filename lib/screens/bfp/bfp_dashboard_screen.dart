@@ -20,6 +20,7 @@ import '../subadmin/pending_reports_screen.dart';
 import '../subadmin/subadmin_home_screen.dart';
 import 'bfp_alarm_requests_screen.dart';
 import '../../widgets/you_are_here.dart';
+import '../../api/live_refresh.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -48,6 +49,12 @@ class BfpDashboardScreen extends StatefulWidget {
 }
 
 class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
+  /// Re-read the moment any incident this agency sees changes (v12).
+  late final LiveRefresh _live = LiveRefresh(
+    agencyChannels('bfp'),
+    () => _load(),
+  );
+
   final MapFollow _follow = MapFollow();
 
   final GlobalKey<ScaffoldState> _scaffold = GlobalKey<ScaffoldState>();
@@ -77,12 +84,14 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   void initState() {
     super.initState();
     _load();
+    _live.start();
     _poll = Timer.periodic(const Duration(seconds: 10), (_) => _load());
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    unawaited(_live.dispose());
     _follow.dispose();
     super.dispose();
   }

@@ -17,13 +17,13 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
 # MAJOR.MINOR.PATCH+build. MINOR tracks the Master Context generation, so
-# 1.11.x is the app that implements Master Context v11 and the same number is
+# 1.12.x is the app that implements Master Context v12 and the same number is
 # declared by the backend and both consoles.
 #
 # The +1 here is only a placeholder: CI passes --build-number=<github run
 # number>, which is what becomes the Android versionCode. That has to rise on
 # every build or Android refuses the install, and a run number always does.
-version: 1.11.0+1
+version: 1.12.0+1
 
 environment:
   sdk: ^3.11.1

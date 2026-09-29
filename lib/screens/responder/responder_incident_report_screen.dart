@@ -10,6 +10,8 @@ import '../../widgets/incident_map.dart';
 import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
 import 'responder_status.dart';
+import '../../widgets/photo_viewer.dart';
+import '../directions_screen.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -18,11 +20,12 @@ Color _value = AppColors.muted;
 Color _label = AppColors.label;
 Color _red = AppColors.live;
 
-/// Responder's READ-ONLY view of a citizen report: photo, reporter, time,
-/// coordinates, address, verifier, and a map. Verify / reject are a sub-admin
-/// power, so the decision slot shows a disabled "FOR SUB ADMIN ONLY" button.
-/// To actually respond, the responder opens the incident from the dashboard map
-/// (this screen is for inspecting what was reported).
+/// A responder reviewing a citizen report: photo (tap to zoom), reporter,
+/// time, coordinates, address, verifier, a map, and the road route to it.
+///
+/// v12 §2.5.1: a responder may verify a new report here — the captain may be
+/// away from their phone. Rejecting stays with coordinators. Responding (going)
+/// happens on the incident screen, where their location starts sharing.
 class ResponderIncidentReportScreen extends StatefulWidget {
   const ResponderIncidentReportScreen({
     super.key,
@@ -50,6 +53,10 @@ class _ResponderIncidentReportScreenState
 
   String? _address;
   String? _verifiedByName;
+  late String _status = widget.status;
+  double? _centroidLat;
+  double? _centroidLng;
+  bool _busy = false;
 
   double? get _lat => (widget.report['device_lat'] as num?)?.toDouble();
   double? get _lng => (widget.report['device_lng'] as num?)?.toDouble();
@@ -67,7 +74,12 @@ class _ResponderIncidentReportScreenState
     try {
       final detail = await _api.getIncident(widget.areaId);
       if (!mounted) return;
-      setState(() => _verifiedByName = detail['verified_by_name'] as String?);
+      setState(() {
+        _verifiedByName = detail['verified_by_name'] as String?;
+        _status = (detail['status'] as String?) ?? _status;
+        _centroidLat = (detail['centroid_lat'] as num?)?.toDouble();
+        _centroidLng = (detail['centroid_lng'] as num?)?.toDouble();
+      });
     } catch (_) {
       // verifier just stays "---"
     }
@@ -256,8 +268,16 @@ class _ResponderIncidentReportScreenState
           ]),
           const SizedBox(height: 20),
           _map(),
+          if (_routeTo != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _route,
+              icon: const Icon(Icons.directions),
+              label: const Text('ROUTE TO THE FIRE'),
+            ),
+          ],
           const SizedBox(height: 24),
-          _lockedButton(),
+          _decision(),
         ],
       ),
     );
@@ -306,17 +326,31 @@ class _ResponderIncidentReportScreenState
       child: Stack(
         children: [
           Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _panelBorder),
+            child: GestureDetector(
+              // Tap to look closely: full screen, pinch or double-tap to zoom.
+              onTap: url == null
+                  ? null
+                  : () => openPhoto(context, url, label: 'Reported fire photo'),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _panelBorder),
+                  ),
+                  child: image,
                 ),
-                child: image,
               ),
             ),
           ),
+          if (url != null)
+            const Positioned(
+              right: 12,
+              bottom: 12,
+              child: IgnorePointer(
+                child: Icon(Icons.zoom_in, color: Colors.white70, size: 22),
+              ),
+            ),
           Positioned(
             left: 12,
             top: 12,
@@ -392,27 +426,90 @@ class _ResponderIncidentReportScreenState
     );
   }
 
-  Widget _lockedButton() {
+  /// The fire's position for the route: the incident's centre, or this
+  /// report's position before the incident has loaded. Null when neither is
+  /// known — then there is no route button, rather than a guessed one.
+  ({double lat, double lng})? get _routeTo {
+    final lat = _centroidLat ?? _lat;
+    final lng = _centroidLng ?? _lng;
+    return lat == null || lng == null ? null : (lat: lat, lng: lng);
+  }
+
+  void _route() {
+    final to = _routeTo;
+    if (to == null) return;
+    openRouteToFire(context, lat: to.lat, lng: to.lng, name: 'The fire');
+  }
+
+  Future<void> _verify() async {
+    setState(() => _busy = true);
+    try {
+      await _api.verifyIncident(widget.areaId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Verified. Open the incident to respond if you are going.'),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not verify. Check your connection.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      await _loadDetail();
+    }
+  }
+
+  /// Verify while it is new; after that, where it stands.
+  Widget _decision() {
+    if (_status == 'reported') {
+      return SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: FilledButton(
+          onPressed: _busy ? null : _verify,
+          child: _busy
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                )
+              : const Text(
+                  'VERIFY — IT IS A REAL FIRE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+        ),
+      );
+    }
+    final text = switch (_status) {
+      'verified' =>
+        'Verified. Open the incident from the feed to respond if you are going.',
+      'en_route' || 'arrived' =>
+        'Responders are on it. Open the incident to join them.',
+      'rejected' => 'A coordinator rejected this report.',
+      _ => 'This incident is over.',
+    };
     return Container(
       width: double.infinity,
-      height: 56,
-      alignment: Alignment.center,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: _panel,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _value),
+        border: Border.all(color: _panelBorder),
       ),
-      child: Text(
-        'FOR SUB ADMIN ONLY',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: _value,
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-          height: 1.50,
-          letterSpacing: 1.60,
-        ),
-      ),
+      child: Text(text, style: TextStyle(color: _value, fontSize: 13)),
     );
   }
 }

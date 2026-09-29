@@ -99,6 +99,7 @@ void main() {
       return (
         points: [from, to],
         metres: const Distance().as(LengthUnit.Meter, from, to),
+        seconds: null,
       );
     }
 
@@ -191,6 +192,63 @@ void main() {
       await walkTo(tester, at(1985));
       expect(find.text('YOU HAVE ARRIVED'), findsOneWidget);
       expect(find.text('START'), findsNothing);
+    });
+  });
+
+  group('to a fire (v12)', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      GeolocatorPlatform.instance = _StartGeo();
+    });
+
+    /// 2 km by road, driven in 4 minutes (30 km/h): the route's own pace.
+    Future<RouteResult?> fetch(LatLng from, LatLng to) async => (
+      points: [from, to],
+      metres: const Distance().as(LengthUnit.Meter, from, to),
+      seconds: 240.0,
+    );
+
+    Future<void> pump(WidgetTester tester) async {
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final fire = at(2000);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: DirectionsScreen(
+            destLat: fire.latitude,
+            destLng: fire.longitude,
+            destName: 'Area 7',
+            to: DirectionsTo.fire,
+            fetchRoute: fetch,
+          ),
+        ),
+      );
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    }
+
+    testWidgets('driving time comes from the road route, and counts down', (
+      tester,
+    ) async {
+      await pump(tester);
+      expect(find.text('ROUTE TO THE FIRE'), findsOneWidget);
+      expect(find.text('~4 min'), findsOneWidget);
+      expect(find.text('DRIVING'), findsOneWidget);
+      LivePosition.instance.offer(at(1000), accuracy: 5);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('~2 min'), findsOneWidget);
+    });
+
+    testWidgets('within 100 m it says you are at the fire', (tester) async {
+      await pump(tester);
+      LivePosition.instance.offer(at(1920), accuracy: 5);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('YOU ARE AT THE FIRE'), findsOneWidget);
     });
   });
 }

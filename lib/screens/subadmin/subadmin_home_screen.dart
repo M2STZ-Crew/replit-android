@@ -13,6 +13,7 @@ import '../login_screen.dart';
 import '../responder/responder_status.dart';
 import 'subadmin_incident_command_screen.dart';
 import 'subadmin_incident_report_screen.dart';
+import '../../api/live_refresh.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -53,6 +54,12 @@ class SubAdminHomeScreen extends StatefulWidget {
 }
 
 class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
+  /// Re-read the moment any incident this agency sees changes (v12).
+  late final LiveRefresh _live = LiveRefresh(
+    agencyChannels(_agency),
+    () => _load(silent: true),
+  );
+
   final ApiClient _api = ApiClient();
   Timer? _poll;
 
@@ -70,6 +77,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
   void initState() {
     super.initState();
     _load();
+    _live.start();
     _poll = Timer.periodic(
       const Duration(seconds: 12),
       (_) => _load(silent: true),
@@ -79,6 +87,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    unawaited(_live.dispose());
     super.dispose();
   }
 

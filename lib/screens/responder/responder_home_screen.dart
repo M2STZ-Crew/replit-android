@@ -19,6 +19,7 @@ import 'responder_incident_screen.dart';
 import 'responder_incidents_screen.dart';
 import 'responder_status.dart';
 import '../../widgets/you_are_here.dart';
+import '../../api/live_refresh.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -47,6 +48,12 @@ class ResponderHomeScreen extends StatefulWidget {
 }
 
 class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
+  /// Re-read the moment any incident this agency sees changes (v12).
+  late final LiveRefresh _live = LiveRefresh(
+    agencyChannels(_agency),
+    () => _load(),
+  );
+
   final MapFollow _follow = MapFollow();
 
   final GlobalKey<ScaffoldState> _scaffold = GlobalKey<ScaffoldState>();
@@ -72,12 +79,14 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
     super.initState();
     _tracker.sharingFor.addListener(_rebuild);
     _load();
+    _live.start();
     _poll = Timer.periodic(const Duration(seconds: 10), (_) => _load());
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    unawaited(_live.dispose());
     _tracker.sharingFor.removeListener(_rebuild);
     _follow.dispose();
     super.dispose();

@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 
 import '../../api/api_client.dart';
+import '../../api/live_refresh.dart';
 import '../../api/push_service.dart';
 import '../../api/session.dart';
 import '../../theme.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/incident_map.dart';
+import '../../widgets/photo_viewer.dart';
 import '../../widgets/placeholder_box.dart';
+import '../directions_screen.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
+import 'subadmin_incident_command_screen.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -19,12 +23,20 @@ Color _value = AppColors.muted;
 Color _label = AppColors.label;
 Color _red = AppColors.live;
 
-/// Sub-admin's full-screen incident-report / verification view.
+/// A coordinator reviewing an incident: one citizen report (photo — tap to
+/// zoom — reporter, time, coordinates, address, verifier), a map, the road
+/// route to the fire, and the decisions (v12 §2.5):
 ///
-/// Shows a single citizen report (photo, reporter, time, coordinates, address,
-/// verifier) plus a map, and the lifecycle decision actions for the parent
-/// incident area. Which actions appear depends on the incident's current status
-/// and the sub-admin's agency (only a Fire-Volunteer sub-admin can verify).
+/// * new → **Verify** ("this is a real fire"; sends nobody) or **Reject**;
+/// * verified → **Respond** ("I am going" — any Fire Volunteer or BFP
+///   coordinator may, not only the captain it was meant for), **Fire out**,
+///   or **Reject** (a mis-tapped Verify can be undone);
+/// * on the way → the same, Reject releasing anyone responding; once someone
+///   is on scene, Reject gives way to Fire out.
+///
+/// It follows the incident on the live socket, so another person's action
+/// shows at once, and a button pressed on a stale screen is refused by the
+/// server and the screen re-reads.
 class SubAdminIncidentReportScreen extends StatefulWidget {
   const SubAdminIncidentReportScreen({
     super.key,
@@ -66,8 +78,14 @@ class _SubAdminIncidentReportScreenState
   String? _verifiedByName;
   String? _rejectionReason;
 
-  /// Agencies that have pressed Accept on this incident (v11 §2.5.1).
-  List<String> _acceptedAgencies = const [];
+  /// Whether this coordinator is already responding (an active dispatch).
+  bool _responding = false;
+  double? _centroidLat;
+  double? _centroidLng;
+
+  late final LiveRefresh _live = LiveRefresh([
+    incidentChannel(widget.areaId),
+  ], _loadDetail);
 
   double? get _lat => (widget.report['device_lat'] as num?)?.toDouble();
   double? get _lng => (widget.report['device_lng'] as num?)?.toDouble();
@@ -79,6 +97,13 @@ class _SubAdminIncidentReportScreenState
     final lng = _lng;
     if (lat != null && lng != null) _reverseGeocode(lat, lng);
     _loadDetail();
+    _live.start();
+  }
+
+  @override
+  void dispose() {
+    _live.dispose();
+    super.dispose();
   }
 
   // Pull the canonical lifecycle state + verifier name for this incident.
@@ -90,13 +115,21 @@ class _SubAdminIncidentReportScreenState
         _status = (detail['status'] as String?) ?? _status;
         _verifiedByName = detail['verified_by_name'] as String?;
         _rejectionReason = detail['rejection_reason'] as String?;
-        _acceptedAgencies = [
-          for (final a in (detail['accepted_agencies'] as List? ?? const []))
-            '$a',
-        ];
+        _centroidLat = (detail['centroid_lat'] as num?)?.toDouble();
+        _centroidLng = (detail['centroid_lng'] as num?)?.toDouble();
       });
     } catch (_) {
       // keep the status passed in; verifier just stays "---"
+    }
+    try {
+      final myId = widget.me['id'];
+      final dispatches = await _api.getDispatches(widget.areaId);
+      final mine = dispatches.whereType<Map<String, dynamic>>().any(
+        (d) => d['responder_id'] == myId && d['status'] == 'active',
+      );
+      if (mounted) setState(() => _responding = mine);
+    } catch (_) {
+      // unknown: offer Respond; the server refuses a second one anyway
     }
   }
 
@@ -161,6 +194,8 @@ class _SubAdminIncidentReportScreenState
       if (mounted) {
         setState(() => _busy = false);
         _toast(e.message);
+        // Refused because someone else acted first: show what is true now.
+        await _loadDetail();
       }
     } catch (_) {
       if (mounted) {
@@ -213,8 +248,60 @@ class _SubAdminIncidentReportScreenState
     );
   }
 
-  // v11 removed the dispatch screen (§2.5): Accept sends the crew, and who
-  // actually went is recorded afterwards on the Post-Incident Report.
+  /// Verify: stays here, so Respond is one tap away if they are going.
+  Future<void> _verify() async {
+    setState(() => _busy = true);
+    try {
+      await _api.verifyIncident(widget.areaId);
+      if (mounted) _toast('Verified. Respond if you are going.');
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    } catch (_) {
+      if (mounted) _toast('Could not verify. Check your connection.');
+    } finally {
+      await _loadDetail();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Respond: this coordinator is going. The command screen takes over —
+  /// the live map, the route, and sharing their own location.
+  Future<void> _respond() async {
+    setState(() => _busy = true);
+    final navigator = Navigator.of(context);
+    try {
+      await _api.selfDispatch(widget.areaId);
+      if (!mounted) return;
+      _toast('You are responding. Your location is shared while you go.');
+      await navigator.pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => SubAdminIncidentCommandScreen(
+            areaId: widget.areaId,
+            me: widget.me,
+            api: _api,
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast(e.message);
+        await _loadDetail();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _busy = false);
+        _toast('Could not respond. Check your connection.');
+      }
+    }
+  }
+
+  void _route() {
+    final lat = _centroidLat ?? _lat;
+    final lng = _centroidLng ?? _lng;
+    if (lat == null || lng == null) return;
+    openRouteToFire(context, lat: lat, lng: lng, name: 'The fire');
+  }
 
   /// Fire out from review: the incident moves to the Post-Incident Report step,
   /// and the report is offered now or left in the tray — the same as from the
@@ -419,6 +506,15 @@ class _SubAdminIncidentReportScreenState
           ]),
           const SizedBox(height: 20),
           _map(),
+          if ((_centroidLat ?? _lat) != null && (_centroidLng ?? _lng) != null)
+            ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _route,
+                icon: const Icon(Icons.directions),
+                label: const Text('ROUTE TO THE FIRE'),
+              ),
+            ],
           const SizedBox(height: 24),
           _actions(),
         ],
@@ -469,17 +565,31 @@ class _SubAdminIncidentReportScreenState
       child: Stack(
         children: [
           Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _panelBorder),
+            child: GestureDetector(
+              // Tap to look closely: full screen, pinch or double-tap to zoom.
+              onTap: url == null
+                  ? null
+                  : () => openPhoto(context, url, label: 'Reported fire photo'),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _panelBorder),
+                  ),
+                  child: image,
                 ),
-                child: image,
               ),
             ),
           ),
+          if (url != null)
+            const Positioned(
+              right: 12,
+              bottom: 12,
+              child: IgnorePointer(
+                child: Icon(Icons.zoom_in, color: Colors.white70, size: 22),
+              ),
+            ),
           Positioned(
             left: 12,
             top: 12,
@@ -579,54 +689,34 @@ class _SubAdminIncidentReportScreenState
       );
     }
 
-    // v11 §2.5.1: any coordinator's Accept verifies a reported incident and
-    // sends responders — BFP's as well as the Fire Volunteers'. Once someone
-    // has, a second agency's Accept says it is coming too; it moves nothing.
-    final joinable =
-        s != 'reported' &&
-        widget.agency != null &&
-        !_acceptedAgencies.contains(widget.agency);
-    final dispatchable = const {
-      'verified',
-      'en_route',
-      'arrived',
-    }.contains(s);
-    final canReject = s == 'reported' || s == 'verified';
+    // v12 §2.5: verify says it is real; respond says "I am going"; reject is
+    // open until someone is on scene; fire out ends it.
+    final live = const {'verified', 'en_route', 'arrived'}.contains(s);
+    final canReject = const {'reported', 'verified', 'en_route'}.contains(s);
 
     final children = <Widget>[];
     if (s == 'reported') {
       children.add(
         Row(
           children: [
-            Expanded(
-              child: _gradientButton(
-                'ACCEPT',
-                () => _run(
-                  () => _api.acceptIncident(widget.areaId),
-                  'Accepted. Responders are on the way.',
-                ),
-              ),
-            ),
+            Expanded(child: _gradientButton('VERIFY', _verify)),
             const SizedBox(width: 16),
             Expanded(child: _darkButton('REJECT', _reject)),
           ],
         ),
       );
-    } else if (dispatchable) {
-      if (joinable) {
+    } else if (live) {
+      if (_responding) {
         children.add(
-          _gradientButton(
-            'ACCEPT — WE\'RE COMING TOO',
-            () => _run(
-              () => _api.acceptIncident(widget.areaId),
-              'Accepted. The other teams can see you are coming.',
-            ),
+          _infoBanner(
+            'You are responding. Open the incident from the map for the live '
+            'response.',
           ),
         );
-        children.add(const SizedBox(height: 12));
+      } else {
+        children.add(_gradientButton("RESPOND — I'M GOING", _respond));
       }
-      // Accepted onwards: the crew is already rolling, so the only calls left
-      // here are fire out and — while nobody has arrived — reject.
+      children.add(const SizedBox(height: 12));
       final resolve = _darkButton('FIRE OUT', _fireOut);
       if (canReject) {
         children.add(
