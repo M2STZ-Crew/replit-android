@@ -20,6 +20,7 @@ import '../../widgets/placeholder_box.dart';
 import '../login_screen.dart';
 import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
+import '../../widgets/you_are_here.dart';
 
 Color _bg = AppColors.background;
 Color _sheet = AppColors.surfaceSolid;
@@ -54,6 +55,8 @@ class SubAdminIncidentCommandScreen extends StatefulWidget {
 
 class _SubAdminIncidentCommandScreenState
     extends State<SubAdminIncidentCommandScreen> {
+  final MapFollow _follow = MapFollow();
+
   late final ApiClient _api = widget.api ?? ApiClient();
   Timer? _poll;
   final MapController _map = MapController();
@@ -98,6 +101,7 @@ class _SubAdminIncidentCommandScreenState
   @override
   void dispose() {
     _poll?.cancel();
+    _follow.dispose();
     super.dispose();
   }
 
@@ -439,13 +443,14 @@ class _SubAdminIncidentCommandScreenState
                   options: MapOptions(
                     initialCenter: c,
                     initialZoom: 15.5,
-                    interactionOptions: const InteractionOptions(
-                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                    ),
+                    interactionOptions: kMapGestures,
+                    onMapEvent: _follow.onMapEvent,
                   ),
                   children: [
                     MapTiles.layer(light: context.pal.isLight),
-                    MarkerLayer(markers: _markers(c)),
+                    MarkerLayer(rotate: true, markers: _markers(c)),
+                    YouAreHereLayer(follow: _follow),
+                    MapLocationButtons(follow: _follow),
                   ],
                 ),
         ),

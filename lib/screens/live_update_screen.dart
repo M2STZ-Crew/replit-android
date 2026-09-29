@@ -17,6 +17,7 @@ import '../widgets/design.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'directions_screen.dart';
+import '../widgets/you_are_here.dart';
 
 /// White glyph per agency, as on the report screen.
 const Map<String, String> _glyphs = {
@@ -89,9 +90,10 @@ class LiveUpdateScreen extends StatefulWidget {
 
 class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     with WidgetsBindingObserver {
+  final MapFollow _follow = MapFollow();
+
   late final ApiClient _api = widget.api ?? ApiClient();
-  late final TrackingFeed _feed =
-      widget.feed ?? TrackingSocket(widget.areaId, api: _api);
+  late final TrackingFeed _feed = widget.feed ?? TrackingSocket(widget.areaId);
   StreamSubscription<Map<String, dynamic>>? _feedSub;
   Timer? _poll;
   int _ticks = 0;
@@ -169,6 +171,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     // to whoever handed it in.
     if (widget.feed == null) unawaited(_feed.dispose());
     _camera.dispose();
+    _follow.dispose();
     super.dispose();
   }
 
@@ -555,9 +558,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
           _frameOnce();
         },
         backgroundColor: context.pal.background,
-        interactionOptions: const InteractionOptions(
-          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-        ),
+        interactionOptions: kMapGestures,
+        onMapEvent: _follow.onMapEvent,
       ),
       children: [
         MapTiles.layer(light: context.pal.isLight),
@@ -575,6 +577,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
             ],
           ),
         MarkerLayer(
+          rotate: true,
           markers: [
             for (final s in _shelters)
               Marker(
@@ -641,6 +644,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         // them. No polyline: see the class comment.
         if (units.isNotEmpty && _snap != null)
           _UnitsLayer(units: units, snapshot: _snap!),
+        YouAreHereLayer(follow: _follow),
+        MapLocationButtons(
+          follow: _follow,
+          alignment: const Alignment(1, -0.35),
+        ),
         MapTiles.attribution(),
       ],
     );
@@ -1022,6 +1030,7 @@ class _UnitsLayerState extends State<_UnitsLayer>
       builder: (context, _) {
         final t = Curves.easeInOut.transform(_glide.value);
         return MarkerLayer(
+          rotate: true,
           markers: [
             for (final u in widget.units)
               if (_to.containsKey(u.key))

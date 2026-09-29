@@ -18,6 +18,7 @@ import '../login_screen.dart';
 import 'responder_incident_screen.dart';
 import 'responder_incidents_screen.dart';
 import 'responder_status.dart';
+import '../../widgets/you_are_here.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -46,6 +47,8 @@ class ResponderHomeScreen extends StatefulWidget {
 }
 
 class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
+  final MapFollow _follow = MapFollow();
+
   final GlobalKey<ScaffoldState> _scaffold = GlobalKey<ScaffoldState>();
   final ApiClient _api = ApiClient();
   final MapController _map = MapController();
@@ -76,6 +79,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
   void dispose() {
     _poll?.cancel();
     _tracker.sharingFor.removeListener(_rebuild);
+    _follow.dispose();
     super.dispose();
   }
 
@@ -571,16 +575,17 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
   Widget _mapLayer() {
     return FlutterMap(
       mapController: _map,
-      options: const MapOptions(
+      options: MapOptions(
         initialCenter: _pasay,
         initialZoom: 13,
-        interactionOptions: InteractionOptions(
-          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-        ),
+        interactionOptions: kMapGestures,
+        onMapEvent: _follow.onMapEvent,
       ),
       children: [
         MapTiles.layer(light: context.pal.isLight),
-        MarkerLayer(markers: _markers()),
+        MarkerLayer(rotate: true, markers: _markers()),
+        YouAreHereLayer(follow: _follow),
+        MapLocationButtons(follow: _follow),
         MapTiles.attribution(),
       ],
     );

@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
+import '../api/live_hub.dart';
 import '../api/map_cache.dart';
 import '../api/report_queue.dart';
 import '../location/live_position.dart';
@@ -21,6 +22,7 @@ import '../widgets/design.dart';
 import '../widgets/map_coach_marks.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
+import '../widgets/you_are_here.dart';
 import 'onboarding_screen.dart' show Tour;
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
@@ -160,19 +162,35 @@ List<_Layer> _gisLayers = [_risk, _hydrants, _water, _cisterns];
 /// designation; and a hospital marker — there is no hospital layer. Streets
 /// come from the phone's own geocoder, and are left out when it has none.
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, this.api});
+  const MapScreen({super.key, this.api, this.feed});
 
   /// Stands in for the server in tests.
   final ApiClient? api;
+
+  /// Where live area changes come from: `map:areas` on the app's one socket
+  /// when none is given. Tests give their own.
+  final LiveFeed? feed;
+
+  /// The server's channel for the live citizen map.
+  static const String channel = 'map:areas';
 
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
+  final MapFollow _follow = MapFollow();
+
   late final ApiClient _api = widget.api ?? ApiClient();
   final MapController _map = MapController();
   final ReportQueue _queue = ReportQueue.instance;
+
+  /// Live area changes. With it up, a new incident or a status change is on
+  /// the map within a second; the 15 s read below becomes a once-a-minute
+  /// safety net for anything a dropped socket missed.
+  late final LiveFeed _live = widget.feed ?? ChannelFeed(MapScreen.channel);
+  StreamSubscription<Map<String, dynamic>>? _liveChanges;
+  int _pollTicks = 0;
 
   Timer? _poll;
   bool _loading = true;
@@ -223,8 +241,11 @@ class _MapScreenState extends State<MapScreen> {
     // with.
     LivePosition.instance.acquire();
     LivePosition.instance.here.addListener(_onMoved);
+    _liveChanges = _live.messages.listen(_onAreaChange);
+    _live.live.addListener(_onLiveChanged);
+    _live.start();
     _bootstrap();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _loadAreas());
+    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _pollTick());
     unawaited(
       Tour.coachMarksSeen().then((seen) {
         if (mounted && !seen) setState(() => _coachMarks = true);
@@ -240,6 +261,12 @@ class _MapScreenState extends State<MapScreen> {
     _queue.lastRejection.removeListener(_onRejection);
     LivePosition.instance.here.removeListener(_onMoved);
     LivePosition.instance.release();
+    _live.live.removeListener(_onLiveChanged);
+    unawaited(_liveChanges?.cancel());
+    // The screen closes only the feed it opened; one handed in belongs to
+    // whoever handed it in.
+    if (widget.feed == null) unawaited(_live.dispose());
+    _follow.dispose();
     super.dispose();
   }
 
@@ -259,6 +286,44 @@ class _MapScreenState extends State<MapScreen> {
     if (message == null) return;
     _queue.lastRejection.value = null;
     _toast('A saved report was turned down: $message');
+  }
+
+  // --------------------------------------------------------------- live ---
+  void _pollTick() {
+    _pollTicks++;
+    if (!_live.live.value || _pollTicks % 4 == 0) unawaited(_loadAreas());
+  }
+
+  /// Just connected, or reconnected: whatever changed while the socket was
+  /// down came with no message, so one full read catches up.
+  void _onLiveChanged() {
+    if (_live.live.value) unawaited(_loadAreas());
+    _rebuild();
+  }
+
+  /// One area changed on the server: put it on the map, move it, or — when it
+  /// is no longer live (fire out, closed, rejected, merged) — take it off.
+  void _onAreaChange(Map<String, dynamic> message) {
+    final area = message['area'];
+    if (message['type'] != 'area' || area is! Map<String, dynamic>) return;
+    if (!mounted) return;
+    final id = area['id'];
+    final keep =
+        message['active'] != false &&
+        area['centroid_lat'] != null &&
+        area['centroid_lng'] != null;
+    final at = _areas.indexWhere((a) => a['id'] == id);
+    setState(() {
+      if (!keep) {
+        if (at >= 0) _areas = [..._areas]..removeAt(at);
+      } else if (at >= 0) {
+        _areas = [..._areas]..[at] = area;
+      } else {
+        // Newest first, as GET /areas lists them.
+        _areas = [area, ..._areas];
+      }
+    });
+    if (keep && at < 0) _lookUpAreaStreets();
   }
 
   // --------------------------------------------------------------- data ---
@@ -431,9 +496,11 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  /// The location card: bring the map to you and keep it with you as you
+  /// move, as Google Maps' location button does. Dragging the map lets go.
   void _recenter() {
     if (_myLoc != null) {
-      _map.move(_myLoc!, 15.2);
+      _follow.follow();
     } else {
       _locateQuietly(recenter: true);
     }
@@ -668,9 +735,8 @@ class _MapScreenState extends State<MapScreen> {
         minZoom: 4,
         maxZoom: 18,
         backgroundColor: context.pal.background,
-        interactionOptions: InteractionOptions(
-          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-        ),
+        interactionOptions: kMapGestures,
+        onMapEvent: _follow.onMapEvent,
         onMapReady: () {
           _mapReady = true;
           _placeCoachMarks();
@@ -681,7 +747,12 @@ class _MapScreenState extends State<MapScreen> {
       children: [
         MapTiles.layer(light: context.pal.isLight),
         if (_on.contains('risk')) PolygonLayer(polygons: _riskPolygons()),
-        MarkerLayer(markers: _markers()),
+        MarkerLayer(rotate: true, markers: _markers()),
+        YouAreHereLayer(follow: _follow),
+        MapLocationButtons(
+          follow: _follow,
+          alignment: const Alignment(1, -0.1),
+        ),
       ],
     );
   }
@@ -782,16 +853,7 @@ class _MapScreenState extends State<MapScreen> {
       }
     }
 
-    if (_myLoc != null) {
-      markers.add(
-        Marker(
-          point: _myLoc!,
-          width: 34,
-          height: 34,
-          child: const _YouAreHere(),
-        ),
-      );
-    }
+    // "You are here" is YouAreHereLayer's: it also shows which way you face.
     return markers;
   }
 
@@ -1174,6 +1236,15 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // A pulsing dot while the socket is up: what is on the map
+                  // is what the server has, this second.
+                  if (!offline && _live.live.value) ...[
+                    Semantics(
+                      label: 'Live',
+                      child: LiveDot(size: 6, color: context.pal.ok),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                   Eyebrow(
                     offline
                         ? 'Offline'
@@ -1687,31 +1758,6 @@ class _AreaMarker extends StatelessWidget {
       child: Image.asset(Art.incident, width: 17, height: 17, color: glyph),
     );
   }
-}
-
-/// You, as "04 Map" draws "Your position": a 34px square plate in
-/// Marker/You, and on it a coral dot ringed in the sheet colour.
-///
-/// The frame's plate also covers the soft accuracy halo it was drawn over -
-/// it reads like a frame fill left on - but it is what the design shows, so
-/// it is what this draws.
-class _YouAreHere extends StatelessWidget {
-  const _YouAreHere();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    color: AppColors.markerYou,
-    alignment: Alignment.center,
-    child: Container(
-      width: 13,
-      height: 13,
-      decoration: BoxDecoration(
-        color: AppColors.accent,
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF171717), width: 3),
-      ),
-    ),
-  );
 }
 
 /// One 56px row in the sheet: tinted glyph well, two lines, a signal column.

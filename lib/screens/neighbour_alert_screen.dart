@@ -12,6 +12,7 @@ import '../widgets/design.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'camera_capture_screen.dart';
+import '../widgets/you_are_here.dart';
 
 /// "11 Corroborate — 300 m" from the REPLIT-OVERHAUL Figma: the 300 m
 /// neighbourhood alert, as a screen rather than v2's dialog.
@@ -32,6 +33,8 @@ class NeighbourAlertScreen extends StatefulWidget {
 }
 
 class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
+  final MapFollow _follow = MapFollow();
+
   late final ApiClient _api = widget.api ?? ApiClient();
   final SosLocation _location = SosLocation.instance;
 
@@ -53,6 +56,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
   @override
   void dispose() {
     _location.position.removeListener(_rebuild);
+    _follow.dispose();
     super.dispose();
   }
 
@@ -238,9 +242,8 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                     // ~3 m a pixel: the 300 m circle is ~190 px across.
                     initialZoom: 15.5,
                     backgroundColor: context.pal.background,
-                    interactionOptions: const InteractionOptions(
-                      flags: InteractiveFlag.none,
-                    ),
+                    interactionOptions: kMapGestures,
+                    onMapEvent: _follow.onMapEvent,
                   ),
                   children: [
                     MapTiles.layer(light: context.pal.isLight),
@@ -257,6 +260,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                       ],
                     ),
                     MarkerLayer(
+                      rotate: true,
                       markers: [
                         Marker(
                           point: c,
@@ -290,6 +294,12 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                             ),
                           ),
                       ],
+                    ),
+                    YouAreHereLayer(follow: _follow),
+                    MapLocationButtons(
+                      follow: _follow,
+                      alignment: Alignment.bottomRight,
+                      padding: const EdgeInsets.all(8),
                     ),
                     // The distance chip holds the bottom-left corner.
                     MapTiles.attribution(

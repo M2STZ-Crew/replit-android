@@ -9,9 +9,9 @@ import 'package:latlong2/latlong.dart';
 import '../theme.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/design.dart';
+import '../widgets/you_are_here.dart';
 
 Color _safeGreen = AppColors.ok;
-Color _youBlue = AppColors.info;
 
 /// In-app turn-by-route directions to an evacuation site (Grab/Foodpanda style)
 /// — a draggable CARTO map with the route drawn as a polyline, instead of
@@ -41,6 +41,14 @@ class DirectionsScreen extends StatefulWidget {
 }
 
 class _DirectionsScreenState extends State<DirectionsScreen> {
+  final MapFollow _follow = MapFollow();
+
+  @override
+  void dispose() {
+    _follow.dispose();
+    super.dispose();
+  }
+
   final MapController _map = MapController();
   final Distance _distance = const Distance();
 
@@ -168,9 +176,8 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                   coordinates: [origin, _dest],
                   padding: const EdgeInsets.fromLTRB(60, 120, 60, 220),
                 ),
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                ),
+                interactionOptions: kMapGestures,
+                onMapEvent: _follow.onMapEvent,
               ),
               children: [
                 MapTiles.layer(light: context.pal.isLight),
@@ -187,13 +194,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     ],
                   ),
                 MarkerLayer(
+                  rotate: true,
                   markers: [
-                    Marker(
-                      point: origin,
-                      width: 26,
-                      height: 26,
-                      child: _youMarker(),
-                    ),
+                    // You are the blue dot, which moves as you walk.
                     Marker(
                       point: _dest,
                       width: 36,
@@ -202,6 +205,8 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     ),
                   ],
                 ),
+                YouAreHereLayer(follow: _follow),
+                MapLocationButtons(follow: _follow),
                 MapTiles.attribution(),
               ],
             ),
@@ -268,15 +273,6 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       ),
     );
   }
-
-  Widget _youMarker() => Container(
-    decoration: BoxDecoration(
-      color: _youBlue,
-      shape: BoxShape.circle,
-      border: Border.all(color: Colors.white, width: 3),
-      boxShadow: const [BoxShadow(color: Color(0x803B82F6), blurRadius: 12)],
-    ),
-  );
 
   Widget _destMarker() => Container(
     decoration: BoxDecoration(

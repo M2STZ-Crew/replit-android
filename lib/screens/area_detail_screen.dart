@@ -15,6 +15,7 @@ import '../widgets/design.dart';
 import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import 'live_update_screen.dart';
+import '../widgets/you_are_here.dart';
 
 /// Reports join an area only from within this distance of its centre
 /// (clustering, Master Context §3.4) — the circle on the map extract.
@@ -54,6 +55,8 @@ class AreaDetailScreen extends StatefulWidget {
 }
 
 class _AreaDetailScreenState extends State<AreaDetailScreen> {
+  final MapFollow _follow = MapFollow();
+
   late final ApiClient _api = widget.api ?? ApiClient();
   Timer? _poll;
 
@@ -86,6 +89,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     _poll?.cancel();
     LivePosition.instance.here.removeListener(_onMoved);
     LivePosition.instance.release();
+    _follow.dispose();
     super.dispose();
   }
 
@@ -289,9 +293,8 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
           // ~5 m a pixel here, so the 300 m circle is ~120 px across.
           initialZoom: 14.9,
           backgroundColor: context.pal.background,
-          interactionOptions: const InteractionOptions(
-            flags: InteractiveFlag.none,
-          ),
+          interactionOptions: kMapGestures,
+          onMapEvent: _follow.onMapEvent,
         ),
         children: [
           MapTiles.layer(light: context.pal.isLight),
@@ -308,6 +311,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
             ],
           ),
           MarkerLayer(
+            rotate: true,
             markers: [
               Marker(
                 point: c,
@@ -325,6 +329,12 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
                 ),
               ),
             ],
+          ),
+          YouAreHereLayer(follow: _follow),
+          MapLocationButtons(
+            follow: _follow,
+            alignment: Alignment.bottomRight,
+            padding: const EdgeInsets.all(8),
           ),
           MapTiles.attribution(),
         ],

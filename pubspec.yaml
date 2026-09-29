@@ -60,6 +60,10 @@ dependencies:
   # Already in the lock through geolocator; declared because the profile shows
   # the installed build's version the way App Distribution lists it.
   package_info_plus: ^10.1.0
+  # The Google-Maps "you are here": blue dot, accuracy halo, the cone the
+  # phone faces, and the map following or turning with you. Built for
+  # flutter_map 8; reads heading from the rotation sensor.
+  flutter_map_location_marker: ^10.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

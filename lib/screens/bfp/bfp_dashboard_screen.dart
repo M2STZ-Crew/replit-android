@@ -19,6 +19,7 @@ import '../subadmin/coordinator_nav.dart';
 import '../subadmin/pending_reports_screen.dart';
 import '../subadmin/subadmin_home_screen.dart';
 import 'bfp_alarm_requests_screen.dart';
+import '../../widgets/you_are_here.dart';
 
 Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
@@ -47,6 +48,8 @@ class BfpDashboardScreen extends StatefulWidget {
 }
 
 class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
+  final MapFollow _follow = MapFollow();
+
   final GlobalKey<ScaffoldState> _scaffold = GlobalKey<ScaffoldState>();
   final ApiClient _api = ApiClient();
   final MapController _map = MapController();
@@ -80,6 +83,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    _follow.dispose();
     super.dispose();
   }
 
@@ -580,16 +584,17 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   Widget _mapLayer() {
     return FlutterMap(
       mapController: _map,
-      options: const MapOptions(
+      options: MapOptions(
         initialCenter: _pasay,
         initialZoom: 13,
-        interactionOptions: InteractionOptions(
-          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-        ),
+        interactionOptions: kMapGestures,
+        onMapEvent: _follow.onMapEvent,
       ),
       children: [
         MapTiles.layer(light: context.pal.isLight),
-        MarkerLayer(markers: _markers()),
+        MarkerLayer(rotate: true, markers: _markers()),
+        YouAreHereLayer(follow: _follow),
+        MapLocationButtons(follow: _follow),
         MapTiles.attribution(),
       ],
     );

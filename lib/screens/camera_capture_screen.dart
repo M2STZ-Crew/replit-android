@@ -390,6 +390,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
                 lat: _position!.latitude,
                 lng: _position!.longitude,
                 zoom: 16,
+                interactive: false,
               ),
             ),
     );

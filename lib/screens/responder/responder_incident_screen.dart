@@ -15,6 +15,7 @@ import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
 import 'responder_status.dart';
+import '../../widgets/you_are_here.dart';
 
 Color _bg = AppColors.background;
 Color _sheet = AppColors.surfaceSolid;
@@ -61,6 +62,8 @@ class ResponderIncidentScreen extends StatefulWidget {
 }
 
 class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
+  final MapFollow _follow = MapFollow();
+
   final ApiClient _api = ApiClient();
   final MapController _map = MapController();
   final ResponderTracker _tracker = ResponderTracker.instance;
@@ -107,6 +110,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     // The tracker keeps sharing after this screen closes — that is the point.
     _tracker.position.removeListener(_onTracker);
     _tracker.sharingFor.removeListener(_onTracker);
+    _follow.dispose();
     super.dispose();
   }
 
@@ -458,13 +462,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             options: MapOptions(
               initialCenter: c,
               initialZoom: 15,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
+              interactionOptions: kMapGestures,
+              onMapEvent: _follow.onMapEvent,
             ),
             children: [
               MapTiles.layer(light: context.pal.isLight),
-              MarkerLayer(markers: _markers(c)),
+              MarkerLayer(rotate: true, markers: _markers(c)),
+              YouAreHereLayer(follow: _follow),
+              MapLocationButtons(follow: _follow),
             ],
           ),
         ),
@@ -558,25 +563,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         ),
       );
     }
-    if (_myPos != null) {
-      markers.add(
-        Marker(
-          point: _myPos!,
-          width: 26,
-          height: 26,
-          child: Container(
-            decoration: BoxDecoration(
-              color: _youGreen,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: const [
-                BoxShadow(color: Color(0x8022C55E), blurRadius: 12),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    // The responder's own position is YouAreHereLayer's blue dot, which also
+    // shows which way they face.
     return markers;
   }
 
