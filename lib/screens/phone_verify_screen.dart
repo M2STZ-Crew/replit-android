@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/phone_gate.dart';
 import '../api/session.dart';
+import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import 'login_screen.dart';
@@ -55,7 +56,7 @@ class PhoneVerifyScreen extends StatefulWidget {
 class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
   late final TextEditingController _phone = TextEditingController(
-    text: _local(widget.initialPhone),
+    text: localPhMobile(widget.initialPhone),
   );
   final TextEditingController _code = TextEditingController();
 
@@ -83,29 +84,6 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
     super.dispose();
   }
 
-  /// +639171234567 → 0917 123 4567, the way people write their own number.
-  static String _local(String? raw) {
-    final digits = (raw ?? '').replaceAll(RegExp(r'\D'), '');
-    final String national;
-    if (digits.startsWith('63') && digits.length == 12) {
-      national = '0${digits.substring(2)}';
-    } else if (digits.startsWith('09') && digits.length == 11) {
-      national = digits;
-    } else {
-      return '';
-    }
-    return '${national.substring(0, 4)} ${national.substring(4, 7)} '
-        '${national.substring(7)}';
-  }
-
-  /// A Philippine mobile number in any usual form. The server checks again.
-  static bool looksLikePhMobile(String raw) {
-    final d = raw.replaceAll(RegExp(r'\D'), '');
-    return (d.startsWith('09') && d.length == 11) ||
-        (d.startsWith('639') && d.length == 12) ||
-        (d.startsWith('9') && d.length == 10);
-  }
-
   void _startCountdown(int seconds) {
     _countdown?.cancel();
     setState(() => _resendIn = seconds);
@@ -119,16 +97,6 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       if (_resendIn <= 0) t.cancel();
     });
   }
-
-  /// The server's words, except where they were written for us, not for a
-  /// resident.
-  static String _say(ApiException e) => switch (e.code) {
-    'semaphore_not_configured' =>
-      'We cannot send texts right now. Please try again later.',
-    'external_service_error' =>
-      'We could not send the text. Please try again in a minute.',
-    _ => e.message,
-  };
 
   Future<void> _sendCode() async {
     if (!looksLikePhMobile(_phone.text)) {
@@ -151,19 +119,19 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       _code.clear();
       setState(() {
         _codeSent = true;
-        _sentTo = _local(r['phone'] as String?);
+        _sentTo = localPhMobile(r['phone'] as String?);
         _info = r['message'] as String?;
       });
       _startCountdown((r['resend_after_seconds'] as num?)?.toInt() ?? 60);
     } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _error = _say(e));
+      setState(() => _error = phoneErrorText(e));
       final wait = (e.details?['retry_after_seconds'] as num?)?.toInt();
       if (e.code == 'phone_code_cooldown' && wait != null) {
         // A code is already on its way: let them type it.
         setState(() {
           _codeSent = true;
-          _sentTo ??= _local(_phone.text);
+          _sentTo ??= localPhMobile(_phone.text);
         });
         _startCountdown(wait);
       }
@@ -197,7 +165,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       );
       _done();
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = _say(e));
+      if (mounted) setState(() => _error = phoneErrorText(e));
     } catch (_) {
       if (mounted) {
         setState(() => _error = 'Could not check the code. Check your signal.');

@@ -41,12 +41,24 @@ class ApiClient {
   /// A refresh already under way, shared by every caller that hits a 401.
   static Future<bool>? _refreshing;
 
-  Future<void> login({required String email, required String password}) async {
+  /// Sign in with an email or a mobile number, and the password.
+  ///
+  /// A number works only once it is verified on the account; staff, who have
+  /// none, keep signing in by email.
+  Future<void> login({
+    String? email,
+    String? phone,
+    required String password,
+  }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/auth/login');
     final resp = await _client.post(
       uri,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+      body: jsonEncode({
+        'email': ?email,
+        'phone': ?phone,
+        'password': password,
+      }),
     );
     _storeSession(_decode(resp));
   }

@@ -1,32 +1,41 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/phone_code_sheet.dart';
 import 'role_gate.dart';
 
-/// "03 Sign up" from the REPLIT-OVERHAUL Figma: three fields and you are in.
+/// "03 Sign up" from the REPLIT-OVERHAUL Figma, with the mobile number back.
 ///
-/// v2 asked for first and last name, date of birth, gender, mobile and a
-/// password twice. The overhaul keeps what `/auth/signup` needs — full name,
-/// email, password — and leaves mobile, birthday and gender to Edit Profile,
-/// where they always could be set. The password field keeps a show/hide eye
-/// the frame does not draw: with the confirm field gone, it is the only way to
-/// check what you typed.
+/// Full name, mobile number, email, password. The number is how a resident
+/// signs in from then on, and proving it is theirs is part of signing up: the
+/// moment the account exists, a code is texted to it and a sheet over this
+/// form takes it back ([showPhoneCodeSheet]). Birthday and gender stay in Edit
+/// Profile. The password field keeps a show/hide eye the frame does not draw:
+/// with the confirm field gone, it is the only way to check what you typed.
+///
+/// Closing the sheet without the code is allowed — the account is made by
+/// then — and RoleGate shows the full verification screen instead.
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  const RegisterScreen({super.key, this.api});
+
+  final ApiClient? api;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final ApiClient _api = ApiClient();
+  late final ApiClient _api = widget.api ?? ApiClient();
   final _name = TextEditingController();
+  final _mobile = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
 
@@ -37,6 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _name.dispose();
+    _mobile.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -44,10 +54,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submit() async {
     final name = _name.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final mobile = _mobile.text.trim();
     final email = _email.text.trim();
     final password = _password.text;
 
     if (name.isEmpty) return _error('Please enter your full name.');
+    if (!looksLikePhMobile(mobile)) {
+      return _error('Enter your mobile number, like 0917 123 4567.');
+    }
     if (!email.contains('@') || !email.contains('.')) {
       return _error('Please enter a valid email address.');
     }
@@ -60,11 +74,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _loading = true);
     try {
-      await _api.signup(email: email, password: password, fullName: name);
+      await _api.signup(
+        email: email,
+        password: password,
+        fullName: name,
+        mobile: mobile,
+      );
       await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
       if (!mounted) return;
-      Navigator.of(
+      setState(() => _loading = false);
+      // Verified or not, the account exists now; RoleGate decides what next.
+      await showPhoneCodeSheet(context, phone: mobile, api: _api);
+      if (!mounted) return;
+      await Navigator.of(
         context,
       ).pushReplacement(MaterialPageRoute(builder: (_) => const RoleGate()));
     } on ApiException catch (e) {
@@ -97,8 +120,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Text('CREATE YOUR ACCOUNT', style: context.type.display),
             const SizedBox(height: 8),
             Text(
-              'Three fields and you are in. Verifying your number and '
-              'ID comes later — reports work either way.',
+              'We will text a code to your mobile number to check it is '
+              'yours. You sign in with it from then on.',
               style: context.type.body,
             ),
             const SizedBox(height: 46),
@@ -112,6 +135,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 autofillHints: const [AutofillHints.name],
                 style: context.type.input,
                 decoration: const InputDecoration(hintText: 'As on your ID'),
+              ),
+            ),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: 'Mobile number',
+              builder: (focus) => TextField(
+                controller: _mobile,
+                focusNode: focus,
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.telephoneNumber],
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+ -]')),
+                ],
+                style: context.type.input,
+                decoration: const InputDecoration(hintText: '0917 123 4567'),
               ),
             ),
             const SizedBox(height: 14),
@@ -157,7 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 13),
             _terms(),
             const SizedBox(height: 40),
-            const Eyebrow('Verify later, earn up to 100%'),
+            const Eyebrow('Your trust level, up to 100%'),
             const SizedBox(height: 10),
             // The trust weights the server scores (§2.3), shown so the
             // later steps have a reason. Informational, not buttons —

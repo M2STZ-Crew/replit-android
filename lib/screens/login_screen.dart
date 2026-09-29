@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../api/api_config.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import 'register_screen.dart';
@@ -13,41 +15,64 @@ import 'role_gate.dart';
 
 /// "02 Sign in" from the REPLIT-OVERHAUL Figma.
 ///
-/// Email + password, as the backend authenticates. The overhaul dropped v2's
-/// "Keep session active" box: a reporter who is signed out at 2am is a
-/// reporter who cannot send, so the session is always kept. The line that
-/// matters most stays — hotlines work while you are locked out.
+/// Mobile number + password first: residents sign up with their number and
+/// verify it by text, so it is what they remember. "Use email instead" is for
+/// staff, whose accounts have no verified number, and for a resident who has
+/// not verified theirs yet — the server accepts only a verified number. The
+/// overhaul dropped v2's "Keep session active" box: a reporter who is signed
+/// out at 2am is a reporter who cannot send, so the session is always kept.
+/// The line that matters most stays — hotlines work while you are locked out.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.api});
+
+  final ApiClient? api;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final ApiClient _api = ApiClient();
+  late final ApiClient _api = widget.api ?? ApiClient();
+  final TextEditingController _phoneCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _passwordCtrl = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
 
+  /// Signing in by email instead of by number.
+  bool _byEmail = false;
+
   @override
   void dispose() {
+    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    final phone = _phoneCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    if (email.isEmpty || password.isEmpty) {
-      _showError('Please enter your email and password.');
+    if (_byEmail && email.isEmpty) {
+      _showError('Please enter your email.');
+      return;
+    }
+    if (!_byEmail && !looksLikePhMobile(phone)) {
+      _showError('Enter your mobile number, like 0917 123 4567.');
+      return;
+    }
+    if (password.isEmpty) {
+      _showError('Please enter your password.');
       return;
     }
     setState(() => _loading = true);
     try {
-      await _api.login(email: email, password: password);
+      await _api.login(
+        email: _byEmail ? email : null,
+        phone: _byEmail ? null : phone,
+        password: password,
+      );
       await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
       if (!mounted) return;
@@ -55,7 +80,14 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
       ).pushReplacement(MaterialPageRoute(builder: (_) => const RoleGate()));
     } on ApiException catch (e) {
-      _showError(e.message);
+      _showError(
+        e.statusCode == 401 && e.message == 'Invalid login credentials'
+            ? (_byEmail
+                  ? 'Wrong email or password.'
+                  : 'Wrong mobile number or password. Not verified your '
+                        'number yet? Use your email instead.')
+            : e.message,
+      );
     } catch (_) {
       _showError(
         'Could not reach RepLiT at ${ApiConfig.host}. Check your internet '
@@ -159,17 +191,35 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 42),
             LabeledField(
-              label: 'Email address',
-              builder: (focus) => TextField(
-                controller: _emailCtrl,
-                focusNode: focus,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                autocorrect: false,
-                autofillHints: const [AutofillHints.email],
-                style: context.type.input,
-                decoration: const InputDecoration(hintText: 'you@email.com'),
-              ),
+              key: ValueKey(_byEmail),
+              label: _byEmail ? 'Email address' : 'Mobile number',
+              builder: (focus) => _byEmail
+                  ? TextField(
+                      controller: _emailCtrl,
+                      focusNode: focus,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autocorrect: false,
+                      autofillHints: const [AutofillHints.email],
+                      style: context.type.input,
+                      decoration: const InputDecoration(
+                        hintText: 'you@email.com',
+                      ),
+                    )
+                  : TextField(
+                      controller: _phoneCtrl,
+                      focusNode: focus,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.telephoneNumber],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+ -]')),
+                      ],
+                      style: context.type.input,
+                      decoration: const InputDecoration(
+                        hintText: '0917 123 4567',
+                      ),
+                    ),
             ),
             const SizedBox(height: 15),
             LabeledField(
@@ -200,16 +250,33 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 11),
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: _recoverDialog,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4),
-                  child: Eyebrow('Forgot password?', color: context.pal.label),
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              runSpacing: 4,
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _byEmail = !_byEmail),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Eyebrow(
+                      _byEmail ? 'Use mobile number' : 'Use email instead',
+                      color: context.pal.accent,
+                    ),
+                  ),
                 ),
-              ),
+                GestureDetector(
+                  onTap: _recoverDialog,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Eyebrow(
+                      'Forgot password?',
+                      color: context.pal.label,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 22),
             AppButton(
