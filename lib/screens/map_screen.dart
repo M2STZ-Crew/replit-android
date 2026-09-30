@@ -19,6 +19,7 @@ import '../models/resident_status.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
+import '../widgets/drag_down_sheet.dart';
 import '../widgets/map_coach_marks.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
@@ -31,14 +32,15 @@ const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
 /// How far "near you" reaches in the areas sheet: the frame's "Within 1.5 km".
 const double _nearMetres = 1500;
 
-/// The dark glass every overlay on the map sits on — #171717 at 72%, and at
-/// 90% for the sheet and the offline card, which carry more text.
 /// The glass a panel over the map is made of — the ground colour at the
 /// design's opacity, so it reads as the app over the map in either theme.
+/// DAWI "04 Map" draws the chips, the location card and the areas sheet all
+/// at rgba(19,19,19,.5) over a 9px blur; the rows on the sheet are solid.
 Color _overlay(AppPalette pal) =>
-    pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.86 : 0.72);
+    pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.86 : 0.5);
 
-/// The denser glass, for a panel that has to hold text over a busy map.
+/// The denser glass, for a panel that has to hold prose over a busy map
+/// without solid rows of its own (the offline queue card).
 Color _overlayDense(AppPalette pal) =>
     pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.94 : 0.9);
 
@@ -64,21 +66,20 @@ class _Layer {
   final String label;
   final _Tone tone;
 
-  /// The solid plate a marker of this layer sits on (04 Map: Marker/*).
+  /// The solid plate a marker of this layer sits on (DAWI 04 Map: Map
+  /// elements) — every kind of water is the one blue, as the WATER chip says.
   Color get markerFill => switch (tone) {
-    _Tone.hydrant || _Tone.water => AppColors.markerWater,
+    _Tone.hydrant || _Tone.water || _Tone.cistern => AppColors.markerWater,
     _Tone.shelter => AppColors.markerShelter,
-    _Tone.risk => AppColors.markerLive,
-    _Tone.cistern || _Tone.incident => AppColors.markerPlate,
+    _Tone.risk => AppColors.fire,
+    _Tone.incident => AppColors.markerPlate,
   };
 
   Color colour(AppPalette pal) => switch (tone) {
     _Tone.incident => pal.accentInk,
     _Tone.shelter => pal.ok,
-    _Tone.hydrant => pal.textSoft,
+    _Tone.hydrant || _Tone.water || _Tone.cistern => pal.water,
     _Tone.risk => pal.live,
-    _Tone.water => pal.coastguard,
-    _Tone.cistern => pal.warn,
   };
 
   /// The eyebrow on this layer's detail sheet.
@@ -779,7 +780,7 @@ class _MapScreenState extends State<MapScreen> {
                   child: _MarkerSquare(
                     size: 24,
                     fill: AppColors.markerShelter,
-                    edge: AppColors.markerShelterEdge,
+                    edge: Colors.white,
                     asset: Art.evac,
                     glyph: 15,
                     outside: s['outside_pasay'] == true,
@@ -822,7 +823,7 @@ class _MapScreenState extends State<MapScreen> {
                     : _MarkerSquare(
                         size: 22,
                         fill: layer.markerFill,
-                        edge: AppColors.markerEdge,
+                        edge: Colors.white,
                         asset: layer.asset,
                         icon: layer.icon,
                         glyph: 14,
@@ -997,12 +998,13 @@ class _MapScreenState extends State<MapScreen> {
                 blur: 9,
                 height: 30,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
+                // DAWI "MAP | LEGENDS": a layer that is on is washed in its
+                // colour at 10% and edged in it; one that is off is the
+                // plain glass. The label stays light either way.
                 color: on
-                    ? layer.colour(context.pal).withValues(alpha: 0.16)
+                    ? layer.colour(context.pal).withValues(alpha: 0.1)
                     : _overlay(context.pal),
-                edge: on
-                    ? layer.colour(context.pal).withValues(alpha: 0.45)
-                    : context.pal.line,
+                edge: on ? layer.colour(context.pal) : context.pal.line,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1014,12 +1016,12 @@ class _MapScreenState extends State<MapScreen> {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 6),
                     Text(
                       layer.label.toUpperCase(),
                       style: context.type.tag.copyWith(
                         color: on
-                            ? layer.colour(context.pal)
+                            ? context.pal.onBackground
                             : context.pal.label,
                       ),
                     ),
@@ -1062,13 +1064,14 @@ class _MapScreenState extends State<MapScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: context.pal.accent,
+                    // DAWI "LOCATION": the coral gradient, a white pin.
+                    gradient: context.pal.accentGradient,
                     borderRadius: BorderRadius.circular(AppRadius.control),
                   ),
                   child: const Icon(
                     Icons.location_on_outlined,
                     size: 20,
-                    color: AppColors.accentText,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -1121,13 +1124,13 @@ class _MapScreenState extends State<MapScreen> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: context.pal.accent.withValues(alpha: 0.16),
+                  color: context.pal.wellFor(context.pal.accent),
                   borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
                 child: Icon(
                   Icons.refresh_rounded,
                   size: 17,
-                  color: context.pal.accent,
+                  color: context.pal.glyphOn(context.pal.accent),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1186,83 +1189,88 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   // -------------------------------------------------------------- sheet ---
+  /// "AREAS SHEET": drags down out of the way to just its title, so the map
+  /// is clear, and back up — or tap the title to do either.
   Widget _sheet(double clearance) {
     final offline = _isOffline;
     final rows = offline ? _offlineRows() : _nearbyRows();
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(AppRadius.sheet),
-      ),
-      child: BackdropFilter.grouped(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          color: _overlayDense(context.pal),
-          // The bar's height plus a little: the last row clears the SOS disc.
-          padding: EdgeInsets.fromLTRB(24, 10, 24, clearance + 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.pal.label.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      MapTiles.credit,
-                      style: context.type.captionSm.copyWith(
-                        fontSize: 9,
-                        color: context.pal.faint,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: Eyebrow(
-                      offline ? 'Saved on this phone' : 'Active areas near you',
-                      color: context.pal.accent,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // A pulsing dot while the socket is up: what is on the map
-                  // is what the server has, this second.
-                  if (!offline && _live.live.value) ...[
-                    Semantics(
-                      label: 'Live',
-                      child: LiveDot(size: 6, color: context.pal.ok),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  Eyebrow(
-                    offline
-                        ? 'Offline'
-                        : _myLoc == null
-                        ? 'Pasay City'
-                        : 'Within 1.5 km',
-                    color: context.pal.muted,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 13),
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0) const SizedBox(height: 8),
-                rows[i],
-              ],
-            ],
+    return DragDownSheet(
+      frame: (context, content) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
+        ),
+        child: BackdropFilter.grouped(
+          filter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+          child: Container(
+            color: _overlay(context.pal),
+            // The bar's height plus a little: the last row clears the SOS
+            // disc, and a folded sheet's title sits just above the bar.
+            padding: EdgeInsets.fromLTRB(24, 14, 24, clearance + 10),
+            child: content,
           ),
         ),
+      ),
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              const SheetHandle(margin: EdgeInsets.zero),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  MapTiles.credit,
+                  style: context.type.captionSm.copyWith(
+                    fontSize: 9,
+                    color: context.pal.faint,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Eyebrow(
+                  offline ? 'Saved on this phone' : 'Active areas near you',
+                  color: context.pal.accent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // A pulsing dot while the socket is up: what is on the map is
+              // what the server has, this second.
+              if (!offline && _live.live.value) ...[
+                Semantics(
+                  label: 'Live',
+                  child: LiveDot(size: 6, color: context.pal.ok),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Eyebrow(
+                offline
+                    ? 'Offline'
+                    : _myLoc == null
+                    ? 'Pasay City'
+                    : 'Within 1.5 km',
+                color: context.pal.muted,
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            rows[i],
+          ],
+        ],
       ),
     );
   }
@@ -1293,8 +1301,10 @@ class _MapScreenState extends State<MapScreen> {
     final id = a['id'] as String?;
     final street = id == null ? null : _areaStreets[id];
     final reports = (a['report_count'] as num?)?.toInt() ?? 0;
+    // DAWI "AREA": a fire incident is coral — the brown well, a coral LIVE
+    // and coral confidence bars — on the plain card edge.
     return _SheetRow(
-      tint: reported ? context.pal.accent : context.pal.live,
+      tint: context.pal.accent,
       asset: Art.incident,
       title: (a['designation'] as String?) ?? 'Incident area',
       subtitle:
@@ -1302,10 +1312,9 @@ class _MapScreenState extends State<MapScreen> {
           (metres != null
               ? '${_formatDistance(metres)} away'
               : 'In Pasay City'),
-      edge: reported ? null : context.pal.live.withValues(alpha: 0.45),
       signal: _AreaSignal(
         label: reported ? 'Reported' : 'Live',
-        color: reported ? context.pal.warn : context.pal.live,
+        color: reported ? context.pal.warn : context.pal.accentInk,
         reports: reports,
         band: a['confidence_band'] as String?,
       ),
@@ -1688,7 +1697,8 @@ class _MarkerSquare extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(8),
+        // DAWI draws a 20px plate at radius 5; the same proportion here.
+        borderRadius: BorderRadius.circular(size / 4),
         border: Border.all(color: edge),
       ),
       alignment: Alignment.center,
@@ -1737,22 +1747,21 @@ class _AreaMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // As a resident sees it: yellow while it waits to be accepted, red once
-    // responders are on it, green when the fire is out. The yellow plate
-    // takes a dark glyph - white on yellow is unreadable.
+    // As a resident sees it: yellow while it waits to be accepted, the fire
+    // incident's coral once it is live (DAWI "MAP LAYERS/INCIDENTS"), green
+    // when the fire is out. The yellow plate takes a dark glyph - white on
+    // yellow is unreadable.
     final (Color fill, Color glyph) = switch (residentStatus(status)) {
       'reported' => (AppColors.warn, const Color(0xFF131313)),
       'fire_out' => (AppColors.ok, Colors.white),
       'rejected' || 'merged' => (AppColors.markerPlate, AppColors.markerEdge),
-      _ => (AppColors.markerLive, Colors.white),
+      _ => (AppColors.accent, Colors.white),
     };
     return Container(
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(AppRadius.chip),
-        border: Border.all(
-          color: context.pal.surfaceSolid.withValues(alpha: 0.9),
-        ),
+        border: Border.all(color: Colors.white),
       ),
       alignment: Alignment.center,
       child: Image.asset(Art.incident, width: 17, height: 17, color: glyph),
@@ -1805,13 +1814,13 @@ class _SheetRow extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: tint.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(AppRadius.chip),
+                  color: context.pal.wellFor(tint),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
                 child: asset != null
-                    ? Image.asset(asset!, width: 16, height: 16)
-                    : Icon(icon, size: 16, color: tint),
+                    ? Image.asset(asset!, width: 15, height: 15)
+                    : Icon(icon, size: 15, color: context.pal.glyphOn(tint)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1823,7 +1832,12 @@ class _SheetRow extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: context.type.rowTitle.copyWith(height: 15 / 12),
+                      style: context.type.rowTitle.copyWith(
+                        height: 15 / 12,
+                        color: context.pal.isLight
+                            ? null
+                            : const Color(0xFFF3F3F3), // TEXT/grey-50
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(

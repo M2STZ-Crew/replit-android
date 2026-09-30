@@ -432,7 +432,8 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: context.pal.forAgency(a.key).withValues(alpha: 0.16),
+                    // DAWI "07 REPORT": the agency's deep 900 well.
+                    color: context.pal.wellFor(context.pal.forAgency(a.key)),
                     borderRadius: BorderRadius.circular(AppRadius.chip),
                   ),
                   alignment: Alignment.center,

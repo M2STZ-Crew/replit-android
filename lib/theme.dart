@@ -13,6 +13,12 @@ import 'package:flutter/services.dart';
 ///
 /// The v1 token names are all still here so the screens that have not been
 /// reworked yet keep compiling — their values have simply moved to v2.
+///
+/// The citizen screens' dark palette ([AppPalette.dark]) and the agency
+/// colours now follow the REPLIT x DAWI Figma (file yTInpc7mWlTug0PQzKiW0L,
+/// page DESIGN SYSTEM): solid #1D1D1D cards on #424242 hairlines, violet
+/// police, teal medical, amber barangay, and each agency's 900 shade as the
+/// well behind its glyph.
 class AppColors {
   AppColors._();
 
@@ -81,10 +87,10 @@ class AppColors {
   static const Color ok = Color(0xFF22C55E); // resolved, verified, ready
   static const Color warn = Color(0xFFFACC15); // pending, needs attention
 
-  // Map markers (REPLIT-OVERHAUL 04 Map: Marker/*). Solid plates carrying a
+  // Map markers (REPLIT x DAWI 04 Map: Map elements). Solid plates carrying a
   // white glyph, so they read the same over the dark and the light basemap.
-  static const Color markerWater = Color(0xFF2E7BD6); // hydrants, water
-  static const Color markerShelter = Color(0xFF1F9D55); // evacuation sites
+  static const Color markerWater = Color(0xFF5B93F5); // hydrants, cisterns, water
+  static const Color markerShelter = Color(0xFF22C55E); // evacuation sites
   static const Color markerShelterEdge = Color(0x6622C55E);
   static const Color markerPlate = Color(0xFF201E1C); // neutral: hospital
   static const Color markerLive = Color(0xFFE5342E); // a live incident
@@ -102,16 +108,24 @@ class AppColors {
   static const double disabledOpacity = 0.38;
   static const Color info = Color(0xFF6098D6);
 
-  // ── agencies (REPLIT-OVERHAUL Figma, "Agency/*") ────────────────────────
-  static const Color fire = Color(0xFFFF544E);
-  static const Color medical = Color(0xFF35C77B);
-  static const Color police = Color(0xFF5B93F5);
-  static const Color barangay = Color(0xFFD98324);
+  // ── agencies (REPLIT x DAWI Figma, "ACCENT/*" 500s) ─────────────────────
+  static const Color fire = Color(0xFFFF544E); // ACCENT/RISK ZONES red-500
+  static const Color medical = Color(0xFF14B8A6); // ACCENT/MEDICAL green-500
+  static const Color police = Color(0xFF8B5CF6); // ACCENT/POLICE blue-500
+  static const Color barangay = Color(0xFFFFB020); // ACCENT/BARANGAY orange-500
   static const Color coastguard = Color(0xFF2DD4BF);
 
-  /// Police markers and hotlines. Was violet in v1; the overhaul makes police
-  /// blue everywhere, so this now simply names [police].
+  /// Police markers and hotlines. The DAWI design makes police violet again
+  /// (it was blue in the overhaul), so this still simply names [police].
   static const Color crime = police;
+
+  /// The deep well an agency's white glyph sits on — each accent's 900 shade
+  /// from the DAWI colour sheet (orange-900 behind fire, and so on).
+  static const Color wellFire = Color(0xFF6B3C2B); // PRIMARY/orange-900
+  static const Color wellPolice = Color(0xFF3A2767); // ACCENT/POLICE blue-900
+  static const Color wellMedical = Color(0xFF084D46); // ACCENT/MEDICAL green-900
+  static const Color wellBarangay = Color(0xFF6B4A0D); // ACCENT/BARANGAY orange-900
+  static const Color wellShelter = Color(0xFF0E5327); // ACCENT/SHELTER green-900
 
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topCenter,
@@ -259,19 +273,43 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Informational blue — never a status on its own, only a marker tint.
   Color get info => isLight ? const Color(0xFF2B6CB0) : const Color(0xFF6098D6);
 
-  /// Agency colours. The dark values are the design's; the light ones are
-  /// those same hues taken down until they carry as ink on a pale ground —
-  /// derived, like `warn`, because no light frame shows an agency chip.
+  /// Agency colours. The dark values are the DAWI design's 500s; the light
+  /// ones are those same hues taken down until they carry as ink on a pale
+  /// ground — derived, like `warn`, because the design has no light frames.
   Color get fire => live;
   Color get medical =>
-      isLight ? const Color(0xFF0E7A45) : const Color(0xFF35C77B);
-  Color get police =>
-      isLight ? const Color(0xFF1E4FA8) : const Color(0xFF5B93F5);
+      isLight ? const Color(0xFF0F766E) : AppColors.medical;
+  Color get police => isLight ? const Color(0xFF6D28D9) : AppColors.police;
   Color get barangay =>
-      isLight ? const Color(0xFF8A5308) : const Color(0xFFD98324);
+      isLight ? const Color(0xFF8A5308) : AppColors.barangay;
   Color get coastguard =>
       isLight ? const Color(0xFF0E6E66) : const Color(0xFF2DD4BF);
   Color get crime => police;
+
+  /// Water on the map — hydrants, cisterns, bodies of water (MAP LAYERS/WATER).
+  Color get water =>
+      isLight ? const Color(0xFF1E4FA8) : AppColors.markerWater;
+
+  /// The well behind a white glyph in a list row, for a row tinted [tint].
+  ///
+  /// The DAWI design fills each well with its accent's 900 shade — a deep,
+  /// solid brown behind fire, violet behind police — rather than a wash of the
+  /// accent, and draws the glyph white on it. A tint the colour sheet has no
+  /// 900 for gets the same depth by laying the accent over the card colour.
+  /// The light theme keeps the wash: its glyphs are drawn in the tint.
+  Color wellFor(Color tint) {
+    if (isLight) return tint.withValues(alpha: 0.16);
+    if (tint == accent || tint == accentInk) return AppColors.wellFire;
+    if (tint == police) return AppColors.wellPolice;
+    if (tint == medical) return AppColors.wellMedical;
+    if (tint == barangay) return AppColors.wellBarangay;
+    if (tint == ok) return AppColors.wellShelter;
+    return Color.alphaBlend(tint.withValues(alpha: 0.32), surface);
+  }
+
+  /// What a glyph in a [wellFor] well is drawn in: white on the deep dark
+  /// wells, the tint itself on the light theme's wash.
+  Color glyphOn(Color tint) => isLight ? tint : Colors.white;
 
   /// What an incident's status looks like in this theme.
   Color forStatus(String? status) => switch (status) {
@@ -311,24 +349,27 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// Text on the coral gradient.
   Color get accentText => AppColors.accentText;
 
+  /// The REPLIT x DAWI dark ground ("GENERAL USER - DARK"). Cards are solid
+  /// SURFACE/grey-500 edged in BACKGROUND/grey-400, not the overhaul's
+  /// translucent glass; the ground and the tab bar are BACKGROUND/grey-500.
   static const AppPalette dark = AppPalette(
     brightness: Brightness.dark,
     canvas: Color(0xFF0B0B0B),
-    background: Color(0xFF131313),
-    surfaceSolid: Color(0xFF171717),
-    surface: Color(0xFF262626),
-    glass: Color(0x8A262626),
-    glassDim: Color(0x57262626),
+    background: Color(0xFF131313), // BACKGROUND/grey-500
+    surfaceSolid: Color(0xFF131313), // the tab bar, sheets over the map
+    surface: Color(0xFF1D1D1D), // SURFACE/grey-500
+    glass: Color(0xFF1D1D1D), // every card and row
+    glassDim: Color(0xB31D1D1D),
     raised: Color(0xFF303030),
     inputBg: Color(0xFF131313),
-    line: Color(0x59484847),
-    lineStrong: Color(0x80484847),
+    line: Color(0xFF424242), // BACKGROUND/grey-400
+    lineStrong: Color(0xFF4A4A4A), // SURFACE/grey-400
     onBackground: Color(0xFFFFFFFF),
-    textSoft: Color(0xFFCFCFCF),
-    label: Color(0xFFADAAAA),
-    muted: Color(0xFF8A8A8A),
+    textSoft: Color(0xFFC9C9C9), // TEXT/grey-200
+    label: Color(0xFFADAAAA), // Text/Tertiary
+    muted: Color(0xFF8A8A8A), // TEXT/grey-500
     placeholder: Color(0xBFADAAAA),
-    faint: Color(0xFF706E6E),
+    faint: Color(0xFF7E7E7E), // TEXT/grey-600
     accent: Color(0xFFFF9066),
     accentInk: Color(0xFFFF9066),
     live: Color(0xFFFF544E),

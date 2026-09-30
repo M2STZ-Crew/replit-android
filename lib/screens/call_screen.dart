@@ -188,13 +188,21 @@ class _HotlineRow extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: tint.withValues(alpha: neutral ? 0.10 : 0.16),
+                // DAWI "11 HOTLINES": each agency on its deep 900 well, a
+                // white glyph; the quiet desks keep the faint wash.
+                color: neutral
+                    ? tint.withValues(alpha: 0.10)
+                    : context.pal.wellFor(tint),
                 borderRadius: BorderRadius.circular(AppRadius.control),
               ),
               alignment: Alignment.center,
               child: hotline.art != null
                   ? Image.asset(hotline.art!, width: 21, height: 21)
-                  : Icon(hotline.icon, size: 19, color: tint),
+                  : Icon(
+                      hotline.icon,
+                      size: 19,
+                      color: neutral ? tint : context.pal.glyphOn(tint),
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(

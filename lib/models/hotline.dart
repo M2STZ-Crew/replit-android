@@ -67,7 +67,9 @@ class Hotline {
 
   Color tint(AppPalette pal) => switch (tone) {
     HotlineTone.emergency => pal.accentInk,
-    HotlineTone.fire => pal.fire,
+    // DAWI "11 HOTLINES" puts the fire bureau in the fire incident's coral
+    // family (its orange-900 well), not the risk-zone red.
+    HotlineTone.fire => pal.accentInk,
     HotlineTone.police => pal.police,
     HotlineTone.medical => pal.medical,
     HotlineTone.barangay => pal.barangay,

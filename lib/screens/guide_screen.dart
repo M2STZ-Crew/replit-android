@@ -147,13 +147,18 @@ class _FeaturedGuide extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: context.pal.live.withValues(alpha: 0.16),
+                    // DAWI "12 GUIDES": the coral's deep well, a white glyph.
+                    color: context.pal.wellFor(context.pal.accent),
                     borderRadius: BorderRadius.circular(AppRadius.control),
                   ),
                   alignment: Alignment.center,
                   child: fire
                       ? Image.asset(Art.incident, width: 20, height: 20)
-                      : Icon(article.icon, size: 20, color: context.pal.live),
+                      : Icon(
+                          article.icon,
+                          size: 20,
+                          color: context.pal.glyphOn(context.pal.accent),
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

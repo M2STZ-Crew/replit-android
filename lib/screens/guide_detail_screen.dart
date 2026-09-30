@@ -133,14 +133,16 @@ class _Step extends StatelessWidget {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: context.pal.accent.withValues(alpha: 0.16),
+              // DAWI "13 GUIDE DETAILS": the step number on the coral's deep
+              // well.
+              color: context.pal.wellFor(context.pal.accent),
               borderRadius: BorderRadius.circular(AppRadius.chip),
             ),
             alignment: Alignment.center,
             child: Text(
               '$number',
               style: context.type.action.copyWith(
-                color: context.pal.accent,
+                color: context.pal.glyphOn(context.pal.accent),
                 letterSpacing: 0,
               ),
             ),

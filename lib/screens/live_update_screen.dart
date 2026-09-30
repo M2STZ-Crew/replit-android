@@ -19,6 +19,10 @@ import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'directions_screen.dart';
 import '../widgets/you_are_here.dart';
 
+/// How much of the screen the sheet covers when open: the map keeps the top
+/// 44%, where the fire and the trucks are framed.
+const double _kSheetOpen = 0.56;
+
 /// White glyph per agency, as on the report screen.
 const Map<String, String> _glyphs = {
   'fire_volunteer': Art.agFire,
@@ -111,6 +115,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   final MapController _camera = MapController();
   bool _mapReady = false;
 
+  /// The sheet: open at [_kSheetOpen] of the screen, or dragged down to its
+  /// status line so the map is clear (DAWI "09 LIVE TRACKING").
+  final DraggableScrollableController _sheetSize =
+      DraggableScrollableController();
+
   /// Whether the camera has been moved to take in the trucks. Once only: after
   /// that the resident decides where the map looks.
   bool _framed = false;
@@ -170,6 +179,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     // The screen closes only the socket it opened; a feed handed in belongs
     // to whoever handed it in.
     if (widget.feed == null) unawaited(_feed.dispose());
+    _sheetSize.dispose();
     _camera.dispose();
     _follow.dispose();
     super.dispose();
@@ -285,7 +295,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         CameraFit.coordinates(
           coordinates: points,
           // The sheet covers the lower part of the map; frame what is left.
-          padding: EdgeInsets.fromLTRB(56, 130, 56, height * 0.56 + 40),
+          padding: EdgeInsets.fromLTRB(56, 130, 56, height * _kSheetOpen + 40),
           maxZoom: 16.5,
         ),
       );
@@ -495,9 +505,26 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   };
 
   // -------------------------------------------------------------- build ---
+  /// Folded down to its status line, or open again — the handle's tap.
+  void _toggleSheet(double peek) {
+    if (!_sheetSize.isAttached) return;
+    final open = _sheetSize.size > (peek + _kSheetOpen) / 2;
+    _sheetSize.animateTo(
+      open ? peek : _kSheetOpen,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sheetTop = MediaQuery.sizeOf(context).height * 0.44;
+    final height = MediaQuery.sizeOf(context).height;
+    // Folded, the sheet keeps its handle, "STATUS" and the status word in
+    // view above the home indicator.
+    final peek = ((112 + MediaQuery.paddingOf(context).bottom) / height).clamp(
+      0.08,
+      _kSheetOpen - 0.05,
+    );
     return Scaffold(
       backgroundColor: context.pal.background,
       body: Stack(
@@ -522,12 +549,16 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
               ),
             ),
           ),
-          Positioned(
-            top: sheetTop,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _sheet(),
+          Positioned.fill(
+            child: DraggableScrollableSheet(
+              controller: _sheetSize,
+              initialChildSize: _kSheetOpen,
+              minChildSize: peek,
+              maxChildSize: _kSheetOpen,
+              snap: true,
+              builder: (context, scroll) =>
+                  _sheet(scroll, () => _toggleSheet(peek)),
+            ),
           ),
           if (_loading)
             const Positioned(
@@ -570,8 +601,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                 point: centre,
                 radius: kClusterRadiusMetres,
                 useRadiusInMeter: true,
-                color: context.pal.live.withValues(alpha: 0.08),
-                borderColor: context.pal.live.withValues(alpha: 0.45),
+                // DAWI "INCIDENT RADIUS | FIRE": the fire's coral.
+                color: context.pal.accent.withValues(alpha: 0.1),
+                borderColor: context.pal.accent.withValues(alpha: 0.8),
                 borderStrokeWidth: 1,
               ),
             ],
@@ -658,7 +690,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   Widget _banner() {
     final status = _status;
     final over = residentOver(status);
-    final tone = over ? residentTone(status, context.pal) : context.pal.live;
+    // DAWI "Live banner": a live report is coral — a 10% wash, a coral edge,
+    // the coral dot and LIVE. Once it is over it takes that outcome's colour.
+    final tone = over
+        ? residentTone(status, context.pal)
+        : context.pal.accentInk;
     final designation = (_area?['designation'] as String?) ?? 'Your area';
     final shape = BorderRadius.circular(AppRadius.card);
     return ClipRRect(
@@ -669,9 +705,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
           constraints: const BoxConstraints(minHeight: 52),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: tone.withValues(alpha: 0.16),
+            color: tone.withValues(alpha: over ? 0.16 : 0.1),
             borderRadius: shape,
-            border: Border.all(color: tone.withValues(alpha: 0.45)),
+            border: Border.all(
+              color: over ? tone.withValues(alpha: 0.45) : tone,
+            ),
           ),
           child: Row(
             children: [
@@ -685,7 +723,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                   ),
                 )
               else
-                const LiveDot(),
+                LiveDot(color: tone),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -724,7 +762,10 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     );
   }
 
-  Widget _sheet() {
+  /// The sheet's content. [scroll] is the draggable sheet's: pulling the list
+  /// down from its top folds the whole sheet, and [onHandle] folds or opens
+  /// it from the grab handle.
+  Widget _sheet(ScrollController scroll, VoidCallback onHandle) {
     final status = _status;
     final at = kResidentRail.indexOf(status);
     final reported = DateTime.tryParse('${_area?['reported_at']}')?.toLocal();
@@ -734,25 +775,34 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         top: Radius.circular(AppRadius.sheet),
       ),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        // DAWI draws this sheet as the map's: rgba(19,19,19,.5) over a 9px
+        // blur, its rows solid cards.
+        filter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
         child: Container(
-          color: context.pal.surfaceSolid.withValues(alpha: 0.9),
+          color: context.pal.surfaceSolid.withValues(
+            alpha: context.pal.isLight ? 0.9 : 0.5,
+          ),
           child: SafeArea(
             top: false,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+              controller: scroll,
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 24),
               children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.pal.label.withValues(alpha: 0.35),
-                      borderRadius: BorderRadius.circular(2),
+                Semantics(
+                  button: true,
+                  label: 'Fold or open the incident details',
+                  onTap: onHandle,
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onHandle,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Center(child: SheetHandle(margin: EdgeInsets.zero)),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 Eyebrow('Status', color: context.pal.muted),
                 const SizedBox(height: 10),
                 // A Wrap, not a Row: at a large font scale the two do not fit
@@ -1223,16 +1273,17 @@ class _AgencyToggle extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 34,
-              height: 34,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.16),
+                // DAWI "Responders": the agency's deep 900 well.
+                color: context.pal.wellFor(color),
                 borderRadius: BorderRadius.circular(AppRadius.chip),
               ),
               alignment: Alignment.center,
               child: glyph != null
-                  ? Image.asset(glyph!, width: 19, height: 19)
-                  : Icon(icon, size: 19, color: color),
+                  ? Image.asset(glyph!, width: 15, height: 15)
+                  : Icon(icon, size: 15, color: context.pal.glyphOn(color)),
             ),
             const SizedBox(width: 10),
             Expanded(

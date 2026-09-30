@@ -6,6 +6,82 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.2 — 1 October 2026 — REPLIT x DAWI colours; sheets that drag out of the way
+
+App only: no backend or API change (the backend stays at 1.12.1).
+
+### Changes
+
+**Modified — colours (REPLIT x DAWI Figma, file `yTInpc7mWlTug0PQzKiW0L`)**
+- Dark palette (`AppPalette.dark`): cards and rows are solid `#1D1D1D`
+  (SURFACE/grey-500) on `#424242` hairlines (BACKGROUND/grey-400), not the
+  overhaul's translucent glass; `#4A4A4A` for the stronger edge; the tab bar
+  and map sheets on the `#131313` ground; secondary text `#C9C9C9`.
+- Agency colours, app-wide: police violet `#8B5CF6` (was blue), medical teal
+  `#14B8A6` (was green), barangay amber `#FFB020`; map water (hydrants,
+  cisterns, bodies of water) one blue `#5B93F5`; shelters `#22C55E`.
+- Icon wells: each accent's deep 900 shade with a white glyph (fire
+  `#6B3C2B`, police `#3A2767`, medical `#084D46`, barangay `#6B4A0D`, shelter
+  `#0E5327`) — `IconWell`, the map sheet rows, report details, hotlines,
+  guides, Track It Live. The light theme keeps its washes.
+- Map: a live incident marker is the fire's coral on a white edge; layer
+  chips are washed and edged in their colour when on; the location card's
+  well is the coral gradient; the areas sheet is the design's 50% glass over
+  a 9px blur, with a coral LIVE and coral confidence bars.
+- Track It Live: the "Your report is live" banner and the incident circle
+  are coral (they were the risk-zone red).
+- Grab handles are the design's 80 × 4.
+
+**Added — sheets that drag out of the way**
+- Map ("AREAS SHEET"): drag the sheet down — from anywhere on it — and it
+  folds to its title just above the tab bar, so the map is clear; drag it up
+  or tap the title to open it again. A tap on a row still opens the row.
+  (`lib/widgets/drag_down_sheet.dart`.)
+- Track It Live: the sheet drags down to its status line (pulling the list
+  down from its top does it too, as does tapping the handle) and snaps open
+  or folded.
+
+### Files Changed
+- `lib/theme.dart` — DAWI dark palette, agency colours, `wellFor`, `glyphOn`,
+  `water`.
+- `lib/widgets/design.dart` — `IconWell` wells, `SheetHandle` size.
+- `lib/widgets/drag_down_sheet.dart` — new.
+- `lib/screens/map_screen.dart`, `lib/screens/live_update_screen.dart`,
+  `lib/screens/call_screen.dart`, `lib/screens/sos_report_screen.dart`,
+  `lib/screens/guide_screen.dart`, `lib/screens/guide_detail_screen.dart`,
+  `lib/models/hotline.dart`.
+- `pubspec.yaml` — version 1.12.2.
+- Tests: `test/drag_down_sheet_test.dart`, `test/dawi_palette_test.dart` (new);
+  `test/map_screen_test.dart`, `test/track_it_live_test.dart`.
+
+### Database Changes
+None.
+
+### API Changes
+None.
+
+### Frontend Changes
+Citizen: Map, Track It Live, report details, hotlines, guides, and every
+screen drawn with the shared panels and wells. Staff screens that use the
+shared agency colours show police violet and medical teal too.
+
+### Testing
+- The areas sheet folds when dragged from a row, keeps its title reachable,
+  hides its rows from taps while folded, and reopens on a tap of the title
+  or a drag up; a short drag springs back; a tap on a row still lands.
+- The Track It Live sheet folds to its status line and the handle reopens it.
+- The palette matches the DAWI tokens; wells are the 900 shades with white
+  glyphs; the light theme keeps washes.
+- Screens rendered off-device (map open and folded, Track It Live open,
+  folded and scrolled, hotlines) and compared with the Figma frames.
+- Result: **299 app tests pass**, `flutter analyze` clean.
+
+### Regression Check
+The whole suite passes unchanged apart from the two tests added to
+`map_screen_test.dart` and `track_it_live_test.dart`.
+
+---
+
 ## v1.12.1 — 30 September 2026 — Who verified a fire, and for which organization
 
 ### Changes

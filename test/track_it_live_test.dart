@@ -15,6 +15,7 @@ import 'package:replit/api/tracking_socket.dart';
 import 'package:replit/models/active_report.dart';
 import 'package:replit/screens/live_update_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/widgets/design.dart';
 
 /// A socket the test drives by hand.
 class FakeFeed implements TrackingFeed {
@@ -269,6 +270,30 @@ void main() {
     served = snapshot(verifiedBy: 'Hercules Fire Brigade');
     await pump(tester, FakeFeed());
     expect(find.textContaining('Verified by'), findsNothing);
+  });
+
+  testWidgets('the sheet drags down out of the way; the handle brings it back', (
+    tester,
+  ) async {
+    await pump(tester, FakeFeed());
+    final status = find.text('STATUS');
+    final next = find.text('WHAT HAPPENS NEXT');
+    final open = tester.getTopLeft(status).dy;
+    expect(next.hitTestable(), findsOneWidget);
+
+    await tester.drag(status, const Offset(0, 500));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(tester.takeException(), isNull);
+    expect(tester.getTopLeft(status).dy, greaterThan(open + 200));
+    expect(status.hitTestable(), findsOneWidget, reason: 'the status stays');
+    expect(next.hitTestable(), findsNothing, reason: 'the rest folds away');
+
+    await tester.tap(find.byType(SheetHandle));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(tester.getTopLeft(status).dy, moreOrLessEquals(open, epsilon: 1));
+    expect(next.hitTestable(), findsOneWidget);
   });
 
   testWidgets('on the way with no position yet says a crew is coming', (

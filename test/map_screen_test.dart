@@ -18,6 +18,12 @@ import 'package:replit/widgets/map_coach_marks.dart';
 /// The citizen map ("04 Map" and "05 Map — offline queue"): what the sheet
 /// says with signal, and what it says without.
 
+/// Let the areas sheet fold or unfold: the first frame only starts the clock.
+Future<void> settle(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 /// A phone standing at Pasay City centre with a 4 m fix.
 class _HereGeo extends GeolocatorPlatform {
   @override
@@ -186,6 +192,41 @@ void main() {
       },
     );
   }
+
+  testWidgets('the areas sheet drags down out of the way, and comes back', (
+    tester,
+  ) async {
+    await pump(tester);
+    if (find.text('Got it').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Got it'));
+      await tester.pump();
+    }
+    final title = find.text('ACTIVE AREAS NEAR YOU');
+    final row = find.text('Area 1.2');
+    final open = tester.getTopLeft(title).dy;
+    expect(row.hitTestable(), findsOneWidget);
+
+    // Anywhere on the sheet drags it — here, a row.
+    await tester.drag(row, const Offset(0, 300));
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+    expect(tester.getTopLeft(title).dy, greaterThan(open + 100));
+    expect(title.hitTestable(), findsOneWidget, reason: 'the title stays');
+    expect(row.hitTestable(), findsNothing, reason: 'the rows fold away');
+
+    // Tapping the title opens it again.
+    await tester.tap(title);
+    await settle(tester);
+    expect(tester.getTopLeft(title).dy, moreOrLessEquals(open, epsilon: 1));
+    expect(row.hitTestable(), findsOneWidget);
+
+    // And a drag up from folded does too.
+    await tester.drag(row, const Offset(0, 300));
+    await settle(tester);
+    await tester.drag(title, const Offset(0, -300));
+    await settle(tester);
+    expect(row.hitTestable(), findsOneWidget);
+  });
 
   Finder named(String type) =>
       find.byWidgetPredicate((w) => w.runtimeType.toString() == type);

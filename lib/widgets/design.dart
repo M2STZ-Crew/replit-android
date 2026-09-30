@@ -234,17 +234,23 @@ class IconWell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The DAWI wells: the accent's deep 900 shade with the glyph in white
+    // (AppPalette.wellFor). The asset glyphs are white already.
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.16),
+        color: context.pal.wellFor(tint),
         borderRadius: BorderRadius.circular(size * 0.28),
       ),
       alignment: Alignment.center,
       child: asset != null
           ? Image.asset(asset!, width: glyph, height: glyph)
-          : Icon(icon ?? Icons.circle_outlined, size: glyph, color: tint),
+          : Icon(
+              icon ?? Icons.circle_outlined,
+              size: glyph,
+              color: context.pal.glyphOn(tint),
+            ),
     );
   }
 }
@@ -632,15 +638,18 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// The grab handle at the top of every bottom sheet in the design.
+/// The grab handle at the top of every bottom sheet in the design
+/// (Neutral/Grabber: 80 × 4, #ADAAAA at 35%).
 class SheetHandle extends StatelessWidget {
-  const SheetHandle({super.key});
+  const SheetHandle({super.key, this.margin = const EdgeInsets.only(bottom: 16)});
+
+  final EdgeInsets margin;
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 38,
+    width: 80,
     height: 4,
-    margin: const EdgeInsets.only(bottom: 16),
+    margin: margin,
     decoration: BoxDecoration(
       color: context.pal.label.withValues(alpha: 0.35),
       borderRadius: BorderRadius.circular(2),
