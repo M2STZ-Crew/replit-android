@@ -6,12 +6,13 @@ import '../../api/api_client.dart';
 import '../../location/responder_tracker.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
-import '../../widgets/responder_nav_bar.dart';
+import '../../widgets/staff_shell.dart';
 import 'responder_incident_screen.dart';
 import 'responder_incidents_screen.dart';
 import 'responder_status.dart';
 
-/// "02 Duty — standby" from the RESPONSE TEAM hand-off.
+/// "02 Duty — standby" from the RESPONSE TEAM hand-off, opened from the
+/// console menu ("My duty") in the shared staff frame.
 ///
 /// What a responder needs before a run: whether anything is happening, whether
 /// they are on it, and whether their location is going out. Everything on this
@@ -134,56 +135,44 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
     final stats = _stats;
     final sharing = _tracker.isSharing;
 
-    return Scaffold(
-      backgroundColor: context.pal.background,
-      extendBody: true,
-      bottomNavigationBar: ResponderNavBar(
-        active: ResponderTab.duty,
-        me: widget.me,
-        onRun: run == null ? null : _openRun,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(
-              24,
-              20,
-              24,
-              24 + ResponderNavBar.overhang,
+    return StaffScaffold(
+      me: widget.me,
+      page: StaffPage.duty,
+      home: true,
+      title: 'My duty',
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          children: [
+            // The screen's name is in the top bar; this says whose duty.
+            Eyebrow(
+              '$_unitName · ${agencyLabel(widget.me['agency_type'] as String?)}',
+              color: context.pal.label,
             ),
-            children: [
-              Eyebrow(
-                '$_unitName · ${agencyLabel(widget.me['agency_type'] as String?)}',
-                color: context.pal.label,
+            const SizedBox(height: 16),
+            _counts(stats, run),
+            const SizedBox(height: 26),
+            Eyebrow(
+              run == null ? 'Standby' : 'On a run',
+              color: run == null ? context.pal.ok : context.pal.accentInk,
+            ),
+            const SizedBox(height: 12),
+            _unitCard(),
+            const SizedBox(height: 10),
+            _runCard(run),
+            const SizedBox(height: 10),
+            _sharingCard(sharing, run),
+            const SizedBox(height: 16),
+            _ruleNote(),
+            if (_error != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                _error!,
+                style: context.type.caption.copyWith(color: context.pal.live),
               ),
-              const SizedBox(height: 8),
-              Text('DUTY', style: context.type.title),
-              const SizedBox(height: 22),
-              _counts(stats, run),
-              const SizedBox(height: 26),
-              Eyebrow(
-                run == null ? 'Standby' : 'On a run',
-                color: run == null ? context.pal.ok : context.pal.accentInk,
-              ),
-              const SizedBox(height: 12),
-              _unitCard(),
-              const SizedBox(height: 10),
-              _runCard(run),
-              const SizedBox(height: 10),
-              _sharingCard(sharing, run),
-              const SizedBox(height: 16),
-              _ruleNote(),
-              if (_error != null) ...[
-                const SizedBox(height: 14),
-                Text(
-                  _error!,
-                  style: context.type.caption.copyWith(color: context.pal.live),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -223,9 +212,6 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
       chip: 'Your unit',
       chipTone: context.pal.accentInk,
       note: widget.me['full_name'] as String? ?? 'Response team',
-      action: 'PROFILE',
-      onAction: () =>
-          ResponderNavBar.switchTo(context, ResponderTab.profile, widget.me),
     );
   }
 

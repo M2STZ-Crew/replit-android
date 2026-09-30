@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
+import '../../widgets/staff_shell.dart';
 import 'post_incident_report_screen.dart';
 
 /// The "pending report" tray (Master Context v10 §10.2): incidents whose fire
@@ -97,32 +98,37 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) Navigator.of(context).pop(_filedAny);
       },
-      child: Scaffold(
-        backgroundColor: context.pal.background,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ScreenHeader(
-                  eyebrow: 'Post-Incident Reports',
-                  title: 'Pending reports',
-                  trailing: IconWellButton(
+      child: StaffScaffold(
+        page: StaffPage.reports,
+        home: true,
+        title: 'Pending reports',
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Fire out, and your team has not filed yet. Each team '
+                      'that responded files its own report, for everyone on '
+                      'it who went.',
+                      style: context.type.body.copyWith(fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconWellButton(
                     icon: Icons.refresh_rounded,
+                    size: 40,
                     onTap: _load,
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Fire out, and your team has not filed yet. Each team that '
-                  'responded files its own report, for everyone on it who went.',
-                  style: context.type.body.copyWith(fontSize: 13),
-                ),
-                const SizedBox(height: 18),
-                Expanded(child: _body()),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Expanded(child: _body()),
+            ],
           ),
         ),
       ),

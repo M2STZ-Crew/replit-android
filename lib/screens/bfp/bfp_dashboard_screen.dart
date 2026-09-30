@@ -5,24 +5,17 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
-import '../../api/push_service.dart';
-import '../../api/session.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
-import '../../widgets/app_logo.dart';
-import '../../widgets/notification_bell.dart';
 import '../../widgets/ops_layers.dart';
-import '../login_screen.dart';
+import '../../widgets/staff_shell.dart';
 import '../responder/responder_status.dart';
 import '../subadmin/coordinator_nav.dart';
-import '../subadmin/pending_reports_screen.dart';
-import '../subadmin/subadmin_home_screen.dart';
 import 'bfp_alarm_requests_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
 
-Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
 Color _red = AppColors.live;
@@ -57,7 +50,6 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
 
   final MapFollow _follow = MapFollow();
 
-  final GlobalKey<ScaffoldState> _scaffold = GlobalKey<ScaffoldState>();
   final ApiClient _api = ApiClient();
   final MapController _map = MapController();
   Timer? _poll;
@@ -140,179 +132,33 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     if (mounted) _load();
   }
 
-  Future<void> _logout() async {
-    final navigator = Navigator.of(context);
-    await PushService.instance.unregister();
-    await _api.logout();
-    await Session.instance.clear();
-    if (!mounted) return;
-    navigator.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
   // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffold,
-      backgroundColor: _bg,
-      endDrawer: _drawer(),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _topBar(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
-              child: _statsGrid(),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
-              child: _alarmCard(),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                child: _mapCard(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _topBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: _panel,
-        border: Border(bottom: BorderSide(color: _panelBorder)),
-      ),
-      child: Row(
+    return StaffScaffold(
+      me: widget.me,
+      page: StaffPage.dashboard,
+      home: true,
+      title: 'Dashboard',
+      body: Column(
         children: [
-          const AppLogo(),
-          const Spacer(),
-          const NotificationBell(),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => _scaffold.currentState?.openEndDrawer(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.pal.glass,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: context.pal.line),
-              ),
-              child: const Icon(Icons.menu, color: Colors.white, size: 20),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+            child: _statsGrid(),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+            child: _alarmCard(),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              child: _mapCard(),
             ),
           ),
         ],
       ),
     );
-  }
-
-  Widget _drawer() {
-    final name =
-        (widget.me['full_name'] as String?) ??
-        (widget.me['email'] as String?) ??
-        'BFP';
-    return Drawer(
-      backgroundColor: context.pal.surfaceSolid,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const AppLogo(),
-                  const SizedBox(height: 16),
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Sub-Admin • BFP',
-                    style: TextStyle(color: context.pal.muted, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            Divider(color: _panelBorder, height: 1),
-            _navTile(
-              Icons.dashboard_outlined,
-              'Dashboard',
-              () => Navigator.of(context).pop(),
-            ),
-            _navTile(Icons.list_alt_outlined, 'Incidents', () {
-              Navigator.of(context).pop();
-              Navigator.of(context)
-                  .push(
-                    MaterialPageRoute(
-                      builder: (_) => SubAdminHomeScreen(me: widget.me),
-                    ),
-                  )
-                  .then((_) {
-                    if (mounted) _load();
-                  });
-            }),
-            _navTile(Icons.campaign_outlined, 'Alarm Requests', () {
-              Navigator.of(context).pop();
-              _openAlarmRequests();
-            }),
-            // A BFP team captain files the Post-Incident Report for a BFP
-            // response, as a Fire Volunteer captain does for theirs (v10 §2.5).
-            _navTile(Icons.assignment_late_outlined, 'Pending reports', () {
-              Navigator.of(context).pop();
-              _openPendingReports();
-            }, count: (_stats?['pending_reports'] as num?)?.toInt() ?? 0),
-            const Spacer(),
-            Divider(color: _panelBorder, height: 1),
-            _navTile(Icons.logout, 'Log out', () {
-              Navigator.of(context).pop();
-              _logout();
-            }, color: _red),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navTile(
-    IconData icon,
-    String label,
-    VoidCallback onTap, {
-    Color color = Colors.white,
-    int count = 0,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: color, size: 20),
-      title: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w500),
-      ),
-      trailing: count > 0 ? Tag('$count', color: _red, solid: true) : null,
-      onTap: onTap,
-    );
-  }
-
-  Future<void> _openPendingReports() async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => PendingReportsScreen(api: _api)),
-    );
-    if (mounted) _load();
   }
 
   // ------------------------------------------------------------ stats ---

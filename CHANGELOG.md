@@ -6,6 +6,94 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.3 — 1 October 2026 — One console for responders and coordinators; Done right after fire out
+
+App only: no backend or API change (the backend stays at 1.12.1).
+
+### Changes
+
+**Modified — responder and coordinator: one consistent console**
+- Every staff screen now sits in the same frame (`lib/widgets/staff_shell.dart`,
+  `StaffScaffold`): a top bar with Back (or the mark on a dashboard), the
+  screen's name, a **RESPONDER** or **COORDINATOR** tag under it, the bell and
+  the **menu**. The same menu opens from every screen — including the
+  incident, report review, command and Post-Incident Report screens, which had
+  none before (only the dashboards did).
+- One menu (`StaffDrawer`) for everyone: name, role tag, team and agency, then
+  Dashboard and Incidents; **My duty** for a responder; **Pending reports** for
+  a coordinator (with the count owed); **Alarm requests** for BFP (with the
+  count pending); Log out. Choosing a section goes back to the dashboard and
+  opens it from there, so Back from any section is the dashboard.
+- Responders land on the same dashboard as coordinators (counts and the live
+  map). The Duty screen is "My duty" in the menu; the responder-only bottom
+  tab bar (Duty / Map / RUN / Unit / Profile) is gone — it switched to a
+  different navigation on the Map tab and opened the citizen profile.
+- The per-screen settings cog, account sheet and log-out copies are replaced
+  by the one menu and one sign-out (`staffSignOut`), which also stops location
+  sharing.
+- Staff screens draw with the same REPLIT x DAWI palette as the citizen ones
+  (solid `#1D1D1D` cards on `#424242` edges; the old `AppColors` ground
+  constants now carry the DAWI values).
+- The back chevrons drawn over the report photo are gone (Back is in the bar);
+  the command screens' map sits under the bar instead of under the status bar.
+- The driver/crew boxes on the command screens grow with a large font instead
+  of clipping it.
+
+**Modified — citizen: the finished screen comes next at fire out**
+- When the resident is on Track It Live and their report's fire is out (or it
+  was not confirmed), the app takes them straight to the report's finished
+  screen — "Report done · Fire out" with **Done** — instead of leaving them to
+  back out to find it. If the report screen is underneath it is brought
+  forward and updated at once; otherwise it replaces the live screen. A report
+  already finished with, opened again from Your reports, is left as it ended.
+
+### Files Changed
+- New: `lib/widgets/staff_shell.dart`; removed: `lib/widgets/responder_nav_bar.dart`.
+- Staff: `lib/screens/responder/responder_home_screen.dart`,
+  `responder_duty_screen.dart`, `responder_incidents_screen.dart`,
+  `responder_incident_report_screen.dart`, `responder_incident_screen.dart`;
+  `lib/screens/subadmin/subadmin_dashboard_screen.dart`,
+  `subadmin_home_screen.dart`, `subadmin_incident_report_screen.dart`,
+  `subadmin_incident_command_screen.dart`, `pending_reports_screen.dart`,
+  `post_incident_report_screen.dart`; `lib/screens/bfp/bfp_dashboard_screen.dart`,
+  `bfp_alarm_requests_screen.dart`; `lib/screens/role_gate.dart`.
+- Citizen: `lib/screens/live_update_screen.dart`,
+  `lib/screens/report_status_screen.dart`.
+- `lib/theme.dart` — `AppColors` ground on the DAWI values.
+- `pubspec.yaml` — version 1.12.3.
+- Tests: `test/staff_shell_test.dart` (new), `test/track_it_live_test.dart`,
+  `test/responder_duty_test.dart`.
+
+### Database Changes
+None.
+
+### API Changes
+None.
+
+### Frontend Changes
+Responder: dashboard (now the home), My duty, incidents, report, incident.
+Coordinator (Fire Volunteer and BFP): dashboard, incidents, report review,
+command, pending reports, Post-Incident Report, alarm requests. Citizen:
+Track It Live → the finished screen.
+
+### Testing
+- A responder gets the RESPONDER tag and Dashboard / Incidents / My duty; a
+  coordinator the COORDINATOR tag, their team line and Pending reports; BFP
+  also Alarm requests.
+- Inside an incident: Back, the same tag and the same menu; Dashboard from the
+  menu returns home; Back returns to the dashboard.
+- Fire out on the resident's own report goes straight to the finished screen
+  with Done; a report already finished with stays on Track It Live.
+- Staff screens rendered off-device (both dashboards, the open menu for each
+  role, the coordinator command screen) and checked.
+- Result: **306 app tests pass**, `flutter analyze` clean.
+
+### Regression Check
+The whole suite passes. The Duty test now reads the screen's name from the
+top bar ("MY DUTY") and checks the RESPONDER tag; nothing else changed.
+
+---
+
 ## v1.12.2 — 1 October 2026 — REPLIT x DAWI colours; sheets that drag out of the way
 
 App only: no backend or API change (the backend stays at 1.12.1).

@@ -30,37 +30,41 @@ class AppColors {
   /// The screen background. Was #171717 in v1.
   static const Color background = Color(0xFF131313);
 
-  /// Sheets, the nav bar, and anything that must be opaque over the map.
-  static const Color surfaceSolid = Color(0xFF171717);
+  // The ground below follows the REPLIT x DAWI dark palette too, so the staff
+  // screens that draw with these constants match the citizen screens drawn
+  // from [AppPalette.dark]: solid SURFACE/grey-500 cards on BACKGROUND/grey-400
+  // hairlines instead of the overhaul's translucent glass.
 
-  /// Panels and placeholders. Kept solid for v1 screens; new work should use
-  /// [glass], which is the same colour at the design's opacity.
-  static const Color surface = Color(0xFF262626);
-  static const Color glass = Color(0x8A262626); // rgba(38,38,38,.54)
-  static const Color glassDim = Color(0x57262626); // rgba(38,38,38,.34)
+  /// Sheets, the nav bar, and anything that must be opaque over the map.
+  static const Color surfaceSolid = Color(0xFF131313);
+
+  /// Panels and placeholders.
+  static const Color surface = Color(0xFF1D1D1D);
+  static const Color glass = Color(0xFF1D1D1D);
+  static const Color glassDim = Color(0xFF1D1D1D);
 
   /// The raised pill behind the selected nav tab.
   static const Color raised = Color(0xFF303030);
 
   static const Color inputBg = Color(0xFF131313); // text field fill
-  static const Color inputBorder = Color(0x59484847); // ~35% hairline
+  static const Color inputBorder = Color(0xFF424242);
 
   // ── hairlines ───────────────────────────────────────────────────────────
-  static const Color line = Color(0x59484847);
-  static const Color lineStrong = Color(0x80484847);
+  static const Color line = Color(0xFF424242); // BACKGROUND/grey-400
+  static const Color lineStrong = Color(0xFF4A4A4A); // SURFACE/grey-400
   static const Color lineLight = Color(0x80ADAAAA);
   static const Color outline = Color(0x33FFFFFF);
 
   // ── ink ─────────────────────────────────────────────────────────────────
   static const Color onBackground = Color(0xFFFFFFFF);
-  static const Color textSoft = Color(0xFFCFCFCF);
+  static const Color textSoft = Color(0xFFC9C9C9); // TEXT/grey-200
   static const Color label = Color(0xFFADAAAA);
   static const Color muted = Color(0xFF8A8A8A);
 
   /// Text/Placeholder — the tertiary grey at 75%, so an empty field reads
   /// as waiting rather than filled (COMPONENTS: Input).
   static const Color placeholder = Color(0xBFADAAAA);
-  static const Color faint = Color(0xFF706E6E);
+  static const Color faint = Color(0xFF7E7E7E); // TEXT/grey-600
   static const Color darkText = Color(0xFF767575); // input placeholders
 
   // ── accent ──────────────────────────────────────────────────────────────

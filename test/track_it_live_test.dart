@@ -14,6 +14,7 @@ import 'package:replit/api/session.dart';
 import 'package:replit/api/tracking_socket.dart';
 import 'package:replit/models/active_report.dart';
 import 'package:replit/screens/live_update_screen.dart';
+import 'package:replit/screens/report_status_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/design.dart';
 
@@ -294,6 +295,46 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     expect(tester.getTopLeft(status).dy, moreOrLessEquals(open, epsilon: 1));
     expect(next.hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('fire out on your own report goes straight to its Done screen', (
+    tester,
+  ) async {
+    await ActiveReportStore.start(
+      ActiveReport(
+        owner: 'm.reyes@gmail.com',
+        reportId: 'r1',
+        areaId: 'a1',
+        designation: 'Area 1.2',
+        lat: 14.5378,
+        lng: 121.0014,
+        submittedAt: DateTime.now(),
+      ),
+    );
+    final feed = FakeFeed()..liveNow.value = true;
+    await pump(tester, feed);
+    expect(find.byType(LiveUpdateScreen), findsOneWidget);
+
+    await push(tester, feed, snapshot(status: 'fire_out'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600)); // the route
+    expect(tester.takeException(), isNull);
+    expect(find.byType(LiveUpdateScreen), findsNothing);
+    expect(find.byType(ReportStatusScreen), findsOneWidget);
+    expect(find.text('REPORT DONE'), findsOneWidget);
+    expect(find.text('DONE'), findsOneWidget, reason: 'no need to back out');
+  });
+
+  testWidgets('a report already finished with just shows how it ended', (
+    tester,
+  ) async {
+    // No report in progress: opened again from Your reports.
+    final feed = FakeFeed()..liveNow.value = true;
+    await pump(tester, feed);
+    await push(tester, feed, snapshot(status: 'fire_out'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(LiveUpdateScreen), findsOneWidget);
+    expect(find.byType(ReportStatusScreen), findsNothing);
   });
 
   testWidgets('on the way with no position yet says a crew is coming', (

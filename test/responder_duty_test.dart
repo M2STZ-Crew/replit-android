@@ -77,7 +77,9 @@ void main() {
       await pump(tester, api(), scale: scale);
       expect(tester.takeException(), isNull);
 
-      expect(find.text('DUTY'), findsOneWidget);
+      // The shared staff frame: the screen's name and whose console it is.
+      expect(find.text('MY DUTY'), findsOneWidget);
+      expect(find.text('RESPONDER'), findsOneWidget);
       expect(find.text('TANKER 1 · FIRE VOLUNTEER'), findsOneWidget);
       expect(find.text('STANDBY'), findsOneWidget);
       expect(find.text('NO RUN RIGHT NOW'), findsOneWidget);

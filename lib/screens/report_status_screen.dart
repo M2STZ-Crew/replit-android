@@ -41,23 +41,29 @@ class ReportStatusScreen extends StatefulWidget {
     this.areaId,
     this.reportId,
     this.selectedAgencies = const [],
+    this.status,
     this.api,
   });
 
   /// The screen for a report in progress.
-  ReportStatusScreen.of(ActiveReport report, {Key? key, ApiClient? api})
-    : this(
-        key: key,
-        designation: report.designation,
-        lat: report.lat,
-        lng: report.lng,
-        submittedAt: report.submittedAt,
-        message: report.message,
-        areaId: report.areaId,
-        reportId: report.reportId,
-        selectedAgencies: report.agencies,
-        api: api,
-      );
+  ReportStatusScreen.of(
+    ActiveReport report, {
+    Key? key,
+    String? status,
+    ApiClient? api,
+  }) : this(
+         key: key,
+         designation: report.designation,
+         lat: report.lat,
+         lng: report.lng,
+         submittedAt: report.submittedAt,
+         message: report.message,
+         areaId: report.areaId,
+         reportId: report.reportId,
+         selectedAgencies: report.agencies,
+         status: status,
+         api: api,
+       );
 
   final String designation;
   final double lat;
@@ -67,9 +73,17 @@ class ReportStatusScreen extends StatefulWidget {
   final String? areaId;
   final String? reportId;
   final List<String> selectedAgencies;
+
+  /// The area's status when it opens, when the caller already knows it —
+  /// Track It Live handing over at fire out — so the finished screen shows at
+  /// once instead of after its first read.
+  final String? status;
   final ApiClient? api;
 
   static int _showing = 0;
+
+  /// A status heard elsewhere (Track It Live) for the screen on the stack.
+  static final ValueNotifier<String?> _heard = ValueNotifier(null);
 
   /// True while this screen is on the stack, so nothing opens a second one.
   static bool get isShowing => _showing > 0;
@@ -77,11 +91,36 @@ class ReportStatusScreen extends StatefulWidget {
   static const String routeName = '/report-in-progress';
 
   /// The route for a report in progress, named so it can be found again.
-  static MaterialPageRoute<void> route(ActiveReport report) =>
-      MaterialPageRoute(
-        settings: const RouteSettings(name: routeName),
-        builder: (_) => ReportStatusScreen.of(report),
-      );
+  static MaterialPageRoute<void> route(
+    ActiveReport report, {
+    String? status,
+    ApiClient? api,
+  }) => MaterialPageRoute(
+    settings: const RouteSettings(name: routeName),
+    builder: (_) => ReportStatusScreen.of(report, status: status, api: api),
+  );
+
+  /// The report is over — the fire is out, or it was not confirmed — while
+  /// the resident is on another screen (Track It Live). Take them to this one
+  /// next, which says so and has Done, instead of leaving them to back out to
+  /// find it: back down to it if it is on the stack, or in place of the
+  /// screen they are on.
+  static void showFinished(
+    BuildContext context,
+    ActiveReport report,
+    String status, {
+    ApiClient? api,
+  }) {
+    final nav = Navigator.of(context);
+    if (isShowing) {
+      _heard
+        ..value = null
+        ..value = status;
+      nav.popUntil(ModalRoute.withName(routeName));
+      return;
+    }
+    nav.pushReplacement(route(report, status: status, api: api));
+  }
 
   /// Bring the resident back to their report: to the front if it is already
   /// open underneath something else, otherwise opened fresh.
@@ -155,7 +194,10 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
     super.initState();
     ReportStatusScreen._showing++;
     WidgetsBinding.instance.addObserver(this);
-    if (_areaId != null) {
+    ReportStatusScreen._heard.addListener(_onHeard);
+    final known = widget.status;
+    if (known != null) _area = {'status': known};
+    if (_areaId != null && !_over) {
       _load();
       _poll = Timer.periodic(const Duration(seconds: 5), (_) => _load());
     }
@@ -165,8 +207,17 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
   void dispose() {
     ReportStatusScreen._showing--;
     WidgetsBinding.instance.removeObserver(this);
+    ReportStatusScreen._heard.removeListener(_onHeard);
     _poll?.cancel();
     super.dispose();
+  }
+
+  /// Track It Live saw the report finish: show it now, not on the next read.
+  void _onHeard() {
+    final status = ReportStatusScreen._heard.value;
+    if (status == null || !mounted) return;
+    setState(() => _area = {...?_area, 'status': status});
+    if (_over) _poll?.cancel();
   }
 
   // Back from the background: read it now rather than on the next tick, so

@@ -10,22 +10,18 @@ import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
-import '../../api/push_service.dart';
-import '../../api/session.dart';
 import '../../location/responder_tracker.dart';
 import '../../models/fleet_unit.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
-import '../../widgets/app_logo.dart';
 import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
+import '../../widgets/staff_shell.dart';
 import '../directions_screen.dart';
-import '../login_screen.dart';
 import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/you_are_here.dart';
 
-Color _bg = AppColors.background;
 Color _sheet = AppColors.surfaceSolid;
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -587,32 +583,22 @@ class _SubAdminIncidentCommandScreenState
     if (filed == true && mounted) navigator.pop(true);
   }
 
-  Future<void> _logout() async {
-    final navigator = Navigator.of(context);
-    await PushService.instance.unregister();
-    await _api.logout();
-    await Session.instance.clear();
-    if (!mounted) return;
-    navigator.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
   // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
+    return StaffScaffold(
+      me: widget.me,
+      page: StaffPage.incidents,
+      title: (_incident?['designation'] as String?) ?? 'Incident',
       body: _loading
           ? Center(child: CircularProgressIndicator(color: context.pal.accent))
           : Column(
               children: [
-                SizedBox(height: 280, child: _mapHeader()),
+                SizedBox(height: 260, child: _mapHeader()),
                 Expanded(child: _panelContent()),
               ],
             ),
-      bottomNavigationBar: _loading
+      bottom: _loading
           ? null
           : SafeArea(
               top: false,
@@ -651,7 +637,7 @@ class _SubAdminIncidentCommandScreenState
                   ],
                 ),
         ),
-        SafeArea(bottom: false, child: _topBar()),
+        // Back and the menu are in the staff top bar above the map.
       ],
     );
   }
@@ -713,80 +699,6 @@ class _SubAdminIncidentCommandScreenState
       );
     }
     return markers;
-  }
-
-  Widget _topBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      child: Row(
-        children: [
-          const AppLogo(),
-          const Spacer(),
-          GestureDetector(
-            onTap: _accountSheet,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.pal.glass,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: context.pal.line),
-              ),
-              child: const Icon(
-                Icons.settings_outlined,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _accountSheet() {
-    final name =
-        (widget.me['full_name'] as String?) ??
-        (widget.me['email'] as String?) ??
-        'Sub-Admin';
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: context.pal.surfaceSolid,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              leading: Icon(Icons.logout, color: _red),
-              title: const Text(
-                'Log out',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                _logout();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _panelContent() {
@@ -1088,7 +1000,8 @@ class _SubAdminIncidentCommandScreenState
 
   Widget _driverBox(Map<String, dynamic>? driver) {
     return Container(
-      height: 87,
+      // Grows with a large font rather than clipping it.
+      constraints: const BoxConstraints(minHeight: 87),
       padding: EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.4),
@@ -1128,7 +1041,8 @@ class _SubAdminIncidentCommandScreenState
 
   Widget _crewBox(List<Map<String, dynamic>> crew) {
     return Container(
-      height: 87,
+      // Grows with a large font rather than clipping it.
+      constraints: const BoxConstraints(minHeight: 87),
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.4),

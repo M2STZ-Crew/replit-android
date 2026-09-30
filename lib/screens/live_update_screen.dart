@@ -17,6 +17,7 @@ import '../widgets/design.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'directions_screen.dart';
+import 'report_status_screen.dart';
 import '../widgets/you_are_here.dart';
 
 /// How much of the screen the sheet covers when open: the map keeps the top
@@ -262,6 +263,29 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
       _adopt(snap.status);
     });
     _frameOnce();
+    _finishIfOver();
+  }
+
+  /// Whether this screen has handed the resident to the finished screen.
+  bool _handedOver = false;
+
+  /// The fire is out (or the report was not confirmed) on the resident's own
+  /// report in progress: take them straight to the report's finished screen,
+  /// with its Done, rather than leave them to back out to find it
+  /// ([ReportStatusScreen.showFinished]). A report already finished with —
+  /// opened again from Your reports — just shows here as it ended.
+  void _finishIfOver() {
+    if (_handedOver || !mounted) return;
+    final status = _status;
+    if (status != 'fire_out' && status != 'rejected') return;
+    final report = ActiveReportStore.mine;
+    if (report == null || report.areaId != widget.areaId) return;
+    _handedOver = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ReportStatusScreen.showFinished(context, report, status, api: _api);
+      }
+    });
   }
 
   /// Take a status from either source — but never a step back along the
@@ -364,6 +388,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         _area = area;
         _adopt(area['status'] as String?);
       });
+      _finishIfOver();
     } catch (_) {
       // keep the last known status
     }
@@ -798,7 +823,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                     onTap: onHandle,
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Center(child: SheetHandle(margin: EdgeInsets.zero)),
+                      child: Center(
+                        child: SheetHandle(margin: EdgeInsets.zero),
+                      ),
                     ),
                   ),
                 ),

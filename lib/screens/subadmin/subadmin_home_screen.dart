@@ -3,19 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
-import '../../api/push_service.dart';
-import '../../api/session.dart';
 import '../../theme.dart';
-import '../../widgets/app_logo.dart';
 import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
-import '../login_screen.dart';
+import '../../widgets/staff_shell.dart';
 import '../responder/responder_status.dart';
 import 'subadmin_incident_command_screen.dart';
 import 'subadmin_incident_report_screen.dart';
 import '../../api/live_refresh.dart';
 
-Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
 Color _grey = AppColors.muted;
@@ -141,18 +137,6 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
     });
   }
 
-  Future<void> _logout() async {
-    final navigator = Navigator.of(context);
-    await PushService.instance.unregister();
-    await _api.logout();
-    await Session.instance.clear();
-    if (!mounted) return;
-    navigator.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
   String _fmtDate(String? iso) {
     if (iso == null) return '';
     try {
@@ -178,99 +162,12 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
   // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _topBar(),
-            Expanded(child: _body()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _topBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: _panel,
-        border: Border(bottom: BorderSide(color: _panelBorder)),
-      ),
-      child: Row(
-        children: [
-          const AppLogo(),
-          const Spacer(),
-          GestureDetector(
-            onTap: _accountSheet,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.pal.glass,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: context.pal.line),
-              ),
-              child: const Icon(
-                Icons.settings_outlined,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _accountSheet() {
-    final name =
-        (widget.me['full_name'] as String?) ??
-        (widget.me['email'] as String?) ??
-        'Sub-Admin';
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: context.pal.surfaceSolid,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Sub-Admin • ${responderAgencyLabel(_agency)}',
-              style: TextStyle(color: context.pal.muted, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              leading: Icon(Icons.logout, color: _red),
-              title: const Text(
-                'Log out',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                _logout();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+    return StaffScaffold(
+      me: widget.me,
+      page: StaffPage.incidents,
+      home: true,
+      title: 'Incidents',
+      body: _body(),
     );
   }
 

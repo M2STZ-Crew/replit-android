@@ -6,12 +6,12 @@ import '../../api/api_client.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
+import '../../widgets/staff_shell.dart';
 import 'responder_incident_report_screen.dart';
 import 'responder_incident_screen.dart';
 import 'responder_status.dart';
 import '../../api/live_refresh.dart';
 
-Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
 Color _grey = AppColors.muted;
@@ -203,57 +203,12 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
   // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _topBar(),
-            Expanded(child: _body()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _topBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: _panel,
-        border: Border(bottom: BorderSide(color: _panelBorder)),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.pal.glass,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: context.pal.line),
-              ),
-              child: const Icon(
-                Icons.chevron_left,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Incidents',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
+    return StaffScaffold(
+      me: widget.me,
+      page: StaffPage.incidents,
+      home: true,
+      title: 'Incidents',
+      body: _body(),
     );
   }
 

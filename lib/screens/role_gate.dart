@@ -12,8 +12,9 @@ import 'onboarding_screen.dart';
 import 'report_status_screen.dart';
 import 'observer_handoff_screen.dart';
 import 'phone_verify_screen.dart';
-import 'responder/responder_duty_screen.dart';
+import 'responder/responder_home_screen.dart';
 import 'subadmin/subadmin_dashboard_screen.dart';
+import '../widgets/staff_shell.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
 /// role from GET /auth/me: response_team → the responder console; a coordinator
@@ -118,8 +119,12 @@ class _RoleGateState extends State<RoleGate> {
       );
     }
     final role = me['role'] as String?;
+    // Responders and coordinators share one console (widgets/staff_shell.dart):
+    // the same dashboard to land on, the same menu on every screen, and a tag
+    // saying which of the two this is.
     if (role == 'response_team') {
-      return ResponderDutyScreen(me: me);
+      StaffAccount.current = me;
+      return ResponderHomeScreen(me: me);
     }
     if (role == 'sub_admin') {
       // Observers (police, medical, barangay) work from the Observer Console on
@@ -127,7 +132,8 @@ class _RoleGateState extends State<RoleGate> {
       if (isObserverCaptain(me)) {
         return ObserverHandoffScreen(me: me);
       }
-      // BFP sub-admins get the alarm-review console; Fire-Vol get the full console.
+      StaffAccount.current = me;
+      // BFP adds the alarm-review queue; Fire Volunteer the rest of the console.
       if (me['agency_type'] == 'bfp') {
         return BfpDashboardScreen(me: me);
       }

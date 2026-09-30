@@ -15,11 +15,11 @@ import '../../models/fleet_unit.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
+import '../../widgets/staff_shell.dart';
 import '../directions_screen.dart';
 import 'responder_status.dart';
 import '../../widgets/you_are_here.dart';
 
-Color _bg = AppColors.background;
 Color _sheet = AppColors.surfaceSolid;
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -459,18 +459,19 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   // --------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
+    return StaffScaffold(
+      page: StaffPage.incidents,
+      title: (_incident?['designation'] as String?) ?? 'Incident',
       body: _loading
           ? Center(child: CircularProgressIndicator(color: context.pal.accent))
           : Column(
               children: [
-                SizedBox(height: 280, child: _mapHeader()),
+                SizedBox(height: 260, child: _mapHeader()),
                 Expanded(child: _panelContent()),
               ],
             ),
       // Fire out is a fire crew's call to make; other crews have no such code.
-      bottomNavigationBar: _loading || !isFireCrew(widget.agency)
+      bottom: _loading || !isFireCrew(widget.agency)
           ? null
           : SafeArea(
               top: false,
@@ -503,18 +504,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             ],
           ),
         ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const BackWell(),
-                const Spacer(),
-                if (_streaming) _streamingPill(),
-              ],
-            ),
-          ),
-        ),
+        // Back and the menu are in the staff top bar above the map.
+        if (_streaming)
+          Positioned(top: 12, left: 12, child: _streamingPill()),
       ],
     );
   }
@@ -847,7 +839,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
 
   Widget _crewSlot(String label, List<Map<String, dynamic>>? members) {
     return Container(
-      height: 87,
+      // Grows with a large font rather than clipping it.
+      constraints: const BoxConstraints(minHeight: 87),
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.4),

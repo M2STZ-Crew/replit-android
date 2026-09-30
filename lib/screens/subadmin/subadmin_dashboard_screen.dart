@@ -5,23 +5,17 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
-import '../../api/push_service.dart';
-import '../../api/session.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
-import '../../widgets/app_logo.dart';
-import '../../widgets/notification_bell.dart';
 import '../../widgets/ops_layers.dart';
-import '../login_screen.dart';
+import '../../widgets/staff_shell.dart';
 import '../responder/responder_status.dart';
 import 'coordinator_nav.dart';
 import 'pending_reports_screen.dart';
-import 'subadmin_home_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
 
-Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
 Color _red = AppColors.live;
@@ -30,10 +24,10 @@ Color _green = AppColors.ok;
 Color _grey = AppColors.muted;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
-/// Sub-admin dashboard — live counters + a layered operational map, with a
-/// top-right hamburger that opens the console nav (Incidents, etc.). Incident
-/// markers route by status through [openCoordinatorIncident]. The map layers
-/// are the shared staff set in widgets/ops_layers.dart.
+/// Coordinator dashboard — live counters + a layered operational map, in the
+/// shared staff frame ([StaffScaffold]: the console menu and the COORDINATOR
+/// tag). Incident markers route by status through [openCoordinatorIncident].
+/// The map layers are the shared staff set in widgets/ops_layers.dart.
 class SubAdminDashboardScreen extends StatefulWidget {
   const SubAdminDashboardScreen({super.key, required this.me});
 
@@ -53,7 +47,6 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
 
   final MapFollow _follow = MapFollow();
 
-  final GlobalKey<ScaffoldState> _scaffold = GlobalKey<ScaffoldState>();
   final ApiClient _api = ApiClient();
   final MapController _map = MapController();
   Timer? _poll;
@@ -118,18 +111,6 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    final navigator = Navigator.of(context);
-    await PushService.instance.unregister();
-    await _api.logout();
-    await Session.instance.clear();
-    if (!mounted) return;
-    navigator.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
   // Route an incident marker tap to the right coordinator screen.
   Future<void> _openIncident(Map<String, dynamic> inc) async {
     final changed = await openCoordinatorIncident(
@@ -144,145 +125,26 @@ class _SubAdminDashboardScreenState extends State<SubAdminDashboardScreen> {
   // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffold,
-      backgroundColor: _bg,
-      endDrawer: _drawer(),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _topBar(),
-            if (_pendingReports > 0) _pendingBanner(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-              child: _statsGrid(),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                child: _mapCard(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _topBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: _panel,
-        border: Border(bottom: BorderSide(color: _panelBorder)),
-      ),
-      child: Row(
+    return StaffScaffold(
+      me: widget.me,
+      page: StaffPage.dashboard,
+      home: true,
+      title: 'Dashboard',
+      body: Column(
         children: [
-          const AppLogo(),
-          const Spacer(),
-          const NotificationBell(),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => _scaffold.currentState?.openEndDrawer(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.pal.glass,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: context.pal.line),
-              ),
-              child: const Icon(Icons.menu, color: Colors.white, size: 20),
+          if (_pendingReports > 0) _pendingBanner(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+            child: _statsGrid(),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              child: _mapCard(),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _drawer() {
-    final name =
-        (widget.me['full_name'] as String?) ??
-        (widget.me['email'] as String?) ??
-        'Sub-Admin';
-    return Drawer(
-      backgroundColor: context.pal.surfaceSolid,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const AppLogo(),
-                  const SizedBox(height: 16),
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Sub-Admin • ${responderAgencyLabel(_agency)}',
-                    style: TextStyle(color: context.pal.muted, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            Divider(color: _panelBorder, height: 1),
-            _navTile(Icons.dashboard_outlined, 'Dashboard', () {
-              Navigator.of(context).pop();
-            }),
-            _navTile(Icons.list_alt_outlined, 'Incidents', () {
-              Navigator.of(context).pop();
-              Navigator.of(context)
-                  .push(
-                    MaterialPageRoute(
-                      builder: (_) => SubAdminHomeScreen(me: widget.me),
-                    ),
-                  )
-                  .then((_) {
-                    if (mounted) _load();
-                  });
-            }),
-            _navTile(Icons.assignment_late_outlined, 'Pending reports', () {
-              Navigator.of(context).pop();
-              _openPendingReports();
-            }, count: _pendingReports),
-            const Spacer(),
-            Divider(color: _panelBorder, height: 1),
-            _navTile(Icons.logout, 'Log out', () {
-              Navigator.of(context).pop();
-              _logout();
-            }, color: _red),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navTile(
-    IconData icon,
-    String label,
-    VoidCallback onTap, {
-    Color color = Colors.white,
-    int count = 0,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: color, size: 20),
-      title: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w500),
-      ),
-      trailing: count > 0 ? Tag('$count', color: _red, solid: true) : null,
-      onTap: onTap,
     );
   }
 

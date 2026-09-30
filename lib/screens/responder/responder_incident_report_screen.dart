@@ -2,23 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 
 import '../../api/api_client.dart';
-import '../../api/push_service.dart';
-import '../../api/session.dart';
 import '../../theme.dart';
-import '../../widgets/app_logo.dart';
 import '../../widgets/incident_map.dart';
 import '../../widgets/placeholder_box.dart';
-import '../login_screen.dart';
+import '../../widgets/staff_shell.dart';
 import 'responder_status.dart';
 import '../../widgets/photo_viewer.dart';
 import '../directions_screen.dart';
 
-Color _bg = AppColors.background;
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
 Color _value = AppColors.muted;
 Color _label = AppColors.label;
-Color _red = AppColors.live;
 
 /// A responder reviewing a citizen report: photo (tap to zoom), reporter,
 /// time, coordinates, address, verifier, a map, and the road route to it.
@@ -126,118 +121,16 @@ class _ResponderIncidentReportScreenState
     return '${lat.abs().toStringAsFixed(4)}° $ns, ${lng.abs().toStringAsFixed(4)}° $ew';
   }
 
-  Future<void> _logout() async {
-    final navigator = Navigator.of(context);
-    await PushService.instance.unregister();
-    await _api.logout();
-    await Session.instance.clear();
-    if (!mounted) return;
-    navigator.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
   // ---------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _topBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: _card(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _topBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: _panel,
-        border: Border(bottom: BorderSide(color: _panelBorder)),
-      ),
-      child: Row(
-        children: [
-          const AppLogo(),
-          const Spacer(),
-          GestureDetector(
-            onTap: _accountSheet,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.pal.glass,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(color: context.pal.line),
-              ),
-              child: const Icon(
-                Icons.settings_outlined,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _accountSheet() {
-    final name =
-        (widget.me['full_name'] as String?) ??
-        (widget.me['email'] as String?) ??
-        'Responder';
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: context.pal.surfaceSolid,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 16),
-            Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              responderAgencyLabel(widget.me['agency_type'] as String?),
-              style: TextStyle(color: context.pal.muted, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            ListTile(
-              leading: Icon(Icons.logout, color: _red),
-              title: const Text(
-                'Log out',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                _logout();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+    return StaffScaffold(
+      me: widget.me,
+      page: StaffPage.incidents,
+      title: 'Citizen report',
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: _card(),
       ),
     );
   }
@@ -351,27 +244,7 @@ class _ResponderIncidentReportScreenState
                 child: Icon(Icons.zoom_in, color: Colors.white70, size: 22),
               ),
             ),
-          Positioned(
-            left: 12,
-            top: 12,
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: context.pal.glass,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  border: Border.all(color: context.pal.line, width: 0.8),
-                ),
-                child: const Icon(
-                  Icons.chevron_left,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-            ),
-          ),
+          // Back is in the staff top bar, as on every staff screen.
         ],
       ),
     );
