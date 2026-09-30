@@ -6,9 +6,10 @@ import '../../widgets/design.dart';
 import 'post_incident_report_screen.dart';
 
 /// The "pending report" tray (Master Context v10 §10.2): incidents whose fire
-/// is out but whose Post-Incident Report has not been filed. They stay here —
-/// and cannot close — until the team captain files. Pops `true` if anything was
-/// filed, so the dashboard refreshes its count.
+/// is out and for which this captain's team has not filed its Post-Incident
+/// Report. Each responding team files its own, so an incident another team has
+/// already closed stays here until this team files too. Pops `true` if
+/// anything was filed, so the dashboard refreshes its count.
 class PendingReportsScreen extends StatefulWidget {
   const PendingReportsScreen({super.key, this.api});
 
@@ -34,10 +35,18 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final raw = await _api.getIncidents(
-        activeOnly: false,
-        status: 'post_incident_report',
-      );
+      List<dynamic> raw;
+      try {
+        raw = await _api.getOwedPostIncidentReports();
+      } on ApiException catch (e) {
+        // A server from before each team filed its own has no such list: fall
+        // back to every incident still waiting on its first report.
+        if (e.statusCode != 404 && e.statusCode != 405) rethrow;
+        raw = await _api.getIncidents(
+          activeOnly: false,
+          status: 'post_incident_report',
+        );
+      }
       if (!mounted) return;
       setState(() {
         _items = raw.cast<Map<String, dynamic>>();
@@ -106,8 +115,8 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Fire out, report not yet filed. Each one stays open until its '
-                  'team captain files — for everyone who went.',
+                  'Fire out, and your team has not filed yet. Each team that '
+                  'responded files its own report, for everyone on it who went.',
                   style: context.type.body.copyWith(fontSize: 13),
                 ),
                 const SizedBox(height: 18),

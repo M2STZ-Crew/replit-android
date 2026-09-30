@@ -117,11 +117,24 @@ void main() {
     List<Map<String, Object>> equipment = fleet,
     List<Map<String, Object>>? members = team,
     List<Map<String, Object>>? joined,
+    bool trayEndpoint = true,
   }) => ApiClient(
     client: MockClient((req) async {
       final path = req.url.path;
       Object body;
-      if (path.endsWith('/post-incident-report') && req.method == 'POST') {
+      if (path.endsWith('/post-incident-reports/owed')) {
+        // A server from before each team filed its own has no such route.
+        if (!trayEndpoint) return http.Response('{"message":"Not Found"}', 404);
+        body = [
+          {
+            'id': 'a9',
+            'designation': 'Area 12',
+            'status': 'closed',
+            'resolved_at': '2026-09-10T11:00:00Z',
+          },
+        ];
+      } else if (path.endsWith('/post-incident-report') &&
+          req.method == 'POST') {
         filed = jsonDecode(req.body) as Map<String, dynamic>;
         body = {'id': 'p1'};
       } else if (path.endsWith('/organizations/mine/members')) {
@@ -306,7 +319,9 @@ void main() {
           textScale: scale,
         );
         expect(tester.takeException(), isNull);
-        expect(find.text('AREA 11'), findsOneWidget);
+        // What this captain's team still owes — here an incident another
+        // team's report already closed.
+        expect(find.text('AREA 12'), findsOneWidget);
       });
 
       testWidgets('observer handoff at ${scale}x', (tester) async {
@@ -480,6 +495,57 @@ void main() {
         isFalse,
       );
       expect(filed!['driver_name'], 'Maria Santos');
+    });
+
+    testWidgets('only the captain\u2019s own organization is offered', (
+      tester,
+    ) async {
+      // Someone from another team responded to this fire too. They went, but
+      // they are on their own captain's report, not this one.
+      const outsider = {
+        'id': 'd9',
+        'responder_id': 'x9',
+        'responder_name': 'Outside Responder',
+        'status': 'completed',
+        'dispatched_at': '2026-09-10T10:03:00Z',
+      };
+      await pump(
+        tester,
+        PostIncidentReportScreen(
+          areaId: 'a4',
+          api: fakeApi(joined: [...dispatches, outsider]),
+        ),
+      );
+      await tapChip(tester, find.text('SCBA'));
+      expect(find.text('Outside Responder'), findsNothing);
+      await file(tester);
+      expect(
+        [for (final m in filed!['roster'] as List) m['user_id']],
+        ['u1', 'u2'],
+      );
+    });
+
+    testWidgets('a captain in no organization is told so', (tester) async {
+      await pump(
+        tester,
+        PostIncidentReportScreen(
+          areaId: 'a4',
+          api: fakeApi(members: const [], joined: const []),
+        ),
+      );
+      await scrollTo(tester, find.textContaining('not in an organization'));
+      expect(find.textContaining('Could not load your team'), findsNothing);
+    });
+
+    testWidgets('the tray falls back on a server without the owed list', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        PendingReportsScreen(api: fakeApi(trayEndpoint: false)),
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.text('AREA 11'), findsOneWidget);
     });
 
     testWidgets('with no team loaded it says so, and offers to try again', (

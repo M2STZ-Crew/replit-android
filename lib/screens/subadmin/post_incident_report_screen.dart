@@ -80,8 +80,9 @@ Future<bool> offerPostIncidentReport(
 
 /// The Post-Incident Report form (Master Context v10 §2.5).
 ///
-/// Filed by the responding team captain once the fire is out, for everyone who
-/// went. Nothing on it is typed: the two times start from what the system
+/// Filed by each responding team's captain once the fire is out, for everyone
+/// on their team who went. The first report closes the incident; another
+/// team's captain adds theirs afterwards. Nothing on it is typed: the two times start from what the system
 /// recorded and are changed with a picker, and the units, the driver, the
 /// roster and the equipment are picked from the organisation's own register
 /// and members. It is single-submit with no draft: the button only arms once
@@ -132,6 +133,10 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   bool _loading = true;
   bool _submitting = false;
 
+  /// The team could not be fetched — as opposed to fetched and empty, which
+  /// means the captain's account is in no organisation.
+  bool _teamFailed = false;
+
   @override
   void initState() {
     super.initState();
@@ -146,7 +151,10 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         _api.getIncident(widget.areaId).catchError((_) => <String, dynamic>{}),
         _api.getDispatches(widget.areaId).catchError((_) => <dynamic>[]),
         _api.getEquipment().catchError((_) => <dynamic>[]),
-        _api.getMyOrgMembers().catchError((_) => <dynamic>[]),
+        _api
+            .getMyOrgMembers()
+            .then<List<dynamic>?>((v) => v)
+            .catchError((_) => null),
       ]);
       if (!mounted) return;
       final incident = results[0] as Map<String, dynamic>;
@@ -176,18 +184,13 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         }
       }
 
-      // The organisation's members, and anyone who joined this incident from
-      // outside it — they went, so they can be picked.
+      // The coordinator's own organisation, and nobody else: a captain files
+      // for their team, and another team's people belong on that team's report.
+      final fetched = results[3] as List<dynamic>?;
       final members = [
-        for (final m in (results[3] as List).cast<Map<String, dynamic>>())
+        for (final m in (fetched ?? const []).cast<Map<String, dynamic>>())
           OrgMember.fromJson(m),
       ];
-      for (final r in prefill.roster) {
-        final id = r.userId;
-        if (id != null && !members.any((m) => m.id == id)) {
-          members.add(OrgMember(id: id, name: r.name));
-        }
-      }
 
       setState(() {
         _designation ??= incident['designation'] as String?;
@@ -196,14 +199,16 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         _unitChoices = units.isEmpty ? kGenericUnits : units;
         _equipmentChoices = equipment;
         _members = members;
+        _teamFailed = fetched == null;
 
         // Start from what the response already recorded.
         final truck = prefill.truckLabel?.toLowerCase();
         for (final u in _unitChoices) {
           if (u.name.toLowerCase() == truck) _units.add(u.key);
         }
+        // Of those who responded, the ones on this captain's team.
         for (final r in prefill.roster) {
-          if (r.userId != null) _rosterIds.add(r.userId!);
+          if (members.any((m) => m.id == r.userId)) _rosterIds.add(r.userId!);
         }
         final driver = prefill.driverUserId;
         if (driver != null && members.any((m) => m.id == driver)) {
@@ -366,7 +371,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         falseAlarmNote: _falseAlarm ? _falseAlarmReason : null,
       );
       if (!mounted) return;
-      _toast('Post-Incident Report filed. Incident closed.');
+      _toast('Post-Incident Report filed.');
       navigator.pop(true);
     } on ApiException catch (e) {
       if (mounted) {
@@ -616,8 +621,8 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     );
   }
 
-  /// The team did not load, so there is nobody to pick. Say so, and offer
-  /// the one thing that fixes it.
+  /// Nobody to pick: the team did not load, or this captain's account is in
+  /// no organisation. Say which, and offer the one thing that can fix it here.
   Widget _noTeam() {
     return Panel(
       radius: AppRadius.control,
@@ -627,7 +632,10 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         children: [
           Expanded(
             child: Text(
-              'Could not load your team. Check your connection.',
+              _teamFailed
+                  ? 'Could not load your team. Check your connection.'
+                  : 'Your account is not in an organization yet, so there is '
+                        'nobody to pick. Ask the admin to add you to your team.',
               style: context.type.meta,
             ),
           ),

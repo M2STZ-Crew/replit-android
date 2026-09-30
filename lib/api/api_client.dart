@@ -854,6 +854,21 @@ class ApiClient {
     return _decode(resp);
   }
 
+  /// Incidents the signed-in captain's team still owes a Post-Incident Report
+  /// for — fire out, and their team has not filed:
+  /// GET /post-incident-reports/owed. Each responding team files its own, so an
+  /// incident another team already closed can still be owed here.
+  Future<List<dynamic>> getOwedPostIncidentReports() async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/post-incident-reports/owed'),
+      headers: _auth,
+    );
+    if (resp.statusCode >= 400) {
+      throw ApiException(resp.statusCode, 'Failed to load pending reports.');
+    }
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
   /// The members of the signed-in captain's organisation — who the
   /// Post-Incident Report offers as driver and for the roster:
   /// GET /organizations/mine/members.
