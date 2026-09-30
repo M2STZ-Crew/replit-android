@@ -99,6 +99,23 @@ String? routingLabel(
   return null;
 }
 
+/// "Ramon Dizon · Hercules Fire Brigade": who verified an incident and the
+/// team they verified it for (the team as it was when they pressed Verify).
+/// The agency stands in for a verifier with no team; an Admin has neither.
+/// Null while the incident is unverified.
+String? verifierLine(Map<String, dynamic>? incident) {
+  final name = (incident?['verified_by_name'] as String?)?.trim();
+  if (name == null || name.isEmpty) return null;
+  final org = (incident?['verified_by_organization'] as String?)?.trim();
+  final agency = incident?['verified_by_agency'] as String?;
+  final team = org != null && org.isNotEmpty
+      ? org
+      : agency == null
+      ? 'Admin'
+      : responderAgencyLabel(agency);
+  return '$name · $team';
+}
+
 String responderAgencyLabel(String? agency) {
   switch (agency) {
     case 'fire_volunteer':

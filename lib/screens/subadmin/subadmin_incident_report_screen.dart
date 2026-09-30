@@ -106,14 +106,14 @@ class _SubAdminIncidentReportScreenState
     super.dispose();
   }
 
-  // Pull the canonical lifecycle state + verifier name for this incident.
+  // Pull the canonical lifecycle state + who verified it, and for which team.
   Future<void> _loadDetail() async {
     try {
       final detail = await _api.getIncident(widget.areaId);
       if (!mounted) return;
       setState(() {
         _status = (detail['status'] as String?) ?? _status;
-        _verifiedByName = detail['verified_by_name'] as String?;
+        _verifiedByName = verifierLine(detail);
         _rejectionReason = detail['rejection_reason'] as String?;
         _centroidLat = (detail['centroid_lat'] as num?)?.toDouble();
         _centroidLng = (detail['centroid_lng'] as num?)?.toDouble();

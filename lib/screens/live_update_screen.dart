@@ -780,6 +780,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                 ),
                 const SizedBox(height: 14),
                 _rail(at),
+                ..._verified(),
                 ..._responders(status),
                 const SizedBox(height: 22),
                 Panel(
@@ -877,6 +878,28 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         ],
       ),
     );
+  }
+
+  /// Which team verified the fire: "Hercules Fire Brigade". The team, never
+  /// the person — the server sends no name.
+  List<Widget> _verified() {
+    final snap = _snap;
+    final team = snap?.verifiedBy;
+    if (_trackingDenied || snap == null || team == null) return const [];
+    final at = snap.verifiedAt?.toLocal();
+    return [
+      const SizedBox(height: 18),
+      _Row(
+        tint: snap.verifiedByAgency == null
+            ? context.pal.ok
+            : context.pal.forAgency(snap.verifiedByAgency),
+        icon: Icons.verified_outlined,
+        title: 'Verified by $team',
+        line: at == null
+            ? 'Confirmed as a real fire'
+            : 'Confirmed as a real fire · ${_ago(at)}',
+      ),
+    ];
   }
 
   /// Each responding unit, or — on the way but no position yet — a line

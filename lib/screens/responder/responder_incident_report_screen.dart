@@ -75,7 +75,7 @@ class _ResponderIncidentReportScreenState
       final detail = await _api.getIncident(widget.areaId);
       if (!mounted) return;
       setState(() {
-        _verifiedByName = detail['verified_by_name'] as String?;
+        _verifiedByName = verifierLine(detail);
         _status = (detail['status'] as String?) ?? _status;
         _centroidLat = (detail['centroid_lat'] as num?)?.toDouble();
         _centroidLng = (detail['centroid_lng'] as num?)?.toDouble();

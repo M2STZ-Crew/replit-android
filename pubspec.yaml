@@ -23,7 +23,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # The +1 here is only a placeholder: CI passes --build-number=<github run
 # number>, which is what becomes the Android versionCode. That has to rise on
 # every build or Android refuses the install, and a run number always does.
-version: 1.12.0+1
+version: 1.12.1+1
 
 environment:
   sdk: ^3.11.1

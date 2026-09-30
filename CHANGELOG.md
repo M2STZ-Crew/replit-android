@@ -6,6 +6,59 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.1 — 30 September 2026 — Who verified a fire, and for which organization
+
+### Changes
+
+**Added**
+- **Citizen — Track It Live**: a "Verified by Hercules Fire Brigade" row under
+  the status rail once the report is verified, with how long ago. The team
+  only, never the person's name (the server sends none).
+- **Staff — who verified and their team**: the responder and coordinator
+  report screens' VERIFIED BY now read "Ramon Dizon · Hercules Fire Brigade";
+  the responder incident screen and the coordinator command screen show
+  "Verified by …" under the address.
+
+**Unchanged, confirmed**
+- The moving fire-truck marker on the reporter's Track It Live, for every
+  responder and responding coordinator, from their first GPS fix.
+
+### Files Changed
+- `lib/models/tracking.dart` — `verifiedBy`, `verifiedByAgency`, `verifiedAt`.
+- `lib/screens/live_update_screen.dart` — the Verified-by row.
+- `lib/screens/responder/responder_status.dart` — `verifierLine`.
+- `lib/screens/responder/responder_incident_report_screen.dart`,
+  `lib/screens/responder/responder_incident_screen.dart`,
+  `lib/screens/subadmin/subadmin_incident_report_screen.dart`,
+  `lib/screens/subadmin/subadmin_incident_command_screen.dart`.
+- `pubspec.yaml` — version 1.12.1.
+- Tests: `test/verifier_line_test.dart` (new), `test/track_it_live_test.dart`.
+
+### Database Changes
+None.
+
+### API Changes
+Reads the new optional fields from backend v1.12.1 (`verified_by*` on the
+incident detail and the tracking snapshot). Against an older backend they are
+absent and nothing new is shown.
+
+### Frontend Changes
+Citizen: Track It Live. Responder: incident screen, report screen.
+Coordinator: review screen, command screen.
+
+### Testing
+- The resident sees which team verified it, with the time; someone who did not
+  report it is not told.
+- `verifierLine`: name and team; agency fallback; Admin; nothing before
+  verification.
+- Result: **280 app tests pass**, `flutter analyze` clean.
+
+### Regression Check
+Whole app suite passes, including every existing Track It Live test (truck
+markers, stale units, polling, background). No existing test changed.
+
+---
+
 ## v1.12.0 — 30 September 2026 — Verify, Respond, Reject; zoomable photos; routing to the fire
 
 ### Changes

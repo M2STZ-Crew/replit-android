@@ -917,6 +917,13 @@ class _SubAdminIncidentCommandScreenState
                     height: 1.2,
                   ),
                 ),
+                if (verifierLine(_incident) case final verifier?) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Verified by $verifier',
+                    style: TextStyle(color: _muted, fontSize: 12),
+                  ),
+                ],
                 const SizedBox(height: 5),
                 if (_centroid != null)
                   Align(

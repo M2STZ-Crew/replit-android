@@ -75,6 +75,7 @@ Map<String, dynamic> unit(
 Map<String, dynamic> snapshot({
   String status = 'en_route',
   List<Map<String, dynamic>> units = const [],
+  String? verifiedBy,
 }) => {
   'area_id': 'a1',
   'designation': 'Area 1.2',
@@ -84,6 +85,14 @@ Map<String, dynamic> snapshot({
   'arrival_radius_m': 100,
   'stale_after_seconds': 60,
   'responders': units,
+  if (verifiedBy != null) ...{
+    'verified_by': verifiedBy,
+    'verified_by_agency': 'fire_volunteer',
+    'verified_at': DateTime.now()
+        .toUtc()
+        .subtract(const Duration(minutes: 4))
+        .toIso8601String(),
+  },
   'generated_at': DateTime.now().toUtc().toIso8601String(),
 };
 
@@ -234,6 +243,32 @@ void main() {
     );
     expect(find.text('ON SCENE'), findsOneWidget);
     expect(find.text('Hercules Fire Brigade · On scene'), findsOneWidget);
+  });
+
+  testWidgets('the resident sees which team verified it (v1.12.1)', (
+    tester,
+  ) async {
+    final feed = FakeFeed()..liveNow.value = true;
+    await pump(tester, feed);
+    expect(find.textContaining('Verified by'), findsNothing);
+    await push(
+      tester,
+      feed,
+      snapshot(status: 'verified', verifiedBy: 'Hercules Fire Brigade'),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('Verified by Hercules Fire Brigade'), findsOneWidget);
+    expect(find.text('Confirmed as a real fire · 4 min ago'), findsOneWidget);
+    expect(find.byIcon(Icons.verified_outlined), findsOneWidget);
+  });
+
+  testWidgets('someone who did not report it is not told who verified it', (
+    tester,
+  ) async {
+    reporter = false;
+    served = snapshot(verifiedBy: 'Hercules Fire Brigade');
+    await pump(tester, FakeFeed());
+    expect(find.textContaining('Verified by'), findsNothing);
   });
 
   testWidgets('on the way with no position yet says a crew is coming', (

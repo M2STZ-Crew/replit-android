@@ -78,6 +78,9 @@ class TrackingSnapshot {
     required this.staleAfter,
     required this.units,
     required this.receivedAt,
+    this.verifiedBy,
+    this.verifiedByAgency,
+    this.verifiedAt,
   });
 
   /// Null for anything that is not a snapshot, rather than a crash: an older
@@ -109,6 +112,9 @@ class TrackingSnapshot {
             TrackedUnit.fromJson(u)._aged(generated),
       ],
       receivedAt: receivedAt ?? DateTime.now(),
+      verifiedBy: json['verified_by'] as String?,
+      verifiedByAgency: json['verified_by_agency'] as String?,
+      verifiedAt: DateTime.tryParse('${json['verified_at']}'),
     );
   }
 
@@ -126,6 +132,14 @@ class TrackingSnapshot {
 
   /// When this phone received the snapshot (this phone's clock).
   final DateTime receivedAt;
+
+  /// The team that verified the incident ("Hercules Fire Brigade") — never
+  /// the person; null until it is verified, or from an older server.
+  final String? verifiedBy;
+
+  /// That team's agency, for its colour; null when an Admin verified it.
+  final String? verifiedByAgency;
+  final DateTime? verifiedAt;
 
   /// How old [unit]'s position is now: its age when the snapshot was made,
   /// plus the time since the snapshot arrived.
