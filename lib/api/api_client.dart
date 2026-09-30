@@ -808,39 +808,64 @@ class ApiClient {
   /// File the Post-Incident Report (team captain, Master Context v10 §2.5):
   /// POST /incidents/{id}/post-incident-report. Single submit — the report and
   /// the incident's close commit together, and a filed report cannot be edited.
-  /// [roster] items are {name, role?, user_id?}.
+  ///
+  /// Everything here was picked on the form, not typed. [units] items are
+  /// {name, type?, equipment_id?}; [roster] items are {name, user_id?}.
   Future<Map<String, dynamic>> filePostIncidentReport(
     String id, {
-    String? truckEquipmentId,
-    required String truckLabel,
-    required String truckType,
+    DateTime? incidentAt,
+    DateTime? fireOutAt,
+    required List<Map<String, dynamic>> units,
     required String driverName,
     String? driverUserId,
     required List<Map<String, dynamic>> roster,
     required List<String> equipmentTaken,
-    String? notes,
     bool falseAlarm = false,
     String? falseAlarmNote,
   }) async {
+    final types = <String>[];
+    for (final u in units) {
+      final t = (u['type'] as String?) ?? 'Unit';
+      if (!types.contains(t)) types.add(t);
+    }
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/incidents/$id/post-incident-report'),
       headers: _jsonAuth,
       body: jsonEncode({
-        'truck_equipment_id': ?truckEquipmentId,
-        'truck_label': truckLabel,
-        'truck_type': truckType,
+        'incident_at': ?incidentAt?.toUtc().toIso8601String(),
+        'fire_out_at': ?fireOutAt?.toUtc().toIso8601String(),
+        'units': units,
+        // A server from before several units could be recorded reads one
+        // truck: the units as a line. The current server ignores these once
+        // `units` is there.
+        'truck_equipment_id': ?(units.isEmpty ? null : units.first['equipment_id']),
+        'truck_label': units.map((u) => u['name']).join(', '),
+        'truck_type': types.join(', '),
         'driver_name': driverName,
         'driver_user_id': ?driverUserId,
         'roster': roster,
         'equipment_taken': equipmentTaken,
-        'notes': ?notes,
         // v11 §2.5.3: the team reached the scene and found nothing. The server
-        // requires the narrative whenever the flag is set.
+        // requires the reason whenever the flag is set.
         'false_alarm': falseAlarm,
         'false_alarm_note': ?falseAlarmNote,
       }),
     );
     return _decode(resp);
+  }
+
+  /// The members of the signed-in captain's organisation — who the
+  /// Post-Incident Report offers as driver and for the roster:
+  /// GET /organizations/mine/members.
+  Future<List<dynamic>> getMyOrgMembers() async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/organizations/mine/members'),
+      headers: _auth,
+    );
+    if (resp.statusCode >= 400) {
+      throw ApiException(resp.statusCode, 'Failed to load your team.');
+    }
+    return jsonDecode(resp.body) as List<dynamic>;
   }
 
   /// A filed Post-Incident Report: GET /incidents/{id}/post-incident-report.

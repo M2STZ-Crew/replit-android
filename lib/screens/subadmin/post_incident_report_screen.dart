@@ -6,19 +6,10 @@ import '../../models/post_incident_report.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
 
-/// Things commonly taken off a unit, offered as one-tap additions so filing is
-/// quick. Free text is always available — this list is a shortcut, not a
-/// catalogue the backend knows about.
-const List<String> kCommonEquipment = [
-  'Hose line',
-  'Nozzle',
-  'SCBA',
-  'Fire extinguisher',
-  'Ladder',
-  'Axe / Halligan',
-  'First aid kit',
-  'Hydrant key',
-];
+export '../../models/post_incident_report.dart' show kCommonEquipment;
+
+/// Equipment-register categories that are units rather than things carried.
+const Set<String> _unitCategories = {'fire_truck', 'vehicle', 'truck'};
 
 /// Right after fire out: offer the Post-Incident Report now, while the crew is
 /// fresh in mind, or leave it in the Pending reports tray. Never blocking —
@@ -42,7 +33,7 @@ Future<bool> offerPostIncidentReport(
         style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
       ),
       content: Text(
-        'File the Post-Incident Report now — truck, driver, roster and equipment? '
+        'File the Post-Incident Report now — units, driver, roster and equipment? '
         'The incident closes when it is filed. You can also do it later from Pending reports.',
         style: TextStyle(color: context.pal.muted),
       ),
@@ -90,10 +81,12 @@ Future<bool> offerPostIncidentReport(
 /// The Post-Incident Report form (Master Context v10 §2.5).
 ///
 /// Filed by the responding team captain once the fire is out, for everyone who
-/// went. It starts from what the dispatch log already knows — the truck, the
-/// driver, the crew — so the captain confirms rather than re-types. It is
-/// single-submit with no draft: the button only arms once every required field
-/// is filled, and filing closes the incident. Pops `true` when filed.
+/// went. Nothing on it is typed: the two times start from what the system
+/// recorded and are changed with a picker, and the units, the driver, the
+/// roster and the equipment are picked from the organisation's own register
+/// and members. It is single-submit with no draft: the button only arms once
+/// everything is picked, and filing closes the incident. Pops `true` when
+/// filed.
 class PostIncidentReportScreen extends StatefulWidget {
   const PostIncidentReportScreen({
     super.key,
@@ -114,28 +107,28 @@ class PostIncidentReportScreen extends StatefulWidget {
 class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
 
-  final _truck = TextEditingController();
-  final _truckType = TextEditingController(text: 'Fire Truck');
-  final _driver = TextEditingController();
-  final _memberName = TextEditingController();
-  final _memberRole = TextEditingController();
-  final _equipmentItem = TextEditingController();
-  final _notes = TextEditingController();
+  /// When it happened and when the fire was out. They start as the system
+  /// recorded them — the first report, and the Fire out press.
+  DateTime? _incidentAt;
+  DateTime? _fireOutAt;
 
-  /// v11 §2.5.3: the team reached the scene and found nothing — a prank, a fire
-  /// already out, the wrong address. The narrative is required when it is set,
-  /// on the server and here, so "false alarm" is never an unexplained tick.
+  List<ReportUnit> _unitChoices = const [];
+  final Set<String> _units = {};
+
+  List<OrgMember> _members = const [];
+  String? _driverId;
+  final Set<String> _rosterIds = {};
+
+  List<String> _equipmentChoices = kCommonEquipment;
+  final Set<String> _equipment = {};
+
+  /// v11 §2.5.3: the team reached the scene and found nothing. It must say
+  /// what they found, so "false alarm" is never an unexplained tick — here by
+  /// picking which of the cases it was.
   bool _falseAlarm = false;
-  final _falseAlarmNote = TextEditingController();
-
-  List<FleetUnit> _fleet = const [];
-  String? _truckEquipmentId;
-  String? _driverUserId;
-  final List<RosterMember> _roster = [];
-  final List<String> _equipment = [];
+  String? _falseAlarmReason;
 
   String? _designation;
-  String? _resolvedAt;
   bool _loading = true;
   bool _submitting = false;
 
@@ -143,57 +136,80 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   void initState() {
     super.initState();
     _designation = widget.designation;
-    for (final c in [_truck, _truckType, _driver]) {
-      c.addListener(_changed);
-    }
     _load();
   }
 
-  @override
-  void dispose() {
-    for (final c in [
-      _truck,
-      _truckType,
-      _driver,
-      _memberName,
-      _memberRole,
-      _equipmentItem,
-      _notes,
-      _falseAlarmNote,
-    ]) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  void _changed() => setState(() {});
-
   Future<void> _load() async {
+    setState(() => _loading = true);
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<Object?>([
         _api.getIncident(widget.areaId).catchError((_) => <String, dynamic>{}),
         _api.getDispatches(widget.areaId).catchError((_) => <dynamic>[]),
         _api.getEquipment().catchError((_) => <dynamic>[]),
+        _api.getMyOrgMembers().catchError((_) => <dynamic>[]),
       ]);
       if (!mounted) return;
       final incident = results[0] as Map<String, dynamic>;
       final dispatches = (results[1] as List).cast<Map<String, dynamic>>();
-      final fleet = (results[2] as List)
-          .cast<Map<String, dynamic>>()
-          .where((e) => e['category'] == 'fire_truck')
-          .map(FleetUnit.fromEquipment)
-          .toList();
+      final register = (results[2] as List).cast<Map<String, dynamic>>();
       final prefill = PostIncidentPrefill.fromDispatches(dispatches);
+
+      final fleet = [
+        for (final e in register)
+          if (_unitCategories.contains(e['category']))
+            ReportUnit.fromFleet(FleetUnit.fromEquipment(e)),
+      ];
+      // A unit registered twice under one name is one choice.
+      final units = <String, ReportUnit>{
+        for (final u in fleet) u.name.toLowerCase(): u,
+      }.values.toList();
+
+      final carried = <String>[
+        for (final e in register)
+          if (!_unitCategories.contains(e['category']))
+            ((e['name'] as String?) ?? '').trim(),
+      ].where((n) => n.isNotEmpty);
+      final equipment = <String>[];
+      for (final item in [...carried, ...kCommonEquipment]) {
+        if (!equipment.any((e) => e.toLowerCase() == item.toLowerCase())) {
+          equipment.add(item);
+        }
+      }
+
+      // The organisation's members, and anyone who joined this incident from
+      // outside it — they went, so they can be picked.
+      final members = [
+        for (final m in (results[3] as List).cast<Map<String, dynamic>>())
+          OrgMember.fromJson(m),
+      ];
+      for (final r in prefill.roster) {
+        final id = r.userId;
+        if (id != null && !members.any((m) => m.id == id)) {
+          members.add(OrgMember(id: id, name: r.name));
+        }
+      }
+
       setState(() {
         _designation ??= incident['designation'] as String?;
-        _resolvedAt = incident['resolved_at'] as String?;
-        _fleet = fleet;
-        if (prefill.truckLabel != null) _pickTruckByName(prefill.truckLabel!);
-        if (prefill.driverName != null) {
-          _driver.text = prefill.driverName!;
-          _driverUserId = prefill.driverUserId;
+        _incidentAt ??= _parse(incident['reported_at']);
+        _fireOutAt ??= _parse(incident['resolved_at']);
+        _unitChoices = units.isEmpty ? kGenericUnits : units;
+        _equipmentChoices = equipment;
+        _members = members;
+
+        // Start from what the response already recorded.
+        final truck = prefill.truckLabel?.toLowerCase();
+        for (final u in _unitChoices) {
+          if (u.name.toLowerCase() == truck) _units.add(u.key);
         }
-        _roster.addAll(prefill.roster);
+        for (final r in prefill.roster) {
+          if (r.userId != null) _rosterIds.add(r.userId!);
+        }
+        final driver = prefill.driverUserId;
+        if (driver != null && members.any((m) => m.id == driver)) {
+          _driverId = driver;
+          _rosterIds.add(driver);
+        }
         _loading = false;
       });
     } catch (_) {
@@ -201,50 +217,92 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     }
   }
 
-  void _pickTruckByName(String name) {
-    final unit = _fleet.where((u) => u.name == name).firstOrNull;
-    _truck.text = name;
-    _truckEquipmentId = unit?.id;
-    if (unit != null) _truckType.text = unit.type;
+  static DateTime? _parse(Object? iso) =>
+      iso is String ? DateTime.tryParse(iso)?.toLocal() : null;
+
+  static String _when(DateTime t) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final hour = t.hour % 12 == 0 ? 12 : t.hour % 12;
+    final minute = t.minute.toString().padLeft(2, '0');
+    return '${months[t.month - 1]} ${t.day}, ${t.year} · '
+        '$hour:$minute ${t.hour < 12 ? 'AM' : 'PM'}';
   }
 
-  void _pickUnit(FleetUnit unit) {
+  /// Change a time with the date and time pickers — picked, not typed.
+  Future<void> _pickTime({required bool fireOut}) async {
+    final now = DateTime.now();
+    final current = (fireOut ? _fireOutAt : _incidentAt) ?? now;
+    final start = current.isAfter(now) ? now : current;
+    final floor = now.subtract(const Duration(days: 30));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: start,
+      firstDate: start.isBefore(floor) ? start : floor,
+      lastDate: now,
+      helpText: fireOut ? 'Day the fire was out' : 'Day of the incident',
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(start),
+      helpText: fireOut ? 'Time the fire was out' : 'Time of the incident',
+    );
+    if (time == null || !mounted) return;
+    final picked = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    if (picked.isAfter(DateTime.now())) {
+      _toast('That time has not happened yet.');
+      return;
+    }
     setState(() {
-      _truck.text = unit.name;
-      _truckEquipmentId = unit.id;
-      _truckType.text = unit.type;
+      if (fireOut) {
+        _fireOutAt = picked;
+      } else {
+        _incidentAt = picked;
+      }
     });
   }
 
-  void _addMember() {
-    final name = _memberName.text.trim();
-    if (name.isEmpty) return;
-    final role = _memberRole.text.trim();
-    setState(() {
-      _roster.add(RosterMember(name: name, role: role.isEmpty ? null : role));
-      _memberName.clear();
-      _memberRole.clear();
-    });
-  }
+  void _toggleUnit(ReportUnit unit) => setState(() {
+    if (!_units.remove(unit.key)) _units.add(unit.key);
+  });
 
-  void _addEquipment(String raw) {
-    final item = raw.trim();
-    if (item.isEmpty) return;
-    final exists = _equipment.any((e) => e.toLowerCase() == item.toLowerCase());
-    setState(() {
-      if (!exists) _equipment.add(item);
-      _equipmentItem.clear();
-    });
-  }
+  /// One driver. Whoever drives went, so they join the roster too.
+  void _pickDriver(OrgMember member) => setState(() {
+    _driverId = member.id;
+    _rosterIds.add(member.id);
+  });
+
+  void _toggleRoster(OrgMember member) => setState(() {
+    if (_rosterIds.remove(member.id)) {
+      // Taken off the roster, they cannot still be the driver.
+      if (_driverId == member.id) _driverId = null;
+    } else {
+      _rosterIds.add(member.id);
+    }
+  });
+
+  void _toggleEquipment(String item) => setState(() {
+    if (!_equipment.remove(item)) _equipment.add(item);
+  });
 
   List<String> get _missing => missingPostIncidentFields(
-    truckLabel: _truck.text,
-    truckType: _truckType.text,
-    driverName: _driver.text,
-    roster: _roster,
-    equipment: _equipment,
+    units: _units.length,
+    hasDriver: _driverId != null,
+    roster: _rosterIds.length,
+    equipment: _equipment.length,
+    incidentAt: _incidentAt,
+    fireOutAt: _fireOutAt,
     falseAlarm: _falseAlarm,
-    falseAlarmNote: _falseAlarmNote.text,
+    falseAlarmReason: _falseAlarmReason,
   );
 
   void _toast(String m) =>
@@ -283,20 +341,29 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     if (confirm != true || !mounted) return;
     setState(() => _submitting = true);
     final navigator = Navigator.of(context);
+    final driver = _members.firstWhere((m) => m.id == _driverId);
     try {
       await _api.filePostIncidentReport(
         widget.areaId,
-        // Set only by picking a fleet chip; typing a name clears it.
-        truckEquipmentId: _truckEquipmentId,
-        truckLabel: _truck.text.trim(),
-        truckType: _truckType.text.trim(),
-        driverName: _driver.text.trim(),
-        driverUserId: _driverUserId,
-        roster: _roster.map((m) => m.toJson()).toList(),
-        equipmentTaken: List.of(_equipment),
-        notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+        incidentAt: _incidentAt,
+        fireOutAt: _fireOutAt,
+        units: [
+          for (final u in _unitChoices)
+            if (_units.contains(u.key)) u.toJson(),
+        ],
+        driverName: driver.name,
+        driverUserId: driver.id,
+        roster: [
+          for (final m in _members)
+            if (_rosterIds.contains(m.id))
+              RosterMember(name: m.name, userId: m.id).toJson(),
+        ],
+        equipmentTaken: [
+          for (final item in _equipmentChoices)
+            if (_equipment.contains(item)) item,
+        ],
         falseAlarm: _falseAlarm,
-        falseAlarmNote: _falseAlarm ? _falseAlarmNote.text.trim() : null,
+        falseAlarmNote: _falseAlarm ? _falseAlarmReason : null,
       );
       if (!mounted) return;
       _toast('Post-Incident Report filed. Incident closed.');
@@ -335,59 +402,78 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                   const SizedBox(height: 18),
                   _intro(),
                   const SizedBox(height: 24),
-                  _section('Unit'),
-                  if (_fleet.isNotEmpty) ...[
-                    _unitChips(),
-                    const SizedBox(height: 12),
-                  ],
-                  _field(
-                    _truck,
-                    'Unit name or plate',
-                    onChanged: (_) => _truckEquipmentId = null,
+                  _section('When'),
+                  _timeRow(
+                    label: 'Time of the incident',
+                    value: _incidentAt,
+                    onTap: () => _pickTime(fireOut: false),
                   ),
-                  const SizedBox(height: 10),
-                  _field(_truckType, 'Unit type'),
+                  const SizedBox(height: 8),
+                  _timeRow(
+                    label: 'Time the fire was out',
+                    value: _fireOutAt,
+                    onTap: () => _pickTime(fireOut: true),
+                  ),
+                  const SizedBox(height: 24),
+                  _section('Units · ${_units.length}'),
+                  _hint('Pick every unit that went.'),
+                  _chips([
+                    for (final u in _unitChoices)
+                      _chip(
+                        u.name,
+                        selected: _units.contains(u.key),
+                        onTap: () => _toggleUnit(u),
+                      ),
+                  ]),
                   const SizedBox(height: 24),
                   _section('Driver'),
-                  _field(
-                    _driver,
-                    'Driver name',
-                    onChanged: (_) => _driverUserId = null,
-                  ),
+                  if (_members.isEmpty)
+                    _noTeam()
+                  else ...[
+                    _hint('Pick one.'),
+                    _chips([
+                      for (final m in _members)
+                        _chip(
+                          m.name,
+                          selected: _driverId == m.id,
+                          onTap: () => _pickDriver(m),
+                        ),
+                    ]),
+                  ],
                   const SizedBox(height: 24),
-                  _section('Roster · ${_roster.length}'),
-                  ..._roster.asMap().entries.map(
-                    (e) => _memberRow(e.key, e.value),
-                  ),
-                  _addMemberRow(),
+                  _section('Roster · ${_rosterIds.length}'),
+                  if (_members.isNotEmpty) ...[
+                    _hint('Pick everyone who went, the driver included.'),
+                    _chips([
+                      for (final m in _members)
+                        _chip(
+                          m.name,
+                          selected: _rosterIds.contains(m.id),
+                          onTap: () => _toggleRoster(m),
+                        ),
+                    ]),
+                  ] else
+                    _hint('Your team has to load before you can pick.'),
                   const SizedBox(height: 24),
                   _section('Equipment taken · ${_equipment.length}'),
-                  _equipmentChips(),
-                  const SizedBox(height: 10),
-                  _suggestions(),
-                  const SizedBox(height: 10),
-                  _field(
-                    _equipmentItem,
-                    'Add an item',
-                    onSubmitted: _addEquipment,
-                    trailing: IconButton(
-                      onPressed: () => _addEquipment(_equipmentItem.text),
-                      icon: Icon(
-                        Icons.add_circle_outline,
-                        color: context.pal.accent,
+                  _hint('Pick everything that came off the units.'),
+                  _chips([
+                    for (final item in _equipmentChoices)
+                      _chip(
+                        item,
+                        selected: _equipment.contains(item),
+                        onTap: () => _toggleEquipment(item),
                       ),
-                      tooltip: 'Add item',
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _section('Notes · optional'),
-                  _field(_notes, 'Anything command should know', maxLines: 4),
+                  ]),
                   const SizedBox(height: 24),
                   _section('False alarm'),
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     value: _falseAlarm,
-                    onChanged: (v) => setState(() => _falseAlarm = v),
+                    onChanged: (v) => setState(() {
+                      _falseAlarm = v;
+                      if (!v) _falseAlarmReason = null;
+                    }),
                     activeThumbColor: context.pal.accent,
                     title: Text(
                       'We arrived and found nothing',
@@ -400,11 +486,16 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                   ),
                   if (_falseAlarm) ...[
                     const SizedBox(height: 8),
-                    _field(
-                      _falseAlarmNote,
-                      'What did the team actually find? (required)',
-                      maxLines: 3,
-                    ),
+                    _hint('What did the team find? Pick one.'),
+                    _chips([
+                      for (final reason in kFalseAlarmReasons)
+                        _chip(
+                          reason,
+                          selected: _falseAlarmReason == reason,
+                          onTap: () =>
+                              setState(() => _falseAlarmReason = reason),
+                        ),
+                    ]),
                   ],
                   const SizedBox(height: 28),
                   if (missing.isNotEmpty) ...[
@@ -430,13 +521,6 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   }
 
   Widget _intro() {
-    final at = _resolvedAt == null
-        ? null
-        : DateTime.tryParse(_resolvedAt!)?.toLocal();
-    final when = at == null
-        ? null
-        : '${at.hour % 12 == 0 ? 12 : at.hour % 12}:${at.minute.toString().padLeft(2, '0')} '
-              '${at.hour < 12 ? 'AM' : 'PM'}';
     return Panel(
       color: context.pal.glassDim,
       child: Row(
@@ -449,8 +533,8 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              '${when == null ? 'Fire out.' : 'Fire out at $when.'} File this once, for everyone '
-              'who went. It closes the incident and cannot be edited afterwards.',
+              'Fire out. File this once, for everyone who went — just tap to '
+              'pick. It closes the incident and cannot be edited afterwards.',
               style: context.type.body.copyWith(fontSize: 13),
             ),
           ),
@@ -464,167 +548,101 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     child: Eyebrow(label, color: context.pal.label),
   );
 
-  Widget _field(
-    TextEditingController c,
-    String hint, {
-    int maxLines = 1,
-    ValueChanged<String>? onChanged,
-    ValueChanged<String>? onSubmitted,
-    Widget? trailing,
+  Widget _hint(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Text(text, style: context.type.meta),
+  );
+
+  /// A time as the system has it, and a tap to change it.
+  Widget _timeRow({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
   }) {
-    return TextField(
-      controller: c,
-      maxLines: maxLines,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      textCapitalization: TextCapitalization.sentences,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
-      decoration: InputDecoration(hintText: hint, suffixIcon: trailing),
-    );
-  }
-
-  Widget _unitChips() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final u in _fleet)
-          ChoiceChip(
-            label: Text(u.name),
-            selected: _truckEquipmentId == u.id,
-            onSelected: (_) => _pickUnit(u),
-            selectedColor: context.pal.accentTint,
-            backgroundColor: context.pal.glass,
-            side: BorderSide(
-              color: _truckEquipmentId == u.id
-                  ? context.pal.accent
-                  : context.pal.line,
-            ),
-            labelStyle: TextStyle(
-              color: _truckEquipmentId == u.id
-                  ? context.pal.accent
-                  : context.pal.textSoft,
-              fontWeight: FontWeight.w700,
-            ),
-            showCheckmark: false,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.chip),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _memberRow(int index, RosterMember m) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    return Semantics(
+      button: true,
+      label: '$label. ${value == null ? 'Not set' : _when(value)}. Change.',
+      excludeSemantics: true,
       child: Panel(
         radius: AppRadius.control,
         color: context.pal.glassDim,
-        padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        onTap: onTap,
         child: Row(
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(label, style: context.type.meta),
+                  const SizedBox(height: 4),
                   Text(
-                    m.name,
-                    style: context.type.rowTitle.copyWith(fontSize: 13),
+                    value == null ? 'Tap to set' : _when(value),
+                    style: context.type.rowTitle.copyWith(fontSize: 14),
                   ),
-                  if (m.role != null && m.role!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(m.role!, style: context.type.meta),
-                  ],
                 ],
               ),
             ),
-            IconButton(
-              onPressed: () => setState(() => _roster.removeAt(index)),
-              icon: Icon(
-                Icons.close_rounded,
-                color: context.pal.muted,
-                size: 18,
-              ),
-              tooltip: 'Remove ${m.name}',
-            ),
+            Icon(Icons.schedule_rounded, color: context.pal.accent, size: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _addMemberRow() {
-    return Row(
-      children: [
-        Expanded(flex: 3, child: _field(_memberName, 'Name')),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 2,
-          child: _field(_memberRole, 'Role', onSubmitted: (_) => _addMember()),
-        ),
-        IconButton(
-          onPressed: _addMember,
-          icon: Icon(
-            Icons.person_add_alt_1_outlined,
-            color: context.pal.accent,
-          ),
-          tooltip: 'Add to roster',
-        ),
-      ],
+  Widget _chips(List<Widget> chips) =>
+      Wrap(spacing: 8, runSpacing: 8, children: chips);
+
+  Widget _chip(
+    String label, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      showCheckmark: false,
+      selectedColor: context.pal.accentTint,
+      backgroundColor: context.pal.glass,
+      side: BorderSide(color: selected ? context.pal.accent : context.pal.line),
+      labelStyle: TextStyle(
+        color: selected ? context.pal.accent : context.pal.textSoft,
+        fontWeight: FontWeight.w700,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+      ),
     );
   }
 
-  Widget _equipmentChips() {
-    if (_equipment.isEmpty) {
-      return Text('Nothing added yet.', style: context.type.meta);
-    }
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final item in _equipment)
-          InputChip(
-            label: Text(item),
-            onDeleted: () => setState(() => _equipment.remove(item)),
-            backgroundColor: context.pal.glass,
-            side: BorderSide(color: context.pal.line),
-            labelStyle: TextStyle(
-              color: context.pal.textSoft,
-              fontWeight: FontWeight.w600,
-            ),
-            deleteIconColor: context.pal.muted,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.chip),
+  /// The team did not load, so there is nobody to pick. Say so, and offer
+  /// the one thing that fixes it.
+  Widget _noTeam() {
+    return Panel(
+      radius: AppRadius.control,
+      color: context.pal.glassDim,
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Could not load your team. Check your connection.',
+              style: context.type.meta,
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _suggestions() {
-    final left = kCommonEquipment
-        .where(
-          (s) => !_equipment.any((e) => e.toLowerCase() == s.toLowerCase()),
-        )
-        .toList();
-    if (left.isEmpty) return const SizedBox.shrink();
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        for (final s in left)
-          ActionChip(
-            label: Text('+ $s'),
-            onPressed: () => _addEquipment(s),
-            backgroundColor: Colors.transparent,
-            side: BorderSide(color: context.pal.line),
-            labelStyle: TextStyle(color: context.pal.label, fontSize: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.chip),
+          TextButton(
+            onPressed: _load,
+            child: Text(
+              'TRY AGAIN',
+              style: TextStyle(
+                color: context.pal.accent,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
