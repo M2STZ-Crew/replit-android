@@ -961,6 +961,31 @@ class ApiClient {
     return _decode(resp);
   }
 
+  // ---- AI summaries (coordinator, v1.12.5) ----------------------------------
+
+  /// Every incident a team filed a report for, newest first, each with its
+  /// newest AI summary and a `state` — ready, writing (the server is writing
+  /// it; refresh shortly) or unavailable (no AI key): GET /ai-summaries.
+  Future<List<dynamic>> getAiSummaries() async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/ai-summaries'),
+      headers: _auth,
+    );
+    if (resp.statusCode >= 400) _decode(resp); // throws with the server's words
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  /// A five-minute link to the incident's PDF for the phone's browser, which
+  /// cannot send the sign-in: POST /incidents/{id}/report-link. The PDF is
+  /// built when the link is opened, so it carries every report filed by then.
+  Future<Uri> getReportLink(String id) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/report-link'),
+      headers: _auth,
+    );
+    return Uri.parse('${ApiConfig.baseUrl}${_decode(resp)['path']}');
+  }
+
   /// A filed Post-Incident Report: GET /incidents/{id}/post-incident-report.
   Future<Map<String, dynamic>> getPostIncidentReport(String id) async {
     final resp = await _client.get(

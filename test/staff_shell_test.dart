@@ -88,6 +88,11 @@ void main() {
     }
     expect(find.text('Pending reports'), findsNothing);
     expect(find.text('Responders'), findsNothing, reason: 'coordinators only');
+    expect(
+      find.text('AI summaries'),
+      findsNothing,
+      reason: 'coordinators only',
+    );
     expect(find.text('Alarm requests'), findsNothing);
   });
 
@@ -101,6 +106,7 @@ void main() {
     expect(find.text('Hercules Fire Brigade · Fire Volunteer'), findsOneWidget);
     expect(find.text('Pending reports'), findsOneWidget);
     expect(find.text('Responders'), findsOneWidget, reason: 'their accounts');
+    expect(find.text('AI summaries'), findsOneWidget);
     expect(find.text('My duty'), findsNothing);
     expect(find.text('Alarm requests'), findsNothing, reason: 'BFP only');
   });
@@ -110,6 +116,20 @@ void main() {
     await openMenu(tester);
     expect(find.text('Alarm requests'), findsOneWidget);
     expect(find.text('Pending reports'), findsOneWidget);
+    expect(find.text('AI summaries'), findsOneWidget);
+  });
+
+  testWidgets('an observer coordinator has no AI summaries: the server keeps '
+      'them to the fire agencies', (tester) async {
+    await pump(tester, const {
+      'id': 'u4',
+      'full_name': 'Lolo Donat',
+      'role': 'sub_admin',
+      'agency_type': 'barangay',
+    });
+    await openMenu(tester);
+    expect(find.text('Responders'), findsOneWidget);
+    expect(find.text('AI summaries'), findsNothing);
   });
 
   testWidgets('inside an incident: Back, the same tag, and the same menu', (

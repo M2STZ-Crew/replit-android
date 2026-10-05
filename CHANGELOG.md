@@ -6,6 +6,69 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.5 — 5 October 2026 — AI summaries for coordinators
+
+Needs backend v1.12.5 (`replit-backend`).
+
+### Changes
+
+**Added**
+- **Menu → AI summaries** for Fire Volunteer and BFP coordinators
+  (`lib/screens/subadmin/ai_summaries_screen.dart`).
+  - A list of **"Summarized incident — 10/5/2026"** (the Philippine day the
+    summary was written), with the area and the teams that filed, newest
+    first.
+  - Nobody asks for a summary: the AI writes one when a team files and
+    rewrites it when another does. One still being written shows
+    **Writing** (or **Updating**, with the older one readable meanwhile), and
+    the list checks back by itself every 10 seconds, up to six times. Pull to
+    refresh as well.
+  - Tapping one opens it as a **note**: the summary, which model wrote it and
+    when, and a reminder to check it against the teams' reports.
+  - **Download PDF** opens the report in the phone's browser, which saves it
+    to Downloads. The app gets a five-minute link first, since the browser
+    cannot sign in. The PDF is made at download, so it always includes every
+    report filed by then. An incident with no summary still has its PDF.
+- `ApiClient`: `getAiSummaries`, `getReportLink`.
+
+### Files Changed
+- New: `lib/screens/subadmin/ai_summaries_screen.dart`,
+  `test/ai_summaries_screen_test.dart`.
+- `lib/widgets/staff_shell.dart`: `StaffPage.summaries` and the AI summaries
+  item (Fire Volunteer and BFP coordinators only; the server refuses
+  observers).
+- `lib/api/api_client.dart`: the two calls.
+- `pubspec.yaml`: version 1.12.5.
+- `test/staff_shell_test.dart`: AI summaries for fire coordinators, not
+  responders or observer coordinators.
+
+### Database Changes
+None.
+
+### API Changes
+Uses `GET /ai-summaries`, `POST /incidents/{id}/report-link` and the
+browser's `GET /incidents/{id}/report-download` (backend v1.12.5).
+
+### Frontend Changes
+Coordinator: menu → AI summaries. Responder: nothing new.
+
+### Testing
+- The date is the Philippine day, M/D/YYYY (5:30 PM UTC on the 4th → 10/5).
+- The list: title, area and teams; Writing until it arrives, the list
+  checking back by itself and stopping once nothing is owed; Updating and
+  No summary; empty; the server's refusal in its own words.
+- The note: the summary, model and time; Download PDF asks for the link and
+  hands the browser the full address. An incident with no summary still
+  downloads.
+- The menu: AI summaries for Fire Volunteer and BFP coordinators, not for
+  responders or a barangay coordinator.
+- Result: **318 app tests pass**, `flutter analyze` clean.
+
+### Regression Check
+Full suite passes. The rest of the menu is unchanged.
+
+---
+
 ## v1.12.4 — 5 October 2026 — Coordinators make their responders' accounts
 
 Needs backend v1.12.4 (`replit-backend`), and its migration applied first.

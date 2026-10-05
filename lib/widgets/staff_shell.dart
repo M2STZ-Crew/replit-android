@@ -9,6 +9,7 @@ import '../screens/login_screen.dart';
 import '../screens/responder/responder_duty_screen.dart';
 import '../screens/responder/responder_incidents_screen.dart';
 import '../screens/responder/responder_status.dart';
+import '../screens/subadmin/ai_summaries_screen.dart';
 import '../screens/subadmin/pending_reports_screen.dart';
 import '../screens/subadmin/subadmin_home_screen.dart';
 import '../screens/subadmin/team_screen.dart';
@@ -47,7 +48,7 @@ enum StaffRole {
 }
 
 /// The console's sections — what the menu opens.
-enum StaffPage { dashboard, incidents, duty, reports, team, alarms }
+enum StaffPage { dashboard, incidents, duty, reports, team, summaries, alarms }
 
 /// The signed-in staff account, for the screens opened without one in hand
 /// (the pending-report tray, the alarm queue). Set when a staff console opens.
@@ -194,8 +195,9 @@ class RoleTag extends StatelessWidget {
 ///
 /// Dashboard and Incidents for everyone; My duty for a responder; Pending
 /// reports (each team files its own Post-Incident Report) and Responders (the
-/// responder accounts they make) for a coordinator; Alarm requests for BFP,
-/// whose authority executing them is. Choosing a
+/// responder accounts they make) for a coordinator; AI summaries for a Fire
+/// Volunteer or BFP coordinator; Alarm requests for BFP, whose authority
+/// executing them is. Choosing a
 /// section goes back to the dashboard and opens it from there, so Back from
 /// any section is always the dashboard.
 class StaffDrawer extends StatefulWidget {
@@ -224,6 +226,11 @@ class _StaffDrawerState extends State<StaffDrawer> {
   StaffRole get _role => StaffRole.of(widget.me);
   String? get _agency => widget.me?['agency_type'] as String?;
   bool get _bfp => _role == StaffRole.coordinator && _agency == 'bfp';
+
+  /// The fire agencies coordinate; the server keeps the AI summaries to them.
+  bool get _fireCoordinator =>
+      _role == StaffRole.coordinator &&
+      (_agency == 'fire_volunteer' || _agency == 'bfp');
 
   @override
   void initState() {
@@ -259,6 +266,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
     StaffPage.duty => ResponderDutyScreen(me: me),
     StaffPage.reports => const PendingReportsScreen(),
     StaffPage.team => TeamScreen(me: me),
+    StaffPage.summaries => AiSummariesScreen(me: me),
     StaffPage.alarms => const BfpAlarmRequestsScreen(),
   };
 
@@ -333,6 +341,12 @@ class _StaffDrawerState extends State<StaffDrawer> {
               // Where a coordinator's responders get their accounts.
               _item(Icons.group_outlined, 'Responders', StaffPage.team),
             ],
+            if (_fireCoordinator)
+              _item(
+                Icons.auto_awesome_outlined,
+                'AI summaries',
+                StaffPage.summaries,
+              ),
             if (_bfp)
               _item(
                 Icons.campaign_outlined,
