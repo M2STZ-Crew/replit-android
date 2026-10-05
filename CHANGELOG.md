@@ -6,6 +6,62 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.4 — 5 October 2026 — Coordinators make their responders' accounts
+
+Needs backend v1.12.4 (`replit-backend`), and its migration applied first.
+
+### Changes
+
+**Added**
+- **Menu → Responders** for coordinators (Fire Volunteer and BFP): where a
+  responder's account comes from (`lib/screens/subadmin/team_screen.dart`).
+  - The roster: name, sign-in address, **On a run** / **Deactivated**.
+  - **New responder**: first name, surname, optional mobile; the address it
+    makes is shown as the name is typed (`jdelacruz.resfir@replit.com`,
+    numbered after the surname when taken — the server decides).
+  - **Account ready**: the address and a generated password, shown once, with
+    Copy — to hand over in person.
+  - Per responder: **Reset password** (a new one, shown once) and
+    **Deactivate** / **Reactivate** (asks first; says when a live response
+    will be released).
+- `ApiClient`: `getTeamResponders`, `previewResponderEmail`,
+  `createResponder`, `resetResponderPassword`, `deactivateResponder`,
+  `reactivateResponder`.
+
+### Files Changed
+- New: `lib/screens/subadmin/team_screen.dart`, `test/team_screen_test.dart`.
+- `lib/widgets/staff_shell.dart` — `StaffPage.team`, the Responders item.
+- `lib/api/api_client.dart` — the six calls.
+- `pubspec.yaml` — version 1.12.4.
+- `test/staff_shell_test.dart` — Responders for coordinators only.
+
+### Database Changes
+None here (the backend adds `users.is_active` and friends).
+
+### API Changes
+Uses the new `/team/responders` endpoints (backend v1.12.4).
+
+### Frontend Changes
+Coordinator: menu → Responders. Responder: nothing new to do. A deactivated
+account's session stops working (back to the sign-in screen), and signing in
+then says "This account has been deactivated. Ask your coordinator to
+reactivate it."
+
+### Testing
+- The roster shows who is on a run and who is deactivated, and the count
+  active.
+- New responder: the address appears as the name is typed; Create shows the
+  address and password once; the new responder is then listed.
+- Deactivate asks first (and says a live response will be released), then
+  turns the account off.
+- The menu offers Responders to coordinators, not to responders.
+- Result: **309 app tests pass**, `flutter analyze` clean.
+
+### Regression Check
+Whole app suite passes; nothing else changed.
+
+---
+
 ## v1.12.3 — 1 October 2026 — One console for responders and coordinators; Done right after fire out
 
 App only: no backend or API change (the backend stays at 1.12.1).

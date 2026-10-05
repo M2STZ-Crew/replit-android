@@ -883,6 +883,84 @@ class ApiClient {
     return jsonDecode(resp.body) as List<dynamic>;
   }
 
+  // ---- Responder accounts (coordinator, v1.12.4) ----------------------------
+
+  /// The coordinator's responder accounts — their agency, their team:
+  /// GET /team/responders. Active first.
+  Future<List<dynamic>> getTeamResponders() async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/team/responders'),
+      headers: _auth,
+    );
+    if (resp.statusCode >= 400) {
+      throw ApiException(resp.statusCode, 'Failed to load your responders.');
+    }
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  /// The address a new responder with this name would get now
+  /// ("jdelacruz.resfir@replit.com"): GET /team/responders/email-preview.
+  Future<String> previewResponderEmail(
+    String firstName,
+    String lastName,
+  ) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/team/responders/email-preview')
+        .replace(
+          queryParameters: {'first_name': firstName, 'last_name': lastName},
+        );
+    final resp = await _client.get(uri, headers: _auth);
+    return _decode(resp)['email'] as String;
+  }
+
+  /// Create a responder account: POST /team/responders. Returns
+  /// {responder, email, temporary_password} — the password only this once.
+  Future<Map<String, dynamic>> createResponder({
+    required String firstName,
+    required String lastName,
+    String? mobile,
+  }) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/team/responders'),
+      headers: _jsonAuth,
+      body: jsonEncode({
+        'first_name': firstName,
+        'last_name': lastName,
+        'mobile': ?mobile,
+      }),
+    );
+    return _decode(resp);
+  }
+
+  /// A new temporary password for a responder, returned once:
+  /// POST /team/responders/{id}/reset-password.
+  Future<Map<String, dynamic>> resetResponderPassword(String id) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/team/responders/$id/reset-password'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
+  /// Stop a responder account signing in (it keeps its history):
+  /// POST /team/responders/{id}/deactivate.
+  Future<Map<String, dynamic>> deactivateResponder(String id) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/team/responders/$id/deactivate'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
+  /// Let a deactivated responder sign in again:
+  /// POST /team/responders/{id}/reactivate.
+  Future<Map<String, dynamic>> reactivateResponder(String id) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/team/responders/$id/reactivate'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
   /// A filed Post-Incident Report: GET /incidents/{id}/post-incident-report.
   Future<Map<String, dynamic>> getPostIncidentReport(String id) async {
     final resp = await _client.get(

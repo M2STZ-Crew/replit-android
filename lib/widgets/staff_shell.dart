@@ -11,6 +11,7 @@ import '../screens/responder/responder_incidents_screen.dart';
 import '../screens/responder/responder_status.dart';
 import '../screens/subadmin/pending_reports_screen.dart';
 import '../screens/subadmin/subadmin_home_screen.dart';
+import '../screens/subadmin/team_screen.dart';
 import '../theme.dart';
 import 'app_logo.dart';
 import 'design.dart';
@@ -46,7 +47,7 @@ enum StaffRole {
 }
 
 /// The console's sections — what the menu opens.
-enum StaffPage { dashboard, incidents, duty, reports, alarms }
+enum StaffPage { dashboard, incidents, duty, reports, team, alarms }
 
 /// The signed-in staff account, for the screens opened without one in hand
 /// (the pending-report tray, the alarm queue). Set when a staff console opens.
@@ -192,8 +193,9 @@ class RoleTag extends StatelessWidget {
 /// The console menu — one drawer for every staff screen.
 ///
 /// Dashboard and Incidents for everyone; My duty for a responder; Pending
-/// reports for a coordinator (each team files its own Post-Incident Report);
-/// Alarm requests for BFP, whose authority executing them is. Choosing a
+/// reports (each team files its own Post-Incident Report) and Responders (the
+/// responder accounts they make) for a coordinator; Alarm requests for BFP,
+/// whose authority executing them is. Choosing a
 /// section goes back to the dashboard and opens it from there, so Back from
 /// any section is always the dashboard.
 class StaffDrawer extends StatefulWidget {
@@ -256,6 +258,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
           : ResponderIncidentsScreen(me: me),
     StaffPage.duty => ResponderDutyScreen(me: me),
     StaffPage.reports => const PendingReportsScreen(),
+    StaffPage.team => TeamScreen(me: me),
     StaffPage.alarms => const BfpAlarmRequestsScreen(),
   };
 
@@ -320,13 +323,16 @@ class _StaffDrawerState extends State<StaffDrawer> {
             _item(Icons.list_alt_rounded, 'Incidents', StaffPage.incidents),
             if (_role == StaffRole.responder)
               _item(Icons.badge_outlined, 'My duty', StaffPage.duty),
-            if (_role == StaffRole.coordinator)
+            if (_role == StaffRole.coordinator) ...[
               _item(
                 Icons.assignment_late_outlined,
                 'Pending reports',
                 StaffPage.reports,
                 count: _reportsOwed,
               ),
+              // Where a coordinator's responders get their accounts.
+              _item(Icons.group_outlined, 'Responders', StaffPage.team),
+            ],
             if (_bfp)
               _item(
                 Icons.campaign_outlined,

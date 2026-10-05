@@ -87,6 +87,7 @@ void main() {
       expect(find.text(item), findsOneWidget, reason: item);
     }
     expect(find.text('Pending reports'), findsNothing);
+    expect(find.text('Responders'), findsNothing, reason: 'coordinators only');
     expect(find.text('Alarm requests'), findsNothing);
   });
 
@@ -99,6 +100,7 @@ void main() {
     await openMenu(tester);
     expect(find.text('Hercules Fire Brigade · Fire Volunteer'), findsOneWidget);
     expect(find.text('Pending reports'), findsOneWidget);
+    expect(find.text('Responders'), findsOneWidget, reason: 'their accounts');
     expect(find.text('My duty'), findsNothing);
     expect(find.text('Alarm requests'), findsNothing, reason: 'BFP only');
   });
