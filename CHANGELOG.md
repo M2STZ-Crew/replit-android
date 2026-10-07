@@ -6,6 +6,90 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.6 — 7 October 2026 — Notifications outside the app, a fire alarm, and taps that open
+
+Needs backend v1.12.6 (`replit-backend`) for the new-fire alert and the alarm
+channel, and Render's `FCM_CREDENTIALS_JSON` for any push at all.
+
+### Changes
+
+**Added**
+- **The fire alarm.** Two notification channels, made when the app opens
+  (`MainActivity.kt`):
+  - **Fire alerts** rings with the app's own fire alarm
+    (`res/raw/fire_alarm.wav`: three rising whoops, about 2.3 s, synthesized
+    for RepLiT), vibrates, and shows on the lock screen;
+  - **Updates** uses the phone's own tone.
+  The server picks the channel: a new fire for staff, a neighbour's first
+  alert, or an alarm request rings the alarm. With the app open, the same
+  pushes play the same alarm (`SoundCues.playFireAlarm`). It plays as a
+  notification, so it follows the notification volume and the silent switch.
+- **Every notification opens what it is about** (`NotificationRouter`), the
+  same way from the phone's shade, from the banner while the app is open
+  (**OPEN**), and from a row in **Alerts**:
+  - a new fire → the incident. A responder lands where Verify and Respond are;
+    a coordinator lands where their dashboard would send them for its state.
+  - a fire nearby → "Do you see it too?" for a resident, the incident for
+    staff;
+  - news about your report → its live tracker;
+  - an alarm request → BFP's alarm queue (the incident for others).
+- **Alerts**: a **New fire** label; a chevron on rows that lead somewhere;
+  "There is nothing to open for this one." when a row has nowhere to go.
+- A status-bar icon (a flame) in place of the white square the launcher icon
+  made, tinted in the accent.
+
+**Modified**
+- The in-app banner for a fire is red and stays 12 s; others stay 6 s.
+- A neighbour alert arriving with the app open goes through the same router,
+  so a staff member near a fire lands on the incident, not the resident's
+  question.
+
+### Files Changed
+- New: `lib/api/notification_router.dart`, `test/notifications_test.dart`,
+  `assets/sounds/fire_alarm.wav`, `android/app/src/main/res/raw/fire_alarm.wav`,
+  `android/app/src/main/res/raw/keep.xml` (the release build's resource
+  shrinker would otherwise drop the sound and icon),
+  `android/app/src/main/res/drawable/ic_stat_replit.xml`.
+- `android/app/src/main/kotlin/com/m2stz/replit/MainActivity.kt` (the
+  channels), `android/app/src/main/AndroidManifest.xml` (default channel, icon,
+  colour), `android/app/src/main/res/values/colors.xml`.
+- `lib/api/push_service.dart` (alarm in the foreground, OPEN, everything
+  through the router), `lib/screens/notifications_screen.dart`,
+  `lib/sound/sound_cues.dart`.
+- `pubspec.yaml`: version 1.12.6.
+
+### Database Changes
+None.
+
+### API Changes
+Reads the new `incident_new` push and Alerts type (backend v1.12.6). Nothing
+else changes.
+
+### Frontend Changes
+Everyone: notifications ring, look like RepLiT's, and open where they belong.
+Staff: a new fire now arrives as a notification with the alarm, with the app
+closed too.
+
+### Testing
+- Where each type leads, for a citizen, a responder (fire and police), Fire
+  Volunteer, BFP and barangay coordinators. Older staff types still open the
+  incident; a test push and unknown types open nothing.
+- Which types ring the alarm, and which notifications have something to open.
+- The router opens nothing when the account cannot be read, or for an
+  observer coordinator.
+- Alerts: the New fire label and the chevron only on rows that lead
+  somewhere; a tap marks the row read and opens it; a row with nowhere to go
+  only marks read; a row that cannot be opened says so.
+- A release build compiles the channels, and the APK carries the alarm and
+  the icon.
+- Result: **332 app tests pass** (14 new), `flutter analyze` clean.
+
+### Regression Check
+Full suite passes. Pushes from a backend that names no channel go to
+**Updates**, as before but under RepLiT's own name.
+
+---
+
 ## v1.12.5 — 5 October 2026 — AI summaries for coordinators
 
 Needs backend v1.12.5 (`replit-backend`).

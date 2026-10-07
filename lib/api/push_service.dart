@@ -1,27 +1,33 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_version.dart';
-import '../screens/live_update_screen.dart';
-import '../screens/neighbour_alert_screen.dart';
-import '../screens/responder/responder_incident_screen.dart';
-import '../screens/subadmin/coordinator_nav.dart';
+import '../sound/sound_cues.dart';
 import '../theme.dart';
 import 'api_client.dart';
+import 'notification_router.dart';
 import 'session.dart';
 
 /// Background FCM handler — must be a top-level, entry-point function.
 ///
 /// Notification-payload messages are shown by Android automatically while the
-/// app is backgrounded/terminated, so there's nothing to do here.
+/// app is backgrounded/terminated — in the channel the server names, so a fire
+/// rings with the fire alarm — so there's nothing to do here.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 /// Owns the device's FCM lifecycle: registers the token with the backend
 /// (POST /devices), pushes the user's location for 300 m neighborhood alerts,
 /// surfaces foreground pushes in-app, and unregisters on logout.
+///
+/// v1.12.6: every push opens what it is about when tapped — in the shade, or
+/// on the banner shown while the app is open ([NotificationRouter]) — and one
+/// that says there is a fire rings the fire alarm while the app is open, as
+/// the "Fire alerts" channel does while it is closed.
 class PushService {
   PushService._();
   static final PushService instance = PushService._();
@@ -142,18 +148,33 @@ class PushService {
   }
 
   void _onForeground(RemoteMessage message) {
-    if (message.data['type'] == 'neighborhood_alert') {
-      _handleNeighborhood(message);
+    final type = message.data['type'] as String?;
+    if (fireAlertTypes.contains(type)) {
+      unawaited(SoundCues.instance.playFireAlarm());
+    }
+    // A fire near them, with the app open: straight to "Do you see it too?"
+    // ("11 Corroborate — 300 m") — or, for staff, the incident.
+    if (type == 'neighborhood_alert') {
+      _onOpened(message);
       return;
     }
     final notification = message.notification;
     final title = notification?.title ?? 'RepLiT';
     final body = notification?.body ?? (message.data['body'] as String?) ?? '';
     if (body.isEmpty) return;
+    final fire = fireAlertTypes.contains(type);
     messengerKey.currentState?.showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.gradientEnd,
-        duration: const Duration(seconds: 5),
+        backgroundColor: fire ? AppColors.live : AppColors.gradientEnd,
+        // Long enough to reach for on a new fire; the Alerts list keeps it too.
+        duration: Duration(seconds: fire ? 12 : 6),
+        action: canOpen(type, message.data)
+            ? SnackBarAction(
+                label: 'OPEN',
+                textColor: Colors.white,
+                onPressed: () => _onOpened(message),
+              )
+            : null,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,89 +194,17 @@ class PushService {
     );
   }
 
+  /// A push was tapped — in the shade, or OPEN on the in-app banner. Opens
+  /// what it is about for whoever is signed in ([NotificationRouter]): the
+  /// incident for staff, "Do you see it too?" for a neighbour, the live
+  /// tracker for the resident who reported it, the alarm queue for BFP.
   void _onOpened(RemoteMessage message) {
-    final type = message.data['type'];
-    if (type == 'neighborhood_alert') {
-      _handleNeighborhood(message);
-    } else if (type == 'incident_update') {
-      final areaId = message.data['area_id'] as String?;
-      if (areaId != null) _openIncident(areaId);
-    } else if (type == 'responder_dispatch') {
-      final areaId = message.data['area_id'] as String?;
-      if (areaId != null) _openDispatch(areaId);
-    } else if (type == 'incident_routed') {
-      final areaId = message.data['area_id'] as String?;
-      if (areaId != null) _openRouted(areaId);
-    }
-  }
-
-  /// Admin routed an incident to this team captain's team (v10 §2.6.2):
-  /// open it where a coordinator acts on it. Observer captains work from the
-  /// web console, so the phone has nothing to open for them.
-  Future<void> _openRouted(String areaId) async {
-    try {
-      final me = await _api.getMe();
-      final coordinator =
-          me['role'] == 'sub_admin' &&
-          const {'fire_volunteer', 'bfp'}.contains(me['agency_type']);
-      if (!coordinator) return;
-      final incident = await _api.getIncident(areaId);
-      final ctx = navigatorKey.currentContext;
-      if (ctx == null || !ctx.mounted) return;
-      await openCoordinatorIncident(ctx, incident: incident, me: me, api: _api);
-    } catch (_) {
-      // ignore — best-effort deep link; the incident is on the dashboard too
-    }
-  }
-
-  /// A coordinator dispatched this responder: tapping the push opens the
-  /// incident, where En route and Arrived are — and where location sharing
-  /// starts, if the dashboard has not already picked the dispatch up.
-  Future<void> _openDispatch(String areaId) async {
-    try {
-      final me = await _api.getMe();
-      if (me['role'] != 'response_team') return;
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (_) => ResponderIncidentScreen(
-            incidentId: areaId,
-            myId: me['id'] as String? ?? '',
-            agency: me['agency_type'] as String?,
-            orgId: me['primary_org_id'] as String?,
-          ),
-        ),
-      );
-    } catch (_) {
-      // ignore — best-effort deep link; the dispatch is on the dashboard too
-    }
-  }
-
-  /// Open the live tracker for an incident the citizen reported (tapped from a
-  /// lifecycle push). Resolves the area's centroid to seed the map.
-  Future<void> _openIncident(String areaId) async {
-    try {
-      final area = await _api.getArea(areaId);
-      final lat = (area['centroid_lat'] as num?)?.toDouble();
-      final lng = (area['centroid_lng'] as num?)?.toDouble();
-      if (lat == null || lng == null) return;
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (_) => LiveUpdateScreen(areaId: areaId, lat: lat, lng: lng),
-        ),
-      );
-    } catch (_) {
-      // ignore — best-effort deep link
-    }
-  }
-
-  /// A 300 m neighbourhood alert opens "Do you see it too?" ("11 Corroborate
-  /// — 300 m"): Yes goes through the SOS photo step as a real report (v10
-  /// §2.2); No stops further alerts for this area.
-  void _handleNeighborhood(RemoteMessage message) {
-    final areaId = message.data['area_id'] as String?;
-    if (areaId == null) return;
-    navigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (_) => NeighbourAlertScreen(areaId: areaId)),
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+    unawaited(
+      NotificationRouter(
+        api: _api,
+      ).open(nav, type: message.data['type'] as String?, data: message.data),
     );
   }
 

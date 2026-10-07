@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The fire alarm is named by the server ("sound": "fire_alarm") and by the
+     notification channel, never in a way the release build's resource shrinker
+     can see — without this it would be stripped from the APK and fire alerts
+     would ring with the default tone. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/fire_alarm,@drawable/ic_stat_replit" />

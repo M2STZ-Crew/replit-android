@@ -3,4 +3,6 @@
     <!-- Background/Ground from the design system: the icon sits on the same
          ground every screen does. -->
     <color name="ic_launcher_background">#131313</color>
+    <!-- The accent a notification's icon and name are tinted with. -->
+    <color name="notification_accent">#FF7943</color>
 </resources>
