@@ -17,6 +17,7 @@ import 'package:replit/screens/live_update_screen.dart';
 import 'package:replit/screens/report_status_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/design.dart';
+import 'package:replit/widgets/unit_groups.dart';
 
 /// A socket the test drives by hand.
 class FakeFeed implements TrackingFeed {
@@ -201,7 +202,8 @@ void main() {
         snapshot(
           units: [
             unit('unit-1', 'Apollo'),
-            unit('unit-2', 'Unit 2', ageS: 130, organization: null),
+            // Far enough apart to keep a marker each (v1.12.7 merges close ones).
+            unit('unit-2', 'Unit 2', north: 400, ageS: 130, organization: null),
           ],
         ),
       );
@@ -220,6 +222,65 @@ void main() {
       expect(find.byType(PolylineLayer), findsNothing);
     });
   }
+
+  testWidgets('trucks travelling together share one marker with their count', (
+    tester,
+  ) async {
+    final feed = FakeFeed()..liveNow.value = true;
+    await pump(tester, feed);
+    await push(
+      tester,
+      feed,
+      snapshot(
+        units: [
+          unit('unit-1', 'Apollo'),
+          unit('unit-2', 'Hermes', north: 1510),
+          unit('unit-3', 'Ares', north: 1490),
+        ],
+      ),
+    );
+    expect(tester.takeException(), isNull);
+
+    final merged = tester.widget<UnitGroupMarker>(find.byType(UnitGroupMarker));
+    expect(merged.count, 3);
+    expect(merged.label, '3 trucks: Apollo, Hermes, Ares');
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('unit-group-count')),
+        matching: find.text('3'),
+      ),
+      findsOneWidget,
+    );
+    // The map merges; the sheet still lists every truck.
+    for (final name in ['Apollo', 'Hermes', 'Ares']) {
+      expect(find.text(name), findsOneWidget, reason: name);
+    }
+    // Three rows in the sheet, one marker on the map.
+    expect(find.byIcon(Icons.fire_truck), findsNWidgets(4));
+  });
+
+  testWidgets('trucks parked together are listed when their marker is tapped', (
+    tester,
+  ) async {
+    final feed = FakeFeed()..liveNow.value = true;
+    await pump(tester, feed);
+    await push(
+      tester,
+      feed,
+      snapshot(
+        units: [
+          unit('unit-1', 'Apollo'),
+          unit('unit-2', 'Hermes', north: 1505, organization: 'BFP Pasay'),
+        ],
+      ),
+    );
+    tester.widget<UnitGroupMarker>(find.byType(UnitGroupMarker)).onTap!();
+    // Not pumpAndSettle: the live dot pulses for as long as the screen is up.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('2 TRUCKS HERE'), findsOneWidget);
+    expect(find.text('BFP Pasay'), findsOneWidget);
+  });
 
   testWidgets('the rail names every step', (tester) async {
     await pump(tester, FakeFeed());
@@ -273,29 +334,30 @@ void main() {
     expect(find.textContaining('Verified by'), findsNothing);
   });
 
-  testWidgets('the sheet drags down out of the way; the handle brings it back', (
-    tester,
-  ) async {
-    await pump(tester, FakeFeed());
-    final status = find.text('STATUS');
-    final next = find.text('WHAT HAPPENS NEXT');
-    final open = tester.getTopLeft(status).dy;
-    expect(next.hitTestable(), findsOneWidget);
+  testWidgets(
+    'the sheet drags down out of the way; the handle brings it back',
+    (tester) async {
+      await pump(tester, FakeFeed());
+      final status = find.text('STATUS');
+      final next = find.text('WHAT HAPPENS NEXT');
+      final open = tester.getTopLeft(status).dy;
+      expect(next.hitTestable(), findsOneWidget);
 
-    await tester.drag(status, const Offset(0, 500));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(tester.takeException(), isNull);
-    expect(tester.getTopLeft(status).dy, greaterThan(open + 200));
-    expect(status.hitTestable(), findsOneWidget, reason: 'the status stays');
-    expect(next.hitTestable(), findsNothing, reason: 'the rest folds away');
+      await tester.drag(status, const Offset(0, 500));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(tester.takeException(), isNull);
+      expect(tester.getTopLeft(status).dy, greaterThan(open + 200));
+      expect(status.hitTestable(), findsOneWidget, reason: 'the status stays');
+      expect(next.hitTestable(), findsNothing, reason: 'the rest folds away');
 
-    await tester.tap(find.byType(SheetHandle));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(tester.getTopLeft(status).dy, moreOrLessEquals(open, epsilon: 1));
-    expect(next.hitTestable(), findsOneWidget);
-  });
+      await tester.tap(find.byType(SheetHandle));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(tester.getTopLeft(status).dy, moreOrLessEquals(open, epsilon: 1));
+      expect(next.hitTestable(), findsOneWidget);
+    },
+  );
 
   testWidgets('fire out on your own report goes straight to its Done screen', (
     tester,

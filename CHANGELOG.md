@@ -6,6 +6,67 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.7 — 12 October 2026 — Trucks travelling together share one marker
+
+App-only. The backend stays at v1.12.6.
+
+### Changes
+
+**Added**
+- **Merged truck markers on Track It Live** (the resident's live tracker).
+  Trucks whose markers would overlap at the current zoom share one marker:
+  the truck in its agency's colour, a second disc peeking out behind it, and
+  the count at the top right ("2", "3" … "9+"). When the group mixes agencies
+  (Fire Volunteer and BFP), the disc behind takes the other agency's colour.
+  A group whose trucks have all lost their location is greyed.
+- Grouping is by distance **on screen**, not by road. Trucks in convoy merge;
+  as the resident zooms in, or the trucks spread out, they split back into
+  their own markers. Regrouped on every camera move and every frame of a
+  truck's glide. A group never spreads wider than the merge radius (44 px)
+  around its centre, so the marker sits where its trucks are, not between two
+  far-apart ones (`lib/widgets/unit_groups.dart`).
+- **Tapping a merged marker zooms in until its trucks separate.** Trucks
+  parked within 30 m of each other, which no zoom would separate, are listed
+  instead ("2 TRUCKS HERE": name, brigade, "Location lost" when stale).
+- A screen reader reads a merged marker as "3 trucks: Apollo, Hermes, Ares".
+
+**Unchanged**
+- The sheet below the map still lists every truck on its own row. Only the
+  map merges.
+
+### Files Changed
+- New: `lib/widgets/unit_groups.dart` (`groupOnScreen`, `UnitGroupMarker`),
+  `test/unit_groups_test.dart`.
+- `lib/screens/live_update_screen.dart`: the units layer groups, draws and
+  opens merged markers.
+- `test/track_it_live_test.dart`: the "one marker per truck" case now spaces
+  its trucks apart; new cases for trucks together.
+- `pubspec.yaml`: version 1.12.7.
+
+### Database Changes
+None.
+
+### API Changes
+None.
+
+### Frontend Changes
+Residents: fewer, clearer truck markers when several trucks come together.
+
+### Testing
+- Grouping: far apart → a marker each; overlapping → one; a five-truck convoy
+  splits rather than drawing one marker far from its ends; a truck joins the
+  nearest group; nothing in → nothing out; the count stops at 9+.
+- The merged marker: count at the top right, its spoken label, tappable.
+- Track It Live: three trucks together → one marker reading 3, labelled with
+  all three names, every truck still in the sheet; two trucks apart → a
+  marker each; tapping two parked trucks lists them with their brigade.
+- Result: **341 app tests pass** (9 new), `flutter analyze` clean.
+
+### Regression Check
+Full suite passes. A single truck's marker is exactly as before.
+
+---
+
 ## v1.12.6 — 7 October 2026 — Notifications outside the app, a fire alarm, and taps that open
 
 Needs backend v1.12.6 (`replit-backend`) for the new-fire alert and the alarm

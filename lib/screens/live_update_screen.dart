@@ -15,6 +15,7 @@ import '../models/tracking.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/map_tiles.dart';
+import '../widgets/unit_groups.dart';
 import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'directions_screen.dart';
 import 'report_status_screen.dart';
@@ -1123,32 +1124,171 @@ class _UnitsLayerState extends State<_UnitsLayer>
     );
   }
 
+  /// Trucks that would overlap at this zoom share one marker with their count
+  /// (v1.12.7, [groupOnScreen]); they split again as the resident zooms in or
+  /// the trucks spread out. Regrouped on every frame of the glide and every
+  /// camera move — the layer reads the camera, so it rebuilds with it.
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _glide,
       builder: (context, _) {
         final t = Curves.easeInOut.transform(_glide.value);
+        final camera = MapCamera.of(context);
+        final placed = [
+          for (final u in widget.units)
+            if (_to.containsKey(u.key)) (unit: u, at: _at(u.key, t)),
+        ];
+        final groups = groupOnScreen([
+          for (final p in placed) camera.latLngToScreenOffset(p.at),
+        ]);
         return MarkerLayer(
           rotate: true,
           markers: [
-            for (final u in widget.units)
-              if (_to.containsKey(u.key))
-                Marker(
-                  point: _at(u.key, t),
-                  width: 38,
-                  height: 38,
-                  child: _UnitMarker(
-                    label: u.label,
-                    colour: widget.snapshot.isStale(u)
-                        ? context.pal.muted
-                        : context.pal.forAgency(u.agency),
-                    stale: widget.snapshot.isStale(u),
-                  ),
-                ),
+            for (final g in groups)
+              g.length == 1
+                  ? _single(context, placed[g.single])
+                  : _merged(context, [for (final i in g) placed[i]]),
           ],
         );
       },
+    );
+  }
+
+  Color _colourOf(BuildContext context, TrackedUnit u) =>
+      widget.snapshot.isStale(u)
+      ? context.pal.muted
+      : context.pal.forAgency(u.agency);
+
+  Marker _single(BuildContext context, ({TrackedUnit unit, LatLng at}) p) {
+    final stale = widget.snapshot.isStale(p.unit);
+    return Marker(
+      point: p.at,
+      width: 38,
+      height: 38,
+      child: _UnitMarker(
+        label: p.unit.label,
+        colour: _colourOf(context, p.unit),
+        stale: stale,
+      ),
+    );
+  }
+
+  /// One marker for several trucks: where they are on average, in the colour
+  /// most of them share — the disc behind it in another agency's colour when
+  /// they are mixed, so a BFP truck travelling with Fire Volunteers still shows.
+  Marker _merged(
+    BuildContext context,
+    List<({TrackedUnit unit, LatLng at})> members,
+  ) {
+    final units = [for (final m in members) m.unit];
+    final live = units.where((u) => !widget.snapshot.isStale(u)).toList();
+    final colours = <Color, int>{};
+    for (final u in live.isEmpty ? units : live) {
+      final c = _colourOf(context, u);
+      colours[c] = (colours[c] ?? 0) + 1;
+    }
+    final ranked = colours.keys.toList()
+      ..sort((a, b) => colours[b]!.compareTo(colours[a]!));
+    final names = units.map((u) => u.label).join(', ');
+    return Marker(
+      point: LatLng(
+        members.map((m) => m.at.latitude).reduce((a, b) => a + b) /
+            members.length,
+        members.map((m) => m.at.longitude).reduce((a, b) => a + b) /
+            members.length,
+      ),
+      width: UnitGroupMarker.size,
+      height: UnitGroupMarker.size,
+      child: UnitGroupMarker(
+        count: units.length,
+        colour: ranked.first,
+        behind: ranked.length > 1 ? ranked[1] : ranked.first,
+        stale: live.isEmpty,
+        label: '${units.length} trucks: $names',
+        onTap: () => _openGroup(context, members),
+      ),
+    );
+  }
+
+  /// Tapping a merged marker zooms in until its trucks separate. Trucks
+  /// parked together that no zoom would separate are listed instead.
+  void _openGroup(
+    BuildContext context,
+    List<({TrackedUnit unit, LatLng at})> members,
+  ) {
+    const distance = Distance();
+    var span = 0.0;
+    for (final a in members) {
+      for (final b in members) {
+        final d = distance(a.at, b.at);
+        if (d > span) span = d;
+      }
+    }
+    if (span > 30) {
+      MapController.of(context).fitCamera(
+        CameraFit.coordinates(
+          coordinates: [for (final m in members) m.at],
+          padding: const EdgeInsets.all(96),
+          maxZoom: 18,
+        ),
+      );
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: context.pal.surfaceSolid,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
+        ),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Center(child: SheetHandle()),
+              Text('${members.length} TRUCKS HERE', style: sheet.type.headline),
+              const SizedBox(height: 14),
+              for (final m in members) ...[
+                Row(
+                  children: [
+                    IconWell(
+                      tint: _colourOf(context, m.unit),
+                      icon: Icons.fire_truck,
+                      size: 36,
+                      glyph: 18,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(m.unit.label, style: sheet.type.rowTitleLg),
+                          if (m.unit.organization != null ||
+                              widget.snapshot.isStale(m.unit))
+                            Text(
+                              [
+                                ?m.unit.organization,
+                                if (widget.snapshot.isStale(m.unit))
+                                  'Location lost',
+                              ].join(' · '),
+                              style: sheet.type.caption,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
