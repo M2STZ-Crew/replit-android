@@ -25,7 +25,7 @@ Future<bool> offerPostIncidentReport(
   String? designation,
   ApiClient? api,
 }) async {
-  final fileNow = await showDialog<bool>(
+  final fileNow = await showAppDialog<bool>(
     context: context,
     barrierDismissible: false,
     builder: (dctx) => AlertDialog(
@@ -316,7 +316,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   Future<void> _submit() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showAppDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
         title: const Text(

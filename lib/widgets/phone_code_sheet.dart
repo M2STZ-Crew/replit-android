@@ -19,7 +19,7 @@ Future<bool> showPhoneCodeSheet(
   required String phone,
   ApiClient? api,
 }) async {
-  final verified = await showModalBottomSheet<bool>(
+  final verified = await showAppSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,

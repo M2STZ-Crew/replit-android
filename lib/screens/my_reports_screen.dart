@@ -91,7 +91,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
         <String>[];
     final when = _createdAt(r) ?? DateTime.now();
 
-    showDialog<void>(
+    showAppDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
@@ -287,11 +287,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
             children: [
               Padding(
                 padding: EdgeInsets.only(top: 1),
-                child: Icon(
-                  AppIcons.lock,
-                  size: 15,
-                  color: context.pal.muted,
-                ),
+                child: Icon(AppIcons.lock, size: 15, color: context.pal.muted),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -432,11 +428,7 @@ class _ReportCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    AppIcons.info,
-                    size: 15,
-                    color: context.pal.warn,
-                  ),
+                  Icon(AppIcons.info, size: 15, color: context.pal.warn),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

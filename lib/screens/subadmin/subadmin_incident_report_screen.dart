@@ -14,6 +14,7 @@ import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
 import 'subadmin_incident_command_screen.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/motion.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -204,7 +205,7 @@ class _SubAdminIncidentReportScreenState
   }
 
   Future<void> _reject() async {
-    final reason = await showDialog<String>(
+    final reason = await showAppDialog<String>(
       context: context,
       builder: (dctx) {
         final ctrl = TextEditingController();
@@ -305,7 +306,7 @@ class _SubAdminIncidentReportScreenState
   /// and the report is offered now or left in the tray — the same as from the
   /// command screen.
   Future<void> _fireOut() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showAppDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
         backgroundColor: context.pal.surface,

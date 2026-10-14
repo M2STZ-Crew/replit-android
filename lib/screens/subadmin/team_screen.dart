@@ -75,7 +75,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
   // ------------------------------------------------------------ actions ---
   Future<void> _create() async {
-    final made = await showModalBottomSheet<Map<String, dynamic>>(
+    final made = await showAppSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: context.pal.surfaceSolid,
@@ -93,7 +93,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
   Future<void> _manage(Map<String, dynamic> r) async {
     final active = r['is_active'] != false;
-    final action = await showModalBottomSheet<String>(
+    final action = await showAppSheet<String>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
@@ -191,7 +191,7 @@ class _TeamScreenState extends State<TeamScreen> {
     String yes, {
     bool danger = false,
   }) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
         title: Text(title, style: context.type.cardTitle),
@@ -223,7 +223,7 @@ class _TeamScreenState extends State<TeamScreen> {
     Map<String, dynamic> creds, {
     required bool created,
   }) {
-    return showDialog<void>(
+    return showAppDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _CredentialsDialog(

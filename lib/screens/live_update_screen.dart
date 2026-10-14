@@ -1231,7 +1231,7 @@ class _UnitsLayerState extends State<_UnitsLayer>
       );
       return;
     }
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(

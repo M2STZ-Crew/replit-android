@@ -56,7 +56,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Future<void> _openEmail() async {
-    await showModalBottomSheet<void>(
+    await showAppSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: context.pal.surfaceSolid,
@@ -207,11 +207,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         channel: c,
         line: 'Unavailable while we change SMS provider',
         lineColor: context.pal.warn,
-        trailing: Icon(
-          AppIcons.error,
-          size: 16,
-          color: context.pal.warn,
-        ),
+        trailing: Icon(AppIcons.error, size: 16, color: context.pal.warn),
         dimmed: true,
       );
     }
@@ -232,11 +228,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         channel: c,
         line: 'Submitted — an administrator is checking it',
         lineColor: context.pal.warn,
-        trailing: Icon(
-          AppIcons.schedule,
-          size: 16,
-          color: context.pal.warn,
-        ),
+        trailing: Icon(AppIcons.schedule, size: 16, color: context.pal.warn),
       );
     }
     return _Channel(
@@ -332,11 +324,7 @@ class _Channel extends StatelessWidget {
               const SizedBox(width: 10),
               trailing ??
                   (done
-                      ? Icon(
-                          AppIcons.check,
-                          size: 18,
-                          color: context.pal.ok,
-                        )
+                      ? Icon(AppIcons.check, size: 18, color: context.pal.ok)
                       : Icon(
                           AppIcons.chevronRight,
                           size: 18,

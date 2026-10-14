@@ -514,7 +514,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   void _incidentSheet(Map<String, dynamic> inc) {
     final status = (inc['status'] as String?) ?? 'reported';
     final alarm = (inc['alarm_level'] as String?)?.replaceAll('_', ' ');
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(

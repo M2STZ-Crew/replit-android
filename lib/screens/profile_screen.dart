@@ -172,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 
   void _about() {
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(

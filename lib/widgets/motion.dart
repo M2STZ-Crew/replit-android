@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
+
 /// The design's motion (REPLIT (MAIN) 03 · Visual properties · Motion).
 ///
 /// Every duration on screen comes from here, so the one rule that matters —
@@ -95,3 +97,47 @@ class _PressableState extends State<Pressable> {
     );
   }
 }
+
+/// [showModalBottomSheet] with the design's sheet timing — 280 ms in,
+/// decelerating; 200 ms out, accelerating; a snap under reduced motion —
+/// over the scrim (color/surface/scrim, black at 64 %).
+Future<T?> showAppSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  Color? backgroundColor,
+  ShapeBorder? shape,
+  bool isScrollControlled = false,
+  bool useSafeArea = false,
+  bool isDismissible = true,
+  bool enableDrag = true,
+  bool useRootNavigator = false,
+  BoxConstraints? constraints,
+}) => showModalBottomSheet<T>(
+  context: context,
+  builder: builder,
+  backgroundColor: backgroundColor,
+  shape: shape,
+  isScrollControlled: isScrollControlled,
+  useSafeArea: useSafeArea,
+  isDismissible: isDismissible,
+  enableDrag: enableDrag,
+  useRootNavigator: useRootNavigator,
+  constraints: constraints,
+  barrierColor: AppColors.scrim,
+  sheetAnimationStyle: Motion.of(context).sheet,
+);
+
+/// [showDialog] with the same timing and scrim as [showAppSheet].
+Future<T?> showAppDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+  bool useRootNavigator = true,
+}) => showDialog<T>(
+  context: context,
+  builder: builder,
+  barrierDismissible: barrierDismissible,
+  useRootNavigator: useRootNavigator,
+  barrierColor: AppColors.scrim,
+  animationStyle: Motion.of(context).sheet,
+);

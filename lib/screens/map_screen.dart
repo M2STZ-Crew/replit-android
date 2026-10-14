@@ -1510,7 +1510,7 @@ class _MapScreenState extends State<MapScreen> {
     required String title,
     required List<_DetailRow> rows,
   }) {
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(

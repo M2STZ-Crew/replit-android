@@ -528,7 +528,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
 
   void _incidentSheet(Map<String, dynamic> inc) {
     final status = (inc['status'] as String?) ?? 'reported';
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(

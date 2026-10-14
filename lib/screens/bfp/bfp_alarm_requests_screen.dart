@@ -6,6 +6,7 @@ import '../../api/api_client.dart';
 import '../../theme.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/motion.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -113,7 +114,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
 
   Future<void> _execute(Map<String, dynamic> req) async {
     final id = req['id'] as String;
-    final confirm = await showDialog<bool>(
+    final confirm = await showAppDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
         backgroundColor: context.pal.surface,
@@ -159,7 +160,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
 
   Future<void> _reject(Map<String, dynamic> req) async {
     final id = req['id'] as String;
-    final reason = await showDialog<String>(
+    final reason = await showAppDialog<String>(
       context: context,
       builder: (dctx) {
         final ctrl = TextEditingController();
@@ -353,11 +354,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Icon(
-                AppIcons.campaign,
-                color: context.pal.accent,
-                size: 18,
-              ),
+              Icon(AppIcons.campaign, color: context.pal.accent, size: 18),
               const SizedBox(width: 8),
               Text(
                 level,

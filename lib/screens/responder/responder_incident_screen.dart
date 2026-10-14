@@ -147,8 +147,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       ? null
       : routingLabel(_incident!, agency: widget.agency, orgId: widget.orgId);
   bool get _hasActiveDispatch => _myDispatch != null;
-  bool get _active =>
-      const {'en_route', 'arrived'}.contains(_status);
+  bool get _active => const {'en_route', 'arrived'}.contains(_status);
   bool get _shouldStream => _hasActiveDispatch && _active;
 
   LatLng? get _centroid {
@@ -361,6 +360,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       name: (_incident?['designation'] as String?) ?? 'The fire',
     );
   }
+
   // v11: no _enRoute. Accept already moved the incident there (§2.5.1), and
   // no _withdraw — there is no assignment to take back now that manual
   // dispatch is gone.
@@ -394,7 +394,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       ('second_alarm', 'Second Alarm'),
       ('general_alarm', 'General Alarm'),
     ];
-    final level = await showModalBottomSheet<String>(
+    final level = await showAppSheet<String>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
@@ -506,8 +506,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           ),
         ),
         // Back and the menu are in the staff top bar above the map.
-        if (_streaming)
-          Positioned(top: 12, left: 12, child: _streamingPill()),
+        if (_streaming) Positioned(top: 12, left: 12, child: _streamingPill()),
       ],
     );
   }

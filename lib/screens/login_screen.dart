@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _recoverDialog() async {
     final controller = TextEditingController(text: _emailCtrl.text.trim());
-    final email = await showDialog<String>(
+    final email = await showAppDialog<String>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: Text('RESET PASSWORD', style: context.type.screenTitle),
@@ -238,9 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     tooltip: _obscure ? 'Show password' : 'Hide password',
                     // The eye offers what a tap does: see it.
                     icon: Icon(
-                      _obscure
-                          ? AppIcons.visibility
-                          : AppIcons.visibilityOff,
+                      _obscure ? AppIcons.visibility : AppIcons.visibilityOff,
                     ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),

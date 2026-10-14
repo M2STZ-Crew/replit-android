@@ -278,7 +278,7 @@ class _SubAdminIncidentCommandScreenState
       ('second_alarm', 'Second Alarm'),
       ('general_alarm', 'General Alarm'),
     ];
-    final level = await showModalBottomSheet<String>(
+    final level = await showAppSheet<String>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
       shape: const RoundedRectangleBorder(
@@ -382,7 +382,7 @@ class _SubAdminIncidentCommandScreenState
       _act(() => _api.markArrived(widget.areaId), 'Marked on scene.');
 
   Future<void> _reject() async {
-    final reason = await showDialog<String>(
+    final reason = await showAppDialog<String>(
       context: context,
       builder: (dctx) {
         final ctrl = TextEditingController();
@@ -513,7 +513,7 @@ class _SubAdminIncidentCommandScreenState
   }
 
   Future<void> _fireOut() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showAppDialog<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
         backgroundColor: context.pal.surface,
