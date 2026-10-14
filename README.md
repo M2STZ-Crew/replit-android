@@ -16,7 +16,9 @@ The UI follows the "General User App v2" design hand-off: a `#131313` ground
 with translucent glass surfaces and hairline edges, a coral accent, and glow
 reserved for the splash mark and the SOS button. Tokens live in
 `lib/theme.dart`; the shapes every screen repeats live in
-`lib/widgets/design.dart`.
+`lib/widgets/design.dart`. Icons are `AppIcons`, a cut-down Material Symbols
+font built by `tool/symbols/`. `docs/figma-pass4.md` maps the current Figma
+(REPLIT (MAIN), pass 4) onto the screens, including what is not built yet.
 
 ---
 
@@ -134,7 +136,7 @@ the machine itself, and a phone on the same Wi-Fi cannot reach it.
 
 ```bash
 flutter analyze          # must report no issues
-flutter test             # 66 tests
+flutter test             # 356 tests
 ```
 
 The widget tests pump each redesigned screen at the design's 402×874 viewport

@@ -6,6 +6,92 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.8 — 15 October 2026 — The REPLIT (MAIN) pass 4 design, and a new launcher icon
+
+App-only. The backend stays at v1.12.6. The full account — which Figma
+screens are built, which wait for a feature, and why — is
+`docs/figma-pass4.md`.
+
+### Changes
+
+**Modified — one visual system from the pass 4 Figma**
+- **Icons.** Every icon is Material Symbols Rounded, filled (Fill 1,
+  weight 400), from a 26 KB font cut down to the 108 icons the app draws
+  (`assets/fonts/app_symbols.ttf`, `AppIcons`). check, close, add and the
+  chevrons stay strokes. `tool/symbols/` rebuilds both from `icons.txt`.
+- **Colours.** Text steps down from `#F3F3F3` to `#8A8A8A` and no further;
+  card edges are the PRD hairline; fields, switches, secondary buttons and
+  progress tracks get a 3 : 1 control edge; warning `#FFB020`, info
+  `#5B93F5`, police text violet-300.
+- **Status.** Status pills are tinted, 11 px and sentence case. An
+  incident's status has the Lifecycle chip's tone: amber needs a decision or
+  a record, blue verified, red under way, green out, grey off the feed.
+  Staff screens use the PRD words ("En route", "Report pending" — it read
+  "REPORT DUE").
+- **Tab bar.** Filled glyphs, a pill with a coral edge on the selected tab,
+  a white ring on the SOS disc on its own screen. A screen reader hears
+  "Hotlines, tab 2 of 5" and can now activate a tab.
+- **Lists fade at their edges** only where there is more to scroll to:
+  Hotlines, Guides, Profile, My duty, the coordinator queue, the citizen
+  report review, the Post-Incident Report.
+- **Maps.** Markers are the design's rounded squares with white glyphs on
+  darker category colours, a white edge and a dark plate, 48 px to tap and
+  named for screen readers; a live Area pulses. Layer chips get a check when
+  on. The places' panels follow the glass rules (stronger over the
+  OpenStreetMap fallback, solid under high contrast). You are a coral dot.
+- **Forms.** Labels are sentence case above each field; "Use email
+  instead", "Forgot password?" and "Create account" are text links with
+  44 px targets; hotline filters are 36 px chips with a check.
+- **Motion.** Buttons give under a finger; sheets and dialogs open in
+  280 ms and close in 200 ms over a darker scrim; the live pulse and every
+  decorative fade stop when the phone asks for reduced motion.
+
+**Modified — launcher icon**
+- Pass 4 Treatment A: the orange flame and white pin on the dark ground with
+  a soft coral glow, as adaptive vector layers taken from the Figma masters,
+  a monochrome layer for Android 13+ themed icons, and legacy square and
+  round icons for older launchers.
+
+**Unchanged**
+- Every request, permission, status transition and screen flow. Screens the
+  design draws for features the app does not have yet (Didit, route choice,
+  merge, staff profile and history) are listed in `docs/figma-pass4.md`, not
+  built.
+
+### Files Changed
+- New: `lib/widgets/app_icons.dart` (generated), `motion.dart`,
+  `scroll_fade.dart`, `map_marker.dart`, `map_glass.dart`;
+  `assets/fonts/app_symbols.ttf`, `assets/fonts/LICENSE-material-symbols.txt`;
+  `tool/symbols/` (`build_font.py`, `icons.txt`, `README.md`);
+  `android/app/src/main/res/drawable/ic_launcher_foreground.xml`,
+  `ic_launcher_monochrome.xml`, `drawable-v26/ic_launcher_background.xml`,
+  `mipmap-*/ic_launcher_round.png`; `docs/figma-pass4.md` and its
+  screenshots; tests `nav_bar_test.dart`, `scroll_fade_test.dart`,
+  `map_marker_test.dart`.
+- Removed: the bitmap tab glyphs (`assets/design/nav-{map,hotlines,guides,profile}.png`)
+  and `test/nav_icons_test.dart`; the raster launcher foregrounds and the
+  `ic_launcher_background` colour.
+- `lib/theme.dart`, `lib/widgets/design.dart`, `app_nav_bar.dart`,
+  `you_are_here.dart`, `incident_map.dart`; every screen's icons; the map,
+  Track It Live, sign in, the staff dashboards and lists.
+- `pubspec.yaml`: the `AppSymbols` font; version 1.12.8.
+
+### Database Changes
+None.
+
+### Testing
+- `flutter analyze`: no issues. `flutter test`: 356 passed.
+- New: the tab bar's selection, semantics, disc ring and reduced motion; the
+  scroll fade in every scroll state, taps passing through it, the last row
+  clearing it; the marker's surface, size, target, name, pulse and contrast.
+- Tests that pinned the old uppercase tags, token values and status colours
+  now pin the new ones.
+- Installed on a Pixel 7 emulator (Android 15): the launcher icon with
+  themed icons off and on, Sign in and Create account. Not checked on a
+  physical phone or a Samsung launcher.
+
+---
+
 ## v1.12.7 — 12 October 2026 — Trucks travelling together share one marker
 
 App-only. The backend stays at v1.12.6.
