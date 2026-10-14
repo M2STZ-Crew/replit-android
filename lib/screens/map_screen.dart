@@ -14,13 +14,13 @@ import '../api/map_cache.dart';
 import '../api/report_queue.dart';
 import '../location/live_position.dart';
 import '../models/hotline.dart';
-import '../models/resident_status.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import '../widgets/drag_down_sheet.dart';
 import '../widgets/map_coach_marks.dart';
 import '../widgets/map_glass.dart';
+import '../widgets/map_marker.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
 import '../widgets/you_are_here.dart';
@@ -58,13 +58,15 @@ class _Layer {
   final String label;
   final _Tone tone;
 
-  /// The solid plate a marker of this layer sits on (DAWI 04 Map: Map
-  /// elements) — every kind of water is the one blue, as the WATER chip says.
-  Color get markerFill => switch (tone) {
-    _Tone.hydrant || _Tone.water || _Tone.cistern => AppColors.markerWater,
-    _Tone.shelter => AppColors.markerShelter,
-    _Tone.risk => AppColors.fire,
-    _Tone.incident => AppColors.markerPlate,
+  /// The marker a point of this layer is drawn as (04 · Map marker): every
+  /// kind of water shares the one blue surface, as the WATER chip says.
+  MapMarkerKind get markerKind => switch (tone) {
+    _Tone.hydrant => MapMarkerKind.hydrant,
+    _Tone.water => MapMarkerKind.water,
+    _Tone.cistern => MapMarkerKind.cistern,
+    _Tone.shelter => MapMarkerKind.shelter,
+    _Tone.risk => MapMarkerKind.risk,
+    _Tone.incident => MapMarkerKind.incident,
   };
 
   Color colour(AppPalette pal) => switch (tone) {
@@ -761,24 +763,17 @@ class _MapScreenState extends State<MapScreen> {
               (s['latitude'] as num).toDouble(),
               (s['longitude'] as num).toDouble(),
             ),
-            width: 28,
-            height: 28,
-            child: GestureDetector(
+            width: MapMarker.target,
+            height: MapMarker.target,
+            child: MapMarker(
+              kind: MapMarkerKind.shelter,
+              label: (s['name'] as String?) ?? 'Evacuation site',
+              // A shelter that is not open still marks the place, dimmed.
+              dimmed: s['is_active'] == false,
+              badge: s['outside_pasay'] == true
+                  ? const _OutsidePasayBadge()
+                  : null,
               onTap: () => _showEvacSheet(s),
-              child: Opacity(
-                // A shelter that is not open still marks the place, dimmed.
-                opacity: s['is_active'] == false ? 0.5 : 1,
-                child: Center(
-                  child: _MarkerSquare(
-                    size: 24,
-                    fill: AppColors.markerShelter,
-                    edge: Colors.white,
-                    asset: Art.evac,
-                    glyph: 15,
-                    outside: s['outside_pasay'] == true,
-                  ),
-                ),
-              ),
             ),
           ),
         );
@@ -796,31 +791,13 @@ class _MapScreenState extends State<MapScreen> {
         markers.add(
           Marker(
             point: point,
-            width: 24,
-            height: 24,
-            child: GestureDetector(
+            width: MapMarker.target,
+            height: MapMarker.target,
+            // For a risk zone the drawn area is the zone; this is its handle.
+            child: MapMarker(
+              kind: layer.markerKind,
+              label: (row['name'] as String?) ?? layer.label,
               onTap: () => _showGisSheet(layer, row),
-              child: Center(
-                child: layer == _risk
-                    // The zone is the drawn area; this is its handle.
-                    ? Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: context.pal.live.withValues(alpha: 0.3),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: context.pal.live),
-                        ),
-                      )
-                    : _MarkerSquare(
-                        size: 22,
-                        fill: layer.markerFill,
-                        edge: Colors.white,
-                        asset: layer.asset,
-                        icon: layer.icon,
-                        glyph: 14,
-                      ),
-              ),
             ),
           ),
         );
@@ -835,11 +812,16 @@ class _MapScreenState extends State<MapScreen> {
               (a['centroid_lat'] as num).toDouble(),
               (a['centroid_lng'] as num).toDouble(),
             ),
-            width: 30,
-            height: 30,
-            child: GestureDetector(
+            width: MapMarker.target,
+            height: MapMarker.target,
+            // GET /areas carries no agencies, so every Area is the Incident
+            // kind; its status is a word in the sheet and on the Area, and a
+            // live one pulses (04 · Map marker, pass 3).
+            child: MapMarker(
+              kind: MapMarkerKind.incident,
+              label: (a['designation'] as String?) ?? 'Incident area',
+              live: _isLive(a['status'] as String?),
               onTap: () => _openArea(a),
-              child: _AreaMarker(status: a['status'] as String?),
             ),
           ),
         );
@@ -971,9 +953,13 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  /// The Map layer chips (04 · pass 2): a 36 px pill in a 44 px target. A
+  /// layer that is on is washed in its colour at 10 %, edged in it and
+  /// checked, so "on" never rests on colour alone; one that is off is plain
+  /// glass with its colour dot.
   Widget _chips() {
     return SizedBox(
-      height: 30,
+      height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _layers.length,
@@ -987,39 +973,49 @@ class _MapScreenState extends State<MapScreen> {
             label: layer.label,
             excludeSemantics: true,
             child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: () => _toggle(layer),
-              child: _Glass(
-                radius: AppRadius.chip,
-                height: 30,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                // DAWI "MAP | LEGENDS": a layer that is on is washed in its
-                // colour at 10% and edged in it; one that is off is the
-                // plain glass. The label stays light either way.
-                color: on
-                    ? layer.colour(context.pal).withValues(alpha: 0.1)
-                    : MapGlass.glass(context),
-                edge: on ? layer.colour(context.pal) : context.pal.line,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: layer.colour(context.pal),
-                        shape: BoxShape.circle,
+              child: Center(
+                child: _Glass(
+                  radius: AppRadius.chip,
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  // DAWI "MAP | LEGENDS": a layer that is on is washed in its
+                  // colour at 10% and edged in it; one that is off is the
+                  // plain glass. The label stays light either way.
+                  color: on
+                      ? layer.colour(context.pal).withValues(alpha: 0.1)
+                      : MapGlass.glass(context),
+                  edge: on ? layer.colour(context.pal) : context.pal.line,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (on)
+                        Icon(
+                          AppIcons.check,
+                          size: 14,
+                          color: layer.colour(context.pal),
+                        )
+                      else
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: layer.colour(context.pal),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      const SizedBox(width: 6),
+                      Text(
+                        layer.label.toUpperCase(),
+                        style: context.type.eyebrow.copyWith(
+                          color: on
+                              ? context.pal.onBackground
+                              : context.pal.label,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      layer.label.toUpperCase(),
-                      style: context.type.tag.copyWith(
-                        color: on
-                            ? context.pal.onBackground
-                            : context.pal.label,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1678,103 +1674,29 @@ class _Vignette extends StatelessWidget {
 /// A map marker as "04 Map" draws it: a solid plate at the marker radius, a
 /// 1px edge, and the glyph in white - so it reads the same over the dark and
 /// the light basemap.
-class _MarkerSquare extends StatelessWidget {
-  const _MarkerSquare({
-    required this.size,
-    required this.fill,
-    required this.edge,
-    required this.glyph,
-    this.asset,
-    this.icon,
-    this.outside = false,
-  });
-
-  final double size;
-  final Color fill;
-  final Color edge;
-  final double glyph;
-  final String? asset;
-  final IconData? icon;
-  final bool outside;
+/// The corner sign on a shelter outside Pasay (PRD §4.4: such sites are
+/// drawn with a distinct marker).
+class _OutsidePasayBadge extends StatelessWidget {
+  const _OutsidePasayBadge();
 
   @override
   Widget build(BuildContext context) {
-    final square = Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: fill,
-        // DAWI draws a 20px plate at radius 5; the same proportion here.
-        borderRadius: BorderRadius.circular(size / 4),
-        border: Border.all(color: edge),
-      ),
-      alignment: Alignment.center,
-      child: asset != null
-          ? Image.asset(
-              asset!,
-              width: glyph,
-              height: glyph,
-              color: Colors.white,
-            )
-          : Icon(icon, size: glyph, color: Colors.white),
-    );
-    if (!outside) return square;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        square,
-        Positioned(
-          right: -5,
-          top: -5,
-          child: Container(
-            width: 13,
-            height: 13,
-            decoration: BoxDecoration(
-              color: context.pal.ok,
-              shape: BoxShape.circle,
-              border: Border.all(color: context.pal.surfaceSolid, width: 1.5),
-            ),
-            child: Icon(
-              AppIcons.northEast,
-              size: 8,
-              color: context.pal.surfaceSolid,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// An incident area: a 30px square in its status colour with the flame.
-class _AreaMarker extends StatelessWidget {
-  const _AreaMarker({required this.status});
-
-  final String? status;
-
-  @override
-  Widget build(BuildContext context) {
-    // As a resident sees it: yellow while it waits to be accepted, the fire
-    // incident's coral once it is live (DAWI "MAP LAYERS/INCIDENTS"), green
-    // when the fire is out. The yellow plate takes a dark glyph - white on
-    // yellow is unreadable.
-    final (Color fill, Color glyph) = switch (residentStatus(status)) {
-      'reported' => (AppColors.warn, const Color(0xFF131313)),
-      'fire_out' => (AppColors.ok, Colors.white),
-      'rejected' || 'merged' => (AppColors.markerPlate, AppColors.markerEdge),
-      _ => (AppColors.accent, Colors.white),
-    };
     return Container(
+      width: 14,
+      height: 14,
       decoration: BoxDecoration(
-        color: fill,
-        borderRadius: BorderRadius.circular(AppRadius.chip),
-        border: Border.all(color: Colors.white),
+        color: context.pal.ok,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.background, width: 1.5),
       ),
-      alignment: Alignment.center,
-      child: Image.asset(Art.incident, width: 17, height: 17, color: glyph),
+      child: Icon(AppIcons.northEast, size: 9, color: AppColors.background),
     );
   }
 }
+
+/// An Area still being responded to: its marker pulses.
+bool _isLive(String? status) =>
+    const {'reported', 'verified', 'en_route', 'arrived'}.contains(status);
 
 /// One 56px row in the sheet: tinted glyph well, two lines, a signal column.
 class _SheetRow extends StatelessWidget {

@@ -15,6 +15,7 @@ import '../models/tracking.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/map_tiles.dart';
+import '../widgets/map_marker.dart';
 import '../widgets/unit_groups.dart';
 import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'directions_screen.dart';
@@ -641,35 +642,29 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
             for (final s in _shelters)
               Marker(
                 point: s,
-                width: 24,
-                height: 24,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.pal.background.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: context.pal.ok.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Image.asset(Art.evac, width: 15, height: 15),
+                width: MapMarker.target,
+                height: MapMarker.target,
+                child: const MapMarker(
+                  kind: MapMarkerKind.shelter,
+                  label: 'Evacuation site',
                 ),
               ),
             if (centre != null)
               Marker(
                 point: centre,
-                width: 30,
-                height: 30,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.pal.forStatus(status),
-                    borderRadius: BorderRadius.circular(AppRadius.chip),
-                    border: Border.all(
-                      color: context.pal.surfaceSolid.withValues(alpha: 0.9),
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Image.asset(Art.incident, width: 17, height: 17),
+                width: MapMarker.target,
+                height: MapMarker.target,
+                // The fire is the Incident kind; its status is the word on
+                // the sheet, and it pulses while it is being responded to.
+                child: MapMarker(
+                  kind: MapMarkerKind.incident,
+                  label: 'your report',
+                  live: const {
+                    'reported',
+                    'verified',
+                    'en_route',
+                    'arrived',
+                  }.contains(status),
                 ),
               ),
             // Where the report was sent from.

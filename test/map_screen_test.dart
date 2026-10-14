@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:replit/widgets/map_marker.dart';
 import 'package:replit/api/api_client.dart';
 import 'package:replit/api/report_queue.dart';
 import 'package:replit/models/hotline.dart';
@@ -245,7 +246,13 @@ void main() {
     bool ringed(Offset target) =>
         centres.any((c) => (c - target).distance < 1.5);
 
-    final area = tester.getCenter(named('_AreaMarker').first);
+    final area = tester.getCenter(
+      find
+          .byWidgetPredicate(
+            (w) => w is MapMarker && w.kind == MapMarkerKind.incident,
+          )
+          .first,
+    );
     expect(ringed(area), isTrue, reason: 'ring $centres, marker $area');
     final disc = tester.getCenter(named('_Disc'));
     expect(ringed(disc), isTrue, reason: 'ring $centres, disc $disc');

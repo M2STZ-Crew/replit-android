@@ -4,8 +4,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../theme.dart';
 import '../widgets/map_tiles.dart';
+import 'map_marker.dart';
 import 'you_are_here.dart';
-import 'app_icons.dart';
 
 /// Map centred on an incident with an orange marker, on [MapTiles]' basemap.
 ///
@@ -65,34 +65,21 @@ class _IncidentMapState extends State<IncidentMap> {
             for (final site in widget.evacSites)
               Marker(
                 point: site,
-                width: 30,
-                height: 30,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.pal.ok,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x9922C55E), blurRadius: 10),
-                    ],
-                  ),
-                  child: const Icon(
-                    AppIcons.home,
-                    color: Colors.white,
-                    size: 16,
-                  ),
+                width: MapMarker.target,
+                height: MapMarker.target,
+                child: const MapMarker(
+                  kind: MapMarkerKind.shelter,
+                  label: 'Evacuation site',
                 ),
               ),
             Marker(
               point: point,
-              width: 26,
-              height: 26,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: context.pal.accent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                ),
+              width: MapMarker.target,
+              height: MapMarker.target,
+              child: const MapMarker(
+                kind: MapMarkerKind.incident,
+                label: 'the incident',
+                selected: true,
               ),
             ),
           ],

@@ -6,6 +6,7 @@ import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 
 import '../theme.dart';
 import 'app_icons.dart';
+import 'map_glass.dart';
 
 /// How every map in the app may be handled: drag, pinch, double-tap, fling,
 /// and turn with two fingers — as in Google Maps. Turning needs a deliberate
@@ -133,8 +134,8 @@ class YouAreHereLayer extends StatelessWidget {
             ? AlignOnUpdate.always
             : AlignOnUpdate.never,
         style: LocationMarkerStyle(
-          marker: DefaultLocationMarker(color: accent),
-          markerSize: const Size.square(18),
+          marker: const _YouDot(),
+          markerSize: const Size.square(24),
           markerDirection: MarkerDirection.heading,
           accuracyCircleColor: accent.withValues(alpha: 0.12),
           headingSectorColor: accent.withValues(alpha: 0.55),
@@ -251,18 +252,51 @@ class _MapButton extends StatelessWidget {
       button: true,
       label: label,
       excludeSemantics: true,
+      onTap: onTap,
       child: Tooltip(
         message: label,
+        // A map control (04 · Icon button, Overlay): a 48 px square at the
+        // control radius with a hairline, no shadow. Glass strong without
+        // its own blur — the map already blurs behind its chips, card and
+        // sheet, and the design keeps blurred surfaces to three.
         child: Material(
-          color: context.pal.surfaceSolid,
-          shape: CircleBorder(side: BorderSide(color: context.pal.line)),
-          elevation: 3,
-          shadowColor: Colors.black54,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onTap,
-            child: SizedBox.square(dimension: 44, child: Center(child: child)),
+          color: MapGlass.strong(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.control),
+            side: BorderSide(color: context.pal.line),
           ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.control),
+            onTap: onTap,
+            child: SizedBox.square(dimension: 48, child: Center(child: child)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// You on the map (04 · Map marker, Kind=You): an 18 px dot in
+/// color/map/you with a 1.5 px white edge, on a 24 px ground plate that keeps
+/// it visible over light tiles. No glyph.
+class _YouDot extends StatelessWidget {
+  const _YouDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          color: context.pal.you,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
         ),
       ),
     );
