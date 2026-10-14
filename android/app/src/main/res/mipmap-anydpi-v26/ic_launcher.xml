@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The launcher icon from API 26 on: the ground and the mark as separate
-     layers, so the launcher can mask them to whatever shape it uses and move
-     them apart when the icon is animated. The monochrome layer is the same
-     mark, which Android 13+ tints for themed icons. -->
+<!-- The launcher icon from API 26 on (REPLIT (MAIN) pass 4, Treatment A):
+     the ground with its coral glow, and the flame-and-pin mark, as separate
+     vector layers so the launcher can mask them to whatever shape it uses and
+     move them apart when the icon is animated. The monochrome layer is the
+     same mark in one colour, which Android 13+ tints for themed icons. The
+     layers are already sized to 108 dp: nothing here pads or masks them. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
-    <monochrome android:drawable="@mipmap/ic_launcher_foreground" />
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>
