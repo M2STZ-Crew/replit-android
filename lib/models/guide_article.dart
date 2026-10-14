@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_icons.dart';
 
 /// Category labels shown on the GUIDE tab's segmented control.
 const String kCatFire = 'FIRE PREVENTION';
@@ -50,7 +51,7 @@ const List<GuideArticle> kGuideArticles = [
   // ----------------------------------------------------------- fire ---
   GuideArticle(
     category: kCatFire,
-    icon: Icons.electrical_services,
+    icon: AppIcons.electricalServices,
     title: 'Prevent Common Fire Hazards',
     summary:
         'Inspect wiring, unplug idle appliances, and keep flammables away '
@@ -80,7 +81,7 @@ const List<GuideArticle> kGuideArticles = [
   ),
   GuideArticle(
     category: kCatFire,
-    icon: Icons.notifications_active,
+    icon: AppIcons.notificationsActive,
     title: 'Smoke Alarm Maintenance',
     summary:
         'Test alarms monthly, replace batteries yearly, and swap units '
@@ -107,7 +108,7 @@ const List<GuideArticle> kGuideArticles = [
   ),
   GuideArticle(
     category: kCatFire,
-    icon: Icons.directions_run,
+    icon: AppIcons.directionsRun,
     title: 'Build an Escape Plan',
     summary:
         'Map two exits per room, agree on a meet point, and practice with '
@@ -134,7 +135,7 @@ const List<GuideArticle> kGuideArticles = [
   ),
   GuideArticle(
     category: kCatFire,
-    icon: Icons.air,
+    icon: AppIcons.air,
     title: "If There's Smoke: Stay Low",
     startHere: true,
     summary:
@@ -162,7 +163,7 @@ const List<GuideArticle> kGuideArticles = [
   // --------------------------------------------------------- health ---
   GuideArticle(
     category: kCatHealth,
-    icon: Icons.healing,
+    icon: AppIcons.healing,
     title: 'Treating Minor Burns',
     summary:
         'Cool the burn under running water, cover it loosely, and avoid '
@@ -188,7 +189,7 @@ const List<GuideArticle> kGuideArticles = [
   ),
   GuideArticle(
     category: kCatHealth,
-    icon: Icons.masks,
+    icon: AppIcons.masks,
     title: 'Smoke Inhalation First Aid',
     summary:
         'Get to fresh air, watch for trouble breathing, and call for help '
@@ -214,7 +215,7 @@ const List<GuideArticle> kGuideArticles = [
   ),
   GuideArticle(
     category: kCatHealth,
-    icon: Icons.favorite,
+    icon: AppIcons.favorite,
     title: 'Helping Someone in Shock',
     summary:
         'Lay them down, keep them warm, and get medical help — do not give '
@@ -236,7 +237,7 @@ const List<GuideArticle> kGuideArticles = [
   ),
   GuideArticle(
     category: kCatHealth,
-    icon: Icons.bloodtype,
+    icon: AppIcons.bloodtype,
     title: 'Stop Bleeding from a Wound',
     summary:
         'Press firmly with a clean cloth, keep pressure on, and call for '

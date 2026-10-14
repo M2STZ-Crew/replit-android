@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../theme.dart';
 import '../widgets/map_tiles.dart';
 import 'you_are_here.dart';
+import 'app_icons.dart';
 
 /// Map centred on an incident with an orange marker, on [MapTiles]' basemap.
 ///
@@ -76,7 +77,7 @@ class _IncidentMapState extends State<IncidentMap> {
                     ],
                   ),
                   child: const Icon(
-                    Icons.home_outlined,
+                    AppIcons.home,
                     color: Colors.white,
                     size: 16,
                   ),

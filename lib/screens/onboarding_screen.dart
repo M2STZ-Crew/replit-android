@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import 'map_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// Whether the resident has been shown the tour, and the map's coach marks.
 ///
@@ -160,7 +161,7 @@ class _TourBar extends StatelessWidget {
                 ? null
                 : IconButton(
                     onPressed: onBack,
-                    icon: const Icon(Icons.chevron_left_rounded),
+                    icon: const Icon(AppIcons.chevronLeft),
                     color: context.pal.onBackground,
                     iconSize: 26,
                     tooltip: 'Back',
@@ -647,7 +648,7 @@ class _WhoAndPhoto extends StatelessWidget {
                     children: [
                       IconWell(
                         tint: context.pal.accent,
-                        icon: Icons.photo_camera_outlined,
+                        icon: AppIcons.photoCamera,
                         size: 46,
                         glyph: 22,
                       ),
@@ -1185,7 +1186,7 @@ class _Ready extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                Icons.check_rounded,
+                                AppIcons.check,
                                 size: 18,
                                 color: context.pal.accent,
                               ),

@@ -19,6 +19,7 @@ import '../../widgets/staff_shell.dart';
 import '../directions_screen.dart';
 import 'responder_status.dart';
 import '../../widgets/you_are_here.dart';
+import '../../widgets/app_icons.dart';
 
 Color _sheet = AppColors.surfaceSolid;
 Color _panel = AppColors.glassDim;
@@ -429,7 +430,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                     label,
                     style: const TextStyle(color: Colors.white),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: _muted),
+                  trailing: Icon(AppIcons.chevronRight, color: _muted),
                   onTap: () => Navigator.of(context).pop(value),
                 ),
             ],
@@ -522,7 +523,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.my_location, color: _youGreen, size: 14),
+          Icon(AppIcons.myLocation, color: _youGreen, size: 14),
           SizedBox(width: 6),
           Text(
             'SHARING LOCATION',
@@ -553,7 +554,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             ],
           ),
           child: const Icon(
-            Icons.local_fire_department,
+            AppIcons.localFireDepartment,
             color: Colors.white,
             size: 14,
           ),
@@ -577,7 +578,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
               border: Border.all(color: Colors.white, width: 2),
             ),
             child: const Icon(
-              Icons.local_shipping,
+              AppIcons.localShipping,
               color: Colors.white,
               size: 12,
             ),
@@ -640,7 +641,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
-              Icons.location_on_outlined,
+              AppIcons.locationOn,
               color: context.pal.accent,
               size: 20,
             ),
@@ -690,7 +691,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                     child: TextButton.icon(
                       onPressed: _route,
                       icon: Icon(
-                        Icons.directions,
+                        AppIcons.directions,
                         size: 18,
                         color: context.pal.accent,
                       ),
@@ -790,7 +791,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
-                  Icons.fire_truck_rounded,
+                  AppIcons.fireTruck,
                   color: context.pal.accent,
                   size: 22,
                 ),
@@ -910,7 +911,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   Widget _lifecycle() {
     if (kAfterFireOut.contains(_status) || _status == 'rejected') {
       return _infoBox(
-        Icons.flag_outlined,
+        AppIcons.flag,
         _status == 'rejected'
             ? 'This incident was rejected by command.'
             // Members do not file the Post-Incident Report (v10 §2.5) — the
@@ -925,7 +926,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _infoBox(
-            Icons.help_outline,
+            AppIcons.help,
             'New report. Check the photo and location, then verify it if it is '
             'a real fire. Verifying sends nobody; you choose to respond after.',
           ),
@@ -942,7 +943,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       if (_status == 'en_route') {
         children.add(_gradientButton('MARK ARRIVED', _arrived));
       } else if (_status == 'arrived') {
-        children.add(_infoBox(Icons.check_circle_outline, 'You are on scene.'));
+        children.add(_infoBox(AppIcons.checkCircle, 'You are on scene.'));
       }
     }
     return Column(
@@ -968,7 +969,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       const SizedBox(height: 12),
       if (fireCrew) ...[
         _escalationRow(
-          icon: Icons.water_drop_outlined,
+          icon: AppIcons.waterDrop,
           tint: const Color(0x1E3B82F6),
           iconColor: context.pal.info,
           title: 'Need Water',
@@ -978,7 +979,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         const SizedBox(height: 10),
       ],
       _escalationRow(
-        icon: Icons.group_add_outlined,
+        icon: AppIcons.groupAdd,
         tint: const Color(0x1EF59E0B),
         iconColor: const Color(0xFFF59E0B),
         title: 'Need Assistance',
@@ -988,7 +989,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       if (mayRequestAlarm(widget.agency)) ...[
         const SizedBox(height: 10),
         _escalationRow(
-          icon: Icons.campaign_outlined,
+          icon: AppIcons.campaign,
           tint: const Color(0x23EF4444),
           iconColor: context.pal.live,
           title: 'Escalate to BFP',
@@ -1046,7 +1047,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: _muted, size: 20),
+            Icon(AppIcons.chevronRight, color: _muted, size: 20),
           ],
         ),
       ),

@@ -1,0 +1,121 @@
+# Every icon the app draws, by its Material Symbols name.
+#
+# One name per line. "rtl" after a name mirrors it in right-to-left layouts,
+# as Flutter's own chevrons do. After editing, rebuild the font and
+# lib/widgets/app_icons.dart with tool/symbols/build_font.py (see README.md).
+
+# Navigation (05/06/07 Nav tab: map, phone, document, person)
+map
+call
+description
+person
+
+# Map marker glyphs (09 pass 3 · Map markers)
+local_fire_department
+local_police
+medical_services
+account_balance
+fire_hydrant
+house
+water
+oil_barrel
+warning
+fire_truck
+
+# Line utility icons — stay 2 px strokes (03 pass 3 · Filled icon rules)
+check
+close
+add
+chevron_left rtl
+chevron_right rtl
+
+# Everything else the screens use
+air
+alt_route
+alternate_email
+assignment
+assignment_late
+assignment_turned_in
+auto_awesome
+badge
+block
+bloodtype
+broken_image
+cameraswitch
+campaign
+check_circle
+circle
+cloud_off
+content_copy
+dashboard
+desktop_windows
+directions
+directions_car
+directions_run
+directions_walk
+download
+electrical_services
+emergency_share
+error
+explore
+face
+fact_check
+favorite
+flag
+flash_off
+flash_on
+group
+group_add
+groups
+healing
+help
+home
+hourglass_top
+how_to_reg
+image
+inbox
+info
+key
+keyboard_arrow_down
+layers
+list_alt
+local_shipping
+local_taxi
+location_off
+location_on
+location_searching
+lock
+logout rtl
+mail
+masks
+menu
+my_location
+navigation
+no_photography
+north_east
+notifications
+notifications_active
+notifications_off
+open_in_new
+person_add
+phone_in_talk
+photo
+photo_camera
+podcasts
+refresh
+restart_alt
+schedule
+shield
+smartphone
+straighten
+task_alt
+traffic
+verified
+verified_user
+visibility
+visibility_off
+volume_up
+water_damage
+water_drop
+waves
+zoom_in

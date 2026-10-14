@@ -15,6 +15,7 @@ import 'responder_incident_screen.dart';
 import 'responder_status.dart';
 import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
+import '../../widgets/app_icons.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -220,7 +221,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Icon(Icons.my_location, color: _green, size: 18),
+            Icon(AppIcons.myLocation, color: _green, size: 18),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -231,7 +232,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 style: context.type.rowTitle.copyWith(fontSize: 13),
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: _green),
+            Icon(AppIcons.chevronRight, color: _green),
           ],
         ),
       ),
@@ -251,7 +252,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 'Active Incidents',
                 'In progress now',
                 _red,
-                Icons.warning_amber_rounded,
+                AppIcons.warning,
               ),
             ),
             const SizedBox(width: 10),
@@ -261,7 +262,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 'Pending Verify',
                 'Awaiting review',
                 _orange,
-                Icons.fact_check_outlined,
+                AppIcons.factCheck,
               ),
             ),
           ],
@@ -275,7 +276,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 'Units Deployed',
                 'On the way or on site',
                 _orange,
-                Icons.local_shipping_outlined,
+                AppIcons.localShipping,
               ),
             ),
             const SizedBox(width: 10),
@@ -285,7 +286,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                 'Units Standby',
                 'Ready to respond',
                 _grey,
-                Icons.groups_outlined,
+                AppIcons.groups,
               ),
             ),
           ],
@@ -512,7 +513,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                   ],
                 ),
                 child: const Icon(
-                  Icons.local_fire_department,
+                  AppIcons.localFireDepartment,
                   color: Colors.white,
                   size: 15,
                 ),
@@ -527,7 +528,6 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
 
   void _incidentSheet(Map<String, dynamic> inc) {
     final status = (inc['status'] as String?) ?? 'reported';
-    final color = responderStatusColor(status);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: context.pal.surfaceSolid,
@@ -555,25 +555,7 @@ class _ResponderHomeScreenState extends State<ResponderHomeScreen> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: color.withValues(alpha: 0.5)),
-                    ),
-                    child: Text(
-                      responderStatusLabel(status),
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                  LifecycleChip(status),
                 ],
               ),
               const SizedBox(height: 6),

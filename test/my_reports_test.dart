@@ -123,7 +123,7 @@ void main() {
       expect(find.text('1'), findsOneWidget, reason: 'resolved');
       expect(find.text('THIS MONTH'), findsOneWidget);
       expect(find.text('FIRE + MEDICAL REPORT'), findsOneWidget);
-      expect(find.text('ON THE WAY'), findsOneWidget);
+      expect(find.text('On the way'), findsOneWidget);
       expect(find.text('Area 3 · high confidence'), findsOneWidget);
       expect(find.text('Waiting to be grouped with others'), findsOneWidget);
 
@@ -145,13 +145,13 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.text('14 August'), findsWidgets);
-      expect(find.text('NOT CONFIRMED'), findsOneWidget);
+      expect(find.text('Not confirmed'), findsOneWidget);
     });
   }
 
   testWidgets('a filed Post-Incident Report reads as resolved', (tester) async {
     await pump(tester, api([sample[2]]));
-    expect(find.text('FIRE OUT'), findsWidgets);
+    expect(find.text('Fire out'), findsWidgets);
     expect(find.text('Area 1 · fire out'), findsOneWidget);
     expect(find.text('DETAILS'), findsOneWidget);
     expect(find.text('TRACK'), findsNothing);

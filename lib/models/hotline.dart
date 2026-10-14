@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 
 /// What kind of help a hotline reaches. Drives the filter chips the design
 /// puts above the list; [HotlineCategory.all] entries appear under every filter
@@ -107,7 +108,7 @@ List<Hotline> kHotlines = [
         'Philippines. Call this for immediate police, fire, or medical response.',
     displayNumber: '911',
     dialNumber: '911',
-    icon: Icons.emergency_share,
+    icon: AppIcons.emergencyShare,
     tone: HotlineTone.emergency,
     art: 'assets/design/agency-911.png',
     category: HotlineCategory.all,
@@ -121,7 +122,7 @@ List<Hotline> kHotlines = [
         'While 911 works for fires, the BFP direct line can speed up response.',
     displayNumber: '(02) 8426-0219',
     dialNumber: '0284260219',
-    icon: Icons.local_fire_department,
+    icon: AppIcons.localFireDepartment,
     tone: HotlineTone.fire,
     art: 'assets/design/agency-bfp.png',
     category: HotlineCategory.fire,
@@ -134,7 +135,7 @@ List<Hotline> kHotlines = [
         'assistance. The PNP Patrol hotline connects you to the nearest unit.',
     displayNumber: '117',
     dialNumber: '117',
-    icon: Icons.local_police,
+    icon: AppIcons.localPolice,
     tone: HotlineTone.police,
     art: 'assets/design/agency-pnp.png',
     category: HotlineCategory.police,
@@ -147,7 +148,7 @@ List<Hotline> kHotlines = [
         'operations for incidents within the city.',
     displayNumber: '(02) 8833-8534',
     dialNumber: '0288338534',
-    icon: Icons.call_outlined,
+    icon: AppIcons.call,
     tone: HotlineTone.barangay,
     category: HotlineCategory.pasay,
   ),
@@ -159,7 +160,7 @@ List<Hotline> kHotlines = [
         'for emergency assistance from the Red Cross.',
     displayNumber: '143',
     dialNumber: '143',
-    icon: Icons.call_outlined,
+    icon: AppIcons.call,
     tone: HotlineTone.medical,
     category: HotlineCategory.medical,
   ),
@@ -171,7 +172,7 @@ List<Hotline> kHotlines = [
         'clearing operations, and flood-control assistance across Metro Manila.',
     displayNumber: '136',
     dialNumber: '136',
-    icon: Icons.traffic,
+    icon: AppIcons.traffic,
     tone: HotlineTone.neutral,
     art: 'assets/design/agency-mmda.png',
     category: HotlineCategory.all,
@@ -184,7 +185,7 @@ List<Hotline> kHotlines = [
         'and rescue operations.',
     displayNumber: '(02) 8527-8481',
     dialNumber: '0285278481',
-    icon: Icons.call_outlined,
+    icon: AppIcons.call,
     tone: HotlineTone.coastguard,
     category: HotlineCategory.all,
   ),
@@ -196,7 +197,7 @@ List<Hotline> kHotlines = [
         'earthquakes, and large-scale emergencies.',
     displayNumber: '(02) 8911-1406',
     dialNumber: '0289111406',
-    icon: Icons.call_outlined,
+    icon: AppIcons.call,
     tone: HotlineTone.barangay,
     category: HotlineCategory.all,
   ),

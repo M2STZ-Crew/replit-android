@@ -18,6 +18,7 @@ import 'package:replit/screens/report_status_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/design.dart';
 import 'package:replit/widgets/unit_groups.dart';
+import 'package:replit/widgets/app_icons.dart';
 
 /// A socket the test drives by hand.
 class FakeFeed implements TrackingFeed {
@@ -218,7 +219,7 @@ void main() {
       expect(find.text('Unit 2'), findsOneWidget);
       expect(find.text('Location lost · last seen 2 min ago'), findsOneWidget);
       // One marker per unit, and no line drawn between truck and fire.
-      expect(find.byIcon(Icons.fire_truck), findsNWidgets(4));
+      expect(find.byIcon(AppIcons.fireTruck), findsNWidgets(4));
       expect(find.byType(PolylineLayer), findsNothing);
     });
   }
@@ -256,7 +257,7 @@ void main() {
       expect(find.text(name), findsOneWidget, reason: name);
     }
     // Three rows in the sheet, one marker on the map.
-    expect(find.byIcon(Icons.fire_truck), findsNWidgets(4));
+    expect(find.byIcon(AppIcons.fireTruck), findsNWidgets(4));
   });
 
   testWidgets('trucks parked together are listed when their marker is tapped', (
@@ -322,7 +323,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Verified by Hercules Fire Brigade'), findsOneWidget);
     expect(find.text('Confirmed as a real fire · 4 min ago'), findsOneWidget);
-    expect(find.byIcon(Icons.verified_outlined), findsOneWidget);
+    expect(find.byIcon(AppIcons.verified), findsOneWidget);
   });
 
   testWidgets('someone who did not report it is not told who verified it', (

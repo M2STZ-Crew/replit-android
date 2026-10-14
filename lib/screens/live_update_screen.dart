@@ -20,6 +20,7 @@ import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'directions_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/you_are_here.dart';
+import '../widgets/app_icons.dart';
 
 /// How much of the screen the sheet covers when open: the map keeps the top
 /// 44%, where the fire and the trucks are framed.
@@ -880,7 +881,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                 const SizedBox(height: 10),
                 _Row(
                   tint: context.pal.ok,
-                  icon: Icons.how_to_reg_outlined,
+                  icon: AppIcons.howToReg,
                   title: others == 0
                       ? 'No neighbours have confirmed yet'
                       : '$others ${others == 1 ? 'neighbour' : 'neighbours'} confirmed',
@@ -971,7 +972,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         tint: snap.verifiedByAgency == null
             ? context.pal.ok
             : context.pal.forAgency(snap.verifiedByAgency),
-        icon: Icons.verified_outlined,
+        icon: AppIcons.verified,
         title: 'Verified by $team',
         line: at == null
             ? 'Confirmed as a real fire'
@@ -992,7 +993,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         const SizedBox(height: 18),
         _Row(
           tint: context.pal.accent,
-          icon: Icons.fire_truck,
+          icon: AppIcons.fireTruck,
           title: 'A crew is on the way',
           line: 'You will see the truck here when it shares its location.',
         ),
@@ -1007,7 +1008,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
           tint: snap.isStale(u)
               ? context.pal.muted
               : context.pal.forAgency(u.agency),
-          icon: Icons.fire_truck,
+          icon: AppIcons.fireTruck,
           title: u.label,
           line: _unitLine(u),
           onTap: u.position == null ? null : () => _focus(u),
@@ -1258,7 +1259,7 @@ class _UnitsLayerState extends State<_UnitsLayer>
                   children: [
                     IconWell(
                       tint: _colourOf(context, m.unit),
-                      icon: Icons.fire_truck,
+                      icon: AppIcons.fireTruck,
                       size: 36,
                       glyph: 18,
                     ),
@@ -1323,7 +1324,7 @@ class _UnitMarker extends StatelessWidget {
             ],
           ),
           alignment: Alignment.center,
-          child: const Icon(Icons.fire_truck, size: 18, color: Colors.white),
+          child: const Icon(AppIcons.fireTruck, size: 18, color: Colors.white),
         ),
       ),
     );
@@ -1398,7 +1399,7 @@ class _Row extends StatelessWidget {
               trailing!,
               style: context.type.tag.copyWith(color: context.pal.ok),
             ),
-            Icon(Icons.chevron_right_rounded, size: 18, color: context.pal.ok),
+            Icon(AppIcons.chevronRight, size: 18, color: context.pal.ok),
           ],
         ],
       ),

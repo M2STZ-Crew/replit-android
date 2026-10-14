@@ -11,6 +11,7 @@ import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import 'login_screen.dart';
+import '../widgets/app_icons.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -226,7 +227,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(
-                    Icons.smartphone,
+                    AppIcons.smartphone,
                     color: context.pal.accent,
                     size: 28,
                   ),
@@ -341,7 +342,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       decoration: InputDecoration(
         hintText: kPhMobileHint,
         prefixIcon: Icon(
-          Icons.phone_outlined,
+          AppIcons.call,
           size: 18,
           color: context.pal.muted,
         ),
@@ -372,7 +373,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline_rounded, size: 16, color: context.pal.muted),
+          Icon(AppIcons.lock, size: 16, color: context.pal.muted),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -401,7 +402,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(Icons.phone_in_talk_rounded, color: context.pal.live),
+          Icon(AppIcons.phoneInTalk, color: context.pal.live),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -409,7 +410,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
               style: context.type.rowTitleLg,
             ),
           ),
-          Icon(Icons.chevron_right_rounded, color: context.pal.live),
+          Icon(AppIcons.chevronRight, color: context.pal.live),
         ],
       ),
     ),

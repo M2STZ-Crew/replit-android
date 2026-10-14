@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/phone_code_sheet.dart';
 import 'role_gate.dart';
+import '../widgets/app_icons.dart';
 
 /// "03 Sign up" from the REPLIT-OVERHAUL Figma, with the mobile number back.
 ///
@@ -182,8 +183,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     tooltip: _obscure ? 'Show password' : 'Hide password',
                     icon: Icon(
                       _obscure
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
+                          ? AppIcons.visibility
+                          : AppIcons.visibilityOff,
                     ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
@@ -242,7 +243,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               child: _agree
                   ? const Icon(
-                      Icons.check_rounded,
+                      AppIcons.check,
                       size: 13,
                       color: AppColors.accentText,
                     )

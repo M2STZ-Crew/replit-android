@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
+import '../../widgets/design.dart';
 
 /// Shared label/colour helpers for incident status + agency, used across the
 /// responder console.
@@ -15,32 +16,17 @@ const Set<String> kAfterFireOut = {
   'closed',
 };
 
+/// An incident's status colour on the staff screens: the Lifecycle chip's
+/// tone (see [AppColors.forStatus]). Anything the lifecycle does not name is
+/// still waiting for a decision.
 Color responderStatusColor(String status) {
-  switch (status) {
-    case 'verified':
-      return AppColors.info; // blue
-    case 'en_route':
-      return const Color(0xFFFF9066); // orange
-    case 'arrived':
-      return AppColors.ok; // green
-    case 'fire_out':
-      return AppColors.ok;
-    case 'post_incident_report':
-    case 'closed':
-      return AppColors.forStatus(status);
-    case 'rejected':
-      return AppColors.live; // red
-    default: // pending
-      return AppColors.warn; // amber
-  }
+  final tone = AppColors.forStatus(status);
+  return tone == AppColors.muted ? AppColors.warn : tone;
 }
 
-String responderStatusLabel(String status) => switch (status) {
-  // The whole enum value is too long for a chip, and "report due" is what a
-  // captain needs to read in it.
-  'post_incident_report' => 'REPORT DUE',
-  _ => status.replaceAll('_', ' ').toUpperCase(),
-};
+/// The status in the PRD v12 words the Lifecycle chip uses ("En route",
+/// "Report pending") — the same words a resident's rail shows.
+String responderStatusLabel(String status) => LifecycleChip.word(status);
 
 /// What an agency is called on screen.
 String agencyLabel(String? agency) => switch (agency) {

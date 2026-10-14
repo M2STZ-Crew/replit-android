@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_icons.dart';
 
 /// A reported photo, full screen, to be looked at closely before deciding.
 ///
@@ -129,7 +130,7 @@ class _PhotoViewerState extends State<PhotoViewer>
               child: Align(
                 alignment: Alignment.topLeft,
                 child: _RoundButton(
-                  icon: Icons.close,
+                  icon: AppIcons.close,
                   label: 'Close photo',
                   onTap: () => Navigator.of(context).pop(),
                 ),

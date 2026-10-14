@@ -5,6 +5,7 @@ import '../api/api_client.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/app_icons.dart';
 
 const List<String> _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -218,7 +219,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         dropdownColor: context.pal.surfaceSolid,
         borderRadius: BorderRadius.circular(AppRadius.control),
-        icon: Icon(Icons.keyboard_arrow_down_rounded, color: context.pal.muted),
+        icon: Icon(AppIcons.keyboardArrowDown, color: context.pal.muted),
         style: _fieldStyle,
         items: _genders
             .map((g) => DropdownMenuItem(value: g, child: Text(g)))

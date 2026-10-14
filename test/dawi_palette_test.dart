@@ -3,19 +3,31 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:replit/theme.dart';
 
-/// The citizen palette follows the REPLIT x DAWI colour sheet.
+/// The citizen palette follows the REPLIT x DAWI colour sheet, as REPLIT
+/// (MAIN) pass 4 refined it (03 · Semantic colour tokens).
 void main() {
   const dark = AppPalette.dark;
 
-  test('cards are solid SURFACE/grey-500 on BACKGROUND/grey-400 edges', () {
+  test('cards are solid surface/default on the translucent hairline', () {
     expect(dark.background, const Color(0xFF131313));
     expect(dark.glass, const Color(0xFF1D1D1D));
-    expect(dark.line, const Color(0xFF424242));
-    expect(dark.lineStrong, const Color(0xFF4A4A4A));
+    // color/border/subtle: the PRD hairline, rgba(72,72,71,.35).
+    expect(dark.line, const Color(0x59484847));
+    // color/border/default: a control's edge, 3 : 1 on a card.
+    expect(dark.lineStrong, const Color(0xFF686868));
+  });
+
+  test('text steps down from primary to muted, never below 4.5 : 1', () {
+    expect(dark.onBackground, const Color(0xFFF3F3F3));
+    expect(dark.textSoft, const Color(0xFFC9C9C9));
+    expect(dark.label, const Color(0xFFA1A1A1));
+    expect(dark.muted, const Color(0xFF8A8A8A));
+    expect(dark.faint, dark.muted, reason: 'grey-600 is retired for text');
   });
 
   test('police is violet, medical teal, barangay amber, water blue', () {
-    expect(dark.police, const Color(0xFF8B5CF6));
+    // violet-300: violet-500 measures 3.98 : 1 on a card.
+    expect(dark.police, const Color(0xFFB192F9));
     expect(dark.medical, const Color(0xFF14B8A6));
     expect(dark.barangay, const Color(0xFFFFB020));
     expect(dark.water, const Color(0xFF5B93F5));

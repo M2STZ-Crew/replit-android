@@ -21,6 +21,7 @@ import '../directions_screen.dart';
 import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/you_are_here.dart';
+import '../../widgets/app_icons.dart';
 
 Color _sheet = AppColors.surfaceSolid;
 Color _panel = AppColors.glassDim;
@@ -313,7 +314,7 @@ class _SubAdminIncidentCommandScreenState
                     label,
                     style: const TextStyle(color: Colors.white),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: _muted),
+                  trailing: Icon(AppIcons.chevronRight, color: _muted),
                   onTap: () => Navigator.of(context).pop(value),
                 ),
             ],
@@ -661,7 +662,7 @@ class _SubAdminIncidentCommandScreenState
             ],
           ),
           child: const Icon(
-            Icons.local_fire_department,
+            AppIcons.localFireDepartment,
             color: Colors.white,
             size: 15,
           ),
@@ -690,7 +691,7 @@ class _SubAdminIncidentCommandScreenState
               ],
             ),
             child: const Icon(
-              Icons.local_shipping,
+              AppIcons.localShipping,
               color: Colors.white,
               size: 12,
             ),
@@ -741,7 +742,7 @@ class _SubAdminIncidentCommandScreenState
               ),
               const SizedBox(height: 12),
               _escalationRow(
-                icon: Icons.water_drop_outlined,
+                icon: AppIcons.waterDrop,
                 tint: const Color(0x1E3B82F6),
                 iconColor: context.pal.info,
                 title: 'Need Water',
@@ -750,7 +751,7 @@ class _SubAdminIncidentCommandScreenState
               ),
               const SizedBox(height: 10),
               _escalationRow(
-                icon: Icons.group_add_outlined,
+                icon: AppIcons.groupAdd,
                 tint: const Color(0x1EF59E0B),
                 iconColor: const Color(0xFFF59E0B),
                 title: 'Need Assistance',
@@ -759,7 +760,7 @@ class _SubAdminIncidentCommandScreenState
               ),
               const SizedBox(height: 10),
               _escalationRow(
-                icon: Icons.campaign_outlined,
+                icon: AppIcons.campaign,
                 tint: const Color(0x23EF4444),
                 iconColor: context.pal.live,
                 title: 'Escalate to BFP',
@@ -793,7 +794,7 @@ class _SubAdminIncidentCommandScreenState
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
-              Icons.location_on_outlined,
+              AppIcons.locationOn,
               color: context.pal.accent,
               size: 20,
             ),
@@ -843,7 +844,7 @@ class _SubAdminIncidentCommandScreenState
                     child: TextButton.icon(
                       onPressed: _route,
                       icon: Icon(
-                        Icons.directions,
+                        AppIcons.directions,
                         size: 18,
                         color: context.pal.accent,
                       ),
@@ -953,7 +954,7 @@ class _SubAdminIncidentCommandScreenState
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
-                  Icons.fire_truck_rounded,
+                  AppIcons.fireTruck,
                   color: context.pal.accent,
                   size: 22,
                 ),
@@ -1013,7 +1014,7 @@ class _SubAdminIncidentCommandScreenState
         children: [
           Row(
             children: [
-              Icon(Icons.local_taxi_outlined, color: _crewGrey, size: 14),
+              Icon(AppIcons.localTaxi, color: _crewGrey, size: 14),
               SizedBox(width: 6),
               Text('Driver', style: TextStyle(color: _crewGrey, fontSize: 11)),
             ],
@@ -1054,7 +1055,7 @@ class _SubAdminIncidentCommandScreenState
         children: [
           Row(
             children: [
-              Icon(Icons.groups_outlined, color: _crewGrey, size: 14),
+              Icon(AppIcons.groups, color: _crewGrey, size: 14),
               const SizedBox(width: 6),
               Text(
                 'Crew · ${crew.length}',
@@ -1153,7 +1154,7 @@ class _SubAdminIncidentCommandScreenState
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: _muted, size: 20),
+            Icon(AppIcons.chevronRight, color: _muted, size: 20),
           ],
         ),
       ),
@@ -1165,7 +1166,7 @@ class _SubAdminIncidentCommandScreenState
     if (_status == 'post_incident_report') {
       return AppButton(
         'File Post-Incident Report',
-        icon: Icons.assignment_outlined,
+        icon: AppIcons.assignment,
         height: 56,
         onPressed: _openReport,
       );

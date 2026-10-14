@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../api/api_client.dart';
 import '../models/facility.dart';
 import '../theme.dart';
+import 'app_icons.dart';
 
 /// The operational map layers every staff dashboard draws — responder, Fire
 /// Volunteer and BFP (Master Context v10 §2.4). One definition, where each of
@@ -118,7 +119,7 @@ Marker opsMarker(OpsLayer layer, OpsPoint p) {
           shape: BoxShape.circle,
           border: Border.all(color: layer.color, width: 2.5),
         ),
-        child: Icon(Icons.north_east_rounded, size: 10, color: layer.color),
+        child: Icon(AppIcons.northEast, size: 10, color: layer.color),
       ),
     );
   }

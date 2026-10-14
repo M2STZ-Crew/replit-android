@@ -7,6 +7,7 @@ import '../../api/api_client.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
+import '../../widgets/app_icons.dart';
 
 /// Opens a link outside the app — the phone's browser, which saves the PDF to
 /// Downloads. A parameter so tests need no browser.
@@ -194,7 +195,7 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
     if (_items.isEmpty) {
       return const [
         EmptyState(
-          icon: Icons.auto_awesome_outlined,
+          icon: AppIcons.autoAwesome,
           title: 'No summaries yet',
           body:
               'A summary appears here once a team files its Post-Incident '
@@ -239,7 +240,7 @@ class _SummaryRow extends StatelessWidget {
         children: [
           IconWell(
             tint: hasText ? context.pal.info : context.pal.muted,
-            icon: Icons.auto_awesome_outlined,
+            icon: AppIcons.autoAwesome,
             size: 36,
             glyph: 18,
           ),
@@ -274,7 +275,7 @@ class _SummaryRow extends StatelessWidget {
             )
           else if (state == 'unavailable')
             Tag('No summary', color: context.pal.muted),
-          Icon(Icons.chevron_right_rounded, color: context.pal.muted),
+          Icon(AppIcons.chevronRight, color: context.pal.muted),
         ],
       ),
     );
@@ -343,7 +344,7 @@ class _SummaryNoteScreenState extends State<SummaryNoteScreen> {
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
           child: AppButton(
             'Download PDF',
-            icon: Icons.download_rounded,
+            icon: AppIcons.download,
             busy: _downloading,
             onPressed: _downloading ? null : _download,
           ),
@@ -368,7 +369,7 @@ class _SummaryNoteScreenState extends State<SummaryNoteScreen> {
             const _Notice(
               'No summary has been written: the server has no AI key yet. '
               'The PDF still has every team\'s report.',
-              icon: Icons.info_outline_rounded,
+              icon: AppIcons.info,
             ),
           if (state != 'ready' && state != null) const SizedBox(height: 14),
           if (text != null && text.isNotEmpty) ...[
@@ -404,7 +405,7 @@ class _SummaryNoteScreenState extends State<SummaryNoteScreen> {
 }
 
 class _Notice extends StatelessWidget {
-  const _Notice(this.text, {this.icon = Icons.hourglass_top_rounded});
+  const _Notice(this.text, {this.icon = AppIcons.hourglassTop});
 
   final String text;
   final IconData icon;

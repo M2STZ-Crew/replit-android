@@ -239,7 +239,7 @@ void main() {
       await ActiveReportStore.start(report());
       await pumpBar(tester);
 
-      await tester.tap(find.bySemanticsLabel('SOS'));
+      await tester.tap(find.bySemanticsLabel('SOS — hold to report'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
@@ -253,7 +253,7 @@ void main() {
 
     testWidgets('opens the dial when nothing is in progress', (tester) async {
       await pumpBar(tester);
-      await tester.tap(find.bySemanticsLabel('SOS'));
+      await tester.tap(find.bySemanticsLabel('SOS — hold to report'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(ReportStatusScreen), findsNothing);
@@ -287,7 +287,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byKey(cover), findsOneWidget);
 
-      await tester.tap(find.bySemanticsLabel('SOS').last);
+      await tester.tap(find.bySemanticsLabel('SOS — hold to report').last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 

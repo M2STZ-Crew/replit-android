@@ -15,6 +15,7 @@ import 'phone_verify_screen.dart';
 import 'responder/responder_home_screen.dart';
 import 'subadmin/subadmin_dashboard_screen.dart';
 import '../widgets/staff_shell.dart';
+import '../widgets/app_icons.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
 /// role from GET /auth/me: response_team → the responder console; a coordinator
@@ -87,7 +88,7 @@ class _RoleGateState extends State<RoleGate> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off, color: context.pal.muted, size: 40),
+            Icon(AppIcons.cloudOff, color: context.pal.muted, size: 40),
             const SizedBox(height: 14),
             Text(_error!, style: TextStyle(color: context.pal.muted)),
             const SizedBox(height: 14),

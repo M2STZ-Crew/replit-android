@@ -5,6 +5,7 @@ import '../models/guide_article.dart';
 import '../models/hotline.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/app_icons.dart';
 
 /// "14 Guide detail" from the REPLIT-OVERHAUL Figma: one guide, as numbered
 /// steps, with the right hotline one tap away at the foot.
@@ -87,7 +88,7 @@ class GuideDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  Icons.info_outline_rounded,
+                  AppIcons.info,
                   size: 14,
                   color: context.pal.muted,
                 ),
@@ -188,7 +189,7 @@ class _CallButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.call_outlined, size: 16, color: context.pal.accent),
+              Icon(AppIcons.call, size: 16, color: context.pal.accent),
               const SizedBox(width: 10),
               Flexible(
                 child: Text(

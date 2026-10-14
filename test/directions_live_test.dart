@@ -9,6 +9,7 @@ import 'package:replit/location/live_position.dart';
 import 'package:replit/location/route_progress.dart';
 import 'package:replit/screens/directions_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/widgets/app_icons.dart';
 
 const _start = LatLng(14.5378, 121.0014);
 
@@ -179,12 +180,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('STOP'), findsOneWidget);
       expect(find.text('ON YOUR WAY'), findsOneWidget);
-      expect(find.byIcon(Icons.explore), findsOneWidget, reason: 'compass');
+      expect(find.byIcon(AppIcons.explore), findsOneWidget, reason: 'compass');
 
       await tester.tap(find.text('STOP'));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('START'), findsOneWidget);
-      expect(find.byIcon(Icons.location_searching), findsOneWidget);
+      expect(find.byIcon(AppIcons.locationSearching), findsOneWidget);
     });
 
     testWidgets('at the shelter it says you have arrived', (tester) async {

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -21,10 +20,12 @@ import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import '../widgets/drag_down_sheet.dart';
 import '../widgets/map_coach_marks.dart';
+import '../widgets/map_glass.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
 import '../widgets/you_are_here.dart';
 import 'onboarding_screen.dart' show Tour;
+import '../widgets/app_icons.dart';
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
@@ -32,17 +33,8 @@ const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
 /// How far "near you" reaches in the areas sheet: the frame's "Within 1.5 km".
 const double _nearMetres = 1500;
 
-/// The glass a panel over the map is made of — the ground colour at the
-/// design's opacity, so it reads as the app over the map in either theme.
-/// DAWI "04 Map" draws the chips, the location card and the areas sheet all
-/// at rgba(19,19,19,.5) over a 9px blur; the rows on the sheet are solid.
-Color _overlay(AppPalette pal) =>
-    pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.86 : 0.5);
-
-/// The denser glass, for a panel that has to hold prose over a busy map
-/// without solid rows of its own (the offline queue card).
-Color _overlayDense(AppPalette pal) =>
-    pal.surfaceSolid.withValues(alpha: pal.isLight ? 0.94 : 0.9);
+// The panels over the map are Glass (chips, the place card) or Glass strong
+// (the areas sheet, the offline card): see MapGlass for the rules.
 
 /// One chip in the "Map layers" row, and the layer it switches.
 /// What a layer is drawn in. A role rather than a swatch, so the light and
@@ -113,7 +105,7 @@ const _risk = _Layer(
   'Risk zones',
   _Tone.risk,
   tag: 'RISK AREA',
-  icon: Icons.warning_amber_rounded,
+  icon: AppIcons.warning,
   latKey: 'centroid_lat',
   lngKey: 'centroid_lng',
 );
@@ -122,14 +114,14 @@ const _water = _Layer(
   'Water',
   _Tone.water,
   tag: 'BODY OF WATER',
-  icon: Icons.waves_rounded,
+  icon: AppIcons.waves,
 );
 const _cisterns = _Layer(
   'cisterns',
   'Cisterns',
   _Tone.cistern,
   tag: 'UNDERGROUND CISTERN',
-  icon: Icons.water_damage_outlined,
+  icon: AppIcons.waterDamage,
 );
 
 List<_Layer> _layers = [
@@ -934,7 +926,7 @@ class _MapScreenState extends State<MapScreen> {
     return _Glass(
       radius: AppRadius.card,
       height: 48,
-      padding: const EdgeInsets.fromLTRB(14, 0, 16, 0),
+      padding: const EdgeInsets.fromLTRB(14, 6, 16, 6),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -966,7 +958,10 @@ class _MapScreenState extends State<MapScreen> {
                   line,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: context.type.tag.copyWith(color: context.pal.muted),
+                  // Tertiary, never muted, on glass (04 · Map place card).
+                  style: context.type.caption.copyWith(
+                    color: context.pal.label,
+                  ),
                 ),
               ],
             ),
@@ -995,7 +990,6 @@ class _MapScreenState extends State<MapScreen> {
               onTap: () => _toggle(layer),
               child: _Glass(
                 radius: AppRadius.chip,
-                blur: 9,
                 height: 30,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 // DAWI "MAP | LEGENDS": a layer that is on is washed in its
@@ -1003,7 +997,7 @@ class _MapScreenState extends State<MapScreen> {
                 // plain glass. The label stays light either way.
                 color: on
                     ? layer.colour(context.pal).withValues(alpha: 0.1)
-                    : _overlay(context.pal),
+                    : MapGlass.glass(context),
                 edge: on ? layer.colour(context.pal) : context.pal.line,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1069,7 +1063,7 @@ class _MapScreenState extends State<MapScreen> {
                     borderRadius: BorderRadius.circular(AppRadius.control),
                   ),
                   child: const Icon(
-                    Icons.location_on_outlined,
+                    AppIcons.locationOn,
                     size: 20,
                     color: Colors.white,
                   ),
@@ -1111,7 +1105,7 @@ class _MapScreenState extends State<MapScreen> {
     final n = queued.length;
     return _Glass(
       radius: AppRadius.panel,
-      color: _overlayDense(context.pal),
+      color: MapGlass.strong(context),
       edge: context.pal.accent.withValues(alpha: 0.45),
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -1128,7 +1122,7 @@ class _MapScreenState extends State<MapScreen> {
                   borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
                 child: Icon(
-                  Icons.refresh_rounded,
+                  AppIcons.refresh,
                   size: 17,
                   color: context.pal.glyphOn(context.pal.accent),
                 ),
@@ -1177,7 +1171,7 @@ class _MapScreenState extends State<MapScreen> {
               Expanded(
                 child: _QueueAction(
                   label: 'Call 911',
-                  icon: Icons.call_outlined,
+                  icon: AppIcons.call,
                   onTap: _call911,
                 ),
               ),
@@ -1199,10 +1193,10 @@ class _MapScreenState extends State<MapScreen> {
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppRadius.sheet),
         ),
-        child: BackdropFilter.grouped(
-          filter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+        child: _MaybeBlur(
           child: Container(
-            color: _overlay(context.pal),
+            // Glass strong: the sheet carries status words and prose.
+            color: MapGlass.strong(context),
             // The bar's height plus a little: the last row clears the SOS
             // disc, and a folded sheet's title sits just above the bar.
             padding: EdgeInsets.fromLTRB(24, 14, 24, clearance + 10),
@@ -1359,7 +1353,7 @@ class _MapScreenState extends State<MapScreen> {
         ),
       _SheetRow(
         tint: context.pal.accent,
-        icon: Icons.layers_outlined,
+        icon: AppIcons.layers,
         title: saved == null ? 'Map layers not saved yet' : 'Map layers cached',
         subtitle: saved == null
             ? 'They save the next time the map has signal'
@@ -1373,7 +1367,7 @@ class _MapScreenState extends State<MapScreen> {
       ),
       _SheetRow(
         tint: context.pal.ok,
-        icon: Icons.call_outlined,
+        icon: AppIcons.call,
         title: 'All ${kHotlines.length} hotlines',
         subtitle: 'Dial without data',
         onTap: () => AppNavBar.switchTo(context, AppTab.hotlines),
@@ -1602,7 +1596,6 @@ class _Glass extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.color,
     this.edge,
-    this.blur = 12,
     this.height,
   });
 
@@ -1615,7 +1608,9 @@ class _Glass extends StatelessWidget {
 
   /// Defaults to the palette's hairline.
   final Color? edge;
-  final double blur;
+
+  /// The least height. The panel grows past it with its text — at 1.5×
+  /// system font size a fixed height would cut the second line off.
   final double? height;
 
   @override
@@ -1623,13 +1618,12 @@ class _Glass extends StatelessWidget {
     final shape = BorderRadius.circular(radius);
     return ClipRRect(
       borderRadius: shape,
-      child: BackdropFilter.grouped(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+      child: _MaybeBlur(
         child: Container(
-          height: height,
+          constraints: BoxConstraints(minHeight: height ?? 0),
           padding: padding,
           decoration: BoxDecoration(
-            color: color ?? _overlay(context.pal),
+            color: color ?? MapGlass.glass(context),
             borderRadius: shape,
             border: Border.all(color: edge ?? context.pal.line),
           ),
@@ -1638,6 +1632,19 @@ class _Glass extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The map's blur behind a glass panel, or none when the panel is solid
+/// (the accessibility setting for more contrast — see [MapGlass]).
+class _MaybeBlur extends StatelessWidget {
+  const _MaybeBlur({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => MapGlass.blurs(context)
+      ? BackdropFilter.grouped(filter: MapGlass.blur, child: child)
+      : child;
 }
 
 /// The map's top and bottom darkening: 80% at the top edge, clear through
@@ -1728,7 +1735,7 @@ class _MarkerSquare extends StatelessWidget {
               border: Border.all(color: context.pal.surfaceSolid, width: 1.5),
             ),
             child: Icon(
-              Icons.north_east_rounded,
+              AppIcons.northEast,
               size: 8,
               color: context.pal.surfaceSolid,
             ),

@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import '../api/notification_router.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/app_icons.dart';
 
 /// Opens what an Alerts row is about; [NotificationRouter] unless a test
 /// gives its own.
@@ -112,37 +113,37 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // A new fire, for staff (v1.12.6).
     'incident_new' => (
       'New fire',
-      Icons.local_fire_department,
+      AppIcons.localFireDepartment,
       context.pal.live,
     ),
     'fire_alert' => (
       'Fire alert',
-      Icons.local_fire_department,
+      AppIcons.localFireDepartment,
       context.pal.live,
     ),
     'incident_update' => (
       'Incident update',
-      Icons.campaign_outlined,
+      AppIcons.campaign,
       context.pal.accent,
     ),
     'responder_dispatch' => (
       'Dispatched unit',
-      Icons.local_shipping_outlined,
+      AppIcons.localShipping,
       context.pal.accent,
     ),
     // Admin routed an incident to this team captain's team (v10 §2.6.2).
     'incident_routed' => (
       'Routed to your team',
-      Icons.alt_route_rounded,
+      AppIcons.altRoute,
       context.pal.ok,
     ),
     'alarm_request' => (
       'Alarm request',
-      Icons.notifications_active_outlined,
+      AppIcons.notificationsActive,
       context.pal.live,
     ),
-    'alarm_executed' => ('Alarm raised', Icons.campaign, context.pal.ok),
-    _ => ('Notification', Icons.notifications_outlined, context.pal.info),
+    'alarm_executed' => ('Alarm raised', AppIcons.campaign, context.pal.ok),
+    _ => ('Notification', AppIcons.notifications, context.pal.info),
   };
 
   String _ago(String? iso) {
@@ -205,7 +206,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
     if (_error != null) {
       return EmptyState(
-        icon: Icons.cloud_off_rounded,
+        icon: AppIcons.cloudOff,
         tone: context.pal.live,
         title: 'Could not load alerts',
         body: _error!,
@@ -214,7 +215,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
     if (_items.isEmpty) {
       return const EmptyState(
-        icon: Icons.notifications_none_rounded,
+        icon: AppIcons.notifications,
         title: 'No alerts yet',
         body:
             'If something is reported near you, an alert appears here so you '
@@ -284,7 +285,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               if (canOpen(n['type'] as String?, _data(n))) ...[
                 const SizedBox(width: 6),
                 Icon(
-                  Icons.chevron_right_rounded,
+                  AppIcons.chevronRight,
                   key: const ValueKey('opens'),
                   color: context.pal.muted,
                 ),

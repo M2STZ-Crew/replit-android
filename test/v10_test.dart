@@ -273,10 +273,12 @@ void main() {
   });
 
   group('status labels', () {
-    test('the report step reads as a to-do, not an enum', () {
-      expect(responderStatusLabel('post_incident_report'), 'REPORT DUE');
-      expect(responderStatusLabel('closed'), 'CLOSED');
-      expect(responderStatusLabel('en_route'), 'EN ROUTE');
+    test('statuses read in the PRD words, never as the enum', () {
+      // The Lifecycle chip's fixed labels (REPLIT (MAIN) 04, pass 4).
+      expect(responderStatusLabel('post_incident_report'), 'Report pending');
+      expect(responderStatusLabel('closed'), 'Closed');
+      expect(responderStatusLabel('en_route'), 'En route');
+      expect(responderStatusLabel('fire_out'), 'Fire out');
     });
 
     test('every post-fire status counts as after fire out', () {

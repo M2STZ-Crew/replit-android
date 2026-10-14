@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../theme.dart';
 import '../../widgets/staff_shell.dart';
+import '../../widgets/app_icons.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -275,11 +276,11 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
       );
     }
     if (_error != null) {
-      return _centered(Icons.cloud_off, _error!, retry: true);
+      return _centered(AppIcons.cloudOff, _error!, retry: true);
     }
     if (_requests.isEmpty) {
       return _centered(
-        Icons.notifications_off_outlined,
+        AppIcons.notificationsOff,
         _pendingOnly ? 'No pending alarm requests.' : 'No alarm requests yet.',
       );
     }
@@ -353,7 +354,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
           Row(
             children: [
               Icon(
-                Icons.campaign_outlined,
+                AppIcons.campaign,
                 color: context.pal.accent,
                 size: 18,
               ),

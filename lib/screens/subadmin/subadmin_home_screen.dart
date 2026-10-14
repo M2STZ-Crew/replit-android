@@ -11,6 +11,7 @@ import '../responder/responder_status.dart';
 import 'subadmin_incident_command_screen.dart';
 import 'subadmin_incident_report_screen.dart';
 import '../../api/live_refresh.dart';
+import '../../widgets/app_icons.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -178,22 +179,21 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
       );
     }
     if (_error != null) {
-      return _centered(Icons.cloud_off, _error!, retry: true);
+      return _centered(AppIcons.cloudOff, _error!, retry: true);
     }
     if (_areas.isEmpty) {
-      return _centered(
-        Icons.inbox_outlined,
-        'No incidents to review right now.',
-      );
+      return _centered(AppIcons.inbox, 'No incidents to review right now.');
     }
-    return RefreshIndicator(
-      color: context.pal.accent,
-      backgroundColor: context.pal.surfaceSolid,
-      onRefresh: _load,
-      child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 24),
-        itemCount: _areas.length,
-        itemBuilder: (_, i) => _areaSection(_areas[i]),
+    return ScrollFade(
+      child: RefreshIndicator(
+        color: context.pal.accent,
+        backgroundColor: context.pal.surfaceSolid,
+        onRefresh: _load,
+        child: ListView.builder(
+          padding: const EdgeInsets.only(bottom: kScrollFadeEndPadding),
+          itemCount: _areas.length,
+          itemBuilder: (_, i) => _areaSection(_areas[i]),
+        ),
       ),
     );
   }
@@ -242,20 +242,13 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                 ),
                 Row(
                   children: [
-                    Text(
-                      responderStatusLabel(status),
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    LifecycleChip(status),
                     const SizedBox(width: 8),
                     AnimatedRotation(
                       turns: open ? 0 : -0.25,
                       duration: const Duration(milliseconds: 150),
                       child: Icon(
-                        Icons.keyboard_arrow_down,
+                        AppIcons.keyboardArrowDown,
                         color: _grey,
                         size: 20,
                       ),
@@ -311,7 +304,6 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
   }
 
   Widget _reportCard(Map<String, dynamic> r, String status, String areaId) {
-    final color = _areaColor(status);
     final name =
         (r['reporter_name'] as String?)?.toUpperCase() ?? 'UNKNOWN REPORTER';
     final created = r['created_at'] as String?;
@@ -366,22 +358,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(50),
-                border: Border.all(color: color, width: 2),
-              ),
-              child: Text(
-                responderStatusLabel(status),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
+            LifecycleChip(status),
           ],
         ),
       ),
@@ -395,7 +372,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
         width: size,
         height: size,
         label: '',
-        icon: Icons.photo_outlined,
+        icon: AppIcons.photo,
         radius: 10,
       );
     }
@@ -427,7 +404,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
           width: size,
           height: size,
           label: '',
-          icon: Icons.broken_image_outlined,
+          icon: AppIcons.brokenImage,
           radius: 10,
         ),
       ),

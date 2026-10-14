@@ -109,11 +109,11 @@ void main() {
     await pump(tester);
     expect(tester.takeException(), isNull);
     expect(find.text('RESPONDERS'), findsOneWidget, reason: 'the top bar');
-    expect(find.text('COORDINATOR'), findsOneWidget);
+    expect(find.text('Coordinator'), findsOneWidget);
     expect(find.text('Miguel Bautista'), findsOneWidget);
     expect(find.text('mbautista.resfir@replit.com'), findsOneWidget);
-    expect(find.text('ON A RUN'), findsOneWidget);
-    expect(find.text('DEACTIVATED'), findsOneWidget);
+    expect(find.text('On a run'), findsOneWidget);
+    expect(find.text('Deactivated'), findsOneWidget);
     expect(find.text('1 ACTIVE'), findsOneWidget);
   });
 
@@ -159,6 +159,6 @@ void main() {
     await tester.tap(find.text('Deactivate'));
     await tester.pumpAndSettle();
     expect(calls, contains('POST /team/responders/r1/deactivate'));
-    expect(find.text('DEACTIVATED'), findsNWidgets(2));
+    expect(find.text('Deactivated'), findsNWidgets(2));
   });
 }

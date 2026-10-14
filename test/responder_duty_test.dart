@@ -79,7 +79,7 @@ void main() {
 
       // The shared staff frame: the screen's name and whose console it is.
       expect(find.text('MY DUTY'), findsOneWidget);
-      expect(find.text('RESPONDER'), findsOneWidget);
+      expect(find.text('Responder'), findsOneWidget);
       expect(find.text('TANKER 1 · FIRE VOLUNTEER'), findsOneWidget);
       expect(find.text('STANDBY'), findsOneWidget);
       expect(find.text('NO RUN RIGHT NOW'), findsOneWidget);
@@ -96,7 +96,7 @@ void main() {
       );
 
       expect(find.text('LOCATION SHARING'), findsOneWidget);
-      expect(find.text('OFF'), findsOneWidget);
+      expect(find.text('Off'), findsOneWidget);
     });
   }
 
@@ -119,7 +119,7 @@ void main() {
     );
     expect(find.text('ON A RUN'), findsOneWidget);
     expect(find.text('AREA 5.1'), findsOneWidget);
-    expect(find.text('EN ROUTE'), findsOneWidget);
+    expect(find.text('En route'), findsOneWidget);
     expect(find.text('NO RUN RIGHT NOW'), findsNothing);
     expect(find.text('OPEN'), findsOneWidget);
   });

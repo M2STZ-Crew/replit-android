@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'live_update_screen.dart';
 import 'report_status_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// What each agency a report asked for is called on its card, and its glyph.
 const Map<String, ({String word, String glyph})> _agencies = {
@@ -199,7 +200,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     }
     if (_error != null && _reports == null) {
       return EmptyState(
-        icon: Icons.cloud_off_rounded,
+        icon: AppIcons.cloudOff,
         tone: context.pal.live,
         title: 'Could not load your reports',
         body: _error!,
@@ -287,7 +288,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
               Padding(
                 padding: EdgeInsets.only(top: 1),
                 child: Icon(
-                  Icons.lock_outline_rounded,
+                  AppIcons.lock,
                   size: 15,
                   color: context.pal.muted,
                 ),
@@ -432,7 +433,7 @@ class _ReportCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons.info_outline_rounded,
+                    AppIcons.info,
                     size: 15,
                     color: context.pal.warn,
                   ),

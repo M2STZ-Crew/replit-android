@@ -13,6 +13,7 @@ import '../theme.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/design.dart';
 import '../widgets/you_are_here.dart';
+import '../widgets/app_icons.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -461,7 +462,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.navigation, color: context.pal.accent, size: 16),
+          Icon(AppIcons.navigation, color: context.pal.accent, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -495,7 +496,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       ],
     ),
     child: Icon(
-      _toFire ? Icons.local_fire_department : Icons.home_outlined,
+      _toFire ? AppIcons.localFireDepartment : AppIcons.home,
       color: Colors.white,
       size: 20,
     ),
@@ -506,7 +507,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   Widget get _destIcon => _toFire
       ? IconWell(
           tint: context.pal.live,
-          icon: Icons.local_fire_department,
+          icon: AppIcons.localFireDepartment,
           size: 40,
           glyph: 20,
         )
@@ -541,7 +542,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.location_off_outlined, color: context.pal.warn),
+                Icon(AppIcons.locationOff, color: context.pal.warn),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Eyebrow(
@@ -642,14 +643,14 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
             children: [
               Expanded(
                 child: _metric(
-                  Icons.straighten,
+                  AppIcons.straighten,
                   _loading ? '—' : formatDistance(_remaining),
                   'to go',
                 ),
               ),
               Expanded(
                 child: _metric(
-                  _toFire ? Icons.directions_car : Icons.directions_walk,
+                  _toFire ? AppIcons.directionsCar : AppIcons.directionsWalk,
                   _loading ? '—' : '~$_minutesLeft min',
                   _toFire ? 'driving' : 'on foot',
                 ),

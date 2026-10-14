@@ -5,6 +5,7 @@ import '../api/push_service.dart';
 import '../sound/sound_cues.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/app_icons.dart';
 
 /// Notification settings — toggle emergency/neighborhood alerts on or off (which
 /// registers/unregisters this device with the backend) and send a test push.
@@ -128,7 +129,7 @@ class _NotificationSettingsScreenState
         children: [
           IconWell(
             tint: context.pal.accent,
-            icon: Icons.notifications_active_outlined,
+            icon: AppIcons.notificationsActive,
             size: 44,
             glyph: 22,
           ),
@@ -166,7 +167,7 @@ class _NotificationSettingsScreenState
         children: [
           IconWell(
             tint: context.pal.ok,
-            icon: Icons.volume_up_outlined,
+            icon: AppIcons.volumeUp,
             size: 44,
             glyph: 22,
           ),
@@ -209,7 +210,7 @@ class _NotificationSettingsScreenState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: context.pal.accent),
+          Icon(AppIcons.info, size: 16, color: context.pal.accent),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'national_id_screen.dart';
 import 'phone_verify_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// "16 Verification" from the REPLIT-OVERHAUL Figma — "Verify your account".
 ///
@@ -207,7 +208,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         line: 'Unavailable while we change SMS provider',
         lineColor: context.pal.warn,
         trailing: Icon(
-          Icons.error_outline_rounded,
+          AppIcons.error,
           size: 16,
           color: context.pal.warn,
         ),
@@ -232,7 +233,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         line: 'Submitted — an administrator is checking it',
         lineColor: context.pal.warn,
         trailing: Icon(
-          Icons.schedule_rounded,
+          AppIcons.schedule,
           size: 16,
           color: context.pal.warn,
         ),
@@ -332,12 +333,12 @@ class _Channel extends StatelessWidget {
               trailing ??
                   (done
                       ? Icon(
-                          Icons.check_rounded,
+                          AppIcons.check,
                           size: 18,
                           color: context.pal.ok,
                         )
                       : Icon(
-                          Icons.chevron_right_rounded,
+                          AppIcons.chevronRight,
                           size: 18,
                           color: context.pal.accent,
                         )),

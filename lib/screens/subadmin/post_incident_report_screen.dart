@@ -6,6 +6,7 @@ import '../../models/post_incident_report.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
+import '../../widgets/app_icons.dart';
 
 export '../../models/post_incident_report.dart' show kCommonEquipment;
 
@@ -396,129 +397,132 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       title: 'Post-Incident Report',
       body: _loading
           ? Center(child: CircularProgressIndicator(color: context.pal.accent))
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              children: [
-                ScreenHeader(
-                  showBack: false,
-                  eyebrow: "Your team's report",
-                  title: _designation ?? 'Incident',
-                ),
-                const SizedBox(height: 18),
-                _intro(),
-                const SizedBox(height: 24),
-                _section('When'),
-                _timeRow(
-                  label: 'Time of the incident',
-                  value: _incidentAt,
-                  onTap: () => _pickTime(fireOut: false),
-                ),
-                const SizedBox(height: 8),
-                _timeRow(
-                  label: 'Time the fire was out',
-                  value: _fireOutAt,
-                  onTap: () => _pickTime(fireOut: true),
-                ),
-                const SizedBox(height: 24),
-                _section('Units · ${_units.length}'),
-                _hint('Pick every unit that went.'),
-                _chips([
-                  for (final u in _unitChoices)
-                    _chip(
-                      u.name,
-                      selected: _units.contains(u.key),
-                      onTap: () => _toggleUnit(u),
-                    ),
-                ]),
-                const SizedBox(height: 24),
-                _section('Driver'),
-                if (_members.isEmpty)
-                  _noTeam()
-                else ...[
-                  _hint('Pick one.'),
-                  _chips([
-                    for (final m in _members)
-                      _chip(
-                        m.name,
-                        selected: _driverId == m.id,
-                        onTap: () => _pickDriver(m),
-                      ),
-                  ]),
-                ],
-                const SizedBox(height: 24),
-                _section('Roster · ${_rosterIds.length}'),
-                if (_members.isNotEmpty) ...[
-                  _hint('Pick everyone who went, the driver included.'),
-                  _chips([
-                    for (final m in _members)
-                      _chip(
-                        m.name,
-                        selected: _rosterIds.contains(m.id),
-                        onTap: () => _toggleRoster(m),
-                      ),
-                  ]),
-                ] else
-                  _hint('Your team has to load before you can pick.'),
-                const SizedBox(height: 24),
-                _section('Equipment taken · ${_equipment.length}'),
-                _hint('Pick everything that came off the units.'),
-                _chips([
-                  for (final item in _equipmentChoices)
-                    _chip(
-                      item,
-                      selected: _equipment.contains(item),
-                      onTap: () => _toggleEquipment(item),
-                    ),
-                ]),
-                const SizedBox(height: 24),
-                _section('False alarm'),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: _falseAlarm,
-                  onChanged: (v) => setState(() {
-                    _falseAlarm = v;
-                    if (!v) _falseAlarmReason = null;
-                  }),
-                  activeThumbColor: context.pal.accent,
-                  title: Text(
-                    'We arrived and found nothing',
-                    style: context.type.body,
+          : ScrollFade(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+                children: [
+                  ScreenHeader(
+                    showBack: false,
+                    eyebrow: "Your team's report",
+                    title: _designation ?? 'Incident',
                   ),
-                  subtitle: Text(
-                    'A prank, a fire already out, or the wrong address.',
-                    style: context.type.meta,
+                  const SizedBox(height: 18),
+                  _intro(),
+                  const SizedBox(height: 24),
+                  _section('When'),
+                  _timeRow(
+                    label: 'Time of the incident',
+                    value: _incidentAt,
+                    onTap: () => _pickTime(fireOut: false),
                   ),
-                ),
-                if (_falseAlarm) ...[
                   const SizedBox(height: 8),
-                  _hint('What did the team find? Pick one.'),
+                  _timeRow(
+                    label: 'Time the fire was out',
+                    value: _fireOutAt,
+                    onTap: () => _pickTime(fireOut: true),
+                  ),
+                  const SizedBox(height: 24),
+                  _section('Units · ${_units.length}'),
+                  _hint('Pick every unit that went.'),
                   _chips([
-                    for (final reason in kFalseAlarmReasons)
+                    for (final u in _unitChoices)
                       _chip(
-                        reason,
-                        selected: _falseAlarmReason == reason,
-                        onTap: () => setState(() => _falseAlarmReason = reason),
+                        u.name,
+                        selected: _units.contains(u.key),
+                        onTap: () => _toggleUnit(u),
                       ),
                   ]),
-                ],
-                const SizedBox(height: 28),
-                if (missing.isNotEmpty) ...[
-                  Text(
-                    'Still needed: ${missing.join(', ')}',
-                    style: context.type.meta.copyWith(
-                      color: context.pal.warn,
-                      height: 1.4,
+                  const SizedBox(height: 24),
+                  _section('Driver'),
+                  if (_members.isEmpty)
+                    _noTeam()
+                  else ...[
+                    _hint('Pick one.'),
+                    _chips([
+                      for (final m in _members)
+                        _chip(
+                          m.name,
+                          selected: _driverId == m.id,
+                          onTap: () => _pickDriver(m),
+                        ),
+                    ]),
+                  ],
+                  const SizedBox(height: 24),
+                  _section('Roster · ${_rosterIds.length}'),
+                  if (_members.isNotEmpty) ...[
+                    _hint('Pick everyone who went, the driver included.'),
+                    _chips([
+                      for (final m in _members)
+                        _chip(
+                          m.name,
+                          selected: _rosterIds.contains(m.id),
+                          onTap: () => _toggleRoster(m),
+                        ),
+                    ]),
+                  ] else
+                    _hint('Your team has to load before you can pick.'),
+                  const SizedBox(height: 24),
+                  _section('Equipment taken · ${_equipment.length}'),
+                  _hint('Pick everything that came off the units.'),
+                  _chips([
+                    for (final item in _equipmentChoices)
+                      _chip(
+                        item,
+                        selected: _equipment.contains(item),
+                        onTap: () => _toggleEquipment(item),
+                      ),
+                  ]),
+                  const SizedBox(height: 24),
+                  _section('False alarm'),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    value: _falseAlarm,
+                    onChanged: (v) => setState(() {
+                      _falseAlarm = v;
+                      if (!v) _falseAlarmReason = null;
+                    }),
+                    activeThumbColor: context.pal.accent,
+                    title: Text(
+                      'We arrived and found nothing',
+                      style: context.type.body,
+                    ),
+                    subtitle: Text(
+                      'A prank, a fire already out, or the wrong address.',
+                      style: context.type.meta,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  if (_falseAlarm) ...[
+                    const SizedBox(height: 8),
+                    _hint('What did the team find? Pick one.'),
+                    _chips([
+                      for (final reason in kFalseAlarmReasons)
+                        _chip(
+                          reason,
+                          selected: _falseAlarmReason == reason,
+                          onTap: () =>
+                              setState(() => _falseAlarmReason = reason),
+                        ),
+                    ]),
+                  ],
+                  const SizedBox(height: 28),
+                  if (missing.isNotEmpty) ...[
+                    Text(
+                      'Still needed: ${missing.join(', ')}',
+                      style: context.type.meta.copyWith(
+                        color: context.pal.warn,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  AppButton(
+                    'File report & close incident',
+                    icon: AppIcons.taskAlt,
+                    busy: _submitting,
+                    onPressed: missing.isEmpty ? _submit : null,
+                  ),
                 ],
-                AppButton(
-                  'File report & close incident',
-                  icon: Icons.task_alt_rounded,
-                  busy: _submitting,
-                  onPressed: missing.isEmpty ? _submit : null,
-                ),
-              ],
+              ),
             ),
     );
   }
@@ -529,10 +533,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconWell(
-            tint: context.pal.accent,
-            icon: Icons.assignment_turned_in_outlined,
-          ),
+          IconWell(tint: context.pal.accent, icon: AppIcons.assignmentTurnedIn),
           const SizedBox(width: 14),
           Expanded(
             child: Text(
@@ -586,7 +587,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                 ],
               ),
             ),
-            Icon(Icons.schedule_rounded, color: context.pal.accent, size: 20),
+            Icon(AppIcons.schedule, color: context.pal.accent, size: 20),
           ],
         ),
       ),

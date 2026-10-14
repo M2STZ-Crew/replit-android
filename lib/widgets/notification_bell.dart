@@ -6,6 +6,7 @@ import '../theme.dart';
 
 import '../api/api_client.dart';
 import '../screens/notifications_screen.dart';
+import 'app_icons.dart';
 
 /// A bell icon button (40×40, matching the app-bar icon boxes) with an unread
 /// badge. Tap opens the in-app notification inbox. Polls the unread count every
@@ -70,7 +71,7 @@ class _NotificationBellState extends State<NotificationBell> {
                 border: Border.all(color: context.pal.line),
               ),
               child: Icon(
-                Icons.notifications_none_rounded,
+                AppIcons.notifications,
                 color: context.pal.onBackground,
                 size: 19,
               ),

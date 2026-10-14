@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/incident_map.dart';
 import 'sos_report_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// A photo taken again from the report screen, with the place it names.
 typedef RetakenPhoto = ({List<int> bytes, String? address});
@@ -350,7 +351,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     return ColoredBox(
       color: context.pal.canvas,
       child: EmptyState(
-        icon: Icons.no_photography_outlined,
+        icon: AppIcons.noPhotography,
         tone: context.pal.live,
         title: 'Camera unavailable',
         body:
@@ -380,7 +381,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       child: _position == null
           ? Center(
               child: Icon(
-                Icons.location_searching,
+                AppIcons.locationSearching,
                 color: context.pal.muted,
                 size: 22,
               ),
@@ -414,7 +415,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         children: [
           IconWell(
             tint: context.pal.accent,
-            icon: Icons.location_on,
+            icon: AppIcons.locationOn,
             size: 40,
             glyph: 20,
           ),
@@ -466,13 +467,13 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _circleButton(
-            _torch ? Icons.flash_on : Icons.flash_off,
+            _torch ? AppIcons.flashOn : AppIcons.flashOff,
             _toggleFlash,
             active: _torch,
           ),
           _shutter(),
           _circleButton(
-            Icons.cameraswitch_outlined,
+            AppIcons.cameraswitch,
             _cameras.length < 2 ? null : _flip,
           ),
         ],

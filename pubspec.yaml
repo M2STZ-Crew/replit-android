@@ -94,6 +94,14 @@ flutter:
     # when the final "salamat!" recording is chosen.
     - assets/sounds/
 
+  # The design's one icon family (Material Symbols Rounded, Fill 1), cut down
+  # to the icons the app uses. Built by tool/symbols/build_font.py; drawn
+  # through lib/widgets/app_icons.dart.
+  fonts:
+    - family: AppSymbols
+      fonts:
+        - asset: assets/fonts/app_symbols.ttf
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

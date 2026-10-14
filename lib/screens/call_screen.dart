@@ -111,40 +111,18 @@ class _CallScreenState extends State<CallScreen> {
               ),
             ),
             Expanded(
-              child: Stack(
-                children: [
-                  ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
-                    itemCount: _visible.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) => _HotlineRow(
-                      hotline: _visible[i],
-                      onTap: () => _dial(_visible[i]),
-                    ),
+              // The list fades at whichever edge has more past it (04 ·
+              // Scroll fade), instead of a gradient that never moves.
+              child: ScrollFade(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
+                  itemCount: _visible.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) => _HotlineRow(
+                    hotline: _visible[i],
+                    onTap: () => _dial(_visible[i]),
                   ),
-                  // The list fades into the tab bar rather than stopping at a
-                  // hard edge.
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 56,
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              context.pal.background.withValues(alpha: 0),
-                              context.pal.background.withValues(alpha: 0.95),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],

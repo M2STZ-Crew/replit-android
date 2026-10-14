@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import 'call_screen.dart';
+import '../widgets/app_icons.dart';
 
 class _Faq {
   const _Faq(this.question, this.answer);
@@ -163,7 +164,7 @@ class HelpCenterScreen extends StatelessWidget {
           AppButton(
             'View emergency hotlines',
             height: 48,
-            icon: Icons.call_rounded,
+            icon: AppIcons.call,
             onPressed: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const CallScreen())),

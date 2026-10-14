@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_icons.dart';
 
 /// A responder unit a citizen can request. The [key] is the backend agency_type
 /// value sent to /reports/submit (selected_agencies).
@@ -19,24 +20,24 @@ const List<ResponderUnit> kResponderUnits = [
     'fire_volunteer',
     'Fire Department',
     'HERCULES FIRE VOLUNTEER',
-    Icons.local_fire_department,
+    AppIcons.localFireDepartment,
   ),
   ResponderUnit(
     'police',
     'Police Department',
     'PASAY POLICE STATION',
-    Icons.local_police_outlined,
+    AppIcons.localPolice,
   ),
   ResponderUnit(
     'medical',
     'Medical Support',
     'METRO PASAY HOSPITAL',
-    Icons.medical_services_outlined,
+    AppIcons.medicalServices,
   ),
   ResponderUnit(
     'barangay',
     'Barangay Personnel',
     'BARANGAY 76, BARANGAY HALL',
-    Icons.groups_outlined,
+    AppIcons.groups,
   ),
 ];

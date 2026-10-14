@@ -17,6 +17,7 @@ import 'login_screen.dart';
 import 'my_reports_screen.dart';
 import 'notifications_screen.dart';
 import 'verification_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// "15 Profile" from the REPLIT-OVERHAUL Figma — "Your profile", now a tab.
 ///
@@ -220,120 +221,125 @@ class _ProfileScreenState extends State<ProfileScreen> {
       bottomNavigationBar: const AppNavBar(active: AppTab.profile),
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _load,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-            children: [
-              ScreenHeader(
-                eyebrow: 'Account',
-                title: 'Your profile',
-                showBack: pushed,
-                trailing: const NotificationBell(),
-              ),
-              const SizedBox(height: 20),
-              _identity(),
-              if (next != null) ...[
-                const SizedBox(height: 10),
-                _nextStep(next),
-              ],
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Eyebrow('Account details', color: context.pal.muted),
-                  ),
-                  GestureDetector(
-                    onTap: _editProfile,
-                    behavior: HitTestBehavior.opaque,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4),
-                      child: Eyebrow('Edit', color: context.pal.accent),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              _details(),
-              const SizedBox(height: 20),
-              Eyebrow('Settings', color: context.pal.muted),
-              const SizedBox(height: 8),
-              _Toggle(
-                title: 'Barangay alerts',
-                line: 'Fires reported within 300 m, and news on your reports',
-                value: _alerts,
-                busy: _alertsBusy,
-                onChanged: _setAlerts,
-              ),
-              const SizedBox(height: 8),
-              _Toggle(
-                title: 'Notification sounds',
-                line: 'A short cue when a report sends',
-                value: _sounds,
-                onChanged: _setSounds,
-              ),
-              const SizedBox(height: 8),
-              _Toggle(
-                title: 'Light mode',
-                line: 'The pale ground, for daylight',
-                value: ThemeChoice.light.value,
-                onChanged: (on) async {
-                  await ThemeChoice.set(on);
-                  if (mounted) setState(() {});
-                },
-              ),
-              const SizedBox(height: 8),
-              _Link(
-                title: 'Send a test alert',
-                line: 'Check this phone receives them',
-                busy: _testing,
-                onTap: _testing ? null : _sendTest,
-              ),
-              const SizedBox(height: 20),
-              Eyebrow('More', color: context.pal.muted),
-              const SizedBox(height: 8),
-              _Link(
-                title: 'Your reports',
-                line: 'Everything you have sent, and where it got to',
-                onTap: () => _push(const MyReportsScreen()),
-              ),
-              const SizedBox(height: 8),
-              _Link(
-                title: 'Notifications',
-                line: 'Alerts and updates sent to you',
-                onTap: () => _push(const NotificationsScreen()),
-              ),
-              const SizedBox(height: 8),
-              _Link(
-                title: 'Help centre',
-                line: 'How reporting works, and what happens next',
-                onTap: () => _push(const HelpCenterScreen()),
-              ),
-              const SizedBox(height: 8),
-              _Link(
-                title: 'About RepLiT',
-                line: 'Barangay 76, Pasay City',
-                onTap: _about,
-              ),
-              const SizedBox(height: 24),
-              AppButton.danger(
-                'Log out',
-                icon: Icons.logout_rounded,
-                busy: _loggingOut,
-                onPressed: _loggingOut ? null : _logout,
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  // The build as App Distribution lists it: "1.11.0 (57)".
-                  [
-                    'REPLIT · BARANGAY 76',
-                    if (AppVersion.label.isNotEmpty) 'V${AppVersion.label}',
-                  ].join(' · '),
-                  style: context.type.tag.copyWith(color: context.pal.faint),
+        child: ScrollFade(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+              children: [
+                ScreenHeader(
+                  eyebrow: 'Account',
+                  title: 'Your profile',
+                  showBack: pushed,
+                  trailing: const NotificationBell(),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                _identity(),
+                if (next != null) ...[
+                  const SizedBox(height: 10),
+                  _nextStep(next),
+                ],
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Eyebrow(
+                        'Account details',
+                        color: context.pal.muted,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _editProfile,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4),
+                        child: Eyebrow('Edit', color: context.pal.accent),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _details(),
+                const SizedBox(height: 20),
+                Eyebrow('Settings', color: context.pal.muted),
+                const SizedBox(height: 8),
+                _Toggle(
+                  title: 'Barangay alerts',
+                  line: 'Fires reported within 300 m, and news on your reports',
+                  value: _alerts,
+                  busy: _alertsBusy,
+                  onChanged: _setAlerts,
+                ),
+                const SizedBox(height: 8),
+                _Toggle(
+                  title: 'Notification sounds',
+                  line: 'A short cue when a report sends',
+                  value: _sounds,
+                  onChanged: _setSounds,
+                ),
+                const SizedBox(height: 8),
+                _Toggle(
+                  title: 'Light mode',
+                  line: 'The pale ground, for daylight',
+                  value: ThemeChoice.light.value,
+                  onChanged: (on) async {
+                    await ThemeChoice.set(on);
+                    if (mounted) setState(() {});
+                  },
+                ),
+                const SizedBox(height: 8),
+                _Link(
+                  title: 'Send a test alert',
+                  line: 'Check this phone receives them',
+                  busy: _testing,
+                  onTap: _testing ? null : _sendTest,
+                ),
+                const SizedBox(height: 20),
+                Eyebrow('More', color: context.pal.muted),
+                const SizedBox(height: 8),
+                _Link(
+                  title: 'Your reports',
+                  line: 'Everything you have sent, and where it got to',
+                  onTap: () => _push(const MyReportsScreen()),
+                ),
+                const SizedBox(height: 8),
+                _Link(
+                  title: 'Notifications',
+                  line: 'Alerts and updates sent to you',
+                  onTap: () => _push(const NotificationsScreen()),
+                ),
+                const SizedBox(height: 8),
+                _Link(
+                  title: 'Help centre',
+                  line: 'How reporting works, and what happens next',
+                  onTap: () => _push(const HelpCenterScreen()),
+                ),
+                const SizedBox(height: 8),
+                _Link(
+                  title: 'About RepLiT',
+                  line: 'Barangay 76, Pasay City',
+                  onTap: _about,
+                ),
+                const SizedBox(height: 24),
+                AppButton.danger(
+                  'Log out',
+                  icon: AppIcons.logout,
+                  busy: _loggingOut,
+                  onPressed: _loggingOut ? null : _logout,
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    // The build as App Distribution lists it: "1.11.0 (57)".
+                    [
+                      'REPLIT · BARANGAY 76',
+                      if (AppVersion.label.isNotEmpty) 'V${AppVersion.label}',
+                    ].join(' · '),
+                    style: context.type.tag.copyWith(color: context.pal.faint),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -439,11 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: context.pal.accent,
-            ),
+            Icon(AppIcons.chevronRight, size: 18, color: context.pal.accent),
           ],
         ),
       ),
@@ -457,7 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           _DetailRow(
-            icon: Icons.mail_outline_rounded,
+            icon: AppIcons.mail,
             label: 'Email',
             value: _email ?? '—',
             action: emailOk ? 'Verified' : 'Verify',
@@ -466,7 +468,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(),
           _DetailRow(
-            icon: Icons.smartphone_rounded,
+            icon: AppIcons.smartphone,
             label: 'Mobile',
             value: _mobile ?? 'Not added yet',
             muted: _mobile == null,
@@ -622,11 +624,7 @@ class _Link extends StatelessWidget {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Icon(
-                  Icons.chevron_right_rounded,
-                  size: 18,
-                  color: context.pal.muted,
-                ),
+              : Icon(AppIcons.chevronRight, size: 18, color: context.pal.muted),
         ],
       ),
     );

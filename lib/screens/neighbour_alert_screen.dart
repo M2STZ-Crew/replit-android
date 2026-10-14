@@ -13,6 +13,7 @@ import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'camera_capture_screen.dart';
 import '../widgets/you_are_here.dart';
+import '../widgets/app_icons.dart';
 
 /// "11 Corroborate — 300 m" from the REPLIT-OVERHAUL Figma: the 300 m
 /// neighbourhood alert, as a screen rather than v2's dialog.
@@ -160,7 +161,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    Icons.info_outline_rounded,
+                    AppIcons.info,
                     size: 18,
                     color: context.pal.accent,
                   ),

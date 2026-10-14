@@ -84,7 +84,7 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.text('YOUR PROFILE'), findsOneWidget);
         expect(find.text('MARIA ANTONETTE REYES'), findsOneWidget);
-        expect(find.text('60% VERIFIED'), findsOneWidget);
+        expect(find.text('60% verified'), findsOneWidget);
         expect(find.text('Add your National ID for +50%'), findsOneWidget);
         expect(find.text('VERIFIED'), findsOneWidget, reason: 'the email');
         expect(find.text('Not added yet'), findsOneWidget);

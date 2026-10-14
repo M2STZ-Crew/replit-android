@@ -20,6 +20,7 @@ import 'package:replit/screens/subadmin/subadmin_incident_report_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/ops_layers.dart';
 import 'package:replit/widgets/photo_viewer.dart';
+import 'package:replit/widgets/app_icons.dart';
 
 /// The team captain's side (v12 §2.5 for verify / respond / reject): dispatch asks only who is going (§2.5),
 /// BFP and Fire Volunteer captains land in the same coordinator screens
@@ -162,14 +163,14 @@ void main() {
       tester,
     ) async {
       await open(tester, agency: 'bfp', status: 'reported');
-      await tester.tap(find.byIcon(Icons.zoom_in));
+      await tester.tap(find.byIcon(AppIcons.zoomIn));
       for (var i = 0; i < 4; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(find.byType(PhotoViewer), findsOneWidget);
       expect(find.byType(InteractiveViewer), findsOneWidget);
       expect(find.text('Pinch or double-tap to zoom'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(AppIcons.close));
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }

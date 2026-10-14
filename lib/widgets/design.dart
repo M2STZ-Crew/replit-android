@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'app_icons.dart';
+import 'motion.dart';
+
+export 'motion.dart';
+export 'scroll_fade.dart';
 
 /// The handful of shapes the "General User App v2" hand-off repeats on every
 /// screen. Building them once is what keeps forty-odd screens looking like one
@@ -40,13 +45,6 @@ class Art {
   static const String hydrant = '$_d/mk-hydrant.png';
   static const String incident = '$_d/mk-incident.png';
   static const String truck = '$_d/mk-truck.png';
-
-  // Tab icons, exported at 3x from the REPLIT-OVERHAUL NavBar component. One
-  // glyph per tab, tinted at runtime for the on/off state.
-  static const String navMap = '$_d/nav-map.png';
-  static const String navHotlines = '$_d/nav-hotlines.png';
-  static const String navGuides = '$_d/nav-guides.png';
-  static const String navProfile = '$_d/nav-profile.png';
 
   /// Lit, the firefly who walks a new resident through the tour, and the
   /// map plate his examples are drawn on (ONBOARDING T1-T7).
@@ -160,7 +158,13 @@ class Panel extends StatelessWidget {
   }
 }
 
-/// Small pill for status, agency and count labels.
+/// Small pill for status, agency and count labels — the Status badge
+/// (REPLIT (MAIN) 04, pass 4).
+///
+/// The word carries the meaning; the tint and the dot only reinforce it. The
+/// word is shown as given, sentence case ("En route", "On a run"): uppercase
+/// is for naming things, and a status is not a name. A tone change fades over
+/// 200 ms, so a status that moves on is seen to move.
 class Tag extends StatelessWidget {
   const Tag(
     this.text, {
@@ -176,41 +180,80 @@ class Tag extends StatelessWidget {
   /// Leading dot. The design uses it wherever the state is live.
   final bool dot;
 
-  /// Solid fill instead of a tint — used for the one selected filter.
+  /// Solid fill instead of a tint — the count on a menu item.
   final bool solid;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+    final ink = solid ? AppColors.accentText : color;
+    return AnimatedContainer(
+      duration: Motion.of(context).state,
+      curve: Motion.standard,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: solid ? color : color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: color.withValues(alpha: solid ? 1 : 0.4)),
+        color: solid ? color : context.pal.statusTint(color),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (dot) ...[
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: solid ? AppColors.accentText : color,
-                shape: BoxShape.circle,
+            ExcludeSemantics(
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(color: ink, shape: BoxShape.circle),
               ),
             ),
-            const SizedBox(width: 7),
+            const SizedBox(width: 6),
           ],
-          Text(
-            text.toUpperCase(),
-            style: context.type.tag.copyWith(
-              color: solid ? AppColors.accentText : color,
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              softWrap: false,
+              style: context.type.tag.copyWith(color: ink),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// An incident's status in the PRD v12 words (§4.5) — the Lifecycle chip.
+///
+/// The labels are fixed on purpose: no "Pending", "Dispatched" or
+/// "Resolved". Read by a screen reader as "Status: En route".
+class LifecycleChip extends StatelessWidget {
+  const LifecycleChip(this.status, {super.key});
+
+  final String status;
+
+  /// The PRD word for a public.area_status value.
+  static String word(String status) => switch (status) {
+    'reported' => 'Reported',
+    'verified' => 'Verified',
+    'en_route' => 'En route',
+    'arrived' => 'Arrived',
+    'fire_out' => 'Fire out',
+    'post_incident_report' => 'Report pending',
+    'closed' => 'Closed',
+    'rejected' => 'Rejected',
+    'merged' => 'Merged',
+    _ =>
+      status.isEmpty
+          ? 'Reported'
+          : '${status[0].toUpperCase()}${status.substring(1).replaceAll('_', ' ')}',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final label = word(status);
+    return Semantics(
+      label: 'Status: $label',
+      excludeSemantics: true,
+      child: Tag(label, color: context.pal.forStatus(status), dot: true),
     );
   }
 }
@@ -247,7 +290,7 @@ class IconWell extends StatelessWidget {
       child: asset != null
           ? Image.asset(asset!, width: glyph, height: glyph)
           : Icon(
-              icon ?? Icons.circle_outlined,
+              icon ?? AppIcons.circle,
               size: glyph,
               color: context.pal.glyphOn(tint),
             ),
@@ -319,71 +362,79 @@ class AppButton extends StatelessWidget {
         bg = null;
         gradient = enabled ? AppColors.accentGradient : null;
         border = enabled ? null : context.pal.line;
+      // Secondary is a surface with the 3 : 1 control edge; destructive a
+      // red tint with a red edge, never solid (04 · Button, pass 4).
       case _Tone.secondary:
         fg = context.pal.textSoft;
         bg = context.pal.glass;
         gradient = null;
-        border = context.pal.line;
+        border = context.pal.lineStrong;
       case _Tone.danger:
         fg = context.pal.live;
         bg = context.pal.live.withValues(alpha: 0.12);
         gradient = null;
-        border = context.pal.live.withValues(alpha: 0.45);
+        border = context.pal.live;
     }
 
     // The overhaul draws every button at the control radius and flat: glow is
     // reserved for the splash mark and the SOS disc (§2.7), so the v2 coral
     // drop shadow is gone.
     final shape = BorderRadius.circular(AppRadius.control);
-    return Opacity(
-      opacity: enabled ? 1 : AppColors.disabledOpacity,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: shape,
-        child: InkWell(
+    return Pressable(
+      enabled: enabled,
+      child: Opacity(
+        opacity: enabled ? 1 : AppColors.disabledOpacity,
+        child: Material(
+          color: Colors.transparent,
           borderRadius: shape,
-          onTap: enabled ? onPressed : null,
-          // Hover and pressed are a token overlay over the same fill, so the
-          // gradient still shows through (COMPONENTS: Button).
-          overlayColor: const WidgetStatePropertyAll(null),
-          hoverColor: context.pal.hover,
-          highlightColor: context.pal.pressed,
-          splashColor: context.pal.pressed,
-          focusColor: Colors.transparent,
-          child: Container(
-            height: height,
-            decoration: BoxDecoration(
-              color: gradient == null ? (bg ?? context.pal.glass) : null,
-              gradient: gradient,
-              borderRadius: shape,
-              border: border == null ? null : Border.all(color: border),
-            ),
-            alignment: Alignment.center,
-            child: busy
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: fg),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: 16, color: fg),
-                        const SizedBox(width: 10),
-                      ],
-                      Flexible(
-                        child: Text(
-                          large ? label : label.toUpperCase(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: large
-                              ? context.type.actionLarge.copyWith(color: fg)
-                              : context.type.action.copyWith(color: fg),
-                        ),
+          child: InkWell(
+            borderRadius: shape,
+            onTap: enabled ? onPressed : null,
+            // Hover and pressed are a token overlay over the same fill, so the
+            // gradient still shows through (COMPONENTS: Button).
+            overlayColor: const WidgetStatePropertyAll(null),
+            hoverColor: context.pal.hover,
+            highlightColor: context.pal.pressed,
+            splashColor: context.pal.pressed,
+            focusColor: Colors.transparent,
+            child: Container(
+              height: height,
+              decoration: BoxDecoration(
+                color: gradient == null ? (bg ?? context.pal.glass) : null,
+                gradient: gradient,
+                borderRadius: shape,
+                border: border == null ? null : Border.all(color: border),
+              ),
+              alignment: Alignment.center,
+              child: busy
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: fg,
                       ),
-                    ],
-                  ),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (icon != null) ...[
+                          Icon(icon, size: 16, color: fg),
+                          const SizedBox(width: 10),
+                        ],
+                        Flexible(
+                          child: Text(
+                            large ? label : label.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: large
+                                ? context.type.actionLarge.copyWith(color: fg)
+                                : context.type.action.copyWith(color: fg),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),
@@ -421,7 +472,7 @@ class BackWell extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Icon(
-              Icons.chevron_left_rounded,
+              AppIcons.chevronLeft,
               size: 22,
               color: context.pal.onBackground,
             ),
@@ -459,7 +510,7 @@ class ScreenHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (eyebrow != null) ...[
-                Eyebrow(eyebrow!, color: context.pal.label),
+                Eyebrow(eyebrow!, color: context.pal.accentInk),
                 const SizedBox(height: 6),
               ],
               Text(
@@ -601,7 +652,7 @@ class EmptyState extends StatelessWidget {
     super.key,
     required this.title,
     required this.body,
-    this.icon = Icons.inbox_outlined,
+    this.icon = AppIcons.inbox,
     this.tone,
     this.action,
   });
@@ -638,10 +689,13 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// The grab handle at the top of every bottom sheet in the design
-/// (Neutral/Grabber: 80 × 4, #ADAAAA at 35%).
+/// The grab handle at the top of every bottom sheet in the design: 80 × 4 in
+/// color/border/strong (04 · Map sheet, pass 2).
 class SheetHandle extends StatelessWidget {
-  const SheetHandle({super.key, this.margin = const EdgeInsets.only(bottom: 16)});
+  const SheetHandle({
+    super.key,
+    this.margin = const EdgeInsets.only(bottom: 16),
+  });
 
   final EdgeInsets margin;
 
@@ -651,7 +705,9 @@ class SheetHandle extends StatelessWidget {
     height: 4,
     margin: margin,
     decoration: BoxDecoration(
-      color: context.pal.label.withValues(alpha: 0.35),
+      color: context.pal.isLight
+          ? context.pal.label.withValues(alpha: 0.35)
+          : const Color(0xFF979797),
       borderRadius: BorderRadius.circular(2),
     ),
   );
@@ -776,6 +832,20 @@ class _LiveDotState extends State<LiveDot> with SingleTickerProviderStateMixin {
   void dispose() {
     _c.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The live pulse is the one loop the design allows, and it stops when the
+    // phone asks for reduced motion — the red and the word stay.
+    if (Motion.of(context).reduced) {
+      _c
+        ..stop()
+        ..value = 0;
+    } else if (!_c.isAnimating) {
+      _c.repeat(reverse: true);
+    }
   }
 
   @override

@@ -15,6 +15,7 @@ import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// One choice in "Who should respond": the agency the server knows, the word
 /// a resident knows, and the frame's colour and glyph for it.
@@ -363,7 +364,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (fixed)
-            Icon(Icons.check_rounded, size: 12, color: context.pal.ok)
+            Icon(AppIcons.check, size: 12, color: context.pal.ok)
           else
             LiveDot(color: context.pal.warn, size: 6),
           const SizedBox(width: 7),
@@ -547,7 +548,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                     const SizedBox(width: 8),
                     _FrameChip(
                       leading: Icon(
-                        Icons.photo_camera_outlined,
+                        AppIcons.photoCamera,
                         size: 12,
                         color: context.pal.onBackground,
                       ),

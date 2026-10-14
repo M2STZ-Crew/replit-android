@@ -11,6 +11,7 @@ import 'responder_incident_report_screen.dart';
 import 'responder_incident_screen.dart';
 import 'responder_status.dart';
 import '../../api/live_refresh.dart';
+import '../../widgets/app_icons.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -219,10 +220,10 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
       );
     }
     if (_error != null) {
-      return _centered(Icons.cloud_off, _error!, retry: true);
+      return _centered(AppIcons.cloudOff, _error!, retry: true);
     }
     if (_areas.isEmpty) {
-      return _centered(Icons.inbox_outlined, 'No incidents right now.');
+      return _centered(AppIcons.inbox, 'No incidents right now.');
     }
     return RefreshIndicator(
       color: context.pal.accent,
@@ -317,7 +318,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
                   turns: open ? 0 : -0.25,
                   duration: const Duration(milliseconds: 150),
                   child: Icon(
-                    Icons.keyboard_arrow_down,
+                    AppIcons.keyboardArrowDown,
                     color: _grey,
                     size: 20,
                   ),
@@ -455,7 +456,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
         width: size,
         height: size,
         label: '',
-        icon: Icons.photo_outlined,
+        icon: AppIcons.photo,
         radius: 10,
       );
     }
@@ -489,7 +490,7 @@ class _ResponderIncidentsScreenState extends State<ResponderIncidentsScreen> {
               width: size,
               height: size,
               label: '',
-              icon: Icons.broken_image_outlined,
+              icon: AppIcons.brokenImage,
               radius: 10,
             ),
           ),

@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 
 import '../theme.dart';
+import 'app_icons.dart';
 
 /// How every map in the app may be handled: drag, pinch, double-tap, fling,
 /// and turn with two fingers — as in Google Maps. Turning needs a deliberate
@@ -187,7 +188,7 @@ class MapLocationButtons extends StatelessWidget {
                     child: Transform.rotate(
                       angle: camera.rotationRad,
                       child: Icon(
-                        Icons.navigation,
+                        AppIcons.navigation,
                         size: 20,
                         color: context.pal.live,
                       ),
@@ -214,9 +215,9 @@ class MapLocationButtons extends StatelessWidget {
                   },
                   child: Icon(
                     switch (mode) {
-                      FollowMode.free => Icons.location_searching,
-                      FollowMode.follow => Icons.my_location,
-                      FollowMode.compass => Icons.explore,
+                      FollowMode.free => AppIcons.locationSearching,
+                      FollowMode.follow => AppIcons.myLocation,
+                      FollowMode.compass => AppIcons.explore,
                     },
                     size: 20,
                     color: mode == FollowMode.free

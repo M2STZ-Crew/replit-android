@@ -8,6 +8,7 @@ import '../../models/ph_mobile.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
+import '../../widgets/app_icons.dart';
 
 /// The coordinator's responder accounts (v1.12.4) — where a responder's
 /// account comes from.
@@ -118,21 +119,21 @@ class _TeamScreenState extends State<TeamScreen> {
               if (active) ...[
                 AppButton.secondary(
                   'Reset password',
-                  icon: Icons.key_rounded,
+                  icon: AppIcons.key,
                   height: 50,
                   onPressed: () => Navigator.of(sheet).pop('reset'),
                 ),
                 const SizedBox(height: 10),
                 AppButton.danger(
                   'Deactivate account',
-                  icon: Icons.block_rounded,
+                  icon: AppIcons.block,
                   height: 50,
                   onPressed: () => Navigator.of(sheet).pop('deactivate'),
                 ),
               ] else
                 AppButton(
                   'Reactivate account',
-                  icon: Icons.restart_alt_rounded,
+                  icon: AppIcons.restartAlt,
                   height: 50,
                   onPressed: () => Navigator.of(sheet).pop('reactivate'),
                 ),
@@ -259,7 +260,7 @@ class _TeamScreenState extends State<TeamScreen> {
             const SizedBox(height: 16),
             AppButton(
               'New responder',
-              icon: Icons.person_add_alt_1_rounded,
+              icon: AppIcons.personAdd,
               onPressed: _create,
             ),
             const SizedBox(height: 22),
@@ -332,7 +333,7 @@ class _ResponderRow extends StatelessWidget {
           children: [
             IconWell(
               tint: active ? context.pal.accentInk : context.pal.muted,
-              icon: Icons.person_rounded,
+              icon: AppIcons.person,
               size: 36,
               glyph: 18,
             ),
@@ -363,7 +364,7 @@ class _ResponderRow extends StatelessWidget {
               Tag('Deactivated', color: context.pal.muted)
             else if (responding)
               Tag('On a run', color: context.pal.accentInk, dot: true),
-            Icon(Icons.chevron_right_rounded, color: context.pal.muted),
+            Icon(AppIcons.chevronRight, color: context.pal.muted),
           ],
         ),
       ),
@@ -524,7 +525,7 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.alternate_email_rounded,
+                      AppIcons.alternateEmail,
                       size: 18,
                       color: context.pal.accentInk,
                     ),
@@ -661,7 +662,7 @@ class _CopyRow extends StatelessWidget {
           IconButton(
             tooltip: 'Copy $label',
             icon: Icon(
-              Icons.copy_rounded,
+              AppIcons.contentCopy,
               size: 18,
               color: context.pal.accentInk,
             ),

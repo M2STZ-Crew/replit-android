@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'app_icons.dart';
 
 /// How close, in screen pixels, two trucks' centres may be before their
 /// markers merge. A truck marker is 38 px across, so this is "they would touch
@@ -128,7 +129,7 @@ class UnitGroupMarker extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child: const Icon(
-                      Icons.fire_truck,
+                      AppIcons.fireTruck,
                       size: 18,
                       color: Colors.white,
                     ),

@@ -5,6 +5,7 @@ import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import 'post_incident_report_screen.dart';
+import '../../widgets/app_icons.dart';
 
 /// The "pending report" tray (Master Context v10 §10.2): incidents whose fire
 /// is out and for which this captain's team has not filed its Post-Incident
@@ -120,7 +121,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
                   ),
                   const SizedBox(width: 12),
                   IconWellButton(
-                    icon: Icons.refresh_rounded,
+                    icon: AppIcons.refresh,
                     size: 40,
                     onTap: _load,
                   ),
@@ -151,7 +152,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.task_alt_rounded, color: context.pal.ok, size: 40),
+            Icon(AppIcons.taskAlt, color: context.pal.ok, size: 40),
             const SizedBox(height: 12),
             Text(
               'Nothing owed. Every report is filed.',
@@ -177,7 +178,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
             border: tint.withValues(alpha: 0.35),
             child: Row(
               children: [
-                IconWell(tint: tint, icon: Icons.assignment_late_outlined),
+                IconWell(tint: tint, icon: AppIcons.assignmentLate),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

@@ -9,6 +9,7 @@ import '../../widgets/staff_shell.dart';
 import 'responder_status.dart';
 import '../../widgets/photo_viewer.dart';
 import '../directions_screen.dart';
+import '../../widgets/app_icons.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -165,7 +166,7 @@ class _ResponderIncidentReportScreenState
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: _route,
-              icon: const Icon(Icons.directions),
+              icon: const Icon(AppIcons.directions),
               label: const Text('ROUTE TO THE FIRE'),
             ),
           ],
@@ -182,7 +183,7 @@ class _ResponderIncidentReportScreenState
             width: double.infinity,
             height: double.infinity,
             label: 'NO PHOTO',
-            icon: Icons.photo_outlined,
+            icon: AppIcons.photo,
             radius: 14,
           )
         : Image.network(
@@ -209,7 +210,7 @@ class _ResponderIncidentReportScreenState
               width: double.infinity,
               height: double.infinity,
               label: 'PHOTO UNAVAILABLE',
-              icon: Icons.broken_image_outlined,
+              icon: AppIcons.brokenImage,
               radius: 14,
             ),
           );
@@ -241,7 +242,7 @@ class _ResponderIncidentReportScreenState
               right: 12,
               bottom: 12,
               child: IgnorePointer(
-                child: Icon(Icons.zoom_in, color: Colors.white70, size: 22),
+                child: Icon(AppIcons.zoomIn, color: Colors.white70, size: 22),
               ),
             ),
           // Back is in the staff top bar, as on every staff screen.
@@ -285,7 +286,7 @@ class _ResponderIncidentReportScreenState
         width: double.infinity,
         height: 170,
         label: 'NO LOCATION',
-        icon: Icons.location_off_outlined,
+        icon: AppIcons.locationOff,
         radius: 14,
       );
     }

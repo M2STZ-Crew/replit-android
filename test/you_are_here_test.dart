@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/you_are_here.dart';
+import 'package:replit/widgets/app_icons.dart';
 
 /// The Google-Maps map: it can be turned, it follows the person as they walk,
 /// it can turn with them, and a drag lets go.
@@ -85,7 +86,7 @@ void main() {
     // Free: the dot moves, the map does not.
     expect(map.camera.center.latitude, closeTo(14.5378, 1e-4));
 
-    await tapButton(tester, Icons.location_searching);
+    await tapButton(tester, AppIcons.locationSearching);
     expect(follow.mode, FollowMode.follow);
     expect(map.camera.center.latitude, closeTo(14.5500, 1e-4));
     expect(map.camera.zoom, closeTo(MapFollow.followZoom, 1e-6));
@@ -100,8 +101,8 @@ void main() {
   ) async {
     await pump(tester);
     await walkTo(tester, 14.5500, 121.0100);
-    await tapButton(tester, Icons.location_searching);
-    await tapButton(tester, Icons.my_location);
+    await tapButton(tester, AppIcons.locationSearching);
+    await tapButton(tester, AppIcons.myLocation);
     expect(follow.mode, FollowMode.compass);
 
     // Facing east: the map turns so east is up.
@@ -110,9 +111,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(map.camera.rotation.abs() % 360, isNot(closeTo(0, 1)));
-    expect(find.byIcon(Icons.navigation), findsOneWidget, reason: 'compass');
+    expect(find.byIcon(AppIcons.navigation), findsOneWidget, reason: 'compass');
 
-    await tapButton(tester, Icons.explore);
+    await tapButton(tester, AppIcons.explore);
     expect(follow.mode, FollowMode.follow);
     expect(map.camera.rotation % 360, closeTo(0, 1e-6));
   });
@@ -122,7 +123,7 @@ void main() {
   ) async {
     await pump(tester);
     await walkTo(tester, 14.5500, 121.0100);
-    await tapButton(tester, Icons.location_searching);
+    await tapButton(tester, AppIcons.locationSearching);
     expect(follow.mode, FollowMode.follow);
 
     await tester.drag(find.byType(FlutterMap), const Offset(0, 200));
@@ -138,14 +139,14 @@ void main() {
     tester,
   ) async {
     await pump(tester);
-    expect(find.byIcon(Icons.navigation), findsNothing);
+    expect(find.byIcon(AppIcons.navigation), findsNothing);
 
     map.rotate(40);
     await tester.pump();
-    expect(find.byIcon(Icons.navigation), findsOneWidget);
+    expect(find.byIcon(AppIcons.navigation), findsOneWidget);
 
-    await tapButton(tester, Icons.navigation);
+    await tapButton(tester, AppIcons.navigation);
     expect(map.camera.rotation % 360, closeTo(0, 1e-6));
-    expect(find.byIcon(Icons.navigation), findsNothing);
+    expect(find.byIcon(AppIcons.navigation), findsNothing);
   });
 }

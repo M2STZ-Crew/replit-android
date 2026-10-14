@@ -15,6 +15,7 @@ import '../subadmin/coordinator_nav.dart';
 import 'bfp_alarm_requests_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
+import '../../widgets/app_icons.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -172,7 +173,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
             'Active Incidents',
             'In progress now',
             _red,
-            Icons.warning_amber_rounded,
+            AppIcons.warning,
           ),
         ),
         const SizedBox(width: 10),
@@ -182,7 +183,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
             'Units Deployed',
             'On the way or on site',
             _orange,
-            Icons.local_shipping_outlined,
+            AppIcons.localShipping,
           ),
         ),
       ],
@@ -266,7 +267,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 color: const Color(0x23EF4444),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(Icons.campaign_outlined, color: _red, size: 20),
+              child: Icon(AppIcons.campaign, color: _red, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -315,7 +316,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 ),
               )
             else
-              Icon(Icons.chevron_right, color: _grey, size: 20),
+              Icon(AppIcons.chevronRight, color: _grey, size: 20),
           ],
         ),
       ),
@@ -496,7 +497,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                   ],
                 ),
                 child: const Icon(
-                  Icons.local_fire_department,
+                  AppIcons.localFireDepartment,
                   color: Colors.white,
                   size: 15,
                 ),
@@ -512,7 +513,6 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
   // Read-only incident info (BFP cannot verify/dispatch).
   void _incidentSheet(Map<String, dynamic> inc) {
     final status = (inc['status'] as String?) ?? 'reported';
-    final color = responderStatusColor(status);
     final alarm = (inc['alarm_level'] as String?)?.replaceAll('_', ' ');
     showModalBottomSheet<void>(
       context: context,
@@ -541,25 +541,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: color.withValues(alpha: 0.5)),
-                    ),
-                    child: Text(
-                      responderStatusLabel(status),
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                  LifecycleChip(status),
                 ],
               ),
               const SizedBox(height: 6),
@@ -572,7 +554,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    Icon(Icons.campaign_outlined, color: _red, size: 16),
+                    Icon(AppIcons.campaign, color: _red, size: 16),
                     const SizedBox(width: 8),
                     Text(
                       'Alarm: ${alarm.toUpperCase()}',

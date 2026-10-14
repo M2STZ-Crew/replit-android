@@ -163,27 +163,26 @@ void main() {
   });
 
   group('design tokens', () {
-    test('every area_status has its own colour', () {
-      const statuses = [
-        'reported',
-        'verified',
-        'en_route',
-        'arrived',
-        'fire_out',
-        'post_incident_report',
-        'closed',
-        'rejected',
-        'merged',
-      ];
-      final seen = <Color>{};
-      for (final status in statuses) {
-        final color = AppColors.forStatus(status);
-        // Falling through to muted would silently erase the difference
-        // between, say, "resolved" and "rejected" on a card.
-        expect(color, isNot(AppColors.muted), reason: status);
-        seen.add(color);
+    test('every area_status takes its Lifecycle chip tone', () {
+      // Amber needs a decision or a record, blue is verified, red is under
+      // way, green is out, grey has left the live feed (04 · Lifecycle chip).
+      // The word on the chip tells the statuses that share a tone apart.
+      const tones = {
+        'reported': AppColors.warn,
+        'post_incident_report': AppColors.warn,
+        'verified': AppColors.info,
+        'en_route': AppColors.live,
+        'arrived': AppColors.live,
+        'fire_out': AppColors.ok,
+        'closed': AppColors.textSoft,
+        'rejected': AppColors.textSoft,
+        'merged': AppColors.textSoft,
+      };
+      for (final MapEntry(key: status, value: tone) in tones.entries) {
+        // Falling through to muted would mean a status the app forgot.
+        expect(AppColors.forStatus(status), tone, reason: status);
+        expect(AppPalette.dark.forStatus(status), tone, reason: status);
       }
-      expect(seen, hasLength(greaterThanOrEqualTo(6)));
     });
 
     test('an unknown status is muted rather than throwing', () {

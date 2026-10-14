@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/unit_groups.dart';
+import 'package:replit/widgets/app_icons.dart';
 
 /// Which trucks share a marker (v1.12.7): those that would overlap on screen.
 void main() {
@@ -72,7 +73,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     expect(find.text('2'), findsOneWidget);
-    expect(find.byIcon(Icons.fire_truck), findsOneWidget);
+    expect(find.byIcon(AppIcons.fireTruck), findsOneWidget);
     expect(find.bySemanticsLabel('2 trucks: Apollo, Hermes'), findsOneWidget);
 
     final marker = tester.getRect(find.byType(UnitGroupMarker));

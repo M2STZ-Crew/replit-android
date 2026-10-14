@@ -78,8 +78,8 @@ void main() {
     await pump(tester, responder);
     expect(tester.takeException(), isNull);
     expect(find.text('DASHBOARD'), findsOneWidget);
-    expect(find.text('RESPONDER'), findsOneWidget);
-    expect(find.text('COORDINATOR'), findsNothing);
+    expect(find.text('Responder'), findsOneWidget);
+    expect(find.text('Coordinator'), findsNothing);
 
     await openMenu(tester);
     expect(find.text('M. Bautista'), findsOneWidget);
@@ -100,7 +100,7 @@ void main() {
     tester,
   ) async {
     await pump(tester, coordinator);
-    expect(find.text('COORDINATOR'), findsOneWidget);
+    expect(find.text('Coordinator'), findsOneWidget);
 
     await openMenu(tester);
     expect(find.text('Hercules Fire Brigade · Fire Volunteer'), findsOneWidget);
@@ -139,7 +139,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.text('AREA 3'), findsOneWidget);
-    expect(find.text('COORDINATOR'), findsOneWidget);
+    expect(find.text('Coordinator'), findsOneWidget);
     expect(find.bySemanticsLabel('Back'), findsOneWidget);
 
     // The menu is there too, and Dashboard goes home from it.

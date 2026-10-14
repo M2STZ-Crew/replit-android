@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'guide_detail_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// "13 Guides" from the REPLIT-OVERHAUL Figma — "Safety guides".
 ///
@@ -40,71 +41,49 @@ class GuideScreen extends StatelessWidget {
       bottomNavigationBar: const AppNavBar(active: AppTab.guides),
       body: SafeArea(
         bottom: false,
-        child: Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 48),
-              children: [
-                ScreenHeader(
-                  eyebrow: 'Knowledge base',
-                  title: 'Safety guides',
-                  showBack: false,
-                  trailing: AvatarWell(
-                    onTap: () => AppNavBar.switchTo(context, AppTab.profile),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  'Short steps to follow while help is on the way.',
-                  style: context.type.body,
-                ),
-                const SizedBox(height: 32),
-                _FeaturedGuide(
-                  article: featured,
-                  onTap: () => _open(context, featured),
-                ),
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Eyebrow('All guides', color: context.pal.accent),
-                    ),
-                    Eyebrow(
-                      '${kGuideArticles.length} lessons',
-                      color: context.pal.muted,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                for (final g in rest) ...[
-                  _GuideRow(article: g, onTap: () => _open(context, g)),
-                  const SizedBox(height: 8),
-                ],
-              ],
-            ),
-            // The list fades into the tab bar rather than stopping at a hard
-            // edge.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 54,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        context.pal.background.withValues(alpha: 0),
-                        context.pal.background.withValues(alpha: 0.95),
-                      ],
-                    ),
-                  ),
+        // The list fades at whichever edge has more past it (04 · Scroll
+        // fade), instead of a gradient that never moves.
+        child: ScrollFade(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 48),
+            children: [
+              ScreenHeader(
+                eyebrow: 'Knowledge base',
+                title: 'Safety guides',
+                showBack: false,
+                trailing: AvatarWell(
+                  onTap: () => AppNavBar.switchTo(context, AppTab.profile),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 22),
+              Text(
+                'Short steps to follow while help is on the way.',
+                style: context.type.body,
+              ),
+              const SizedBox(height: 32),
+              _FeaturedGuide(
+                article: featured,
+                onTap: () => _open(context, featured),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: Eyebrow('All guides', color: context.pal.accent),
+                  ),
+                  Eyebrow(
+                    '${kGuideArticles.length} lessons',
+                    color: context.pal.muted,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              for (final g in rest) ...[
+                _GuideRow(article: g, onTap: () => _open(context, g)),
+                const SizedBox(height: 8),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -250,11 +229,7 @@ class _GuideRow extends StatelessWidget {
               style: context.type.tag.copyWith(color: context.pal.muted),
             ),
             const SizedBox(width: 14),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 16,
-              color: context.pal.muted,
-            ),
+            Icon(AppIcons.chevronRight, size: 16, color: context.pal.muted),
           ],
         ),
       ),

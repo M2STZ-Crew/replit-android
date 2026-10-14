@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../theme.dart';
+import 'app_icons.dart';
 
 /// A neutral placeholder for images, logos, avatars, etc.
 class PlaceholderBox extends StatelessWidget {
@@ -10,7 +11,7 @@ class PlaceholderBox extends StatelessWidget {
     this.width = 120,
     this.height = 120,
     this.label = 'IMAGE',
-    this.icon = Icons.image_outlined,
+    this.icon = AppIcons.image,
     this.radius = 16,
   });
 

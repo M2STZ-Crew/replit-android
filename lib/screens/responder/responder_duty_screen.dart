@@ -10,6 +10,7 @@ import '../../widgets/staff_shell.dart';
 import 'responder_incident_screen.dart';
 import 'responder_incidents_screen.dart';
 import 'responder_status.dart';
+import '../../widgets/app_icons.dart';
 
 /// "02 Duty — standby" from the RESPONSE TEAM hand-off, opened from the
 /// console menu ("My duty") in the shared staff frame.
@@ -140,39 +141,41 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
       page: StaffPage.duty,
       home: true,
       title: 'My duty',
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          children: [
-            // The screen's name is in the top bar; this says whose duty.
-            Eyebrow(
-              '$_unitName · ${agencyLabel(widget.me['agency_type'] as String?)}',
-              color: context.pal.label,
-            ),
-            const SizedBox(height: 16),
-            _counts(stats, run),
-            const SizedBox(height: 26),
-            Eyebrow(
-              run == null ? 'Standby' : 'On a run',
-              color: run == null ? context.pal.ok : context.pal.accentInk,
-            ),
-            const SizedBox(height: 12),
-            _unitCard(),
-            const SizedBox(height: 10),
-            _runCard(run),
-            const SizedBox(height: 10),
-            _sharingCard(sharing, run),
-            const SizedBox(height: 16),
-            _ruleNote(),
-            if (_error != null) ...[
-              const SizedBox(height: 14),
-              Text(
-                _error!,
-                style: context.type.caption.copyWith(color: context.pal.live),
+      body: ScrollFade(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+            children: [
+              // The screen's name is in the top bar; this says whose duty.
+              Eyebrow(
+                '$_unitName · ${agencyLabel(widget.me['agency_type'] as String?)}',
+                color: context.pal.label,
               ),
+              const SizedBox(height: 16),
+              _counts(stats, run),
+              const SizedBox(height: 26),
+              Eyebrow(
+                run == null ? 'Standby' : 'On a run',
+                color: run == null ? context.pal.ok : context.pal.accentInk,
+              ),
+              const SizedBox(height: 12),
+              _unitCard(),
+              const SizedBox(height: 10),
+              _runCard(run),
+              const SizedBox(height: 10),
+              _sharingCard(sharing, run),
+              const SizedBox(height: 16),
+              _ruleNote(),
+              if (_error != null) ...[
+                const SizedBox(height: 14),
+                Text(
+                  _error!,
+                  style: context.type.caption.copyWith(color: context.pal.live),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -205,7 +208,7 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
 
   Widget _unitCard() {
     return _DutyCard(
-      icon: Icons.local_shipping_outlined,
+      icon: AppIcons.localShipping,
       tint: context.pal.accentInk,
       title: _unitName.toUpperCase(),
       meta: agencyLabel(widget.me['agency_type'] as String?),
@@ -218,7 +221,7 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
   Widget _runCard(Map<String, dynamic>? run) {
     if (run == null) {
       return _DutyCard(
-        icon: Icons.check_rounded,
+        icon: AppIcons.check,
         tint: context.pal.ok,
         title: 'NO RUN RIGHT NOW',
         meta: 'Nothing is assigned to you',
@@ -231,7 +234,7 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
     }
     final status = '${run['status']}';
     return _DutyCard(
-      icon: Icons.local_fire_department_outlined,
+      icon: AppIcons.localFireDepartment,
       tint: responderStatusColor(status),
       title: '${run['designation'] ?? 'Incident'}'.toUpperCase(),
       meta: run['barangay'] as String? ?? 'Pasay City',
@@ -246,7 +249,7 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
 
   Widget _sharingCard(bool sharing, Map<String, dynamic>? run) {
     return _DutyCard(
-      icon: Icons.podcasts_rounded,
+      icon: AppIcons.podcasts,
       tint: sharing ? context.pal.ok : context.pal.muted,
       title: 'LOCATION SHARING',
       meta: sharing
@@ -268,11 +271,7 @@ class _ResponderDutyScreenState extends State<ResponderDutyScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 16,
-            color: context.pal.accentInk,
-          ),
+          Icon(AppIcons.info, size: 16, color: context.pal.accentInk),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

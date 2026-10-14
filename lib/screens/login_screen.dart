@@ -11,6 +11,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'register_screen.dart';
 import 'role_gate.dart';
+import '../widgets/app_icons.dart';
 
 /// "02 Sign in" from the REPLIT-OVERHAUL Figma.
 ///
@@ -238,8 +239,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     // The eye offers what a tap does: see it.
                     icon: Icon(
                       _obscure
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
+                          ? AppIcons.visibility
+                          : AppIcons.visibilityOff,
                     ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
@@ -289,7 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Row(
                 children: [
                   Icon(
-                    Icons.verified_user_outlined,
+                    AppIcons.verifiedUser,
                     size: 18,
                     color: context.pal.accent,
                   ),

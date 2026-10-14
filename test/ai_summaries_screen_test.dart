@@ -115,13 +115,13 @@ void main() {
     await pump(tester);
     expect(tester.takeException(), isNull);
     expect(find.text('AI SUMMARIES'), findsOneWidget, reason: 'the top bar');
-    expect(find.text('COORDINATOR'), findsOneWidget);
+    expect(find.text('Coordinator'), findsOneWidget);
     expect(find.text('Summarized incident — 10/5/2026'), findsOneWidget);
     expect(
       find.text('Area 3 · Hercules Fire Brigade, BFP Pasay'),
       findsOneWidget,
     );
-    expect(find.text('WRITING'), findsNothing);
+    expect(find.text('Writing'), findsNothing);
   });
 
   testWidgets('a summary being written says so, and the list checks back on '
@@ -136,7 +136,7 @@ void main() {
       },
     ];
     await pump(tester);
-    expect(find.text('WRITING'), findsOneWidget);
+    expect(find.text('Writing'), findsOneWidget);
     // Titled by the day the last team filed until the summary exists.
     expect(find.text('Summarized incident — 10/5/2026'), findsOneWidget);
     expect(listCalls(), 1);
@@ -145,7 +145,7 @@ void main() {
     await tester.pump(const Duration(seconds: 10));
     await tester.pump();
     expect(listCalls(), 2);
-    expect(find.text('WRITING'), findsNothing);
+    expect(find.text('Writing'), findsNothing);
 
     await tester.pump(const Duration(seconds: 30));
     expect(listCalls(), 2, reason: 'nothing owed, nothing to check');
@@ -166,8 +166,8 @@ void main() {
       },
     ];
     await pump(tester);
-    expect(find.text('UPDATING'), findsOneWidget);
-    expect(find.text('NO SUMMARY'), findsOneWidget);
+    expect(find.text('Updating'), findsOneWidget);
+    expect(find.text('No summary'), findsOneWidget);
   });
 
   testWidgets('a summary opens as a note, and Download PDF hands the browser '

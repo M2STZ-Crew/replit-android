@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../api/api_client.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/app_icons.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -141,7 +142,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               const SizedBox(height: 26),
               IconWell(
                 tint: context.pal.accent,
-                icon: Icons.badge_outlined,
+                icon: AppIcons.badge,
                 size: 56,
                 glyph: 28,
               ),
@@ -158,7 +159,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               _uploadSlot(
                 label: 'Government ID',
                 hint: 'Tap to photograph your ID',
-                icon: Icons.badge_outlined,
+                icon: AppIcons.badge,
                 bytes: _idBytes,
                 onTap: _pickId,
               ),
@@ -166,7 +167,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               _uploadSlot(
                 label: 'Selfie',
                 hint: 'Tap to take a selfie',
-                icon: Icons.face_outlined,
+                icon: AppIcons.face,
                 bytes: _selfieBytes,
                 onTap: _pickSelfie,
               ),
@@ -183,7 +184,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        Icons.error_outline_rounded,
+                        AppIcons.error,
                         size: 17,
                         color: context.pal.live,
                       ),
@@ -262,7 +263,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.check_circle_rounded,
+                            AppIcons.checkCircle,
                             color: _safeGreen,
                             size: 13,
                           ),
@@ -314,7 +315,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline_rounded, size: 16, color: context.pal.accent),
+          Icon(AppIcons.lock, size: 16, color: context.pal.accent),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

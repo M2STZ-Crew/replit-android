@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'live_update_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// "09 Submitting" from the REPLIT-OVERHAUL Figma — "Getting you help" — and
 /// the screen a resident stays on until the fire is out.
@@ -478,7 +479,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.lock_outline_rounded,
+                    AppIcons.lock,
                     size: 14,
                     color: context.pal.muted,
                   ),
@@ -535,7 +536,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (_fireOut)
-                  Icon(Icons.check_rounded, size: 40, color: tone)
+                  Icon(AppIcons.check, size: 40, color: tone)
                 else
                   Text(
                     '${(fraction * 100).round()}%',
@@ -587,7 +588,7 @@ class _StepRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.chip),
         ),
         child: Icon(
-          refused ? Icons.close_rounded : Icons.check_rounded,
+          refused ? AppIcons.close : AppIcons.check,
           size: 12,
           color: refused ? context.pal.muted : context.pal.ok,
         ),

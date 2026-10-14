@@ -10,6 +10,7 @@ import '../widgets/design.dart';
 import 'login_screen.dart';
 import 'map_screen.dart';
 import 'responder/responder_status.dart';
+import '../widgets/app_icons.dart';
 
 /// Agencies whose team captains observe rather than coordinate. Mirrors
 /// OBSERVER_AGENCIES in app/services/incident.py.
@@ -81,7 +82,7 @@ class ObserverHandoffScreen extends StatelessWidget {
                 children: [
                   IconWell(
                     tint: context.pal.info,
-                    icon: Icons.desktop_windows_outlined,
+                    icon: AppIcons.desktopWindows,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -110,7 +111,7 @@ class ObserverHandoffScreen extends StatelessWidget {
             if (url.isNotEmpty) ...[
               AppButton(
                 'Open the Observer Console',
-                icon: Icons.open_in_new_rounded,
+                icon: AppIcons.openInNew,
                 onPressed: () => launchUrl(
                   Uri.parse(url),
                   mode: LaunchMode.externalApplication,
@@ -120,7 +121,7 @@ class ObserverHandoffScreen extends StatelessWidget {
             ],
             AppButton.secondary(
               'View the public map',
-              icon: Icons.map_outlined,
+              icon: AppIcons.map,
               onPressed: () => Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => const MapScreen())),
@@ -128,7 +129,7 @@ class ObserverHandoffScreen extends StatelessWidget {
             const SizedBox(height: 12),
             AppButton.danger(
               'Log out',
-              icon: Icons.logout,
+              icon: AppIcons.logout,
               onPressed: () => _logout(context),
             ),
             const SizedBox(height: 22),

@@ -12,6 +12,7 @@ import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
+import '../widgets/app_icons.dart';
 
 /// "07 SOS" from the REPLIT-OVERHAUL Figma — the screen behind the SOS disc.
 ///
@@ -379,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 20, color: context.pal.live),
+          Icon(AppIcons.warning, size: 20, color: context.pal.live),
           const SizedBox(width: 14),
           Expanded(
             child: Text(

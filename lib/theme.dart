@@ -47,24 +47,32 @@ class AppColors {
   static const Color raised = Color(0xFF303030);
 
   static const Color inputBg = Color(0xFF131313); // text field fill
-  static const Color inputBorder = Color(0xFF424242);
+  static const Color inputBorder = Color(0xFF686868); // color/border/default
 
   // ── hairlines ───────────────────────────────────────────────────────────
-  static const Color line = Color(0xFF424242); // BACKGROUND/grey-400
-  static const Color lineStrong = Color(0xFF4A4A4A); // SURFACE/grey-400
+  // REPLIT (MAIN) pass 4 tokens (03 · Semantic colour tokens): card edges are
+  // the PRD's translucent hairline, and anything a person operates — a field,
+  // a checkbox, a switch track, a secondary button, an unfilled progress
+  // track — gets the 3 : 1 control border instead, because a hairline is too
+  // faint (1.2 : 1) to show where a control begins.
+  static const Color line = Color(0x59484847); // color/border/subtle
+  static const Color lineStrong = Color(0xFF686868); // color/border/default
   static const Color lineLight = Color(0x80ADAAAA);
   static const Color outline = Color(0x33FFFFFF);
 
   // ── ink ─────────────────────────────────────────────────────────────────
-  static const Color onBackground = Color(0xFFFFFFFF);
-  static const Color textSoft = Color(0xFFC9C9C9); // TEXT/grey-200
-  static const Color label = Color(0xFFADAAAA);
-  static const Color muted = Color(0xFF8A8A8A);
+  static const Color onBackground = Color(0xFFF3F3F3); // color/text/primary
+  static const Color textSoft = Color(0xFFC9C9C9); // color/text/secondary
+  static const Color label = Color(0xFFA1A1A1); // color/text/tertiary
+  static const Color muted = Color(0xFF8A8A8A); // color/text/muted
 
-  /// Text/Placeholder — the tertiary grey at 75%, so an empty field reads
-  /// as waiting rather than filled (COMPONENTS: Input).
-  static const Color placeholder = Color(0xBFADAAAA);
-  static const Color faint = Color(0xFF7E7E7E); // TEXT/grey-600
+  /// What an empty field says it is waiting for: color/text/muted, the
+  /// least-emphasis grey that still reads (4.9 : 1).
+  static const Color placeholder = Color(0xFF8A8A8A);
+
+  /// Was TEXT/grey-600 (#7E7E7E, 4.1 : 1). Pass 4 retires the greys below
+  /// text/muted for anything a person reads, so it is muted now.
+  static const Color faint = Color(0xFF8A8A8A);
   static const Color darkText = Color(0xFF767575); // input placeholders
 
   // ── accent ──────────────────────────────────────────────────────────────
@@ -89,17 +97,40 @@ class AppColors {
   // ── meaning ─────────────────────────────────────────────────────────────
   static const Color live = Color(0xFFFF544E); // active incident, destructive
   static const Color ok = Color(0xFF22C55E); // resolved, verified, ready
-  static const Color warn = Color(0xFFFACC15); // pending, needs attention
+  static const Color warn = Color(0xFFFFB020); // color/status/warning
 
-  // Map markers (REPLIT x DAWI 04 Map: Map elements). Solid plates carrying a
-  // white glyph, so they read the same over the dark and the light basemap.
-  static const Color markerWater = Color(0xFF5B93F5); // hydrants, cisterns, water
+  // Map layer colours (color/map/*): the layer chips' dots and tints, and the
+  // Area radius.
+  static const Color markerWater = Color(
+    0xFF5B93F5,
+  ); // hydrants, cisterns, water
   static const Color markerShelter = Color(0xFF22C55E); // evacuation sites
   static const Color markerShelterEdge = Color(0x6622C55E);
   static const Color markerPlate = Color(0xFF201E1C); // neutral: hospital
   static const Color markerLive = Color(0xFFE5342E); // a live incident
-  static const Color markerYou = Color(0xFFE8622F); // your position
+  static const Color markerYou = Color(0xFFFFA685); // color/map/you
   static const Color markerEdge = Color(0xFFCFCFCF); // Neutral/Marker
+
+  // Map marker surfaces (pass 3, color/map/marker-surface-*): the 700 step of
+  // each category colour, so the white glyph on it measures 3.55–7.23 : 1.
+  // The bright 500s fail under a white glyph (1.8–3.2 : 1).
+  static const Color markerIncident = Color(0xFFB56648);
+  static const Color markerRisk = Color(0xFFB53C37);
+  static const Color markerShelterSurface = Color(0xFF188C43);
+  static const Color markerWaterSurface = Color(0xFF4168AE);
+  static const Color markerPolice = Color(0xFF6341AF);
+  static const Color markerMedical = Color(0xFF0E8376);
+  static const Color markerBarangay = Color(0xFFB57D17);
+  static const Color markerUnit = Color(0xFF626262);
+
+  // Materials (pass 2): Glass for floating map UI with short bold labels,
+  // Glass strong for anything over a map that carries body text, and the
+  // scrim behind a modal.
+  static const Color glassOverlay = Color(0x80131313); // color/surface/glass
+  static const Color glassStrong = Color(
+    0xE0131313,
+  ); // color/surface/glass-strong
+  static const Color scrim = Color(0xA3000000); // color/surface/scrim
 
   // Interaction states from the COMPONENTS page. Hover and pressed are a
   // token overlay laid over the same fill, so a theme change carries them;
@@ -110,12 +141,15 @@ class AppColors {
 
   /// What a disabled control fades to (COMPONENTS: every disabled state).
   static const double disabledOpacity = 0.38;
-  static const Color info = Color(0xFF6098D6);
+  static const Color info = Color(0xFF5B93F5); // color/status/info
 
   // ── agencies (REPLIT x DAWI Figma, "ACCENT/*" 500s) ─────────────────────
   static const Color fire = Color(0xFFFF544E); // ACCENT/RISK ZONES red-500
   static const Color medical = Color(0xFF14B8A6); // ACCENT/MEDICAL green-500
-  static const Color police = Color(0xFF8B5CF6); // ACCENT/POLICE blue-500
+  /// color/agency/police — violet-300. Violet-500 (#8B5CF6) measures 3.98 : 1
+  /// on a card and 2.98 : 1 on its own plate, so text and icons take the
+  /// lighter step; the plate behind them stays [wellPolice].
+  static const Color police = Color(0xFFB192F9);
   static const Color barangay = Color(0xFFFFB020); // ACCENT/BARANGAY orange-500
   static const Color coastguard = Color(0xFF2DD4BF);
 
@@ -127,9 +161,15 @@ class AppColors {
   /// from the DAWI colour sheet (orange-900 behind fire, and so on).
   static const Color wellFire = Color(0xFF6B3C2B); // PRIMARY/orange-900
   static const Color wellPolice = Color(0xFF3A2767); // ACCENT/POLICE blue-900
-  static const Color wellMedical = Color(0xFF084D46); // ACCENT/MEDICAL green-900
-  static const Color wellBarangay = Color(0xFF6B4A0D); // ACCENT/BARANGAY orange-900
-  static const Color wellShelter = Color(0xFF0E5327); // ACCENT/SHELTER green-900
+  static const Color wellMedical = Color(
+    0xFF084D46,
+  ); // ACCENT/MEDICAL green-900
+  static const Color wellBarangay = Color(
+    0xFF6B4A0D,
+  ); // ACCENT/BARANGAY orange-900
+  static const Color wellShelter = Color(
+    0xFF0E5327,
+  ); // ACCENT/SHELTER green-900
 
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topCenter,
@@ -144,21 +184,20 @@ class AppColors {
     colors: [gradientStart, Color(0xFFFF734E)],
   );
 
-  /// One colour per public.area_status value, on the v2 palette. v11 renamed
-  /// the operator-facing set (§2.5) and dropped 'dispatched': Accept carries an
-  /// incident from Reported straight to En route, so there is no step between
-  /// them to colour. Fire out is followed by the Post-Incident Report being
-  /// owed, then filed and the incident closed. Matches both web consoles.
+  /// One colour per public.area_status value — the Lifecycle chip's tones
+  /// (REPLIT (MAIN) 04, pass 4): amber needs a decision or a record, blue is
+  /// verified, red is under way, green is out, and grey has left the live
+  /// feed. v11 dropped 'dispatched': Accept carries an incident from Reported
+  /// straight to En route, so there is no step between them to colour.
+  ///
+  /// The web consoles still draw the v11 colours; PRD §8.1 wants the three
+  /// token files in step, so they follow in their own change.
   static Color forStatus(String? status) => switch (status) {
-    'reported' => warn,
-    'verified' => const Color(0xFF42A5F5),
-    'en_route' => accent,
-    'arrived' => live,
+    'reported' || 'post_incident_report' => warn,
+    'verified' => info,
+    'en_route' || 'arrived' => live,
     'fire_out' => ok,
-    'post_incident_report' => const Color(0xFF2DD4BF),
-    'closed' => const Color(0xFF16A34A),
-    'rejected' => const Color(0xFF9E9E9E),
-    'merged' => const Color(0xFF7E57C2),
+    'closed' || 'rejected' || 'merged' => textSoft,
     _ => muted,
   };
 
@@ -275,24 +314,21 @@ class AppPalette extends ThemeExtension<AppPalette> {
       isLight ? const Color(0x33000000) : const Color(0x33FFFFFF);
 
   /// Informational blue — never a status on its own, only a marker tint.
-  Color get info => isLight ? const Color(0xFF2B6CB0) : const Color(0xFF6098D6);
+  Color get info => isLight ? const Color(0xFF2B6CB0) : AppColors.info;
 
   /// Agency colours. The dark values are the DAWI design's 500s; the light
   /// ones are those same hues taken down until they carry as ink on a pale
   /// ground — derived, like `warn`, because the design has no light frames.
   Color get fire => live;
-  Color get medical =>
-      isLight ? const Color(0xFF0F766E) : AppColors.medical;
+  Color get medical => isLight ? const Color(0xFF0F766E) : AppColors.medical;
   Color get police => isLight ? const Color(0xFF6D28D9) : AppColors.police;
-  Color get barangay =>
-      isLight ? const Color(0xFF8A5308) : AppColors.barangay;
+  Color get barangay => isLight ? const Color(0xFF8A5308) : AppColors.barangay;
   Color get coastguard =>
       isLight ? const Color(0xFF0E6E66) : const Color(0xFF2DD4BF);
   Color get crime => police;
 
   /// Water on the map — hydrants, cisterns, bodies of water (MAP LAYERS/WATER).
-  Color get water =>
-      isLight ? const Color(0xFF1E4FA8) : AppColors.markerWater;
+  Color get water => isLight ? const Color(0xFF1E4FA8) : AppColors.markerWater;
 
   /// The well behind a white glyph in a list row, for a row tinted [tint].
   ///
@@ -315,19 +351,35 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// wells, the tint itself on the light theme's wash.
   Color glyphOn(Color tint) => isLight ? tint : Colors.white;
 
-  /// What an incident's status looks like in this theme.
+  /// What an incident's status looks like in this theme: the Lifecycle
+  /// chip's tones (see [AppColors.forStatus]).
   Color forStatus(String? status) => switch (status) {
-    'reported' => warn,
-    'verified' => isLight ? const Color(0xFF1565C0) : const Color(0xFF42A5F5),
-    'en_route' => accentInk,
-    'arrived' => live,
+    'reported' || 'post_incident_report' => warn,
+    'verified' => info,
+    'en_route' || 'arrived' => live,
     'fire_out' => ok,
-    'post_incident_report' => coastguard,
-    'closed' => isLight ? const Color(0xFF0F7A34) : const Color(0xFF16A34A),
-    'rejected' => isLight ? const Color(0xFF6B6B6B) : const Color(0xFF9E9E9E),
-    'merged' => isLight ? const Color(0xFF5B3EA8) : const Color(0xFF7E57C2),
+    'closed' || 'rejected' || 'merged' => textSoft,
     _ => muted,
   };
+
+  /// The tint behind a status word: 12 % for live, 14 % for the others, and
+  /// the hover overlay for the grey statuses that have left the live feed
+  /// (04 · Status badge).
+  Color statusTint(Color tone) => tone == textSoft
+      ? hover
+      : tone.withValues(alpha: tone == live ? 0.12 : 0.14);
+
+  // Materials (03 · pass 2). Glass is for floating map UI with short bold
+  // labels; Glass strong for anything over a map that carries body text.
+  // The light ground has no Figma frames; its glass is the light surface.
+  Color get glassOverlay =>
+      isLight ? const Color(0xDBF3F3F1) : AppColors.glassOverlay;
+  Color get glassStrong =>
+      isLight ? const Color(0xF0F3F3F1) : AppColors.glassStrong;
+  Color get scrim => AppColors.scrim;
+
+  /// The viewer's own position on a map (color/map/you).
+  Color get you => isLight ? const Color(0xFFC2410C) : AppColors.markerYou;
 
   /// Which agency an incident asked for.
   Color forAgency(String? agency) => switch (agency) {
@@ -366,19 +418,19 @@ class AppPalette extends ThemeExtension<AppPalette> {
     glassDim: Color(0xB31D1D1D),
     raised: Color(0xFF303030),
     inputBg: Color(0xFF131313),
-    line: Color(0xFF424242), // BACKGROUND/grey-400
-    lineStrong: Color(0xFF4A4A4A), // SURFACE/grey-400
-    onBackground: Color(0xFFFFFFFF),
+    line: AppColors.line, // color/border/subtle
+    lineStrong: AppColors.lineStrong, // color/border/default
+    onBackground: AppColors.onBackground, // color/text/primary
     textSoft: Color(0xFFC9C9C9), // TEXT/grey-200
-    label: Color(0xFFADAAAA), // Text/Tertiary
+    label: AppColors.label, // color/text/tertiary
     muted: Color(0xFF8A8A8A), // TEXT/grey-500
-    placeholder: Color(0xBFADAAAA),
-    faint: Color(0xFF7E7E7E), // TEXT/grey-600
+    placeholder: AppColors.placeholder,
+    faint: AppColors.faint,
     accent: Color(0xFFFF9066),
     accentInk: Color(0xFFFF9066),
     live: Color(0xFFFF544E),
     ok: Color(0xFF22C55E),
-    warn: Color(0xFFFACC15),
+    warn: AppColors.warn, // color/status/warning
     lineLight: Color(0x80ADAAAA),
     hover: Color(0x0FFFFFFF),
     pressed: Color(0x1FFFFFFF),
@@ -503,10 +555,14 @@ class AppText {
     letterSpacing: 1,
     color: AppColors.faint,
   );
+
+  /// Type/Label small — status badges and chips. 11 px is the floor for
+  /// anything a person reads (pass 4 retired the 9 px eyebrow small).
   static const TextStyle tag = TextStyle(
-    fontSize: 9,
+    fontSize: 11,
+    height: 14 / 11,
     fontWeight: FontWeight.w700,
-    letterSpacing: 0.9,
+    letterSpacing: 0.2,
   );
   static const TextStyle action = TextStyle(
     fontSize: 12,
@@ -600,9 +656,11 @@ class AppText {
     fontWeight: FontWeight.w400,
     color: AppColors.muted,
   );
+
+  /// Was 10 px; pass 4 retired Caption small for Caption (11 px).
   static const TextStyle captionSm = TextStyle(
-    fontSize: 10,
-    height: 13 / 10,
+    fontSize: 11,
+    height: 14 / 11,
     fontWeight: FontWeight.w400,
     color: AppColors.muted,
   );
@@ -669,9 +727,10 @@ class AppText {
     color: AppColors.accentText,
   );
 
+  /// Type/Input — 16 px, so a phone keyboard does not zoom the field.
   static const TextStyle input = TextStyle(
-    fontSize: 15,
-    height: 20 / 15,
+    fontSize: 16,
+    height: 22 / 16,
     fontWeight: FontWeight.w500,
     color: AppColors.onBackground,
   );
@@ -749,8 +808,9 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
       ? ThemeData.light(useMaterial3: true)
       : ThemeData.dark(useMaterial3: true);
 
-  // The Input component draws its resting edge at 1px and every state that
-  // means something — filled, focused, in error — at 1.5px.
+  // The Text field component (04, pass 4): a 54 px field on the inset surface
+  // with a 3 : 1 control edge at rest, a 2 px coral edge in focus and a red
+  // edge in error. The hairline is for cards, never for a control.
   OutlineInputBorder fieldBorder(Color color, [double width = 1]) =>
       OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.control),
@@ -787,16 +847,17 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
       filled: true,
       fillColor: pal.inputBg,
       hintStyle: TextStyle(
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: FontWeight.w500,
         color: pal.placeholder,
       ),
       labelStyle: type.eyebrow,
       floatingLabelStyle: type.eyebrow.copyWith(color: pal.accentInk),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 17),
-      border: fieldBorder(pal.line),
-      enabledBorder: fieldBorder(pal.line),
-      focusedBorder: fieldBorder(pal.accent, 1.5),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: fieldBorder(pal.lineStrong),
+      enabledBorder: fieldBorder(pal.lineStrong),
+      disabledBorder: fieldBorder(pal.line),
+      focusedBorder: fieldBorder(pal.accent, 2),
       errorBorder: fieldBorder(pal.live, 1.5),
       focusedErrorBorder: fieldBorder(pal.live, 1.5),
       errorStyle: TextStyle(
@@ -840,7 +901,12 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
       trackColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected) ? pal.accent : pal.glass,
       ),
-      trackOutlineColor: WidgetStatePropertyAll(Colors.transparent),
+      // Off, the track needs the 3 : 1 control edge to be seen at all.
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected)
+            ? Colors.transparent
+            : pal.lineStrong,
+      ),
     ),
     textSelectionTheme: TextSelectionThemeData(
       cursorColor: pal.accentInk,
@@ -883,7 +949,7 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
         foregroundColor: pal.textSoft,
         backgroundColor: pal.glass,
         minimumSize: Size(0, 48),
-        side: BorderSide(color: pal.line),
+        side: BorderSide(color: pal.lineStrong),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.control),
         ),
