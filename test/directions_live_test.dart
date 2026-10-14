@@ -7,19 +7,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/location/live_position.dart';
 import 'package:replit/location/route_progress.dart';
+import 'package:replit/navigation/nav_route.dart';
+import 'package:replit/navigation/routing_service.dart';
+import 'package:replit/navigation/voice_guide.dart';
 import 'package:replit/screens/directions_screen.dart';
 import 'package:replit/theme.dart';
 
+import 'navigation_test.dart' as nt;
+
 const _start = LatLng(14.5378, 121.0014);
 
-/// Metres of latitude per degree around Pasay (the Vincenty value).
-const _mPerDegLat = 110630.0;
-
-/// [north] metres north of the start, [east] metres east.
-LatLng at(double north, {double east = 0}) => LatLng(
-  _start.latitude + north / _mPerDegLat,
-  _start.longitude + east / (_mPerDegLat * 0.968),
-);
+/// [north] metres north of the start, [east] metres east (as navigation_test).
+LatLng at(double north, {double east = 0}) => nt.at(north, east: east);
 
 /// A phone standing at the start with a 5 m fix.
 class _StartGeo extends GeolocatorPlatform {
@@ -47,7 +46,18 @@ class _StartGeo extends GeolocatorPlatform {
   );
 }
 
-/// Directions that keep up with the walker, as Google Maps does.
+/// Says nothing aloud; remembers what it would have said.
+class _Voice extends VoiceGuide {
+  final List<String> said = [];
+
+  @override
+  Future<void> speak(String text) async => said.add(text);
+
+  @override
+  Future<void> stop() async {}
+}
+
+/// Directions as Google Maps gives them.
 void main() {
   group('where you are along a route', () {
     // An L-shaped walk: 1 km north, then 1 km east.
@@ -82,24 +92,53 @@ void main() {
       expect(p.behind(route).last, p.ahead(route).first);
       expect(p.ahead(route).last, route.last);
     });
+
+    test('a search window keeps a place on the part of the route searched', () {
+      // A route that comes back past its own start: 1 km north and back.
+      final there = [at(0), at(1000), at(0, east: 20)];
+      final p = RouteProgress.of(there, at(100), fromSegment: 1, toSegment: 1);
+      expect(p.segment, 1, reason: 'not pulled back onto the way out');
+    });
   });
 
-  group('the directions screen', () {
-    late List<LatLng> asked;
+  Future<void> settle(WidgetTester tester) async {
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  }
 
+  Future<void> moveTo(WidgetTester tester, LatLng p) async {
+    LivePosition.instance.offer(p, accuracy: 5, speed: 8, heading: 0);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+
+  group('to a shelter, on foot', () {
     setUp(() {
       SharedPreferences.setMockInitialValues({});
       GeolocatorPlatform.instance = _StartGeo();
-      asked = [];
     });
 
-    /// A straight 2 km route north, from wherever it is asked.
-    Future<RouteResult?> fetch(LatLng from, LatLng to) async {
-      asked.add(from);
-      return (
-        points: [from, to],
-        metres: const Distance().as(LengthUnit.Meter, from, to),
-        seconds: null,
+    /// A straight 2 km walk north, at walking pace.
+    Future<RouteSet> fetch(LatLng from, LatLng to, {double? headingDeg}) async {
+      return RouteSet(
+        routes: parseRoutes(
+          nt.answer([
+            (
+              points: [from, to],
+              steps: [
+                nt.step('depart', from, distance: 2000, duration: 2000 / 1.39),
+                nt.step('arrive', to),
+              ],
+              duration: 2000 / 1.39,
+              summary: '',
+              congestion: null,
+              typical: null,
+            ),
+          ]),
+        ),
+        provider: 'mapbox',
+        trafficAware: false,
       );
     }
 
@@ -118,57 +157,44 @@ void main() {
             originLat: _start.latitude,
             originLng: _start.longitude,
             fetchRoute: fetch,
+            voice: _Voice(),
           ),
         ),
       );
-      for (var i = 0; i < 5; i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-      }
-    }
-
-    Future<void> walkTo(WidgetTester tester, LatLng p) async {
-      LivePosition.instance.offer(p, accuracy: 5);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      await settle(tester);
     }
 
     testWidgets('the distance and minutes count down as you walk', (
       tester,
     ) async {
       await pump(tester);
+      expect(tester.takeException(), isNull);
       expect(find.text('2.0 km'), findsOneWidget);
       expect(find.text('~24 min'), findsOneWidget);
 
-      await walkTo(tester, at(800));
+      await moveTo(tester, at(800));
       expect(find.text('1.2 km'), findsOneWidget);
       expect(find.text('~15 min'), findsOneWidget);
 
-      await walkTo(tester, at(1700));
+      await moveTo(tester, at(1700));
       expect(find.text('300 m'), findsOneWidget);
     });
 
     testWidgets('the part already walked fades behind you', (tester) async {
       await pump(tester);
-      await walkTo(tester, at(800));
+      await moveTo(tester, at(800));
       final layer = tester.widget<PolylineLayer>(find.byType(PolylineLayer));
       expect(layer.polylines, hasLength(2), reason: 'walked + ahead');
       expect(layer.polylines.last.points.last, at(2000));
     });
 
-    testWidgets('two fixes off the route fetch a new one from where you are', (
-      tester,
-    ) async {
+    testWidgets('off the route, it says so', (tester) async {
       await pump(tester);
-      expect(asked, hasLength(1));
-
-      await walkTo(tester, at(600, east: 200));
-      expect(asked, hasLength(1), reason: 'one stray fix is only GPS noise');
-      await walkTo(tester, at(620, east: 210));
-      for (var i = 0; i < 3; i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-      }
-      expect(asked, hasLength(2));
-      expect(asked.last, at(620, east: 210));
+      await moveTo(tester, at(600, east: 200));
+      expect(
+        find.text('You are off the route. We will find you a new one.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Start follows and turns with you; Stop lets go', (
@@ -189,30 +215,44 @@ void main() {
 
     testWidgets('at the shelter it says you have arrived', (tester) async {
       await pump(tester);
-      await walkTo(tester, at(1985));
+      await moveTo(tester, at(1985));
       expect(find.text('YOU HAVE ARRIVED'), findsOneWidget);
       expect(find.text('START'), findsNothing);
     });
   });
 
-  group('to a fire (v12)', () {
+  group('to a fire, by road', () {
+    late List<LatLng> askedTo;
+    late List<dynamic> offered;
+    late bool traffic;
+    late _Voice voice;
+
     setUp(() {
       SharedPreferences.setMockInitialValues({});
       GeolocatorPlatform.instance = _StartGeo();
+      askedTo = [];
+      offered = [nt.lRoute];
+      traffic = true;
+      voice = _Voice();
     });
 
-    /// 2 km by road, driven in 4 minutes (30 km/h): the route's own pace.
-    Future<RouteResult?> fetch(LatLng from, LatLng to) async => (
-      points: [from, to],
-      metres: const Distance().as(LengthUnit.Meter, from, to),
-      seconds: 240.0,
-    );
+    Future<RouteSet> fetch(LatLng from, LatLng to, {double? headingDeg}) async {
+      askedTo.add(to);
+      return RouteSet(
+        routes: parseRoutes(nt.answer(offered.cast())),
+        provider: traffic ? 'mapbox' : 'osrm',
+        trafficAware: traffic,
+      );
+    }
 
-    Future<void> pump(WidgetTester tester) async {
+    Future<void> pump(
+      WidgetTester tester, {
+      Future<LatLng?> Function()? refresh,
+    }) async {
       tester.view.physicalSize = const Size(402, 874);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      final fire = at(2000);
+      final fire = at(1000, east: 1000);
       await tester.pumpWidget(
         MaterialApp(
           theme: buildAppTheme(),
@@ -222,32 +262,121 @@ void main() {
             destName: 'Area 7',
             to: DirectionsTo.fire,
             fetchRoute: fetch,
+            refreshDestination: refresh,
+            voice: voice,
           ),
         ),
       );
-      for (var i = 0; i < 5; i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-      }
+      await settle(tester);
     }
 
     testWidgets('driving time comes from the road route, and counts down', (
       tester,
     ) async {
       await pump(tester);
+      expect(tester.takeException(), isNull);
       expect(find.text('ROUTE TO THE FIRE'), findsOneWidget);
       expect(find.text('~4 min'), findsOneWidget);
       expect(find.text('DRIVING'), findsOneWidget);
-      LivePosition.instance.offer(at(1000), accuracy: 5);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('Times include live traffic.'), findsOneWidget);
+      await moveTo(tester, at(1000));
       expect(find.text('~2 min'), findsOneWidget);
+    });
+
+    testWidgets('without traffic data, it says the times are estimates', (
+      tester,
+    ) async {
+      traffic = false;
+      await pump(tester);
+      expect(
+        find.text('No live traffic data — times are estimates.'),
+        findsOneWidget,
+      );
+      expect(find.text('Times include live traffic.'), findsNothing);
+    });
+
+    testWidgets('every route offered, the fastest chosen; another can be', (
+      tester,
+    ) async {
+      offered = [nt.longRoute, nt.lRoute];
+      await pump(tester);
+      expect(find.text('FASTEST'), findsOneWidget);
+      expect(find.text('~4 min'), findsOneWidget);
+      expect(find.text('~7 min'), findsOneWidget);
+      List<LatLng> grey() => tester
+          .widget<PolylineLayer>(find.byType(PolylineLayer))
+          .polylines
+          .first
+          .points;
+      expect(grey().last, at(3000), reason: 'the long way, in grey');
+
+      await tester.tap(find.byKey(const ValueKey('route-0')));
+      await tester.pump();
+      expect(
+        grey().last,
+        at(1000, east: 1000),
+        reason: 'now the other is grey',
+      );
+    });
+
+    testWidgets('Start: the next turn in the banner, counting down, then the '
+        'next; the voice says each', (tester) async {
+      await pump(tester);
+      await tester.tap(find.text('START'));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Turn right onto Gil Puyat Avenue'), findsOneWidget);
+      expect(find.text('1.0 km'), findsWidgets);
+      expect(
+        voice.said.first,
+        'In 1.0 kilometres, turn right onto Gil Puyat Avenue',
+      );
+
+      await moveTo(tester, at(800));
+      final distance = tester.widget<Text>(
+        find.byKey(const ValueKey('maneuver-distance')),
+      );
+      expect(distance.data, '200 m');
+      expect(
+        voice.said.last,
+        'In 200 metres, turn right onto Gil Puyat Avenue.',
+      );
+
+      await moveTo(tester, at(1000, east: 60));
+      expect(find.text('You have arrived at the fire'), findsOneWidget);
+      expect(find.text('ARRIVE'), findsOneWidget, reason: 'the arrival clock');
+    });
+
+    testWidgets('looking around the map stops following; Re-centre brings the '
+        'navigation view back', (tester) async {
+      await pump(tester);
+      await tester.tap(find.text('START'));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const ValueKey('recentre')), findsNothing);
+
+      await tester.drag(find.byType(FlutterMap), const Offset(0, 140));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const ValueKey('recentre')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('recentre')));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byKey(const ValueKey('recentre')), findsNothing);
+      expect(find.byIcon(Icons.explore), findsOneWidget, reason: 'heading-up');
+    });
+
+    testWidgets('the destination follows the incident as reports move it', (
+      tester,
+    ) async {
+      final moved = at(1000, east: 1300);
+      await pump(tester, refresh: () async => moved);
+      expect(askedTo, [at(1000, east: 1000)]);
+      await tester.pump(DirectionsScreen.destinationEvery);
+      await tester.pump();
+      expect(askedTo.last, moved);
     });
 
     testWidgets('within 100 m it says you are at the fire', (tester) async {
       await pump(tester);
-      LivePosition.instance.offer(at(1920), accuracy: 5);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+      await moveTo(tester, at(1000, east: 920));
       expect(find.text('YOU ARE AT THE FIRE'), findsOneWidget);
     });
   });

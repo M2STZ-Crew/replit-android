@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -38,17 +39,64 @@ class MapLocationSource {
       const LocationMarkerDataStreamFactory().fromRotationSensorHeadingStream();
 }
 
+/// Hybrid map rotation (PRD v12 §4.9.4): while the phone moves, the
+/// direction of travel ([travelDegrees], null when still) turns the map and
+/// the cone; standing still for three seconds, the compass takes over again.
+/// In a moving truck the compass swings with every steel panel and engine
+/// vibration; the road's direction does not.
+Stream<LocationMarkerHeading?> hybridHeadings(Stream<double?> travelDegrees) {
+  StreamSubscription<LocationMarkerHeading?>? sensor;
+  StreamSubscription<double?>? travel;
+  DateTime? lastTravel;
+  late final StreamController<LocationMarkerHeading?> out;
+  out = StreamController<LocationMarkerHeading?>.broadcast(
+    onListen: () {
+      sensor = MapLocationSource.headings().listen((h) {
+        final t = lastTravel;
+        if (t != null &&
+            DateTime.now().difference(t) < const Duration(seconds: 3)) {
+          return;
+        }
+        out.add(h);
+      }, onError: (Object _) {});
+      travel = travelDegrees.listen((deg) {
+        if (deg == null) return;
+        lastTravel = DateTime.now();
+        out.add(
+          LocationMarkerHeading(
+            heading: (deg % 360) * math.pi / 180,
+            accuracy: math.pi * 0.05,
+          ),
+        );
+      });
+    },
+    onCancel: () {
+      unawaited(sensor?.cancel());
+      unawaited(travel?.cancel());
+    },
+  );
+  return out.stream;
+}
+
 /// One map's "you are here": its mode, and the streams its blue dot reads.
 ///
 /// Make one per map, hand [onMapEvent] to the map's options, and put a
 /// [YouAreHereLayer] and [MapLocationButtons] among its children.
 class MapFollow extends ChangeNotifier {
-  MapFollow()
-    : positions = MapLocationSource.positions(),
-      headings = MapLocationSource.headings();
+  /// [positions] and [headings] default to the GPS and the rotation sensor.
+  /// Turn-by-turn directions pass their own: positions placed on the route,
+  /// and the direction of travel while moving (v1.12.9).
+  MapFollow({
+    Stream<LocationMarkerPosition?>? positions,
+    Stream<LocationMarkerHeading?>? headings,
+  }) : positions = positions ?? MapLocationSource.positions(),
+       headings = headings ?? MapLocationSource.headings();
 
   /// How close the map comes when it starts following.
   static const double followZoom = 17;
+
+  /// How close it comes when navigating: the next streets, not the district.
+  static const double navigationZoom = 17.5;
 
   final Stream<LocationMarkerPosition?> positions;
   final Stream<LocationMarkerHeading?> headings;
@@ -70,6 +118,15 @@ class MapFollow extends ChangeNotifier {
   void compass() {
     _set(FollowMode.compass);
     _alignPosition.add(null);
+    _alignDirection.add(null);
+  }
+
+  /// The navigation view: on the person's latest position at
+  /// [navigationZoom], the way they travel pointing up, following from here
+  /// on. What Re-centre restores after they look around the map by hand.
+  void navigate() {
+    _set(FollowMode.compass);
+    _alignPosition.add(navigationZoom);
     _alignDirection.add(null);
   }
 
@@ -110,10 +167,24 @@ class MapFollow extends ChangeNotifier {
 
 /// The blue dot, in the app's accent: where the phone is, how sure the GPS
 /// is (the halo), and which way the phone faces (the cone). A map child.
+///
+/// [navigating] (v1.12.9) is for turn-by-turn directions, where a fix
+/// arrives every second: the dot and the camera glide across the whole second
+/// instead of jumping in 200 ms and waiting, turns ease in over half a
+/// second, and the dot sits low on the screen so the road ahead shows.
 class YouAreHereLayer extends StatelessWidget {
-  const YouAreHereLayer({super.key, required this.follow});
+  const YouAreHereLayer({
+    super.key,
+    required this.follow,
+    this.navigating = false,
+  });
 
   final MapFollow follow;
+  final bool navigating;
+
+  /// One fix's worth of motion: the next fix lands as this one finishes.
+  static const Duration _glide = Duration(milliseconds: 950);
+  static const Duration _turn = Duration(milliseconds: 500);
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +202,25 @@ class YouAreHereLayer extends StatelessWidget {
         alignDirectionOnUpdate: follow.mode == FollowMode.compass
             ? AlignOnUpdate.always
             : AlignOnUpdate.never,
+        focalPoint: navigating
+            ? const FocalPoint(ratio: Offset(0, 0.4))
+            : const FocalPoint(),
+        moveAnimationDuration: navigating
+            ? _glide
+            : const Duration(milliseconds: 200),
+        moveAnimationCurve: navigating ? Curves.linear : Curves.fastOutSlowIn,
+        alignPositionAnimationDuration: navigating
+            ? _glide
+            : const Duration(milliseconds: 200),
+        alignPositionAnimationCurve: navigating
+            ? Curves.linear
+            : Curves.fastOutSlowIn,
+        rotateAnimationDuration: navigating
+            ? _turn
+            : const Duration(milliseconds: 120),
+        alignDirectionAnimationDuration: navigating
+            ? _turn
+            : const Duration(milliseconds: 120),
         style: LocationMarkerStyle(
           marker: DefaultLocationMarker(color: accent),
           markerSize: const Size.square(18),

@@ -33,7 +33,17 @@ class RouteProgress {
 
   /// Place [here] on [route]. A route of fewer than two points is just its
   /// one point.
-  static RouteProgress of(List<LatLng> route, LatLng here) {
+  ///
+  /// [fromSegment] and [toSegment] limit the search to those segments
+  /// (inclusive): navigation looks near where the person was last placed, so
+  /// a road that passes close to an earlier or later part of the same route
+  /// cannot pull them backwards or forwards along it.
+  static RouteProgress of(
+    List<LatLng> route,
+    LatLng here, {
+    int? fromSegment,
+    int? toSegment,
+  }) {
     if (route.length < 2) {
       final end = route.isEmpty ? here : route.first;
       final d = _metres(here, end);
@@ -55,11 +65,16 @@ class RouteProgress {
       after[i] = after[i + 1] + lengths[i + 1];
     }
 
+    final first = (fromSegment ?? 0).clamp(0, lengths.length - 1);
+    final last = (toSegment ?? lengths.length - 1).clamp(
+      first,
+      lengths.length - 1,
+    );
     var best = double.infinity;
-    var bestSegment = 0;
-    var bestPoint = route.first;
+    var bestSegment = first;
+    var bestPoint = route[first];
     var bestT = 0.0;
-    for (var i = 0; i < lengths.length; i++) {
+    for (var i = first; i <= last; i++) {
       final (point, t) = _nearestOnSegment(route[i], route[i + 1], here);
       final d = _metres(here, point);
       if (d < best) {

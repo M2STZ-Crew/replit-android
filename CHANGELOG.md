@@ -6,6 +6,162 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.9 — 15 October 2026 — Turn-by-turn navigation to the fire
+
+App-only. The backend stays at v1.12.6. Implements PRD v12 §4.9 (route
+optimisation and navigation) on the existing `DirectionsScreen`. Branched
+from v1.12.7 (`main`): 1.12.8 is the pass 4 design branch, not yet merged.
+
+### Changes
+
+**Root causes found**
+- **Routes ignored traffic and favoured main roads.** Navigation used the
+  public OSRM demo server: free-flow speed tables (a main road always looks
+  fastest), no traffic, only its first route, no turn steps. Tested on a
+  Pasay trip: OSRM said 278 s; Mapbox with live traffic said 473 s.
+- **The map jumped.** Android delivers a GPS fix every 5 s unless an interval
+  is asked for, and the dot animated each fix in 200 ms, so at 40 km/h it
+  jumped about 55 m every 5 s. Three separate GPS streams (dot, progress,
+  tracker) also disagreed, and the map turned by compass, which swings
+  inside a vehicle.
+- **Rerouting was fragile.** Two fixes over 50 m off triggered it whatever
+  the GPS accuracy was, then a fixed 30 s wait. Progress searched the whole
+  route each fix and could jump backwards. Failures were silent, and requests
+  were not sequenced.
+
+**Added**
+- **Routing from Mapbox Directions** (`lib/navigation/routing_service.dart`),
+  using the public token the app already ships for its tiles.
+  - Profile `driving-traffic`: live traffic in the times, up to three
+    routes, turn steps with street names, and congestion per stretch.
+  - `max_width=2.5`: roads tagged narrower than a fire truck are skipped,
+    while residential streets stay in.
+  - When moving, the request carries the truck's heading, so a new route
+    starts the way it is already going.
+  - OSRM is the fallback when Mapbox fails (no token, quota, network). Its
+    routes are never labelled as traffic-aware.
+  - Shelters use Mapbox `walking`.
+  - Both providers share one parser (`nav_route.dart`), since their answers
+    have the same shape.
+- **Turn-by-turn.**
+  - A banner shows the next maneuver: a drawn arrow, the distance ("250 m")
+    and the instruction ("Turn left onto Taft Avenue"). A "Then …" line
+    appears when a second turn follows within 100 m.
+  - The time left, distance left and arrival clock count down. Times come
+    from the provider's own per-step times, so they're traffic-aware with
+    Mapbox.
+- **Voice** (`flutter_tts`, the phone's own text-to-speech, offline).
+  - Each maneuver is said once 300 m ahead (60 m on foot) and once at it,
+    plus the first instruction and arrival.
+  - It plays as navigation audio, so music ducks under it.
+  - On/off toggle, remembered.
+- **Alternatives.** Before Start, every route offered is on the map: the
+  chosen one in blue, the others grey. A list shows time, distance and
+  main road for each, with "Fastest" marked; tap one to take it.
+  - Live traffic is drawn over the chosen route only: amber for slow, red
+    for heavy, dark red for severe. Grey always means "another route",
+    never traffic.
+  - The card says "Times include live traffic." only when that's true.
+    Otherwise it says "No live traffic data — times are estimates."
+- **Smooth movement.**
+  - While navigating, GPS is asked for a fix every second at best accuracy
+    (`LivePosition` precise mode). The dot and camera glide across the
+    whole second.
+  - The dot sits low on the screen so the road ahead shows.
+  - The dot is drawn on the road when the fix agrees with it (within its
+    accuracy, at most 20 m). Otherwise it's drawn where the GPS says, so a
+    real wrong turn is visible.
+- **Hybrid rotation** (PRD §4.9.4). While moving, the road's direction
+  turns the map; standing still, the compass does. The existing compass
+  button forces north-up.
+- **Re-centre.** Moving the map by hand stops the following, and a
+  Re-centre button appears. It brings back the navigation view (latest
+  position, navigation zoom, heading-up). The dot and route keep updating
+  meanwhile.
+- **Rerouting** (`NavigationController`).
+  - Triggers when off by more than the larger of 35 m and 1.5× the fix's
+    accuracy (capped at 80 m), on two usable fixes at least 3 s apart.
+  - Fixes worse than 50 m are ignored, and the card says the GPS is weak.
+  - One request at a time. A destination change or retry supersedes it,
+    and a late answer for a superseded request is dropped.
+  - After a failure, the last route stays and the card says so; retries back
+    off 5–60 s. With no route at all, a dashed straight line is shown,
+    labelled as one, while a real route is retried.
+  - Progress searches near the last position, and the next maneuver never
+    moves backward.
+- **The destination follows the incident.** When opened from an incident,
+  its centre is read again every 30 s; if more reports moved it by over
+  30 m, the route follows.
+
+**Modified**
+- The incident screens' ETA labels (responder and coordinator) use the same
+  routing service, with a one-minute / 50 m cache (`DriveTime`). They no
+  longer call the OSRM demo every 6 s.
+
+### Files Changed
+- New: `lib/navigation/` (`nav_route.dart`, `routing_service.dart`,
+  `instructions.dart`, `navigation_controller.dart`, `voice_guide.dart`),
+  `lib/widgets/maneuver_arrow.dart`, `test/navigation_test.dart`.
+- `lib/screens/directions_screen.dart` (the navigation UI on the
+  controller), `lib/location/live_position.dart` (precise mode, full fixes),
+  `lib/location/route_progress.dart` (search window),
+  `lib/widgets/you_are_here.dart` (injectable streams, navigation view,
+  smooth animation, hybrid heading).
+- `lib/screens/responder/responder_incident_screen.dart`,
+  `lib/screens/subadmin/subadmin_incident_command_screen.dart` (ETA via
+  `DriveTime`; route opens with the incident id),
+  `responder_incident_report_screen.dart`,
+  `subadmin_incident_report_screen.dart` (incident id).
+- `test/directions_live_test.dart` (rewritten for the new screen).
+- `pubspec.yaml`: `flutter_tts`, version 1.12.9.
+
+### Database Changes
+None.
+
+### API Changes
+None to RepLiT's API. New outbound calls from the app to
+`api.mapbox.com/directions/v5`, using the existing public `MAPBOX_TOKEN`.
+
+### Testing
+- Parser: routes, step positions in order, congestion, walking pace,
+  multi-name roads, empty geometry dropped. Also checked against a live
+  Mapbox answer for a Barangay 76 → Pasay City Hall trip: 2 routes, steps in
+  order, a residential street (Padre Vergel) in the route.
+- Instructions: turns, forks, end of road, roundabouts, departure,
+  arrival, rounded distances.
+- Routing service: Mapbox parameters (profile, alternatives, steps,
+  `max_width`, bearings); fallback to OSRM, which never claims traffic;
+  OSRM only without a token; walking; an error, never an invented route,
+  when nobody answers.
+- Controller: next maneuver and distance; no going back past a turn;
+  fastest chosen and switching; reroute only after two usable fixes 3 s
+  apart, from where they are and the way they head; poor GPS ignored; the
+  dot drawn on the road only within accuracy; a late answer dropped; a
+  failed reroute keeps the route, says so, backs off and retries; voice
+  says each cue once and nothing before Start; a straight line, then a
+  real route.
+- Screen: countdown on foot and by road; the walked part fades; the
+  off-route note; Start, Stop, compass; alternatives and switching;
+  traffic and no-traffic notes; banner and voice counting down and
+  advancing; Re-centre after a drag; destination follows the incident;
+  arrival.
+- Result: **all app tests pass**; `flutter analyze` clean.
+- **Not field-tested.** Smoothness, GPS behaviour, rerouting thresholds and
+  voice timing on a real phone in a moving vehicle still need a drive test.
+
+### Known limits
+- Traffic comes from Mapbox. Coverage in Pasay is partial: one probe route
+  had live data and the other had none. When none exists, the app says
+  so.
+- `max_width` only skips roads whose width is tagged in OpenStreetMap.
+  Untagged narrow alleys can still appear.
+- Mapbox's free tier is 100,000 requests a month. Each route request or
+  reroute is one, plus the cached ETA labels.
+- PRD §4.9.2's record of the chosen route (`route_choices` table,
+  `POST /routes/choose`) is not built. That needs a backend change.
+
+---
+
 ## v1.12.7 — 12 October 2026 — Trucks travelling together share one marker
 
 App-only. The backend stays at v1.12.6.

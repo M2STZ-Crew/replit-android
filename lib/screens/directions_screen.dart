@@ -1,24 +1,25 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
+import '../api/api_client.dart';
 import '../location/live_position.dart';
-import '../location/route_progress.dart';
+import '../navigation/instructions.dart';
+import '../navigation/nav_route.dart';
+import '../navigation/navigation_controller.dart';
+import '../navigation/routing_service.dart';
+import '../navigation/voice_guide.dart';
 import '../theme.dart';
-import '../widgets/map_tiles.dart';
 import '../widgets/design.dart';
+import '../widgets/maneuver_arrow.dart';
+import '../widgets/map_tiles.dart';
 import '../widgets/you_are_here.dart';
 
 Color _safeGreen = AppColors.ok;
-
-/// A route, as the directions screen draws and measures it. [seconds] is the
-/// routing service's own travel time, when it gave one.
-typedef RouteResult = ({List<LatLng> points, double metres, double? seconds});
 
 /// Where the directions lead: a citizen walking to a shelter, or a responder
 /// or coordinator driving to a fire.
@@ -26,11 +27,14 @@ enum DirectionsTo { shelter, fire }
 
 /// Road directions from the phone's live position to a fire. The incident's
 /// coordinates must exist — callers offer the button only when they do.
+/// With [areaId], the destination follows the incident: as more reports join
+/// it, its centre moves, and the route moves with it.
 Future<void> openRouteToFire(
   BuildContext context, {
   required double lat,
   required double lng,
   required String name,
+  String? areaId,
 }) {
   return Navigator.of(context).push(
     MaterialPageRoute(
@@ -39,35 +43,48 @@ Future<void> openRouteToFire(
         destLng: lng,
         destName: name,
         to: DirectionsTo.fire,
+        refreshDestination: areaId == null ? null : () => _areaCentre(areaId),
       ),
     ),
   );
 }
 
-/// Fetches a route between two points; null when no route could be found.
-typedef RouteFetcher = Future<RouteResult?> Function(LatLng from, LatLng to);
+/// The incident's current centre, or null when it could not be read.
+Future<LatLng?> _areaCentre(String areaId) async {
+  final area = await ApiClient().getArea(areaId);
+  final lat = (area['centroid_lat'] as num?)?.toDouble();
+  final lng = (area['centroid_lng'] as num?)?.toDouble();
+  return lat == null || lng == null ? null : LatLng(lat, lng);
+}
 
-/// Directions in the app, the way Google Maps takes you there: a citizen to
-/// an evacuation site on foot, or a responder or coordinator to the fire by
-/// road ([to]).
+/// Turn-by-turn directions, as Google Maps gives them (v1.12.9): a citizen
+/// to an evacuation site on foot, or a responder or coordinator to the fire
+/// by road ([to]).
 ///
-/// The route comes from OSRM's public demo server (free, no key). Once it is
-/// drawn, the screen keeps up with the walker:
-/// - the distance and minutes left count down as they move;
-/// - the part already walked fades, and the part ahead stays bright;
-/// - stray more than [offRouteMetres] from the route and a new one is fetched
-///   from where they are (at most every 30 s);
-/// - Start puts the map in follow-and-turn mode, so the way they face is up;
-/// - close enough to the destination, it says they have arrived — 30 m for a
-///   shelter, 100 m for a fire (the radius the server uses for On scene).
+/// The screen draws and listens; the work is elsewhere — routes from
+/// [RoutingService] (Mapbox `driving-traffic`, OSRM when Mapbox cannot
+/// answer), progress, rerouting and voice cues from [NavigationController],
+/// speech from [VoiceGuide], and one GPS stream at a fix a second from
+/// [LivePosition].
+///
+/// - **Before Start**, every route the provider offered is on the map (the
+///   chosen one in blue, the others grey) and in a list with its time,
+///   distance and main road; the quickest is chosen, and tapping another
+///   chooses it. Times say whether they include live traffic.
+/// - **After Start**, the map follows heading-up with the dot low on the
+///   screen, the next maneuver is in a banner ("250 m — Turn left onto Taft
+///   Avenue"), the voice says it, and the time, distance and arrival clock
+///   count down. Moving the map by hand stops the following; Re-centre
+///   brings the navigation view back.
+/// - **Off the route**, a new one is fetched from where they are, and the
+///   banner, voice and numbers follow the new route. When routing fails the
+///   last route stays and the card says so; it is never replaced by a route
+///   that was not calculated.
 ///
 /// The route starts from the phone's live GPS. For a fire there is no other
 /// honest starting point: with location off or refused the screen says so and
 /// offers to try again, and draws no route rather than inventing one. A shelter
 /// route may start from where the citizen sent their report ([originLat]).
-///
-/// If no road route can be found it falls back to a straight line and says so,
-/// so the heading and distance still show.
 class DirectionsScreen extends StatefulWidget {
   const DirectionsScreen({
     super.key,
@@ -77,6 +94,8 @@ class DirectionsScreen extends StatefulWidget {
     this.originLat,
     this.originLng,
     this.fetchRoute,
+    this.refreshDestination,
+    this.voice,
     this.to = DirectionsTo.shelter,
   });
 
@@ -86,14 +105,19 @@ class DirectionsScreen extends StatefulWidget {
   final double? originLat;
   final double? originLng;
 
-  /// Where routes come from: OSRM when none is given. Tests give their own.
-  final RouteFetcher? fetchRoute;
+  /// Where routes come from: [RoutingService] when none is given. Tests
+  /// give their own.
+  final RouteFetch? fetchRoute;
+
+  /// Reads the destination again, every [destinationEvery]; null keeps it
+  /// fixed.
+  final Future<LatLng?> Function()? refreshDestination;
+
+  /// Speaks the instructions; tests give a silent one.
+  final VoiceGuide? voice;
 
   /// A shelter on foot, or a fire by road.
   final DirectionsTo to;
-
-  /// Further than this from the route counts as off it.
-  static const double offRouteMetres = 50;
 
   /// This close to a shelter counts as there.
   static const double arrivedWithinMetres = 30;
@@ -101,61 +125,115 @@ class DirectionsScreen extends StatefulWidget {
   /// This close to a fire counts as there: the server's On scene radius.
   static const double atTheFireWithinMetres = 100;
 
+  /// How often the incident's centre is read again while the screen is open.
+  static const Duration destinationEvery = Duration(seconds: 30);
+
   @override
   State<DirectionsScreen> createState() => _DirectionsScreenState();
 }
 
 class _DirectionsScreenState extends State<DirectionsScreen> {
-  final MapFollow _follow = MapFollow();
   final MapController _map = MapController();
-  final Distance _distance = const Distance();
-
-  late final LatLng _dest = LatLng(widget.destLat, widget.destLng);
-  late final RouteFetcher _fetch = widget.fetchRoute ?? _osrmRoute;
+  final StreamController<LocationMarkerPosition?> _dot =
+      StreamController.broadcast();
+  final StreamController<double?> _travel = StreamController.broadcast();
+  late final MapFollow _follow = MapFollow(
+    positions: _dot.stream,
+    headings: hybridHeadings(_travel.stream),
+  );
+  late final VoiceGuide _voice = widget.voice ?? VoiceGuide();
+  late final NavigationController _nav;
+  StreamSubscription<NavDisplay>? _displaySub;
+  StreamSubscription<String>? _speechSub;
+  Timer? _tick;
+  Timer? _destinationTimer;
 
   LatLng? _origin;
-  List<LatLng> _route = [];
-  double? _routeMeters;
-  double? _routeSeconds;
-  bool _loading = true;
-  bool _isApprox = false;
 
   /// No GPS and no other honest starting point: nothing to route from.
   bool _noLocation = false;
+  bool _framed = false;
 
   bool get _toFire => widget.to == DirectionsTo.fire;
 
-  double get _arrivedWithin => _toFire
-      ? DirectionsScreen.atTheFireWithinMetres
-      : DirectionsScreen.arrivedWithinMetres;
-
-  /// Where the walker is, and where that puts them on the route.
-  LatLng? _here;
-  RouteProgress? _progress;
-
-  bool _navigating = false;
-  bool _arrived = false;
-  bool _rerouting = false;
-  int _offRouteFixes = 0;
-  DateTime? _lastReroute;
+  TravelMode get _mode => _toFire ? TravelMode.driving : TravelMode.walking;
 
   @override
   void initState() {
     super.initState();
+    final service = RoutingService();
+    _nav = NavigationController(
+      destination: LatLng(widget.destLat, widget.destLng),
+      mode: _mode,
+      destinationName: _toFire ? 'the fire' : widget.destName,
+      arrivedWithinMetres: _toFire
+          ? DirectionsScreen.atTheFireWithinMetres
+          : DirectionsScreen.arrivedWithinMetres,
+      fetch:
+          widget.fetchRoute ??
+          (from, to, {headingDeg}) =>
+              service.routes(from, to, mode: _mode, headingDeg: headingDeg),
+    )..addListener(_changed);
+    _displaySub = _nav.displays.listen((d) {
+      _dot.add(
+        LocationMarkerPosition(
+          latitude: d.point.latitude,
+          longitude: d.point.longitude,
+          accuracy: d.accuracy ?? double.nan,
+        ),
+      );
+      _travel.add(d.travelHeadingDeg);
+    });
+    _speechSub = _nav.announcements.listen((text) => _voice.speak(text));
+    unawaited(_voice.load());
     if (widget.originLat != null && widget.originLng != null) {
       _origin = LatLng(widget.originLat!, widget.originLng!);
     }
-    LivePosition.instance.acquire();
-    LivePosition.instance.here.addListener(_onMoved);
+    LivePosition.instance.acquire(precise: true);
+    LivePosition.instance.fix.addListener(_onFix);
+    // The arrival clock moves on while standing still; so does "no GPS".
+    _tick = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) setState(() {});
+    });
+    if (widget.refreshDestination != null) {
+      _destinationTimer = Timer.periodic(
+        DirectionsScreen.destinationEvery,
+        (_) => _refreshDestination(),
+      );
+    }
     _refineLocationThenRoute();
   }
 
   @override
   void dispose() {
-    LivePosition.instance.here.removeListener(_onMoved);
-    LivePosition.instance.release();
+    _tick?.cancel();
+    _destinationTimer?.cancel();
+    LivePosition.instance.fix.removeListener(_onFix);
+    LivePosition.instance.release(precise: true);
+    unawaited(_displaySub?.cancel());
+    unawaited(_speechSub?.cancel());
+    unawaited(_voice.stop());
+    _nav
+      ..removeListener(_changed)
+      ..dispose();
     _follow.dispose();
+    unawaited(_dot.close());
+    unawaited(_travel.close());
     super.dispose();
+  }
+
+  void _changed() {
+    if (!mounted) return;
+    setState(() {});
+    if (!_framed && _nav.routes.isNotEmpty) {
+      _framed = true;
+      _fitRoute();
+    }
+  }
+
+  void _onFix() {
+    final fix = LivePosition.instance.fix.value;
+    if (fix != null) _nav.onFix(fix);
   }
 
   Future<void> _refineLocationThenRoute() async {
@@ -181,95 +259,35 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     if (!mounted) return;
     if (_origin == null) {
       // Never route from a made-up point: say what is missing instead.
-      setState(() {
-        _noLocation = true;
-        _loading = false;
-      });
+      setState(() => _noLocation = true);
       return;
     }
-    await _loadRoute(first: true);
+    if (LivePosition.instance.fix.value == null) {
+      LivePosition.instance.offer(_origin!);
+    }
+    await _nav.start(_origin!);
   }
 
-  static Future<RouteResult?> _osrmRoute(LatLng from, LatLng to) async {
-    final uri = Uri.parse(
-      'https://router.project-osrm.org/route/v1/driving/'
-      '${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
-      '?overview=full&geometries=geojson',
-    );
-    final resp = await http.get(uri).timeout(const Duration(seconds: 12));
-    if (resp.statusCode != 200) return null;
-    final data = jsonDecode(resp.body) as Map<String, dynamic>;
-    final routes = data['routes'] as List<dynamic>?;
-    if (routes == null || routes.isEmpty) return null;
-    final route = routes.first as Map<String, dynamic>;
-    final points = [
-      for (final c in route['geometry']['coordinates'] as List<dynamic>)
-        LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()),
-    ];
-    final metres = (route['distance'] as num?)?.toDouble();
-    if (points.length < 2 || metres == null) return null;
-    return (
-      points: points,
-      metres: metres,
-      seconds: (route['duration'] as num?)?.toDouble(),
-    );
-  }
-
-  /// The route from [_origin]. The first time, it frames the whole route and
-  /// falls back to a straight line if none is found; a re-route keeps the
-  /// camera where it is, and keeps the old route if the new one fails.
-  Future<void> _loadRoute({required bool first}) async {
-    final origin = _origin!;
-    setState(() => first ? _loading = true : _rerouting = true);
-    RouteResult? found;
+  Future<void> _refreshDestination() async {
     try {
-      found = await _fetch(origin, _dest);
+      final to = await widget.refreshDestination!();
+      if (to == null || !mounted) return;
+      final moved = metresBetween(to, _nav.destination);
+      if (moved > 30) await _nav.setDestination(to);
     } catch (_) {
-      found = null;
+      // Offline: keep going to where the incident was.
     }
-    if (!mounted) return;
-    if (found == null) {
-      if (first) {
-        _fallbackStraightLine();
-      } else {
-        setState(() => _rerouting = false);
-      }
-      return;
-    }
-    final route = found;
-    setState(() {
-      _route = route.points;
-      _routeMeters = route.metres;
-      _routeSeconds = route.seconds;
-      _isApprox = false;
-      _loading = false;
-      _rerouting = false;
-      _progress = _here == null ? null : RouteProgress.of(_route, _here!);
-    });
-    if (first) _fitRoute();
-  }
-
-  void _fallbackStraightLine() {
-    if (!mounted) return;
-    setState(() {
-      _route = [_origin!, _dest];
-      _routeMeters = _distance.as(LengthUnit.Meter, _origin!, _dest);
-      _routeSeconds = null;
-      _isApprox = true;
-      _loading = false;
-      _progress = _here == null ? null : RouteProgress.of(_route, _here!);
-    });
-    _fitRoute();
   }
 
   void _fitRoute() {
-    if (_route.isEmpty) return;
+    final route = _nav.route;
+    if (route == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
         _map.fitCamera(
           CameraFit.coordinates(
-            coordinates: _route,
-            padding: const EdgeInsets.fromLTRB(60, 120, 60, 260),
+            coordinates: [...route.points, _nav.destination],
+            padding: const EdgeInsets.fromLTRB(60, 120, 60, 320),
           ),
         );
       } catch (_) {
@@ -278,51 +296,13 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     });
   }
 
-  /// The walker moved: count down, fade what is behind, and fetch a new route
-  /// if they have left this one.
-  void _onMoved() {
-    final here = LivePosition.instance.here.value;
-    if (here == null || !mounted) return;
-    if (_route.length < 2) {
-      _here = here;
-      return;
-    }
-    final progress = RouteProgress.of(_route, here);
-    final there = _distance.as(LengthUnit.Meter, here, _dest) <= _arrivedWithin;
-    setState(() {
-      _here = here;
-      _progress = progress;
-      if (there) _arrived = true;
-    });
-    if (!_arrived && !_isApprox) _maybeReroute(here, progress);
-  }
-
-  /// Two fixes in a row off the route, and no re-route in the last 30 s: ask
-  /// for a new one from here. One stray fix is GPS noise, not a wrong turn.
-  void _maybeReroute(LatLng here, RouteProgress progress) {
-    if (progress.offRouteMetres <= DirectionsScreen.offRouteMetres) {
-      _offRouteFixes = 0;
-      return;
-    }
-    _offRouteFixes++;
-    final last = _lastReroute;
-    if (_offRouteFixes < 2 ||
-        _rerouting ||
-        (last != null &&
-            DateTime.now().difference(last) < const Duration(seconds: 30))) {
-      return;
-    }
-    _offRouteFixes = 0;
-    _lastReroute = DateTime.now();
-    _origin = here;
-    unawaited(_loadRoute(first: false));
-  }
-
   void _startOrStop() {
-    setState(() => _navigating = !_navigating);
-    if (_navigating) {
-      _follow.compass();
+    final on = !_nav.navigating;
+    _nav.setNavigating(on);
+    if (on) {
+      _follow.navigate();
     } else {
+      unawaited(_voice.stop());
       _follow.release();
       try {
         _map.rotate(0);
@@ -331,29 +311,12 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     }
   }
 
-  double get _remaining => _progress?.remainingMetres ?? _routeMeters ?? 0;
-
-  /// Minutes left: walking pace to a shelter (~5 km/h); to a fire, the
-  /// route's own driving pace, or ~30 km/h without one.
-  int get _minutesLeft {
-    final metresPerSecond = !_toFire
-        ? 1.39
-        : (_routeSeconds != null &&
-              _routeSeconds! > 0 &&
-              (_routeMeters ?? 0) > 0)
-        ? _routeMeters! / _routeSeconds!
-        : 30000 / 3600;
-    return (_remaining / metresPerSecond / 60).ceil();
-  }
-
+  // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
     final origin = _origin;
-    final progress = _progress;
-    final ahead = progress == null ? _route : progress.ahead(_route);
-    final behind = progress == null
-        ? const <LatLng>[]
-        : progress.behind(_route);
+    final navigating = _nav.navigating && !_nav.arrived;
+    final banner = navigating ? _banner() : null;
     return Scaffold(
       backgroundColor: context.pal.background,
       body: Stack(
@@ -362,56 +325,35 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
             FlutterMap(
               mapController: _map,
               options: MapOptions(
-                initialCenter: _dest,
+                initialCenter: _nav.destination,
                 initialZoom: 16,
                 initialCameraFit: origin == null
                     ? null
                     : CameraFit.coordinates(
-                        coordinates: [origin, _dest],
-                        padding: const EdgeInsets.fromLTRB(60, 120, 60, 260),
+                        coordinates: [origin, _nav.destination],
+                        padding: const EdgeInsets.fromLTRB(60, 120, 60, 320),
                       ),
                 interactionOptions: kMapGestures,
                 onMapEvent: _follow.onMapEvent,
               ),
               children: [
                 MapTiles.layer(light: context.pal.isLight),
-                if (_route.isNotEmpty)
-                  PolylineLayer(
-                    polylines: [
-                      // Walked: faded. Ahead: bright.
-                      if (behind.length >= 2)
-                        Polyline(
-                          points: behind,
-                          strokeWidth: 5,
-                          color: context.pal.muted.withValues(alpha: 0.45),
-                        ),
-                      if (ahead.length >= 2)
-                        Polyline(
-                          points: ahead,
-                          strokeWidth: 5,
-                          color: context.pal.accent,
-                          borderStrokeWidth: 1,
-                          borderColor: Colors.black54,
-                        ),
-                    ],
-                  ),
+                if (_nav.routes.isNotEmpty) PolylineLayer(polylines: _lines()),
                 MarkerLayer(
                   rotate: true,
                   markers: [
-                    // You are the blue dot, which moves as you walk.
                     Marker(
-                      point: _dest,
+                      point: _nav.destination,
                       width: 36,
                       height: 36,
                       child: _destMarker(),
                     ),
                   ],
                 ),
-                YouAreHereLayer(follow: _follow),
+                YouAreHereLayer(follow: _follow, navigating: navigating),
                 MapLocationButtons(
                   follow: _follow,
-                  // Above the route card.
-                  alignment: const Alignment(1, 0.2),
+                  alignment: const Alignment(1, -0.1),
                 ),
                 MapTiles.attribution(),
               ],
@@ -419,16 +361,18 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  _backButton(),
-                  const SizedBox(width: 12),
-                  Expanded(child: _titlePill()),
-                ],
-              ),
+              child:
+                  banner ??
+                  Row(
+                    children: [
+                      const BackWell(),
+                      const SizedBox(width: 12),
+                      Expanded(child: _titlePill()),
+                    ],
+                  ),
             ),
           ),
-          if (_loading)
+          if (_nav.loading)
             Positioned(
               top: 0,
               left: 0,
@@ -439,14 +383,260 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 backgroundColor: Colors.transparent,
               ),
             ),
-          Positioned(left: 16, right: 16, bottom: 16, child: _routeCard()),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [if (navigating) _recentre(), _routeCard()],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _backButton() {
-    return const BackWell();
+  /// The routes on the map: alternatives grey and underneath, the chosen one
+  /// in blue on top — walked part faded, live traffic coloured over the part
+  /// ahead. Grey means "another route", never traffic.
+  List<Polyline> _lines() {
+    final routes = _nav.routes;
+    final active = _nav.route!;
+    final p = _nav.progress;
+    final lines = <Polyline>[
+      for (var i = 0; i < routes.length; i++)
+        if (i != _nav.active && !routes[i].approximate)
+          Polyline(
+            points: routes[i].points,
+            strokeWidth: 5,
+            color: context.pal.muted.withValues(alpha: 0.6),
+            borderStrokeWidth: 1,
+            borderColor: Colors.black38,
+          ),
+    ];
+    final seg = p == null ? 0 : _segmentAt(active, p.along);
+    final behind = p == null
+        ? const <LatLng>[]
+        : [...active.points.sublist(0, seg + 1), _pointAt(active, p.along)];
+    final ahead = p == null
+        ? active.points
+        : [_pointAt(active, p.along), ...active.points.sublist(seg + 1)];
+    if (behind.length >= 2) {
+      lines.add(
+        Polyline(
+          points: behind,
+          strokeWidth: 6,
+          color: context.pal.muted.withValues(alpha: 0.45),
+        ),
+      );
+    }
+    if (ahead.length >= 2) {
+      lines.add(
+        Polyline(
+          points: ahead,
+          strokeWidth: 6,
+          color: context.pal.info,
+          borderStrokeWidth: 1.5,
+          borderColor: Colors.black54,
+          pattern: active.approximate
+              ? StrokePattern.dashed(segments: const [12, 8])
+              : const StrokePattern.solid(),
+        ),
+      );
+    }
+    lines.addAll(_traffic(active, seg));
+    return lines;
+  }
+
+  /// Runs of slow, heavy and severe traffic on the part still ahead.
+  List<Polyline> _traffic(NavRoute route, int from) {
+    final levels = route.congestion;
+    if (levels == null) return const [];
+    final out = <Polyline>[];
+    var i = from;
+    while (i < levels.length) {
+      final level = levels[i];
+      final colour = _trafficColour(level);
+      if (colour == null) {
+        i++;
+        continue;
+      }
+      var j = i;
+      while (j + 1 < levels.length && levels[j + 1] == level) {
+        j++;
+      }
+      out.add(
+        Polyline(
+          points: route.points.sublist(i, j + 2),
+          strokeWidth: 6,
+          color: colour,
+        ),
+      );
+      i = j + 1;
+    }
+    return out;
+  }
+
+  Color? _trafficColour(Congestion level) => switch (level) {
+    Congestion.moderate => context.pal.warn,
+    Congestion.heavy => context.pal.live,
+    Congestion.severe => const Color(0xFF8E1B1B),
+    _ => null,
+  };
+
+  int _segmentAt(NavRoute route, double along) {
+    var seg = 0;
+    while (seg + 2 < route.along.length && route.along[seg + 1] <= along) {
+      seg++;
+    }
+    return seg;
+  }
+
+  LatLng _pointAt(NavRoute route, double along) {
+    final seg = _segmentAt(route, along);
+    final a = route.points[seg];
+    final b = route.points[seg + 1];
+    final len = route.along[seg + 1] - route.along[seg];
+    final t = len <= 0
+        ? 0.0
+        : ((along - route.along[seg]) / len).clamp(0.0, 1.0);
+    return LatLng(
+      a.latitude + (b.latitude - a.latitude) * t,
+      a.longitude + (b.longitude - a.longitude) * t,
+    );
+  }
+
+  // ----------------------------------------------------------- banner ---
+  /// The next maneuver, Google Maps style, or null when there is none to
+  /// show (a straight line has no turns).
+  Widget? _banner() {
+    final route = _nav.route;
+    final p = _nav.progress;
+    if (route == null || p == null || p.nextStep == null) return null;
+    final step = route.steps[p.nextStep!];
+    final dest = _toFire ? 'the fire' : widget.destName;
+    // A second maneuver close behind the first is worth knowing now.
+    final after = p.nextStep! + 1 < route.steps.length
+        ? route.steps[p.nextStep! + 1]
+        : null;
+    final soon = after != null && after.at - step.at <= 100;
+    return Semantics(
+      liveRegion: true,
+      child: Panel(
+        padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+        color: context.pal.info,
+        border: Colors.transparent,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                ManeuverArrow(type: step.type, modifier: step.modifier),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        bannerDistance(p.metresToNext),
+                        key: const ValueKey('maneuver-distance'),
+                        style: context.type.numeral.copyWith(
+                          color: Colors.white,
+                          fontSize: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        instructionFor(step, destination: dest),
+                        key: const ValueKey('maneuver-text'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.type.label.copyWith(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (soon) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Then',
+                    style: context.type.meta.copyWith(color: Colors.white70),
+                  ),
+                  const SizedBox(width: 8),
+                  ManeuverArrow(
+                    type: after.type,
+                    modifier: after.modifier,
+                    size: 20,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      instructionFor(after, destination: dest),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.type.meta.copyWith(color: Colors.white70),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Back to the navigation view after looking around the map by hand.
+  Widget _recentre() {
+    return ListenableBuilder(
+      listenable: _follow,
+      builder: (context, _) {
+        if (_follow.mode == FollowMode.compass) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Semantics(
+            button: true,
+            label: 'Re-centre',
+            excludeSemantics: true,
+            child: Material(
+              color: context.pal.surfaceSolid,
+              shape: StadiumBorder(side: BorderSide(color: context.pal.line)),
+              child: InkWell(
+                key: const ValueKey('recentre'),
+                customBorder: const StadiumBorder(),
+                onTap: _follow.navigate,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.navigation, size: 18, color: context.pal.info),
+                      const SizedBox(width: 8),
+                      Text('Re-centre', style: context.type.label),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _titlePill() {
@@ -512,101 +702,131 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         )
       : IconWell(tint: _safeGreen, asset: Art.evac, size: 40, glyph: 20);
 
-  /// What to tell the walker under the numbers, if anything.
+  // ------------------------------------------------------------- card ---
+  /// What to tell them under the numbers, if anything: most urgent first.
   String? get _note {
-    if (_rerouting) return 'Finding a new route from where you are…';
-    final p = _progress;
-    if (p != null &&
-        !_isApprox &&
-        p.offRouteMetres > DirectionsScreen.offRouteMetres) {
-      return 'You are off the route. We will find you a new one.';
-    }
-    if (_isApprox) {
-      // Said plainly: this is a straight line, not a route. Someone
-      // evacuating needs to know the difference.
+    if (_nav.rerouting) return 'Finding a new route from where you are…';
+    final problem = _nav.problem;
+    if (problem != null) return problem;
+    final route = _nav.route;
+    if (route != null && route.approximate) {
+      // Said plainly: this is a straight line, not a route. Someone going to
+      // a fire or a shelter needs to know the difference.
       return 'Direct line shown — live routing was unavailable. Follow main '
           'roads toward the marker.';
+    }
+    final fix = _nav.lastFix;
+    if (_nav.navigating &&
+        fix != null &&
+        DateTime.now().difference(fix.time) > const Duration(seconds: 15)) {
+      return 'Waiting for GPS — the position shown may be old.';
+    }
+    if (_nav.weakSignal) {
+      return 'Weak GPS signal — your position may be off by '
+          '${fix?.accuracy?.round() ?? 0} m.';
+    }
+    if (_nav.offRoute) {
+      return 'You are off the route. We will find you a new one.';
     }
     return null;
   }
 
+  /// Whether the times include traffic, said only when it is true — and its
+  /// absence said too, for a drive.
+  String? get _trafficNote {
+    final route = _nav.route;
+    if (!_toFire || route == null || route.approximate) return null;
+    if (_nav.trafficAware) return 'Times include live traffic.';
+    return 'No live traffic data — times are estimates.';
+  }
+
   Widget _routeCard() {
-    if (_noLocation) {
-      return Panel(
-        padding: const EdgeInsets.all(20),
-        color: context.pal.surfaceSolid.withValues(alpha: 0.94),
-        border: context.pal.warn.withValues(alpha: 0.6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    if (_noLocation) return _noLocationCard();
+    if (_nav.arrived) return _arrivedCard();
+    return _nav.navigating ? _navigatingCard() : _previewCard();
+  }
+
+  Widget _noLocationCard() {
+    return Panel(
+      padding: const EdgeInsets.all(20),
+      color: context.pal.surfaceSolid.withValues(alpha: 0.94),
+      border: context.pal.warn.withValues(alpha: 0.6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.location_off_outlined, color: context.pal.warn),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Eyebrow('Your location is off', color: context.pal.warn),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'We cannot see where you are, so there is no route to draw. Turn '
+            'on location and allow RepLiT to use it, then try again. The map '
+            'shows where ${widget.destName} is.',
+            style: context.type.bodySm,
+          ),
+          const SizedBox(height: 16),
+          AppButton(
+            'Try again',
+            height: 48,
+            onPressed: _refineLocationThenRoute,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _arrivedCard() {
+    return Panel(
+      padding: const EdgeInsets.all(20),
+      color: context.pal.surfaceSolid.withValues(alpha: 0.94),
+      border: _tone,
+      child: Row(
+        children: [
+          _destIcon,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.location_off_outlined, color: context.pal.warn),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Eyebrow(
-                    'Your location is off',
-                    color: context.pal.warn,
-                  ),
+                Eyebrow(
+                  _toFire ? 'You are at the fire' : 'You have arrived',
+                  color: _tone,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.destName.toUpperCase(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.type.cardTitle.copyWith(fontSize: 16),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              'We cannot see where you are, so there is no route to draw. Turn '
-              'on location and allow RepLiT to use it, then try again. The map '
-              'shows where ${widget.destName} is.',
-              style: context.type.bodySm,
-            ),
-            const SizedBox(height: 16),
-            AppButton(
-              'Try again',
-              height: 48,
-              onPressed: _refineLocationThenRoute,
-            ),
-          ],
-        ),
-      );
-    }
-    if (_arrived) {
-      return Panel(
-        padding: const EdgeInsets.all(20),
-        color: context.pal.surfaceSolid.withValues(alpha: 0.94),
-        border: _tone,
-        child: Row(
-          children: [
-            _destIcon,
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Eyebrow(
-                    _toFire ? 'You are at the fire' : 'You have arrived',
-                    color: _tone,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.destName.toUpperCase(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.type.cardTitle.copyWith(fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Before Start: where to, every route offered, and Start.
+  Widget _previewCard() {
     final note = _note;
+    final traffic = _trafficNote;
+    final routes = _nav.routes;
+    final real = routes.where((r) => !r.approximate).length;
     return Panel(
       padding: const EdgeInsets.all(20),
       color: context.pal.surfaceSolid.withValues(alpha: 0.94),
       border: _tone.withValues(alpha: 0.5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
@@ -618,11 +838,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Eyebrow(
-                      _navigating
-                          ? 'On your way'
-                          : _toFire
-                          ? 'Route to the fire'
-                          : 'Route to safety',
+                      _toFire ? 'Route to the fire' : 'Route to safety',
                       color: _tone,
                     ),
                     const SizedBox(height: 6),
@@ -637,38 +853,163 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _metric(
-                  Icons.straighten,
-                  _loading ? '—' : formatDistance(_remaining),
-                  'to go',
-                ),
-              ),
-              Expanded(
-                child: _metric(
-                  _toFire ? Icons.directions_car : Icons.directions_walk,
-                  _loading ? '—' : '~$_minutesLeft min',
-                  _toFire ? 'driving' : 'on foot',
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 14),
+          if (_nav.loading && routes.isEmpty)
+            Text('Finding the best route…', style: context.type.meta)
+          else if (real > 1)
+            for (var i = 0; i < routes.length; i++) ...[
+              _routeOption(i),
+              if (i + 1 < routes.length) const SizedBox(height: 8),
+            ]
+          else
+            _metrics(),
+          if (traffic != null) ...[
+            const SizedBox(height: 12),
+            Text(traffic, style: context.type.meta),
+          ],
           if (note != null) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Text(note, style: context.type.meta.copyWith(height: 16 / 11)),
           ],
           const SizedBox(height: 16),
           AppButton(
-            _navigating ? 'Stop' : 'Start',
+            'Start',
             height: 48,
-            onPressed: _loading ? null : _startOrStop,
+            onPressed: routes.isEmpty ? null : _startOrStop,
           ),
         ],
       ),
     );
+  }
+
+  /// One of the offered routes: time, distance, its main road; tap to take it.
+  Widget _routeOption(int i) {
+    final route = _nav.routes[i];
+    final chosen = i == _nav.active;
+    final via = route.summary.isEmpty ? '' : ' · via ${route.summary}';
+    return Panel(
+      key: ValueKey('route-$i'),
+      onTap: () => _nav.select(i),
+      radius: AppRadius.control,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      color: chosen ? context.pal.info.withValues(alpha: 0.12) : null,
+      border: chosen ? context.pal.info : context.pal.line,
+      child: Row(
+        children: [
+          Text(
+            '~${_minutes(route.duration)} min',
+            style: context.type.numeral.copyWith(fontSize: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '${formatDistance(route.length)}$via',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.type.meta,
+            ),
+          ),
+          if (i == _nav.fastest) ...[
+            const SizedBox(width: 8),
+            Tag('Fastest', color: context.pal.ok),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Under way: time, distance and arrival; voice; Stop.
+  Widget _navigatingCard() {
+    final note = _note;
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      color: context.pal.surfaceSolid.withValues(alpha: 0.94),
+      border: _tone.withValues(alpha: 0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Eyebrow('On your way', color: _tone),
+          const SizedBox(height: 12),
+          _metrics(arrival: true),
+          if (note != null) ...[
+            const SizedBox(height: 12),
+            Text(note, style: context.type.meta.copyWith(height: 16 / 11)),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              ValueListenableBuilder<bool>(
+                valueListenable: _voice.enabled,
+                builder: (context, on, _) => Semantics(
+                  button: true,
+                  toggled: on,
+                  label: on ? 'Voice guidance on' : 'Voice guidance off',
+                  excludeSemantics: true,
+                  child: IconWellButton(
+                    icon: Icons.volume_up,
+                    size: 48,
+                    tint: on ? context.pal.info : context.pal.muted,
+                    onTap: () => _voice.setEnabled(!on),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppButton.secondary(
+                  'Stop',
+                  height: 48,
+                  onPressed: _startOrStop,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metrics({bool arrival = false}) {
+    final p = _nav.progress;
+    final route = _nav.route;
+    final metres = p?.remainingMetres ?? route?.length;
+    final seconds = p?.remainingSeconds ?? route?.duration;
+    final eta = _nav.eta;
+    return Row(
+      children: [
+        Expanded(
+          child: _metric(
+            Icons.straighten,
+            metres == null ? '—' : formatDistance(metres),
+            'to go',
+          ),
+        ),
+        Expanded(
+          child: _metric(
+            _toFire ? Icons.directions_car : Icons.directions_walk,
+            seconds == null ? '—' : '~${_minutes(seconds)} min',
+            _toFire ? 'driving' : 'on foot',
+          ),
+        ),
+        if (arrival)
+          Expanded(
+            child: _metric(
+              Icons.schedule,
+              eta == null ? '—' : _clock(eta),
+              'arrive',
+            ),
+          ),
+      ],
+    );
+  }
+
+  static int _minutes(double seconds) => (seconds / 60).ceil();
+
+  static String _clock(DateTime t) {
+    final local = t.toLocal();
+    final h = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final m = local.minute.toString().padLeft(2, '0');
+    return '$h:$m ${local.hour < 12 ? 'AM' : 'PM'}';
   }
 
   Widget _metric(IconData icon, String value, String label) {

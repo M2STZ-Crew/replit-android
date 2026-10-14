@@ -23,7 +23,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # The +1 here is only a placeholder: CI passes --build-number=<github run
 # number>, which is what becomes the Android versionCode. That has to rise on
 # every build or Android refuses the install, and a run number always does.
-version: 1.12.7+1
+version: 1.12.9+1
 
 environment:
   sdk: ^3.11.1
@@ -64,6 +64,9 @@ dependencies:
   # phone faces, and the map following or turning with you. Built for
   # flutter_map 8; reads heading from the rotation sensor.
   flutter_map_location_marker: ^10.3.0
+  # Spoken turn-by-turn directions (PRD v12 §4.9.3): the phone's own
+  # text-to-speech, offline.
+  flutter_tts: ^4.2.5
 dev_dependencies:
   flutter_test:
     sdk: flutter
