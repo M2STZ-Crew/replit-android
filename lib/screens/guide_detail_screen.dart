@@ -87,11 +87,7 @@ class GuideDetailScreen extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  AppIcons.info,
-                  size: 14,
-                  color: context.pal.muted,
-                ),
+                Icon(AppIcons.info, size: 14, color: context.pal.muted),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

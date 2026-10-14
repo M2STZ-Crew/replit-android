@@ -341,11 +341,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       inputFormatters: const [PhMobileFormatter()],
       decoration: InputDecoration(
         hintText: kPhMobileHint,
-        prefixIcon: Icon(
-          AppIcons.call,
-          size: 18,
-          color: context.pal.muted,
-        ),
+        prefixIcon: Icon(AppIcons.call, size: 18, color: context.pal.muted),
       ),
     );
   }

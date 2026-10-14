@@ -160,11 +160,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    AppIcons.info,
-                    size: 18,
-                    color: context.pal.accent,
-                  ),
+                  Icon(AppIcons.info, size: 18, color: context.pal.accent),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(

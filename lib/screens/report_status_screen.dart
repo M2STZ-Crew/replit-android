@@ -478,11 +478,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    AppIcons.lock,
-                    size: 14,
-                    color: context.pal.muted,
-                  ),
+                  Icon(AppIcons.lock, size: 14, color: context.pal.muted),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(

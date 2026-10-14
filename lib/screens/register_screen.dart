@@ -182,9 +182,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     color: context.pal.muted,
                     tooltip: _obscure ? 'Show password' : 'Hide password',
                     icon: Icon(
-                      _obscure
-                          ? AppIcons.visibility
-                          : AppIcons.visibilityOff,
+                      _obscure ? AppIcons.visibility : AppIcons.visibilityOff,
                     ),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),

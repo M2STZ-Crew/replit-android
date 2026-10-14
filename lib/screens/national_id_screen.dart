@@ -183,11 +183,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        AppIcons.error,
-                        size: 17,
-                        color: context.pal.live,
-                      ),
+                      Icon(AppIcons.error, size: 17, color: context.pal.live),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(

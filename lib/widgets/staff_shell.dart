@@ -343,11 +343,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
               _item(AppIcons.group, 'Responders', StaffPage.team),
             ],
             if (_fireCoordinator)
-              _item(
-                AppIcons.autoAwesome,
-                'AI summaries',
-                StaffPage.summaries,
-              ),
+              _item(AppIcons.autoAwesome, 'AI summaries', StaffPage.summaries),
             if (_bfp)
               _item(
                 AppIcons.campaign,
