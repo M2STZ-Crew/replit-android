@@ -70,8 +70,10 @@ class Eyebrow extends StatelessWidget {
   );
 }
 
-/// An eyebrow over a text field. The eyebrow turns coral while its field has
-/// focus — how the overhaul's forms show where you are typing.
+/// The persistent label over a text field (04 · Text field, pass 4):
+/// Type/Label, sentence case, 8 px above the field — never a placeholder
+/// standing in for a label. It turns coral while its field has focus, so you
+/// can see where you are typing.
 class LabeledField extends StatefulWidget {
   const LabeledField({super.key, required this.label, required this.builder});
 
@@ -98,14 +100,59 @@ class _LabeledFieldState extends State<LabeledField> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     mainAxisSize: MainAxisSize.min,
     children: [
-      Eyebrow(
+      Text(
         widget.label,
-        color: _focus.hasFocus ? context.pal.accent : context.pal.muted,
+        style: context.type.label.copyWith(
+          color: _focus.hasFocus ? context.pal.accentInk : context.pal.textSoft,
+        ),
       ),
-      const SizedBox(height: 9),
+      const SizedBox(height: 8),
       widget.builder(_focus),
     ],
   );
+}
+
+/// A text button (04 · Text button): Type/Label in the accent, sentence case
+/// — a question or an instruction is not a name — over a 44 px target.
+class TextLink extends StatelessWidget {
+  const TextLink(this.label, {super.key, required this.onTap, this.color});
+
+  final String label;
+  final VoidCallback onTap;
+
+  /// Defaults to the accent.
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        highlightColor: context.pal.pressed,
+        splashColor: context.pal.pressed,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Align(
+              widthFactor: 1,
+              child: Text(
+                label,
+                style: context.type.label.copyWith(
+                  color: color ?? context.pal.accentInk,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// A translucent card with a hairline edge — the design's only container.
@@ -752,7 +799,10 @@ class StatTile extends StatelessWidget {
   }
 }
 
-/// A horizontal filter-chip row.
+/// A horizontal filter-chip row — the Chip component (04, pass 4): a 36 px
+/// pill inside a 44 px target. The selected chip adds a check, a coral tint
+/// and a 1.5 px coral edge — three cues, not colour alone — and the group
+/// reads as one selection to a screen reader.
 class FilterChips extends StatelessWidget {
   const FilterChips({
     super.key,
@@ -768,7 +818,7 @@ class FilterChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 30,
+      height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: options.length,
@@ -776,30 +826,65 @@ class FilterChips extends StatelessWidget {
         itemBuilder: (context, i) {
           final option = options[i];
           final on = option == selected;
-          return InkWell(
+          final shape = BorderRadius.circular(AppRadius.chip);
+          return Semantics(
+            button: true,
+            selected: on,
+            inMutuallyExclusiveGroup: true,
+            label: option,
             onTap: () => onSelect(option),
-            borderRadius: BorderRadius.circular(AppRadius.chip),
-            hoverColor: context.pal.hover,
-            highlightColor: context.pal.pressed,
-            splashColor: context.pal.pressed,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 13),
-              decoration: BoxDecoration(
-                color: on
-                    ? context.pal.accent.withValues(alpha: 0.16)
-                    : context.pal.glass,
-                borderRadius: BorderRadius.circular(AppRadius.chip),
-                border: Border.all(
-                  color: on
-                      ? context.pal.accent.withValues(alpha: 0.45)
-                      : context.pal.line,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                option.toUpperCase(),
-                style: context.type.tag.copyWith(
-                  color: on ? context.pal.accent : context.pal.muted,
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onSelect(option),
+              child: Center(
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: shape,
+                  child: InkWell(
+                    onTap: () => onSelect(option),
+                    borderRadius: shape,
+                    hoverColor: context.pal.hover,
+                    highlightColor: context.pal.pressed,
+                    splashColor: context.pal.pressed,
+                    child: AnimatedContainer(
+                      duration: Motion.of(context).state,
+                      curve: Motion.standard,
+                      height: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: on
+                            ? context.pal.accent.withValues(alpha: 0.16)
+                            : context.pal.glass,
+                        borderRadius: shape,
+                        border: Border.all(
+                          color: on ? context.pal.accent : context.pal.line,
+                          width: on ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (on) ...[
+                            Icon(
+                              AppIcons.check,
+                              size: 16,
+                              color: context.pal.accentInk,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            option,
+                            style: context.type.label.copyWith(
+                              color: on
+                                  ? context.pal.accentInk
+                                  : context.pal.onBackground,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

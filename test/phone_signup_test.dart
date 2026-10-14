@@ -103,7 +103,7 @@ void main() {
   group('sign up', () {
     testWidgets('asks for the mobile number', (tester) async {
       await pump(tester, RegisterScreen(api: api()));
-      expect(find.text('MOBILE NUMBER'), findsOneWidget);
+      expect(find.text('Mobile number'), findsOneWidget);
     });
 
     testWidgets('a number that cannot be a PH mobile never leaves the phone', (
@@ -190,7 +190,7 @@ void main() {
   group('sign in', () {
     testWidgets('by mobile number, first', (tester) async {
       await pump(tester, LoginScreen(api: api()));
-      expect(find.text('MOBILE NUMBER'), findsOneWidget);
+      expect(find.text('Mobile number'), findsOneWidget);
       await tester.enterText(field('09XX XXX XXXX'), '0917 123 4567');
       await tester.enterText(field('Your password'), 'long-enough-1');
       await tap(tester, find.text('SIGN IN'));
@@ -207,8 +207,8 @@ void main() {
       tester,
     ) async {
       await pump(tester, LoginScreen(api: api()));
-      await tap(tester, find.text('USE EMAIL INSTEAD'));
-      expect(find.text('EMAIL ADDRESS'), findsOneWidget);
+      await tap(tester, find.text('Use email instead'));
+      expect(find.text('Email address'), findsOneWidget);
       await tester.enterText(field('you@email.com'), 'captain@example.com');
       await tester.enterText(field('Your password'), 'long-enough-1');
       await tap(tester, find.text('SIGN IN'));

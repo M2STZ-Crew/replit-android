@@ -250,28 +250,11 @@ class _LoginScreenState extends State<LoginScreen> {
               alignment: WrapAlignment.spaceBetween,
               runSpacing: 4,
               children: [
-                GestureDetector(
+                TextLink(
+                  _byEmail ? 'Use mobile number' : 'Use email instead',
                   onTap: () => setState(() => _byEmail = !_byEmail),
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Eyebrow(
-                      _byEmail ? 'Use mobile number' : 'Use email instead',
-                      color: context.pal.accent,
-                    ),
-                  ),
                 ),
-                GestureDetector(
-                  onTap: _recoverDialog,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Eyebrow(
-                      'Forgot password?',
-                      color: context.pal.label,
-                    ),
-                  ),
-                ),
+                TextLink('Forgot password?', onTap: _recoverDialog),
               ],
             ),
             const SizedBox(height: 22),
@@ -315,19 +298,10 @@ class _LoginScreenState extends State<LoginScreen> {
             spacing: 8,
             children: [
               Text('New to the barangay app?', style: context.type.detail),
-              GestureDetector(
+              TextLink(
+                'Create account',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                ),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    'CREATE ACCOUNT',
-                    style: context.type.action.copyWith(
-                      color: context.pal.accent,
-                    ),
-                  ),
                 ),
               ),
             ],
