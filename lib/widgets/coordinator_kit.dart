@@ -770,7 +770,13 @@ class LifecycleRail extends StatelessWidget {
 /// The Area summary (§4.8): plain operator text. A missing summary points to
 /// the report list, so it never blocks a decision.
 class SummaryCard extends StatelessWidget {
-  const SummaryCard({super.key, this.text, this.meta, this.writing = false});
+  const SummaryCard({
+    super.key,
+    this.text,
+    this.meta,
+    this.writing = false,
+    this.empty = 'No summary yet. The reports below are the full record.',
+  });
 
   /// The summary, or null when there is none.
   final String? text;
@@ -780,6 +786,10 @@ class SummaryCard extends StatelessWidget {
 
   /// The server is writing it now.
   final bool writing;
+
+  /// What the card says when there is no summary: where the record is
+  /// instead.
+  final String empty;
 
   @override
   Widget build(BuildContext context) {
@@ -813,7 +823,7 @@ class SummaryCard extends StatelessWidget {
                 : writing
                 ? 'Lit is writing the summary. The reports below are the full '
                       'record until it is ready.'
-                : 'No summary yet. The reports below are the full record.',
+                : empty,
             style: context.type.body.copyWith(
               color: ready ? pal.textSoft : pal.label,
             ),

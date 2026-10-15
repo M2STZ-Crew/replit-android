@@ -386,7 +386,11 @@ void main() {
       await tester.pumpAndSettle();
       // The confirm sheet's own button, over the action bar's.
       await tester.tap(find.text('SUBMIT AND CLOSE AREA').last);
-      await tester.pumpAndSettle();
+      // 06 · C14 follows, its narrative spinner turning: pump, not settle.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text('REPORT FILED'), findsOneWidget);
     }
 
     testWidgets('picking the equipment arms the submit, and it files what '

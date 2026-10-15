@@ -8,6 +8,7 @@ import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import 'report_filed_screen.dart';
 
 export '../../models/post_incident_report.dart' show kCommonEquipment;
 
@@ -466,8 +467,18 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         falseAlarmNote: _falseAlarm ? _falseAlarmNote : null,
       );
       if (!mounted) return;
-      _toast('Post-incident report filed. $_areaName is closed.');
-      navigator.pop(true);
+      // 06 · C14: what filing did, and the narrative being written. Whoever
+      // opened the form still hears that it was filed.
+      await navigator.pushReplacement<bool, bool>(
+        MaterialPageRoute(
+          builder: (_) => ReportFiledScreen(
+            areaId: widget.areaId,
+            designation: _designation,
+            api: _api,
+          ),
+        ),
+        result: true,
+      );
     } on ApiException catch (e) {
       if (mounted) {
         setState(() => _submitting = false);

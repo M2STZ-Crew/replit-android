@@ -16,6 +16,7 @@ import 'package:replit/screens/coordinator/coordinator_feed.dart';
 import 'package:replit/screens/coordinator/coordinator_shell.dart';
 import 'package:replit/screens/coordinator/live_incident.dart';
 import 'package:replit/screens/coordinator/my_decisions_screen.dart';
+import 'package:replit/screens/subadmin/report_filed_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/coordinator_kit.dart';
 
@@ -446,6 +447,106 @@ void main() {
       expect(find.text('3 SHOWN'), findsOneWidget);
       feed.dispose();
       await done(tester);
+    });
+  });
+
+  group('report filed (06 · C14)', () {
+    late List<String> states;
+
+    ApiClient summaries() => ApiClient(
+      client: MockClient((req) async {
+        final path = req.url.path;
+        if (path == '/ai-summaries') {
+          final state = states.length > 1 ? states.removeAt(0) : states.first;
+          return http.Response(
+            jsonEncode([
+              {
+                'area_id': 'a1',
+                'designation': 'Area 1.2',
+                'status': 'closed',
+                'state': state,
+                'summary_text': state == 'ready'
+                    ? 'A kitchen fire on F. Victor Street, out in 30 minutes.'
+                    : null,
+              },
+            ]),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'id': 'a1',
+            'designation': 'Area 1.2',
+            'status': 'closed',
+          }),
+          200,
+        );
+      }),
+    );
+
+    Future<void> tick(WidgetTester tester, Duration d) async {
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(d ~/ 5);
+      }
+    }
+
+    testWidgets('saved and closed, then the narrative once it is written', (
+      tester,
+    ) async {
+      states = ['writing', 'ready'];
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: ReportFiledScreen(areaId: 'a1', api: summaries()),
+        ),
+      );
+      await tick(tester, const Duration(milliseconds: 300));
+      expect(find.text('REPORT FILED'), findsOneWidget);
+      expect(find.text('AREA 1.2 · CLOSED'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('^Report saved, done')), findsOne);
+      expect(find.bySemanticsLabel(RegExp('^Area closed, done')), findsOne);
+      expect(
+        find.bySemanticsLabel(RegExp('^Formal narrative, under way')),
+        findsOne,
+      );
+      expect(find.bySemanticsLabel('Summary: writing'), findsOne);
+
+      await tick(tester, ReportFiledScreen.every);
+      expect(
+        find.bySemanticsLabel(RegExp('^Formal narrative, done')),
+        findsOne,
+      );
+      expect(
+        find.text('A kitchen fire on F. Victor Street, out in 30 minutes.'),
+        findsOneWidget,
+      );
+      expect(find.text('BACK TO QUEUE'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('without an AI key it says the report is complete anyway', (
+      tester,
+    ) async {
+      states = ['unavailable'];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: ReportFiledScreen(areaId: 'a1', api: summaries()),
+        ),
+      );
+      await tick(tester, const Duration(milliseconds: 300));
+      expect(
+        find.bySemanticsLabel(RegExp('^Formal narrative, not under way')),
+        findsOne,
+      );
+      expect(
+        find.text('No summary. The report you filed is the full record.'),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
     });
   });
 
