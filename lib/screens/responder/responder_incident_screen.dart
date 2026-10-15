@@ -342,12 +342,20 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   void _route() {
     final c = _centroid;
     if (c == null) return;
+    final name = (_incident?['designation'] as String?) ?? 'The fire';
     openRouteToFire(
       context,
       lat: c.latitude,
       lng: c.longitude,
-      name: (_incident?['designation'] as String?) ?? 'The fire',
-      areaId: widget.incidentId,
+      name: name,
+      run: FireRun(
+        areaId: widget.incidentId,
+        areaName: name,
+        // Only someone on the way may arrive.
+        markArrived: _hasActiveDispatch && _incident?['status'] == 'en_route'
+            ? () => _api.markArrived(widget.incidentId)
+            : null,
+      ),
     );
   }
 

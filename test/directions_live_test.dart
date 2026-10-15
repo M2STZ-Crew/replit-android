@@ -249,6 +249,7 @@ void main() {
     Future<void> pump(
       WidgetTester tester, {
       Future<LatLng?> Function()? refresh,
+      FireRun? run,
     }) async {
       tester.view.physicalSize = const Size(402, 874);
       tester.view.devicePixelRatio = 1;
@@ -265,6 +266,7 @@ void main() {
             fetchRoute: fetch,
             refreshDestination: refresh,
             voice: voice,
+            run: run,
           ),
         ),
       );
@@ -291,7 +293,7 @@ void main() {
       await tester.tap(find.text('START NAVIGATION'));
       await tester.pump(const Duration(milliseconds: 100));
       await moveTo(tester, at(1000));
-      expect(find.text('~2 min'), findsOneWidget);
+      expect(find.text('1.0 km, about 2 min'), findsOneWidget);
     });
 
     testWidgets('without traffic data, it says the times are estimates', (
@@ -369,7 +371,6 @@ void main() {
 
       await moveTo(tester, at(1000, east: 60));
       expect(find.text('You have arrived at the fire'), findsOneWidget);
-      expect(find.text('ARRIVE'), findsOneWidget, reason: 'the arrival clock');
     });
 
     testWidgets('looking around the map stops following; Re-centre brings the '
@@ -407,7 +408,82 @@ void main() {
     testWidgets('within 100 m it says you are at the fire', (tester) async {
       await pump(tester);
       await moveTo(tester, at(1000, east: 920));
-      expect(find.text('YOU ARE AT THE FIRE'), findsOneWidget);
+      expect(find.text('You are at the fire'), findsOneWidget);
+    });
+
+    group('the run panel (06 · C10)', () {
+      late int arrivals;
+      late String status;
+
+      setUp(() {
+        arrivals = 0;
+        status = 'en_route';
+      });
+
+      FireRun run({bool responding = true}) => FireRun(
+        areaId: 'a1',
+        areaName: 'Area 1.2',
+        place: 'F. Victor Street, Barangay 76',
+        markArrived: responding ? () async => arrivals++ : null,
+        readArea: () async => {
+          'status': status,
+          'centroid_lat': at(1000, east: 1000).latitude,
+          'centroid_lng': at(1000, east: 1000).longitude,
+        },
+      );
+
+      testWidgets('says where, how far and the Area, and Mark arrived marks '
+          'it', (tester) async {
+        await pump(tester, run: run());
+        await tester.tap(find.text('START NAVIGATION'));
+        await settle(tester);
+        expect(find.bySemanticsLabel('Status: En route'), findsOneWidget);
+        expect(find.text('F. VICTOR STREET, BARANGAY 76'), findsOneWidget);
+        expect(find.text('2.0 km, about 4 min — Area 1.2'), findsOneWidget);
+        expect(
+          find.bySemanticsLabel('Heading up — tap for north up'),
+          findsOneWidget,
+        );
+        expect(find.bySemanticsLabel('Map layers'), findsOneWidget);
+        expect(find.byKey(const ValueKey('maneuver-text')), findsOneWidget);
+        expect(find.semantics.byLabel(RegExp('^Voice guidance')), findsOne);
+        await tester.tap(find.text('MARK ARRIVED'));
+        await settle(tester);
+        expect(arrivals, 1);
+      });
+
+      testWidgets('someone not responding has no Mark arrived', (tester) async {
+        await pump(tester, run: run(responding: false));
+        await tester.tap(find.text('START NAVIGATION'));
+        await settle(tester);
+        expect(find.text('MARK ARRIVED'), findsNothing);
+        expect(find.text('END NAVIGATION'), findsOneWidget);
+      });
+
+      testWidgets('once the Area is on scene, Mark arrived goes', (
+        tester,
+      ) async {
+        status = 'arrived';
+        await pump(tester, run: run());
+        await tester.tap(find.text('START NAVIGATION'));
+        await settle(tester);
+        expect(find.bySemanticsLabel('Status: Arrived'), findsOneWidget);
+        expect(find.text('MARK ARRIVED'), findsNothing);
+      });
+
+      testWidgets('north up, then heading up again', (tester) async {
+        await pump(tester, run: run());
+        await tester.tap(find.text('START NAVIGATION'));
+        await settle(tester);
+        await tester.tap(
+          find.bySemanticsLabel('Heading up — tap for north up'),
+        );
+        await settle(tester);
+        expect(
+          find.bySemanticsLabel('North up — tap for heading up'),
+          findsOneWidget,
+        );
+      });
     });
   });
 }

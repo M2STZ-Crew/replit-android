@@ -200,7 +200,14 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
 
   void _route() {
     final area = _area;
-    if (area != null) openRouteToArea(context, area);
+    if (area == null) return;
+    openRouteToArea(
+      context,
+      area,
+      markArrived: _responding && area.status == 'en_route'
+          ? () => _api.markArrived(widget.areaId)
+          : null,
+    );
   }
 
   void _openReport(Map<String, dynamic> report, int index) {
@@ -420,17 +427,29 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
 /// Road directions to an Area (06 · C09), named as the route sheet says it:
 /// "Area 1.2, F. Victor Street", or the Area alone when the street is not
 /// known.
-Future<void> openRouteToArea(BuildContext context, AreaView area) async {
+///
+/// [markArrived] is given only to someone responding: it puts Mark arrived
+/// on the run panel (C10).
+Future<void> openRouteToArea(
+  BuildContext context,
+  AreaView area, {
+  Future<void> Function()? markArrived,
+}) async {
   final c = area.centre;
   if (c == null) return;
-  final street = (await PlaceNames.of(c.latitude, c.longitude)).street;
+  final place = await PlaceNames.of(c.latitude, c.longitude);
   if (!context.mounted) return;
   await openRouteToFire(
     context,
     lat: c.latitude,
     lng: c.longitude,
-    name: street == null ? area.name : '${area.name}, $street',
-    areaId: area.id,
+    name: place.street == null ? area.name : '${area.name}, ${place.street}',
+    run: FireRun(
+      areaId: area.id,
+      areaName: area.name,
+      place: place.line,
+      markArrived: markArrived,
+    ),
   );
 }
 

@@ -639,6 +639,16 @@ class AppText {
     color: AppColors.onBackground,
   );
 
+  /// "Type/Instruction" — the next turn on the navigation banner, read in a
+  /// moving vehicle ("Turn right onto Taft Avenue").
+  static const TextStyle instruction = TextStyle(
+    fontSize: 24,
+    height: 30 / 24,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.4,
+    color: AppColors.onBackground,
+  );
+
   /// A bottom sheet's question — "Accept Area 1.2?", "Reject Area 2.1?".
   static const TextStyle sheetTitle = TextStyle(
     fontSize: 22,
@@ -798,6 +808,8 @@ class AppType {
   TextStyle get rowTitleLg =>
       AppText.rowTitleLg.copyWith(color: _p.onBackground);
   TextStyle get listTitle => AppText.listTitle.copyWith(color: _p.onBackground);
+  TextStyle get instruction =>
+      AppText.instruction.copyWith(color: _p.onBackground);
   TextStyle get sheetTitle =>
       AppText.sheetTitle.copyWith(color: _p.onBackground);
   TextStyle get actionRun => AppText.actionRun.copyWith(color: _p.accentText);

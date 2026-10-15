@@ -287,9 +287,17 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
   void _arrived() =>
       _act(() => _api.markArrived(widget.areaId), 'Marked on scene.');
 
-  void _route() {
+  Future<void> _route() async {
     final area = _area;
-    if (area != null) openRouteToArea(context, area);
+    if (area == null) return;
+    await openRouteToArea(
+      context,
+      area,
+      markArrived: _mine != null && area.status == 'en_route'
+          ? () => _api.markArrived(widget.areaId)
+          : null,
+    );
+    await _load();
   }
 
   /// C12 — confirm, then fire out; the report is offered straight after.

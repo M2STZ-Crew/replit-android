@@ -122,3 +122,4 @@ zoom_in
 grid_view
 history
 join_inner
+volume_off

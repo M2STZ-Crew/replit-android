@@ -359,6 +359,9 @@ abstract final class AppIcons {
   /// Material Symbols "visibility_off".
   static const IconData visibilityOff = IconData(0xe8f5, fontFamily: _family);
 
+  /// Material Symbols "volume_off".
+  static const IconData volumeOff = IconData(0xe04f, fontFamily: _family);
+
   /// Material Symbols "volume_up".
   static const IconData volumeUp = IconData(0xe050, fontFamily: _family);
 

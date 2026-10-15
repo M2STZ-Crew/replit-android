@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../api/api_client.dart';
 import '../location/live_position.dart';
+import '../location/responder_tracker.dart';
 import '../navigation/instructions.dart';
 import '../navigation/nav_route.dart';
 import '../navigation/navigation_controller.dart';
@@ -30,16 +31,45 @@ Color _safeGreen = AppColors.ok;
 /// or coordinator driving to a fire.
 enum DirectionsTo { shelter, fire }
 
+/// What a run to a fire knows beyond the route (06 · C10): the Area, where
+/// it is in words, and — for someone responding — how to say they are there.
+class FireRun {
+  const FireRun({
+    required this.areaId,
+    required this.areaName,
+    this.place,
+    this.markArrived,
+    this.readArea,
+  });
+
+  final String areaId;
+
+  /// "Area 1.2".
+  final String areaName;
+
+  /// "F. Victor Street, Barangay 76", when the place is known.
+  final String? place;
+
+  /// Marks this person on scene (POST /incidents/{id}/arrived). Null when
+  /// they are not responding: only someone on the way may arrive.
+  final Future<void> Function()? markArrived;
+
+  /// Reads the Area (GET /areas/{id}) for its centre and status; tests give
+  /// their own.
+  final Future<Map<String, dynamic>> Function()? readArea;
+}
+
 /// Road directions from the phone's live position to a fire. The incident's
 /// coordinates must exist — callers offer the button only when they do.
-/// With [areaId], the destination follows the incident: as more reports join
-/// it, its centre moves, and the route moves with it.
+/// With [areaId] (or [run]), the destination follows the incident: as more
+/// reports join it, its centre moves, and the route moves with it.
 Future<void> openRouteToFire(
   BuildContext context, {
   required double lat,
   required double lng,
   required String name,
   String? areaId,
+  FireRun? run,
 }) {
   return Navigator.of(context).push(
     MaterialPageRoute(
@@ -48,7 +78,10 @@ Future<void> openRouteToFire(
         destLng: lng,
         destName: name,
         to: DirectionsTo.fire,
-        refreshDestination: areaId == null ? null : () => _areaCentre(areaId),
+        run: run,
+        refreshDestination: areaId == null || run != null
+            ? null
+            : () => _areaCentre(areaId),
       ),
     ),
   );
@@ -102,6 +135,7 @@ class DirectionsScreen extends StatefulWidget {
     this.refreshDestination,
     this.voice,
     this.to = DirectionsTo.shelter,
+    this.run,
   });
 
   final double destLat;
@@ -123,6 +157,9 @@ class DirectionsScreen extends StatefulWidget {
 
   /// A shelter on foot, or a fire by road.
   final DirectionsTo to;
+
+  /// The Area being driven to, when there is one.
+  final FireRun? run;
 
   /// This close to a shelter counts as there.
   static const double arrivedWithinMetres = 30;
@@ -158,6 +195,14 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   /// No GPS and no other honest starting point: nothing to route from.
   bool _noLocation = false;
   bool _framed = false;
+
+  /// The Area's status, as last read ([FireRun]).
+  String? _areaStatus;
+  bool _arriving = false;
+
+  /// Water layers drawn while driving (the Map layers button).
+  final Set<String> _water = {};
+  final Map<String, List<LatLng>> _waterPoints = {};
 
   bool get _toFire => widget.to == DirectionsTo.fire;
 
@@ -200,7 +245,8 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     _tick = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted) setState(() {});
     });
-    if (widget.refreshDestination != null) {
+    if (widget.run != null) unawaited(_refreshDestination());
+    if (widget.refreshDestination != null || widget.run != null) {
       _destinationTimer = Timer.periodic(
         DirectionsScreen.destinationEvery,
         (_) => _refreshDestination(),
@@ -275,7 +321,22 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   Future<void> _refreshDestination() async {
     try {
-      final to = await widget.refreshDestination!();
+      final run = widget.run;
+      LatLng? to;
+      if (run != null) {
+        // One read for both: where the Area is now, and how far it has got.
+        final area =
+            await (run.readArea ?? () => ApiClient().getArea(run.areaId))();
+        final status = area['status'] as String?;
+        if (mounted && status != null && status != _areaStatus) {
+          setState(() => _areaStatus = status);
+        }
+        final lat = (area['centroid_lat'] as num?)?.toDouble();
+        final lng = (area['centroid_lng'] as num?)?.toDouble();
+        to = lat == null || lng == null ? null : LatLng(lat, lng);
+      } else {
+        to = await widget.refreshDestination!();
+      }
       if (to == null || !mounted) return;
       final moved = metresBetween(to, _nav.destination);
       if (moved > 30) await _nav.setDestination(to);
@@ -378,6 +439,17 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 MarkerLayer(
                   rotate: true,
                   markers: [
+                    for (final key in _water)
+                      for (final p in _waterPoints[key] ?? const <LatLng>[])
+                        Marker(
+                          point: p,
+                          width: MapMarker.target,
+                          height: MapMarker.target,
+                          child: MapMarker(
+                            kind: _waterKind(key),
+                            label: _waterKind(key).noun,
+                          ),
+                        ),
                     Marker(
                       point: _nav.destination,
                       width: _toFire ? MapMarker.target : 36,
@@ -393,8 +465,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                   ],
                 ),
                 YouAreHereLayer(follow: _follow, navigating: navigating),
-                // Choosing a route, the sheet covers where these sit.
-                if (!_choosingFireRoute)
+                // Choosing a route, the sheet covers where these sit; on
+                // the run, the banner's own controls take their place.
+                if (!_toFire || _noLocation)
                   MapLocationButtons(
                     follow: _follow,
                     alignment: const Alignment(1, -0.1),
@@ -430,7 +503,35 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 child: _GlassBack(),
               ),
             ),
-          ] else
+          ] else if (_onFireRun)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ?banner,
+                    if (banner == null) const _GlassBack(),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _rotationButton(),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _MapControl(
+                        icon: AppIcons.layers,
+                        label: 'Map layers',
+                        onTap: _pickLayers,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -458,6 +559,24 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
             ),
           if (_choosingFireRoute)
             Positioned(left: 0, right: 0, bottom: 0, child: _chooseRouteSheet())
+          else if (_onFireRun)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (navigating)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: _recentre(),
+                    ),
+                  _runPanel(),
+                ],
+              ),
+            )
           else
             Positioned(
               left: 16,
@@ -603,6 +722,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     if (route == null || p == null || p.nextStep == null) return null;
     final step = route.steps[p.nextStep!];
     final dest = _toFire ? 'the fire' : widget.destName;
+    if (_toFire) return _fireBanner(route, p.nextStep!, p.metresToNext, dest);
     // A second maneuver close behind the first is worth knowing now.
     final after = p.nextStep! + 1 < route.steps.length
         ? route.steps[p.nextStep! + 1]
@@ -1008,6 +1128,362 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     );
   }
 
+  /// On the way to a fire, or there (06 · C10): the run panel replaces the
+  /// card, the C10 banner the shelter one.
+  bool get _onFireRun => _toFire && !_noLocation && !_choosingFireRoute;
+
+  /// C10 — the next turn: its arrow on the brand plate, how far, the
+  /// instruction in plain words (the same sentence the voice says), the one
+  /// after it, and the voice toggle.
+  Widget _fireBanner(NavRoute route, int next, double metres, String dest) {
+    final step = route.steps[next];
+    final after = next + 1 < route.steps.length ? route.steps[next + 1] : null;
+    final then = after == null || after.type == 'arrive'
+        ? null
+        : instructionFor(after, destination: dest);
+    final body = DecoratedBox(
+      decoration: BoxDecoration(
+        color: MapGlass.strong(context),
+        borderRadius: BorderRadius.circular(AppRadius.panel),
+        border: Border.all(color: context.pal.line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.wellFire,
+                borderRadius: BorderRadius.circular(AppRadius.control),
+              ),
+              alignment: Alignment.center,
+              child: ManeuverArrow(
+                type: step.type,
+                modifier: step.modifier,
+                size: 32,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              // Read out as it changes; the voice toggle stays its own node.
+              child: Semantics(
+                liveRegion: true,
+                container: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      bannerDistance(metres),
+                      key: const ValueKey('maneuver-distance'),
+                      style: context.type.numeralXl,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      instructionFor(step, destination: dest),
+                      key: const ValueKey('maneuver-text'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.type.instruction,
+                    ),
+                    if (then != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Then ${then[0].toLowerCase()}${then.substring(1)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.type.detail.copyWith(
+                          color: context.pal.label,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ValueListenableBuilder<bool>(
+              valueListenable: _voice.enabled,
+              builder: (context, on, _) => Semantics(
+                container: true,
+                button: true,
+                toggled: on,
+                label: on ? 'Voice guidance on' : 'Voice guidance off',
+                onTap: () => _voice.setEnabled(!on),
+                excludeSemantics: true,
+                child: InkResponse(
+                  onTap: () => _voice.setEnabled(!on),
+                  radius: 24,
+                  child: SizedBox.square(
+                    dimension: 48,
+                    child: Icon(
+                      on ? AppIcons.volumeUp : AppIcons.volumeOff,
+                      size: 24,
+                      color: on ? context.pal.onBackground : context.pal.label,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.panel),
+      child: MapGlass.blurs(context)
+          ? BackdropFilter(filter: MapGlass.blur, child: body)
+          : body,
+    );
+  }
+
+  /// Heading-up while driving (the map turns with you); tap for north-up,
+  /// and again to turn with you once more.
+  Widget _rotationButton() {
+    return ListenableBuilder(
+      listenable: _follow,
+      builder: (context, _) {
+        final headingUp = _follow.mode == FollowMode.compass;
+        return _MapControl(
+          icon: headingUp ? AppIcons.explore : AppIcons.navigation,
+          label: headingUp
+              ? 'Heading up — tap for north up'
+              : 'North up — tap for heading up',
+          onTap: () {
+            if (headingUp) {
+              _follow.follow();
+              try {
+                _map.rotate(0);
+              } catch (_) {}
+            } else {
+              _follow.navigate();
+            }
+          },
+        );
+      },
+    );
+  }
+
+  static MapMarkerKind _waterKind(String key) => switch (key) {
+    'hydrants' => MapMarkerKind.hydrant,
+    'cisterns' => MapMarkerKind.cistern,
+    _ => MapMarkerKind.water,
+  };
+
+  /// Map layers: the water a crew may need on arrival.
+  Future<void> _pickLayers() async {
+    const layers = [
+      ('hydrants', 'Hydrants'),
+      ('water', 'Bodies of water'),
+      ('cisterns', 'Underground cisterns'),
+    ];
+    await showFrameSheet<void>(
+      context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, set) => SheetFrame(
+          children: [
+            const SheetTitles(
+              eyebrow: 'Map layers',
+              title: 'Water on the way',
+              body: 'Show where a crew can draw water near the route.',
+            ),
+            const SizedBox(height: 16),
+            for (final (key, label) in layers) ...[
+              ListRow(
+                title: label,
+                leading: IconPlate(_waterKind(key).glyph),
+                trailing: Switch(
+                  value: _water.contains(key),
+                  onChanged: (_) => set(() => _toggleWater(key)),
+                ),
+                onTap: () => set(() => _toggleWater(key)),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _toggleWater(String key) {
+    setState(() {
+      if (!_water.remove(key)) _water.add(key);
+    });
+    if (_water.contains(key) && !_waterPoints.containsKey(key)) {
+      unawaited(_loadWater(key));
+    }
+  }
+
+  Future<void> _loadWater(String key) async {
+    final api = ApiClient();
+    try {
+      final rows = await switch (key) {
+        'hydrants' => api.getHydrants(),
+        'cisterns' => api.getUndergroundCisterns(),
+        _ => api.getBodiesOfWater(),
+      };
+      final points = [
+        for (final r in rows.cast<Map<String, dynamic>>())
+          if (r['latitude'] != null && r['longitude'] != null)
+            LatLng(
+              (r['latitude'] as num).toDouble(),
+              (r['longitude'] as num).toDouble(),
+            ),
+      ];
+      if (mounted) setState(() => _waterPoints[key] = points);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _water.remove(key));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load that layer.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _markArrived() async {
+    final mark = widget.run?.markArrived;
+    if (mark == null) return;
+    setState(() => _arriving = true);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await mark();
+      messenger.showSnackBar(const SnackBar(content: Text('Marked on scene.')));
+      navigator.pop(true);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _arriving = false);
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (mounted) setState(() => _arriving = false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not mark arrived. Check signal.')),
+      );
+    }
+  }
+
+  /// C10 — the run panel: where the Area stands, whether this phone is
+  /// sharing its location, where it is going, how far and how long, and
+  /// Mark arrived for someone who is responding.
+  Widget _runPanel() {
+    final run = widget.run;
+    final p = _nav.progress;
+    final route = _nav.route;
+    final metres = p?.remainingMetres ?? route?.length;
+    final seconds = p?.remainingSeconds ?? route?.duration;
+    final arrived = _nav.arrived;
+    final onScene = _areaStatus == 'arrived';
+    final notes = [?_note];
+    final where = run == null ? '' : ' — ${run.areaName}';
+    final body = DecoratedBox(
+      decoration: BoxDecoration(
+        color: MapGlass.strong(context),
+        border: Border(top: BorderSide(color: context.pal.line)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          12,
+          24,
+          12 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF979797),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                if (run != null) LifecycleChip(_areaStatus ?? 'en_route'),
+                const Spacer(),
+                ValueListenableBuilder<String?>(
+                  valueListenable: ResponderTracker.instance.sharingFor,
+                  builder: (context, sharing, _) =>
+                      run == null || sharing != run.areaId
+                      ? const SizedBox.shrink()
+                      : Row(
+                          children: [
+                            Icon(
+                              AppIcons.podcasts,
+                              size: 16,
+                              color: context.pal.live,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Sharing your location',
+                              style: context.type.detail.copyWith(
+                                color: context.pal.label,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              (run?.place ?? widget.destName).toUpperCase(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: context.type.headline,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              arrived
+                  ? 'You are at the fire$where'
+                  : '${metres == null ? '—' : formatDistance(metres)}, about '
+                        '${seconds == null ? '—' : _minutes(seconds)} min$where',
+              style: context.type.body.copyWith(color: context.pal.textSoft),
+            ),
+            for (final n in notes) ...[
+              const SizedBox(height: 8),
+              Text(n, style: context.type.caption),
+            ],
+            const SizedBox(height: 12),
+            if (run?.markArrived != null && !onScene) ...[
+              AppButton(
+                'Mark arrived',
+                run: true,
+                busy: _arriving,
+                onPressed: _arriving ? null : _markArrived,
+              ),
+              if (_nav.navigating && !arrived)
+                Center(child: TextLink('End navigation', onTap: _startOrStop)),
+            ] else if (_nav.navigating && !arrived)
+              AppButton.secondary('End navigation', onPressed: _startOrStop)
+            else
+              AppButton.secondary(
+                'Done',
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+          ],
+        ),
+      ),
+    );
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppRadius.sheet),
+      ),
+      child: MapGlass.blurs(context)
+          ? BackdropFilter(filter: MapGlass.blur, child: body)
+          : body,
+    );
+  }
+
   /// C09 — Choose a route: every road route to the fire, the chosen one
   /// marked, and Start navigation. On glass over the map, full width.
   Widget _chooseRouteSheet() {
@@ -1407,6 +1883,54 @@ class _GlassBack extends StatelessWidget {
                 )
               : button,
         ),
+      ),
+    );
+  }
+}
+
+/// A 48px icon button over the map (Icon button, Overlay): glass and a blur.
+class _MapControl extends StatelessWidget {
+  const _MapControl({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = BorderRadius.circular(AppRadius.control);
+    final button = Material(
+      color: MapGlass.glass(context),
+      borderRadius: shape,
+      child: InkWell(
+        borderRadius: shape,
+        onTap: onTap,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: shape,
+            border: Border.all(color: context.pal.line),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 24, color: context.pal.onBackground),
+        ),
+      ),
+    );
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: shape,
+        child: MapGlass.blurs(context)
+            ? BackdropFilter(filter: MapGlass.blur, child: button)
+            : button,
       ),
     );
   }
