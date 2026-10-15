@@ -40,7 +40,6 @@ class Hotline {
     required this.dialNumber,
     required this.icon,
     required this.tone,
-    this.art,
     this.category = HotlineCategory.all,
     this.featured = false,
   });
@@ -59,7 +58,9 @@ class Hotline {
   /// Digits only (plus optional leading +) used to build the `tel:` URI.
   final String dialNumber;
 
-  /// Glyph for the row's well when there is no agency logo ([art]).
+  /// The row's glyph: a filled Material Symbols Rounded icon from the app's
+  /// one icon family (03 · pass 3), never a logo bitmap, so every row's well
+  /// draws the same way.
   final IconData icon;
 
   /// The row's colour as a role, resolved against the palette in force —
@@ -81,9 +82,6 @@ class Hotline {
   /// True where the row is drawn in the quiet grey rather than an agency
   /// colour — the traffic and national desks.
   bool get isNeutral => tone == HotlineTone.neutral;
-
-  /// The agency's own logo, where the design has one.
-  final String? art;
 
   final HotlineCategory category;
 
@@ -108,9 +106,8 @@ List<Hotline> kHotlines = [
         'Philippines. Call this for immediate police, fire, or medical response.',
     displayNumber: '911',
     dialNumber: '911',
-    icon: AppIcons.emergencyShare,
+    icon: AppIcons.e911Emergency,
     tone: HotlineTone.emergency,
-    art: 'assets/design/agency-911.png',
     category: HotlineCategory.all,
     featured: true,
   ),
@@ -124,7 +121,6 @@ List<Hotline> kHotlines = [
     dialNumber: '0284260219',
     icon: AppIcons.localFireDepartment,
     tone: HotlineTone.fire,
-    art: 'assets/design/agency-bfp.png',
     category: HotlineCategory.fire,
   ),
   Hotline(
@@ -137,7 +133,6 @@ List<Hotline> kHotlines = [
     dialNumber: '117',
     icon: AppIcons.localPolice,
     tone: HotlineTone.police,
-    art: 'assets/design/agency-pnp.png',
     category: HotlineCategory.police,
   ),
   Hotline(
@@ -148,7 +143,7 @@ List<Hotline> kHotlines = [
         'operations for incidents within the city.',
     displayNumber: '(02) 8833-8534',
     dialNumber: '0288338534',
-    icon: AppIcons.call,
+    icon: AppIcons.healthAndSafety,
     tone: HotlineTone.barangay,
     category: HotlineCategory.pasay,
   ),
@@ -160,7 +155,7 @@ List<Hotline> kHotlines = [
         'for emergency assistance from the Red Cross.',
     displayNumber: '143',
     dialNumber: '143',
-    icon: AppIcons.call,
+    icon: AppIcons.medicalServices,
     tone: HotlineTone.medical,
     category: HotlineCategory.medical,
   ),
@@ -174,7 +169,6 @@ List<Hotline> kHotlines = [
     dialNumber: '136',
     icon: AppIcons.traffic,
     tone: HotlineTone.neutral,
-    art: 'assets/design/agency-mmda.png',
     category: HotlineCategory.all,
   ),
   Hotline(
@@ -185,7 +179,7 @@ List<Hotline> kHotlines = [
         'and rescue operations.',
     displayNumber: '(02) 8527-8481',
     dialNumber: '0285278481',
-    icon: AppIcons.call,
+    icon: AppIcons.directionsBoat,
     tone: HotlineTone.coastguard,
     category: HotlineCategory.all,
   ),
@@ -197,7 +191,7 @@ List<Hotline> kHotlines = [
         'earthquakes, and large-scale emergencies.',
     displayNumber: '(02) 8911-1406',
     dialNumber: '0289111406',
-    icon: AppIcons.call,
+    icon: AppIcons.flood,
     tone: HotlineTone.barangay,
     category: HotlineCategory.all,
   ),

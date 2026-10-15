@@ -5,7 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../api/api_client.dart';
 import '../models/facility.dart';
 import '../theme.dart';
-import 'app_icons.dart';
+import 'map_marker.dart';
 
 /// The operational map layers every staff dashboard draws — responder, Fire
 /// Volunteer and BFP (Master Context v10 §2.4). One definition, where each of
@@ -15,40 +15,65 @@ import 'app_icons.dart';
 /// and Barangay Hall chips the dashboards used to show had none — tapping them
 /// only said "not in this build yet" — so they are left out until a source
 /// exists.
+///
+/// Each layer's colour is its category's legend tone ([MapMarkerKind.tone]),
+/// the same as on the resident's map: incidents coral, risk zones red, water
+/// blue, shelters green.
 
 /// A map point, and whether it is a shelter outside Pasay (§2.4), drawn as a
 /// hollow ring with an outward arrow so the destination's distance reads at a
-/// glance.
+/// glance. A risk zone also carries its drawn [area] (GeoJSON), when the
+/// server has one.
 class OpsPoint {
-  const OpsPoint(this.point, {this.outside = false});
+  const OpsPoint(this.point, {this.outside = false, this.name, this.area});
 
   final LatLng point;
   final bool outside;
+
+  /// The place's own name, for a screen reader and a list of what is near.
+  final String? name;
+
+  /// A risk zone's Polygon or MultiPolygon, as `area_geojson` sends it.
+  final Object? area;
 }
 
 class OpsLayer {
-  const OpsLayer(this.key, this.label, this.color, this.load);
+  const OpsLayer(this.key, this.label, this.kind, this.load);
 
   final String key;
   final String label;
-  final Color color;
+
+  /// The marker this layer's points wear, and so its legend tone. Null for
+  /// the stations, which are plain dots in a neutral tone: they are neither
+  /// a hazard nor a resource the legend colours.
+  final MapMarkerKind? kind;
 
   /// Null for the incident layer, which each dashboard draws itself.
   final Future<List<OpsPoint>> Function()? load;
+
+  /// The layer's colour on its chip and its points.
+  Color colour(AppPalette pal) => kind?.tone(pal) ?? pal.textSoft;
 }
 
-List<OpsPoint> _points(List<dynamic> rows, String latKey, String lngKey) => [
+List<OpsPoint> _points(
+  List<dynamic> rows,
+  String latKey,
+  String lngKey, {
+  String? areaKey,
+}) => [
   for (final r in rows.cast<Map<String, dynamic>>())
     if (r[latKey] != null && r[lngKey] != null)
       OpsPoint(
         LatLng((r[latKey] as num).toDouble(), (r[lngKey] as num).toDouble()),
+        name: r['name'] as String?,
+        area: areaKey == null ? null : r[areaKey],
       ),
 ];
 
 /// The layers, in chip order. 'incidents' is first and has no loader.
 List<OpsLayer> opsLayers(ApiClient api) => [
-  OpsLayer('incidents', 'Incidents', AppColors.live, null),
-  OpsLayer('evac', 'Evacuation Sites', AppColors.ok, () async {
+  const OpsLayer('incidents', 'Incidents', MapMarkerKind.incident, null),
+  OpsLayer('evac', 'Evacuation Sites', MapMarkerKind.shelter, () async {
     final rows = (await api.getEvacuationSites()).cast<Map<String, dynamic>>();
     return [
       for (final r in rows)
@@ -59,32 +84,37 @@ List<OpsLayer> opsLayers(ApiClient api) => [
               (r['longitude'] as num).toDouble(),
             ),
             outside: r['outside_pasay'] == true,
+            name: r['name'] as String?,
           ),
     ];
   }),
   OpsLayer(
     'risk',
     'Risk Areas',
-    AppColors.accent,
-    () async =>
-        _points(await api.getRiskZones(), 'centroid_lat', 'centroid_lng'),
+    MapMarkerKind.risk,
+    () async => _points(
+      await api.getRiskZones(),
+      'centroid_lat',
+      'centroid_lng',
+      areaKey: 'area_geojson',
+    ),
   ),
   OpsLayer(
     'hydrants',
     'Fire Hydrants',
-    AppColors.muted,
+    MapMarkerKind.hydrant,
     () async => _points(await api.getHydrants(), 'latitude', 'longitude'),
   ),
   OpsLayer(
     'water',
     'Bodies of Water',
-    const Color(0xFF4EA8FF),
+    MapMarkerKind.water,
     () async => _points(await api.getBodiesOfWater(), 'latitude', 'longitude'),
   ),
   OpsLayer(
     'cisterns',
     'Cisterns',
-    const Color(0xFF9A8CFF),
+    MapMarkerKind.cistern,
     () async =>
         _points(await api.getUndergroundCisterns(), 'latitude', 'longitude'),
   ),
@@ -92,48 +122,51 @@ List<OpsLayer> opsLayers(ApiClient api) => [
   OpsLayer(
     'fire',
     'Fire Department',
-    AppColors.live,
+    null,
     () async => [for (final f in kFireStations) OpsPoint(LatLng(f.lat, f.lng))],
   ),
   OpsLayer(
     'police',
     'Police Department',
-    AppColors.info,
+    MapMarkerKind.police,
     () async => [
       for (final f in kPoliceStations) OpsPoint(LatLng(f.lat, f.lng)),
     ],
   ),
 ];
 
-/// The marker for one GIS point: a small dot, or for a shelter outside Pasay
-/// a hollow ring with an outward arrow.
-Marker opsMarker(OpsLayer layer, OpsPoint p) {
-  if (p.outside) {
+/// The marker for one GIS point: the layer's map marker (04 · Map marker),
+/// a shelter outside Pasay badged with an outward arrow; a station without a
+/// marker kind is a small dot in the layer's tone.
+Marker opsMarker(AppPalette pal, OpsLayer layer, OpsPoint p) {
+  final kind = layer.kind;
+  if (kind != null) {
     return Marker(
       point: p.point,
-      width: 20,
-      height: 20,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceSolid,
-          shape: BoxShape.circle,
-          border: Border.all(color: layer.color, width: 2.5),
-        ),
-        child: Icon(AppIcons.northEast, size: 10, color: layer.color),
+      width: MapMarker.target,
+      height: MapMarker.target,
+      child: MapMarker(
+        kind: kind,
+        label: p.name ?? layer.label,
+        badge: p.outside ? const OutsidePasayBadge() : null,
       ),
     );
   }
+  final tone = layer.colour(pal);
   return Marker(
     point: p.point,
     width: 16,
     height: 16,
-    child: Container(
-      decoration: BoxDecoration(
-        color: layer.color,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.6),
-          width: 1.5,
+    child: Semantics(
+      label: layer.label,
+      child: Container(
+        decoration: BoxDecoration(
+          color: tone,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
         ),
       ),
     ),

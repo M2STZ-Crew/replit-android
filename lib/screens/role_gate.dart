@@ -12,7 +12,7 @@ import 'onboarding_screen.dart';
 import 'report_status_screen.dart';
 import 'observer_handoff_screen.dart';
 import 'phone_verify_screen.dart';
-import 'responder/responder_home_screen.dart';
+import 'responder/responder_shell.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
 
@@ -119,12 +119,11 @@ class _RoleGateState extends State<RoleGate> {
       );
     }
     final role = me['role'] as String?;
-    // Responders and coordinators share one console (widgets/staff_shell.dart):
-    // the same dashboard to land on, the same menu on every screen, and a tag
-    // saying which of the two this is.
+    // Responders work from the Responder app (REPLIT (MAIN) 07): Duty, Map,
+    // RUN, Alerts, Profile, on the same bar and disc as every role.
     if (role == 'response_team') {
       StaffAccount.current = me;
-      return ResponderHomeScreen(me: me);
+      return ResponderShell(me: me);
     }
     if (role == 'sub_admin') {
       // Observers (police, medical, barangay) work from the Observer Console on

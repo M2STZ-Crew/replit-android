@@ -123,3 +123,8 @@ grid_view
 history
 join_inner
 volume_off
+e911_emergency
+health_and_safety
+directions_boat
+flood
+record_voice_over

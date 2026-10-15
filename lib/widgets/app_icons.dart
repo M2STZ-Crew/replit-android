@@ -109,6 +109,9 @@ abstract final class AppIcons {
   /// Material Symbols "directions".
   static const IconData directions = IconData(0xe52e, fontFamily: _family);
 
+  /// Material Symbols "directions_boat".
+  static const IconData directionsBoat = IconData(0xe532, fontFamily: _family);
+
   /// Material Symbols "directions_car".
   static const IconData directionsCar = IconData(0xe531, fontFamily: _family);
 
@@ -120,6 +123,9 @@ abstract final class AppIcons {
 
   /// Material Symbols "download".
   static const IconData download = IconData(0xe171, fontFamily: _family);
+
+  /// Material Symbols "e911_emergency".
+  static const IconData e911Emergency = IconData(0xf119, fontFamily: _family);
 
   /// Material Symbols "electrical_services".
   static const IconData electricalServices = IconData(
@@ -160,6 +166,9 @@ abstract final class AppIcons {
   /// Material Symbols "flash_on".
   static const IconData flashOn = IconData(0xe3e7, fontFamily: _family);
 
+  /// Material Symbols "flood".
+  static const IconData flood = IconData(0xebe6, fontFamily: _family);
+
   /// Material Symbols "grid_view".
   static const IconData gridView = IconData(0xe9b0, fontFamily: _family);
 
@@ -174,6 +183,9 @@ abstract final class AppIcons {
 
   /// Material Symbols "healing".
   static const IconData healing = IconData(0xe3f3, fontFamily: _family);
+
+  /// Material Symbols "health_and_safety".
+  static const IconData healthAndSafety = IconData(0xe1d5, fontFamily: _family);
 
   /// Material Symbols "help".
   static const IconData help = IconData(0xe887, fontFamily: _family);
@@ -322,6 +334,9 @@ abstract final class AppIcons {
 
   /// Material Symbols "podcasts".
   static const IconData podcasts = IconData(0xf048, fontFamily: _family);
+
+  /// Material Symbols "record_voice_over".
+  static const IconData recordVoiceOver = IconData(0xe91f, fontFamily: _family);
 
   /// Material Symbols "refresh".
   static const IconData refresh = IconData(0xe5d5, fontFamily: _family);

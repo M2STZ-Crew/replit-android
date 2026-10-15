@@ -6,8 +6,6 @@ import '../api/session.dart';
 import '../location/responder_tracker.dart';
 import '../screens/bfp/bfp_alarm_requests_screen.dart';
 import '../screens/login_screen.dart';
-import '../screens/responder/responder_duty_screen.dart';
-import '../screens/responder/responder_incidents_screen.dart';
 import '../screens/responder/responder_status.dart';
 import '../screens/subadmin/ai_summaries_screen.dart';
 import '../screens/subadmin/pending_reports_screen.dart';
@@ -28,8 +26,9 @@ import 'app_icons.dart';
 /// menu. The menu is the same drawer everywhere, so it is reachable from deep
 /// inside an incident, not only from the dashboard.
 ///
-/// A responder and a coordinator see nearly the same console on purpose; the
-/// tag and the handful of menu items only one of them has are the difference.
+/// Responders have their own app since v1.12.17 (ResponderShell: Duty, Map,
+/// RUN, Alerts, Profile), so the menu's sections are the coordinator's; the
+/// frame still tags whichever staff role opens it.
 enum StaffRole {
   responder('Responder', AppIcons.localFireDepartment),
   coordinator('Coordinator', AppIcons.shield);
@@ -49,7 +48,7 @@ enum StaffRole {
 }
 
 /// The console's sections — what the menu opens.
-enum StaffPage { dashboard, incidents, duty, reports, team, summaries, alarms }
+enum StaffPage { dashboard, incidents, reports, team, summaries, alarms }
 
 /// The signed-in staff account, for the screens opened without one in hand
 /// (the pending-report tray, the alarm queue). Set when a staff console opens.
@@ -260,11 +259,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
 
   Widget? _screenFor(StaffPage page, Map<String, dynamic> me) => switch (page) {
     StaffPage.dashboard => null,
-    StaffPage.incidents =>
-      _role == StaffRole.coordinator
-          ? SubAdminHomeScreen(me: me)
-          : ResponderIncidentsScreen(me: me),
-    StaffPage.duty => ResponderDutyScreen(me: me),
+    StaffPage.incidents => SubAdminHomeScreen(me: me),
     StaffPage.reports => const PendingReportsScreen(),
     StaffPage.team => TeamScreen(me: me),
     StaffPage.summaries => AiSummariesScreen(me: me),
@@ -329,10 +324,8 @@ class _StaffDrawerState extends State<StaffDrawer> {
             Divider(color: context.pal.line, height: 1),
             const SizedBox(height: 8),
             _item(AppIcons.dashboard, 'Dashboard', StaffPage.dashboard),
-            _item(AppIcons.listAlt, 'Incidents', StaffPage.incidents),
-            if (_role == StaffRole.responder)
-              _item(AppIcons.badge, 'My duty', StaffPage.duty),
             if (_role == StaffRole.coordinator) ...[
+              _item(AppIcons.listAlt, 'Incidents', StaffPage.incidents),
               _item(
                 AppIcons.assignmentLate,
                 'Pending reports',

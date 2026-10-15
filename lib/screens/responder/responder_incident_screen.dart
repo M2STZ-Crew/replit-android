@@ -1,53 +1,47 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:geocoding/geocoding.dart' as geo;
 import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
+import '../../location/live_position.dart';
+import '../../location/place_names.dart';
 import '../../location/responder_tracker.dart';
+import '../../models/area_view.dart';
 import '../../models/fleet_unit.dart';
 import '../../navigation/routing_service.dart';
 import '../../theme.dart';
-import '../../widgets/map_tiles.dart';
-import '../../widgets/design.dart';
-import '../../widgets/staff_shell.dart';
-import '../directions_screen.dart';
-import 'responder_status.dart';
-import '../../widgets/you_are_here.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/area_map_preview.dart';
+import '../../widgets/coordinator_kit.dart';
+import '../../widgets/design.dart';
+import '../../widgets/staff_shell.dart' show StaffAccount;
+import '../coordinator/area_decision_screen.dart' show openRouteToArea;
+import '../coordinator/report_detail_screen.dart';
+import 'responder_status.dart';
 
-Color _sheet = AppColors.surfaceSolid;
-Color _panel = AppColors.glassDim;
-Color _panelBorder = AppColors.line;
-Color _rowBg = AppColors.glassDim;
-Color _orangeTint = AppColors.accentTint;
-Color _muted = AppColors.muted;
-Color _crewGrey = AppColors.muted;
-Color _youGreen = AppColors.ok;
-Color _otherBlue = AppColors.info;
-Color _red = AppColors.live;
-
-/// The responder's incident screen: live map (incident + other responders +
-/// my GPS), address + route ETA and the road route to the fire, my unit/crew,
-/// the verify → respond → arrived progression (v12 §2.5: a responder may
-/// verify a new report themselves, and respond once it is verified), the field
-/// escalations (Need Water / Need Assistance / Escalate to BFP), and REQUEST
-/// FIRE OUT (signals command via the Fire-Out code; the coordinator resolves).
+/// One Area, as a responder sees it (REPLIT (MAIN) 07).
 ///
-/// It follows the incident on the live socket ([LiveRefresh]), so a verify,
-/// respond or reject by someone else shows here at once.
+/// Not on it: the brief (R03) — where it is, how sure, who reported it, what
+/// they asked for — and "I am going" (R04), which verifies a Reported Area
+/// first and then puts this responder on the way (v12 §2.5.2), straight into
+/// the route choice (R05).
 ///
-/// Location sharing is [ResponderTracker]'s, not this screen's: it starts here
-/// when the responder has an active dispatch and carries on after they leave,
-/// until the dispatch ends (v10 §6 — "5 s while dispatched").
+/// On it: the run — on the way, on scene (R09) or stood down after fire out
+/// (R10) — with what happens next, the crew, Mark arrived (R08) and the codes
+/// a crew sends command (Need water, Need assistance, Escalate to BFP, Fire
+/// out). RUN on the bar shows this view of the current run ([embedded]).
 ///
-/// Response Teams exist in all five agencies. [agency] decides which controls
-/// are offered: fire codes to fire crews, the BFP escalation to Fire Volunteer
-/// responders only — the server refuses anyone else (§2.7.1).
+/// It follows the Area on the live socket ([LiveRefresh]), so a verify,
+/// respond or reject by someone else shows at once. Location sharing is
+/// [ResponderTracker]'s, not this screen's: it starts here when the responder
+/// has an active dispatch and carries on after they leave, until the dispatch
+/// ends ("5 s while dispatched", §6).
+///
+/// Response Teams exist in all five agencies. [agency] decides which codes
+/// are offered: water and fire out to fire crews, the BFP escalation to Fire
+/// Volunteer responders only — the server refuses anyone else (§2.7.1).
 class ResponderIncidentScreen extends StatefulWidget {
   const ResponderIncidentScreen({
     super.key,
@@ -55,6 +49,11 @@ class ResponderIncidentScreen extends StatefulWidget {
     required this.myId,
     this.agency,
     this.orgId,
+    this.unit,
+    this.api,
+    this.tracker,
+    this.embedded = false,
+    this.onBackToDuty,
   });
 
   final String incidentId;
@@ -62,17 +61,26 @@ class ResponderIncidentScreen extends StatefulWidget {
   final String? agency;
   final String? orgId;
 
+  /// The unit the responder goes as ("Tanker 1"); their team, when not given.
+  final String? unit;
+  final ApiClient? api;
+  final ResponderTracker? tracker;
+
+  /// RUN's view of the current run: a tab, so no Back.
+  final bool embedded;
+
+  /// "Back to duty" once the run is over; Back, when not given.
+  final VoidCallback? onBackToDuty;
+
   @override
   State<ResponderIncidentScreen> createState() =>
       _ResponderIncidentScreenState();
 }
 
 class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
-  final MapFollow _follow = MapFollow();
-
-  final ApiClient _api = ApiClient();
-  final MapController _map = MapController();
-  final ResponderTracker _tracker = ResponderTracker.instance;
+  late final ApiClient _api = widget.api ?? ApiClient();
+  late final ResponderTracker _tracker =
+      widget.tracker ?? ResponderTracker.instance;
   final DriveTime _driveTime = DriveTime();
   Timer? _poll;
   late final LiveRefresh _live = LiveRefresh([
@@ -80,26 +88,17 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   ], () => _load(silent: true));
 
   Map<String, dynamic>? _incident;
-  List<Map<String, dynamic>> _responders = [];
   List<Map<String, dynamic>> _dispatches = [];
   Map<String, dynamic>? _myDispatch;
   final Map<String, FleetUnit> _fleetByName = {};
   final Map<String, String> _fireCodeIds = {};
 
-  String? _address;
   String? _etaText;
-
+  DateTime? _lastEta;
   bool _loading = true;
+  String? _error;
   bool _busy = false;
   bool _pressing = false;
-  bool _geocoded = false;
-
-  LatLng? get _myPos {
-    final p = _tracker.position.value;
-    return p == null ? null : LatLng(p.latitude, p.longitude);
-  }
-
-  bool get _streaming => _tracker.sharingFor.value == widget.incidentId;
 
   @override
   void initState() {
@@ -122,11 +121,40 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     // The tracker keeps sharing after this screen closes — that is the point.
     _tracker.position.removeListener(_onTracker);
     _tracker.sharingFor.removeListener(_onTracker);
-    _follow.dispose();
     super.dispose();
   }
 
-  DateTime? _lastEta;
+  // ------------------------------------------------------------- state ---
+  AreaView? get _area => _incident == null ? null : AreaView(_incident!);
+  String get _status => (_incident?['status'] as String?) ?? 'reported';
+  bool get _hasActiveDispatch => _myDispatch != null;
+  bool get _streaming => _tracker.sharingFor.value == widget.incidentId;
+  bool get _onGround => const {'en_route', 'arrived'}.contains(_status);
+  bool get _shouldStream => _hasActiveDispatch && _onGround;
+  bool get _fireCrew => isFireCrew(widget.agency);
+
+  /// This responder went: any dispatch of theirs on it, ended or not.
+  bool get _wentToIt =>
+      _dispatches.any((d) => d['responder_id'] == widget.myId);
+
+  /// The run view: on the way or on scene, or stood down from it.
+  bool get _onRun =>
+      _hasActiveDispatch || (_wentToIt && kAfterFireOut.contains(_status));
+
+  String get _unit {
+    final given = widget.unit?.trim();
+    if (given != null && given.isNotEmpty) return given;
+    final team = (StaffAccount.current?['organization_name'] as String?)
+        ?.trim();
+    if (team != null && team.isNotEmpty) return team;
+    return agencyLabel(widget.agency);
+  }
+
+  LatLng? get _here {
+    final p = _tracker.position.value;
+    if (p != null) return LatLng(p.latitude, p.longitude);
+    return LivePosition.instance.here.value;
+  }
 
   void _onTracker() {
     if (!mounted) return;
@@ -140,35 +168,15 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     }
   }
 
-  String get _status => (_incident?['status'] as String?) ?? 'reported';
-
-  /// "Routed to your team" when Admin has sent this incident your way (§2.6.2).
-  String? get _routing => _incident == null
-      ? null
-      : routingLabel(_incident!, agency: widget.agency, orgId: widget.orgId);
-  bool get _hasActiveDispatch => _myDispatch != null;
-  bool get _active => const {'en_route', 'arrived'}.contains(_status);
-  bool get _shouldStream => _hasActiveDispatch && _active;
-
-  LatLng? get _centroid {
-    final i = _incident;
-    final lat = (i?['centroid_lat'] as num?)?.toDouble();
-    final lng = (i?['centroid_lng'] as num?)?.toDouble();
-    if (lat == null || lng == null) return null;
-    return LatLng(lat, lng);
-  }
-
   Future<void> _load({bool silent = false}) async {
-    if (!silent) setState(() => _loading = true);
+    if (!silent && _incident == null) setState(() => _loading = true);
     try {
       final results = await Future.wait([
         _api.getIncident(widget.incidentId),
         _api.getDispatches(widget.incidentId),
-        _api.getResponderLocations(widget.incidentId),
       ]);
       final incident = results[0] as Map<String, dynamic>;
       final dispatches = (results[1] as List).cast<Map<String, dynamic>>();
-      final responders = (results[2] as List).cast<Map<String, dynamic>>();
       Map<String, dynamic>? mine;
       for (final d in dispatches) {
         if (d['responder_id'] == widget.myId && d['status'] == 'active') {
@@ -180,19 +188,23 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       setState(() {
         _incident = incident;
         _dispatches = dispatches;
-        _responders = responders;
         _myDispatch = mine;
         _loading = false;
+        _error = null;
       });
       _syncStreaming();
-      final c = _centroid;
-      if (c != null && !_geocoded) {
-        _geocoded = true;
-        _reverseGeocode(c);
-      }
       _computeEta();
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        // Keep showing what was there; say so only when there is nothing.
+        if (_incident == null) {
+          _error = e is ApiException
+              ? e.message
+              : 'Could not load this Area. Check your signal.';
+        }
+      });
     }
   }
 
@@ -204,7 +216,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         _fleetByName[u.name] = u;
       }
     } catch (_) {
-      // unit subtitle just falls back to "Fire Truck"
+      // The crew row just says "Fire truck".
     }
     try {
       final codes = await _api.getFireCodes();
@@ -214,15 +226,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         if (n != null && id != null) _fireCodeIds[n] = id;
       }
     } catch (_) {
-      // escalation buttons will report unavailable
+      // The code rows say they are unavailable when pressed.
     }
     if (mounted) setState(() {});
   }
 
-  // ----------------------------------------------------------- streaming ---
-  /// Start sharing when this responder has an active dispatch on a live
-  /// incident; stop when the poll shows it has ended here (withdrawn, fire
-  /// out). The tracker also stops itself when the server refuses a point.
+  /// Start sharing when this responder has an active dispatch on an Area on
+  /// the ground; stop when the read shows it has ended here (fire out). The
+  /// tracker also stops itself when the server refuses a point.
   void _syncStreaming() {
     final dispatchId = _myDispatch?['id'] as String?;
     if (_shouldStream && dispatchId != null) {
@@ -232,138 +243,156 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     }
   }
 
-  // -------------------------------------------------------------- helpers ---
-  Future<void> _reverseGeocode(LatLng p) async {
-    try {
-      final marks = await geo.placemarkFromCoordinates(p.latitude, p.longitude);
-      if (marks.isEmpty) return;
-      final m = marks.first;
-      final parts = [
-        m.street,
-        m.subLocality,
-        m.locality,
-      ].where((s) => s != null && s.isNotEmpty).cast<String>().toList();
-      if (mounted && parts.isNotEmpty) {
-        setState(() => _address = parts.take(2).join(', '));
-      }
-    } catch (_) {
-      // address stays null
-    }
-  }
-
-  static double _haversineM(LatLng a, LatLng b) {
-    const r = 6371000.0;
-    final dLat = (b.latitude - a.latitude) * math.pi / 180;
-    final dLng = (b.longitude - a.longitude) * math.pi / 180;
-    final s =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(a.latitude * math.pi / 180) *
-            math.cos(b.latitude * math.pi / 180) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-    return r * 2 * math.atan2(math.sqrt(s), math.sqrt(1 - s));
-  }
-
-  String _fmtDuration(double seconds) {
-    final s = seconds.round();
-    return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
-  }
-
   Future<void> _computeEta() async {
-    final c = _centroid;
-    if (c == null) {
-      if (mounted) setState(() => _etaText = null);
+    final to = _area?.centre;
+    final from = _here;
+    if (to == null || from == null || _status != 'en_route') {
+      if (mounted && _etaText != null) setState(() => _etaText = null);
       return;
     }
-    LatLng? from = _myPos;
-    if (from == null) {
-      double best = double.infinity;
-      for (final r in _responders) {
-        final lat = (r['lat'] as num?)?.toDouble();
-        final lng = (r['lng'] as num?)?.toDouble();
-        if (lat == null || lng == null) continue;
-        final p = LatLng(lat, lng);
-        final d = _haversineM(p, c);
-        if (d < best) {
-          best = d;
-          from = p;
-        }
-      }
+    // By road, traffic-aware, as the directions route it; else at 30 km/h.
+    final secs =
+        await _driveTime.seconds(from, to) ??
+        metresBetween(from, to) / (30000 / 3600);
+    final s = secs.round();
+    if (mounted) {
+      setState(
+        () => _etaText = '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}',
+      );
     }
-    if (from == null) {
-      if (mounted) setState(() => _etaText = null);
-      return;
-    }
-    // By road, traffic-aware with Mapbox (the same routes as the directions).
-    final byRoad = await _driveTime.seconds(from, c);
-    if (byRoad != null) {
-      if (mounted) setState(() => _etaText = _fmtDuration(byRoad));
-      return;
-    }
-    final secs = _haversineM(from, c) / (30000 / 3600);
-    if (mounted) setState(() => _etaText = _fmtDuration(secs));
   }
 
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  // ------------------------------------------------------------- actions ---
-  Future<void> _action(
-    Future<Map<String, dynamic>> Function() call,
-    String ok,
-  ) async {
+  // ----------------------------------------------------------- actions ---
+  Future<void> _action(Future<Object?> Function() call, String done) async {
     setState(() => _busy = true);
     try {
       await call();
-      if (mounted) _toast(ok);
-      await _load(silent: true);
+      if (mounted) _toast(done);
     } on ApiException catch (e) {
+      // Refused because the screen was behind (someone acted first): the
+      // read below shows what is true now.
       if (mounted) _toast(e.message);
-      // Refused because the screen was behind (someone else acted first):
-      // show what is true now rather than leave the stale button up.
-      await _load(silent: true);
     } catch (_) {
-      if (mounted) _toast('Action failed. Check your connection.');
+      if (mounted) _toast('That did not go through. Check your signal.');
     } finally {
+      await _load(silent: true);
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  void _verify() => _action(
-    () => _api.verifyIncident(widget.incidentId),
-    'Verified. Respond if you are going.',
-  );
-
-  void _respond() => _action(
-    () => _api.selfDispatch(widget.incidentId),
-    'You are responding. Your location is shared while you go.',
-  );
-
-  void _route() {
-    final c = _centroid;
-    if (c == null) return;
-    final name = (_incident?['designation'] as String?) ?? 'The fire';
-    openRouteToFire(
+  /// R04 — Go to Area 1.2? Then R05, the route choice.
+  Future<void> _go(AreaView area) async {
+    final reported = area.status == 'reported';
+    final yes = await showFrameSheet<bool>(
       context,
-      lat: c.latitude,
-      lng: c.longitude,
-      name: name,
-      run: FireRun(
-        areaId: widget.incidentId,
-        areaName: name,
-        // Only someone on the way may arrive.
-        markArrived: _hasActiveDispatch && _incident?['status'] == 'en_route'
-            ? () => _api.markArrived(widget.incidentId)
-            : null,
+      builder: (context) => SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: '${area.name} — ${LifecycleChip.word(area.status)}',
+            title: 'Go to ${area.name}?',
+            body:
+                'You go as $_unit. Your position is shared every 5 seconds '
+                'until the Captain marks fire out.',
+          ),
+          if (reported) ...[
+            const SizedBox(height: 16),
+            const InlineAlert(
+              body:
+                  'This Area is still Reported. Going now verifies it for '
+                  'every agency — Coordinators can still reject it later.',
+            ),
+          ],
+          const SizedBox(height: 20),
+          AppButton(
+            'I am going',
+            run: true,
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+          const SizedBox(height: 10),
+          AppButton.secondary(
+            'Cancel, go back',
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+        ],
       ),
     );
+    if (yes != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      // Verify first: responding is only open once an Area is verified.
+      if (reported) await _api.verifyIncident(widget.incidentId);
+      await _api.selfDispatch(widget.incidentId);
+      await _load(silent: true);
+      if (!mounted) return;
+      _toast('You are going. Your location is shared while you go.');
+      setState(() => _busy = false);
+      await _navigate();
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+      await _load(silent: true);
+    } catch (_) {
+      if (mounted) _toast('That did not go through. Check your signal.');
+    } finally {
+      if (mounted && _busy) setState(() => _busy = false);
+    }
   }
 
-  // v11: no _enRoute. Accept already moved the incident there (§2.5.1), and
-  // no _withdraw — there is no assignment to take back now that manual
-  // dispatch is gone.
-  void _arrived() =>
-      _action(() => _api.markArrived(widget.incidentId), 'Marked on scene.');
+  void _verifyOnly() => _action(
+    () => _api.verifyIncident(widget.incidentId),
+    'Verified. Go from here if you are going.',
+  );
+
+  /// Turn-by-turn to the Area (R05, R06). While on the way, arriving ends
+  /// the navigation and marks this responder arrived (R08).
+  Future<void> _navigate() async {
+    final area = _area;
+    if (area == null) return;
+    await openRouteToArea(
+      context,
+      area,
+      markArrived: _hasActiveDispatch && _status == 'en_route'
+          ? () => _api.markArrived(widget.incidentId)
+          : null,
+    );
+    if (mounted) await _load(silent: true);
+  }
+
+  /// R08 — Mark arrived?
+  Future<void> _markArrived(AreaView area) async {
+    final yes = await showFrameSheet<bool>(
+      context,
+      builder: (context) => SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: '${area.name} — ${LifecycleChip.word(area.status)}',
+            title: 'Mark arrived?',
+            body:
+                'Command and the other units see you on scene. It is the last '
+                'status you set; the Captain marks fire out.',
+          ),
+          const SizedBox(height: 20),
+          AppButton(
+            'Mark arrived',
+            run: true,
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+          const SizedBox(height: 10),
+          AppButton.secondary(
+            'Not yet',
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    await _action(
+      () => _api.markArrived(widget.incidentId),
+      'Marked on scene.',
+    );
+  }
 
   Future<void> _pressCode(String codeNumber, String label) async {
     if (_pressing) return;
@@ -379,776 +408,532 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not send. Check your connection.');
+      if (mounted) _toast('Could not send. Check your signal.');
     } finally {
       if (mounted) setState(() => _pressing = false);
     }
   }
 
-  Future<void> _escalateBfp() async {
+  Future<void> _escalateBfp(AreaView area) async {
     const levels = <(String, String)>[
-      ('positive_fire_alarm', 'Positive Fire Alarm'),
-      ('first_alarm', 'First Alarm'),
-      ('second_alarm', 'Second Alarm'),
-      ('general_alarm', 'General Alarm'),
+      ('positive_fire_alarm', 'Positive fire alarm'),
+      ('first_alarm', 'First alarm'),
+      ('second_alarm', 'Second alarm'),
+      ('general_alarm', 'General alarm'),
     ];
-    final level = await showAppSheet<String>(
-      context: context,
-      backgroundColor: context.pal.surfaceSolid,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Request alarm escalation',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Sent to BFP for review.',
-                style: TextStyle(color: context.pal.muted, fontSize: 12),
-              ),
-              const SizedBox(height: 14),
-              for (final (value, label) in levels)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    label,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  trailing: Icon(AppIcons.chevronRight, color: _muted),
-                  onTap: () => Navigator.of(context).pop(value),
-                ),
-            ],
+    final level = await showFrameSheet<String>(
+      context,
+      builder: (context) => SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: area.name,
+            title: 'Ask BFP to raise the alarm',
+            body: 'BFP reviews the request and sets the level.',
           ),
-        ),
+          const SizedBox(height: 16),
+          for (final (value, label) in levels) ...[
+            ListRow(
+              title: label,
+              chevron: true,
+              onTap: () => Navigator.of(context).pop(value),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
       ),
     );
-    if (level == null) return;
+    if (level == null || !mounted) return;
     try {
       await _api.createAlarmRequest(
         areaId: widget.incidentId,
         alarmLevel: level,
       );
-      if (mounted) _toast('Alarm escalation requested.');
+      if (mounted) _toast('Alarm request sent to BFP.');
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not request escalation.');
+      if (mounted) _toast('Could not send the request. Check your signal.');
     }
   }
 
-  void _requestFireOut() {
-    // The Fire-Out code (FC-3) broadcasts to command; the sub-admin resolves.
-    _pressCode('FC-3', 'Fire out');
+  /// Every report in the Area, each opening as staff see it.
+  Future<void> _openReports(AreaView area) async {
+    List<Map<String, dynamic>> reports;
+    try {
+      reports = (await _api.getIncidentReports(
+        widget.incidentId,
+      )).cast<Map<String, dynamic>>();
+    } catch (_) {
+      if (mounted) _toast('Could not load the reports. Check your signal.');
+      return;
+    }
+    if (!mounted) return;
+    await showFrameSheet<void>(
+      context,
+      builder: (sheet) => SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: area.name,
+            title: reports.length == 1
+                ? '1 report'
+                : '${reports.length} reports',
+            body: 'Photos are for staff only.',
+          ),
+          const SizedBox(height: 16),
+          if (reports.isEmpty)
+            Text('No reports could be read.', style: context.type.bodySm),
+          for (final (i, r) in reports.indexed) ...[
+            _reportRow(r, i, sheet),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
   }
 
-  // --------------------------------------------------------------- build ---
+  Widget _reportRow(Map<String, dynamic> r, int i, BuildContext sheet) {
+    final pct = (r['user_verified_percent'] as num?)?.toInt() ?? 0;
+    final at = parseTime(r['created_at']);
+    final photo = r['photo_url'] is String;
+    return ListRow(
+      leading: IconPlate(photo ? AppIcons.photo : AppIcons.person),
+      title: 'Resident · $pct% verified',
+      subtitle: [if (at != null) clockText(at), if (photo) 'photo'].join(' · '),
+      chevron: true,
+      onTap: () => Navigator.of(sheet).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ReportDetailScreen(report: r, number: i + 1),
+        ),
+      ),
+    );
+  }
+
+  void _backToDuty() {
+    final back = widget.onBackToDuty;
+    if (back != null) {
+      back();
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  // ------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return StaffScaffold(
-      page: StaffPage.incidents,
-      title: (_incident?['designation'] as String?) ?? 'Incident',
-      body: _loading
-          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
-          : Column(
-              children: [
-                SizedBox(height: 260, child: _mapHeader()),
-                Expanded(child: _panelContent()),
-              ],
-            ),
-      // Fire out is a fire crew's call to make; other crews have no such code.
-      bottom: _loading || !isFireCrew(widget.agency)
-          ? null
-          : SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-                child: _fireOutButton(),
-              ),
-            ),
-    );
-  }
-
-  Widget _mapHeader() {
-    final c = _centroid ?? const LatLng(14.5378, 121.0014);
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: FlutterMap(
-            mapController: _map,
-            options: MapOptions(
-              initialCenter: c,
-              initialZoom: 15,
-              interactionOptions: kMapGestures,
-              onMapEvent: _follow.onMapEvent,
-            ),
-            children: [
-              MapTiles.layer(light: context.pal.isLight),
-              MarkerLayer(rotate: true, markers: _markers(c)),
-              YouAreHereLayer(follow: _follow),
-              MapLocationButtons(follow: _follow),
-            ],
-          ),
-        ),
-        // Back and the menu are in the staff top bar above the map.
-        if (_streaming) Positioned(top: 12, left: 12, child: _streamingPill()),
-      ],
-    );
-  }
-
-  Widget _streamingPill() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: const Color(0xE6171717),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _youGreen),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    final area = _area;
+    final Widget body;
+    if (area == null) {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(AppIcons.myLocation, color: _youGreen, size: 14),
-          SizedBox(width: 6),
-          Text(
-            'SHARING LOCATION',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Marker> _markers(LatLng centroid) {
-    final markers = <Marker>[
-      Marker(
-        point: centroid,
-        width: 28,
-        height: 28,
-        child: Container(
-          decoration: BoxDecoration(
-            color: _red,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: const [
-              BoxShadow(color: Color(0x99FF544E), blurRadius: 14),
-            ],
-          ),
-          child: const Icon(
-            AppIcons.localFireDepartment,
-            color: Colors.white,
-            size: 14,
-          ),
-        ),
-      ),
-    ];
-    for (final r in _responders) {
-      if (r['responder_id'] == widget.myId) continue;
-      final lat = (r['lat'] as num?)?.toDouble();
-      final lng = (r['lng'] as num?)?.toDouble();
-      if (lat == null || lng == null) continue;
-      markers.add(
-        Marker(
-          point: LatLng(lat, lng),
-          width: 26,
-          height: 26,
-          child: Container(
-            decoration: BoxDecoration(
-              color: _otherBlue,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: const Icon(
-              AppIcons.localShipping,
-              color: Colors.white,
-              size: 12,
-            ),
-          ),
-        ),
-      );
-    }
-    // The responder's own position is YouAreHereLayer's blue dot, which also
-    // shows which way they face.
-    return markers;
-  }
-
-  Widget _panelContent() {
-    return Transform.translate(
-      offset: const Offset(0, -16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: _sheet,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_routing != null) ...[
-                Tag(_routing!, color: context.pal.ok, dot: true),
-                const SizedBox(height: 12),
-              ],
-              _addressCard(),
-              const SizedBox(height: 12),
-              _myUnitCard(),
-              const SizedBox(height: 16),
-              _lifecycle(),
-              ..._escalationsBlock(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _addressCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _panelBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _orangeTint,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(
-              AppIcons.locationOn,
-              color: context.pal.accent,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 13),
+          _header(title: 'Area'),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: context.pal.accent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Live',
-                      style: TextStyle(color: context.pal.accent, fontSize: 11),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  _address ?? 'Locating incident…',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    height: 1.2,
-                  ),
-                ),
-                if (verifierLine(_incident) case final verifier?) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Verified by $verifier',
-                    style: TextStyle(color: _muted, fontSize: 12),
-                  ),
-                ],
-                const SizedBox(height: 5),
-                if (_centroid != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: _route,
-                      icon: Icon(
-                        AppIcons.directions,
-                        size: 18,
-                        color: context.pal.accent,
-                      ),
-                      label: Text(
-                        'ROUTE TO THE FIRE',
-                        style: TextStyle(
-                          color: context.pal.accent,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
+            child: _loading
+                ? Center(
+                    child: CircularProgressIndicator(color: context.pal.accent),
+                  )
+                : EmptyState(
+                    icon: AppIcons.cloudOff,
+                    tone: context.pal.live,
+                    title: 'Could not load this Area',
+                    body: _error ?? 'Check your signal and try again.',
+                    action: AppButton.secondary(
+                      'Try again',
+                      onPressed: () => _load(),
                     ),
                   ),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'ETA',
-                        style: TextStyle(color: _muted, fontSize: 16),
-                      ),
-                      TextSpan(
-                        text: _etaText == null ? ' —' : ' $_etaText',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
-      ),
+      );
+    } else {
+      body = AreaPlace(
+        area: area,
+        builder: (context, place) =>
+            _onRun ? _run(area, place) : _brief(area, place),
+      );
+    }
+    if (widget.embedded) return SafeArea(bottom: false, child: body);
+    return Scaffold(
+      backgroundColor: context.pal.background,
+      bottomNavigationBar: area == null || _onRun ? null : _briefActions(area),
+      body: SafeArea(bottom: _onRun || area == null, child: body),
     );
   }
 
-  Widget _myUnitCard() {
-    final d = _myDispatch;
-    final vehicle = (d?['vehicle_name'] as String?)?.trim();
-    if (vehicle == null || vehicle.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _panel,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _panelBorder),
-        ),
-        child: Text(
-          _hasActiveDispatch
-              ? 'You are responding (no unit assigned).'
-              : 'No unit assigned to you.',
-          style: TextStyle(color: context.pal.muted, fontSize: 13),
-        ),
-      );
-    }
-    // Everyone crewing my vehicle on this incident.
-    final crew = _dispatches
-        .where(
-          (x) =>
-              x['status'] == 'active' &&
-              (x['vehicle_name'] as String?)?.trim() == vehicle,
-        )
-        .toList();
-    Map<String, dynamic>? driver;
-    final others = <Map<String, dynamic>>[];
-    for (final c in crew) {
-      final role = (c['crew_role'] as String?)?.toLowerCase() ?? '';
-      if (driver == null && role.contains('driver')) {
-        driver = c;
-      } else {
-        others.add(c);
-      }
-    }
-    final subtitle = _fleetByName[vehicle]?.subtitle ?? 'Fire Truck';
+  Widget _header({required String title, String? eyebrow, String? subtitle}) =>
+      widget.embedded
+      ? TabHeader(title: title, eyebrow: eyebrow, subtitle: subtitle)
+      : DetailHeader(title: title, eyebrow: eyebrow, subtitle: subtitle);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _panelBorder),
+  Widget _list(List<Widget> children) => Expanded(
+    child: ScrollFade(
+      child: RefreshIndicator(
+        onRefresh: () => _load(silent: true),
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            8,
+            24,
+            (widget.embedded ? MediaQuery.paddingOf(context).bottom : 0) +
+                kScrollFadeEndPadding,
+          ),
+          children: children,
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    ),
+  );
+
+  // --------------------------------------------------- R03 Area brief ---
+  Widget _brief(AreaView area, PlaceName place) {
+    final pal = context.pal;
+    final here = _here;
+    final centre = area.centre;
+    final away = here == null || centre == null
+        ? null
+        : '${formatDistance(metresBetween(here, centre))} from you';
+    final subtitle = [?place.line, ?away].join(' — ');
+    final reported = area.reportedAt;
+    final asked = askedFor(area.requested);
+    final routing = routingLabel(
+      area.raw,
+      agency: widget.agency,
+      orgId: widget.orgId,
+    );
+    final verifier = verifierLine(area.raw);
+    const gap = SizedBox(height: 8);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _header(
+          eyebrow: area.name,
+          title: place.street ?? area.name,
+          subtitle: subtitle.isEmpty ? null : subtitle,
+        ),
+        _list([
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _orangeTint,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  AppIcons.fireTruck,
-                  color: context.pal.accent,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      vehicle,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: _muted,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              LifecycleChip(area.status),
+              if (routing != null) Tag(routing, color: pal.ok, dot: true),
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _crewSlot('Driver', driver == null ? null : [driver]),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: _crewSlot('Crew', others)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _crewSlot(String label, List<Map<String, dynamic>>? members) {
-    return Container(
-      // Grows with a large font rather than clipping it.
-      constraints: const BoxConstraints(minHeight: 87),
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label == 'Crew' ? 'Crew · ${members?.length ?? 0}' : label,
-            style: TextStyle(color: _crewGrey, fontSize: 11),
-          ),
-          const SizedBox(height: 8),
-          if (members == null || members.isEmpty)
-            Text('—', style: TextStyle(color: _muted, fontSize: 13))
-          else if (label == 'Driver')
-            Text(
-              (members.first['responder_name'] as String?) ?? 'Responder',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 15),
-            )
-          else
-            _avatarStack(members),
-        ],
-      ),
-    );
-  }
-
-  Widget _avatarStack(List<Map<String, dynamic>> members) {
-    final shown = members.take(4).toList();
-    return SizedBox(
-      height: 28,
-      child: Stack(
-        children: [
-          for (var i = 0; i < shown.length; i++)
-            Positioned(
-              left: i * 20.0,
-              child: Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _rowBg),
-                ),
-                child: Text(
-                  _initial((shown[i]['responder_name'] as String?) ?? '?'),
-                  style: const TextStyle(color: Colors.white, fontSize: 10),
-                ),
-              ),
+          if (centre != null) ...[
+            AreaMapPreview(centres: [centre], label: area.name),
+            const SizedBox(height: 16),
+          ],
+          ConfidenceMeter(area: area),
+          const SizedBox(height: 16),
+          ListRow(
+            title: 'Reports',
+            trailing: RowValue(
+              area.reports == 1 ? '1 resident' : '${area.reports} residents',
+              color: pal.onBackground,
             ),
-        ],
-      ),
+            chevron: true,
+            onTap: () => _openReports(area),
+          ),
+          gap,
+          ListRow(
+            title: 'First reported',
+            trailing: RowValue(
+              reported == null ? '—' : clockText(reported),
+              color: pal.onBackground,
+            ),
+          ),
+          gap,
+          ListRow(
+            title: 'Agencies asked',
+            trailing: RowValue(
+              asked.isEmpty ? '—' : asked,
+              color: pal.onBackground,
+            ),
+          ),
+          if (verifier != null) ...[
+            gap,
+            ListRow(title: 'Verified by', subtitle: verifier),
+          ],
+          if (centre != null && area.active) ...[
+            gap,
+            ListRow(
+              leading: const IconPlate(AppIcons.directions),
+              title: 'Route to the Area',
+              subtitle: 'Directions only — going is I am going',
+              chevron: true,
+              onTap: _navigate,
+            ),
+          ],
+          if (!area.toDecide && !area.active) ...[
+            const SizedBox(height: 16),
+            InlineAlert(
+              tone: area.status == 'rejected' || area.status == 'merged'
+                  ? AlertTone.danger
+                  : AlertTone.info,
+              title: switch (area.status) {
+                'rejected' => '${area.name} was rejected',
+                'merged' => '${area.name} was merged',
+                _ => '${area.name} is over',
+              },
+              body: switch (area.status) {
+                'rejected' => 'A coordinator rejected it. Nobody goes.',
+                'merged' =>
+                  'Its reports joined a neighbouring Area. Go from that one.',
+                _ =>
+                  'The fire is out. Nothing is asked of a unit that did not '
+                      'go.',
+              },
+            ),
+          ],
+        ]),
+      ],
     );
   }
 
-  static String _initial(String name) {
-    final t = name.trim();
-    if (t.isEmpty) return '?';
-    return t.split(RegExp(r'\s+')).last[0].toUpperCase();
+  Widget _briefActions(AreaView area) {
+    final open = area.toDecide || area.active;
+    return ActionBar(
+      children: [
+        if (open)
+          AppButton(
+            'I am going',
+            run: true,
+            busy: _busy,
+            onPressed: _busy ? null : () => _go(area),
+          ),
+        if (area.toDecide)
+          AppButton.secondary(
+            'Verify, without going',
+            onPressed: _busy ? null : _verifyOnly,
+          )
+        else
+          AppButton.secondary('Back to duty', onPressed: _backToDuty),
+      ],
+    );
   }
 
-  // The respond → en-route → arrived progression + withdraw.
-  Widget _lifecycle() {
-    if (kAfterFireOut.contains(_status) || _status == 'rejected') {
-      return _infoBox(
-        AppIcons.flag,
-        _status == 'rejected'
-            ? 'This incident was rejected by command.'
-            // Members do not file the Post-Incident Report (v10 §2.5) — the
-            // team captain does, for everyone who went.
-            : 'This incident has been resolved. Stand down — your team captain '
-                  'files the Post-Incident Report.',
-      );
-    }
-    if (_status == 'reported') {
-      // v12: whoever sees it first may verify — no waiting for a captain.
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _infoBox(
-            AppIcons.help,
-            'New report. Check the photo and location, then verify it if it is '
-            'a real fire. Verifying sends nobody; you choose to respond after.',
-          ),
-          const SizedBox(height: 12),
-          _gradientButton('VERIFY THIS INCIDENT', _verify),
-        ],
-      );
-    }
-
-    final children = <Widget>[];
-    if (!_hasActiveDispatch) {
-      children.add(_gradientButton('RESPOND TO THIS INCIDENT', _respond));
-    } else {
-      if (_status == 'en_route') {
-        children.add(_gradientButton('MARK ARRIVED', _arrived));
-      } else if (_status == 'arrived') {
-        children.add(_infoBox(AppIcons.checkCircle, 'You are on scene.'));
-      }
-    }
+  // ------------------------------------------------- R09 / R10 the run ---
+  Widget _run(AreaView area, PlaceName place) {
+    final over = kAfterFireOut.contains(_status);
+    final out = area.at('resolved_at');
+    final title = switch (_status) {
+      'en_route' => 'On the way',
+      'arrived' => 'On scene',
+      'rejected' => 'Rejected',
+      _ => 'Stood down',
+    };
+    final subtitle = over && out != null
+        ? 'Fire out at ${clockText(out)}.'
+        : [
+            ?place.line,
+            if (_status == 'en_route' && _etaText != null) 'ETA $_etaText',
+          ].join(' — ');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: children,
+      children: [
+        _header(
+          eyebrow: '${area.name} — ${LifecycleChip.word(_status)}',
+          title: title,
+          subtitle: subtitle.isEmpty ? null : subtitle,
+        ),
+        _list([
+          if (_status == 'rejected')
+            InlineAlert(
+              tone: AlertTone.danger,
+              title: '${area.name} was rejected',
+              body:
+                  'A coordinator rejected it while you were going. Your '
+                  'location sharing has stopped.',
+            )
+          else
+            LifecycleRail(status: _status),
+          const SizedBox(height: 16),
+          _sharingAlert(over),
+          if (_status == 'en_route') ...[
+            const SizedBox(height: 16),
+            AppButton(
+              'Navigate',
+              run: true,
+              icon: AppIcons.directions,
+              onPressed: _busy ? null : _navigate,
+            ),
+            const SizedBox(height: 10),
+            AppButton.secondary(
+              'Mark arrived',
+              onPressed: _busy ? null : () => _markArrived(area),
+            ),
+          ],
+          const SizedBox(height: 20),
+          SectionHeader(over ? 'What happened' : 'What happens next'),
+          const SizedBox(height: 4),
+          ..._steps(area),
+          if (_crew() case final crew?) ...[
+            const SizedBox(height: 16),
+            const SectionHeader('Your unit'),
+            const SizedBox(height: 12),
+            crew,
+          ],
+          if (_hasActiveDispatch && _onGround) ...[
+            const SizedBox(height: 20),
+            SectionHeader(_fireCrew ? 'Codes to command' : 'Call for help'),
+            const SizedBox(height: 12),
+            ..._codes(area),
+          ],
+          if (over || _status == 'rejected') ...[
+            const SizedBox(height: 20),
+            AppButton.secondary('Back to duty', onPressed: _backToDuty),
+          ],
+        ]),
+      ],
     );
   }
 
-  List<Widget> _escalationsBlock() {
-    if (!_hasActiveDispatch || !_active) return const [];
-    final fireCrew = isFireCrew(widget.agency);
+  Widget _sharingAlert(bool over) {
+    if (over || _status == 'rejected') {
+      return const InlineAlert(
+        tone: AlertTone.success,
+        title: 'Location sharing stopped',
+        body: 'Nothing more is asked of you for this Area.',
+      );
+    }
+    if (!_streaming) {
+      return const InlineAlert(
+        tone: AlertTone.warning,
+        title: 'Your location is not going out',
+        body:
+            'Allow RepLiT to use your location, so command can see you while '
+            'you are on this run.',
+      );
+    }
+    return InlineAlert(
+      title: _status == 'arrived'
+          ? 'Your location is still shared'
+          : 'Your location is shared',
+      body: _status == 'arrived'
+          ? 'It stops on its own when the Captain marks fire out.'
+          : 'Every 5 seconds while you go. It stops when the Captain marks '
+                'fire out.',
+    );
+  }
+
+  /// What happens next on a run (R09), and what has (R10): real times from
+  /// the Area, never an invented one.
+  List<Widget> _steps(AreaView area) {
+    final arrived = area.at('arrived_at');
+    final out = area.at('resolved_at');
+    final closed = _status == 'closed';
+    final filed = area.at('closed_at');
     return [
-      const SizedBox(height: 16),
-      Text(
-        fireCrew ? 'Escalate alarm' : 'Call for help',
-        style: const TextStyle(color: Colors.white, fontSize: 16),
+      ProgressStep(
+        state: arrived == null ? ProgressState.pending : ProgressState.done,
+        title: arrived == null ? 'Arrived' : 'Arrived ${clockText(arrived)}',
+        detail: arrived == null
+            ? 'Marked on its own when you reach the Area, or by you'
+            : 'The Area was marked arrived',
       ),
-      const SizedBox(height: 4),
-      Text(
-        'Broadcast a code to all responding units',
-        style: TextStyle(color: _muted, fontSize: 12),
+      ProgressStep(
+        state: out == null ? ProgressState.pending : ProgressState.done,
+        title: out == null ? 'Fire out' : 'Fire out ${clockText(out)}',
+        detail: 'The Captain calls it on scene',
       ),
-      const SizedBox(height: 12),
-      if (fireCrew) ...[
-        _escalationRow(
-          icon: AppIcons.waterDrop,
-          tint: const Color(0x1E3B82F6),
-          iconColor: context.pal.info,
-          title: 'Need Water',
-          subtitle: 'Request additional water supply',
-          onTap: () => _pressCode('FC-6', 'Need Water'),
-        ),
-        const SizedBox(height: 10),
-      ],
-      _escalationRow(
-        icon: AppIcons.groupAdd,
-        tint: const Color(0x1EF59E0B),
-        iconColor: const Color(0xFFF59E0B),
-        title: 'Need Assistance',
-        subtitle: 'Request backup responders',
-        onTap: () => _pressCode('FC-7', 'Need Assistance'),
+      ProgressStep(
+        state: out == null ? ProgressState.pending : ProgressState.done,
+        title: out == null ? 'Stood down' : 'Stood down ${clockText(out)}',
+        detail: out == null
+            ? 'Location sharing stops'
+            : 'Your location is no longer shared',
       ),
-      if (mayRequestAlarm(widget.agency)) ...[
-        const SizedBox(height: 10),
-        _escalationRow(
-          icon: AppIcons.campaign,
-          tint: const Color(0x23EF4444),
-          iconColor: context.pal.live,
-          title: 'Escalate to BFP',
-          subtitle: 'Request alarm escalation to BFP',
-          onTap: _escalateBfp,
-        ),
-      ],
+      ProgressStep(
+        state: closed ? ProgressState.done : ProgressState.pending,
+        title: closed && filed != null
+            ? 'Post-incident report ${clockText(filed)}'
+            : 'Post-incident report',
+        detail: 'The Captain files it for the whole team — not yours to do',
+      ),
     ];
   }
 
-  Widget _escalationRow({
-    required IconData icon,
-    required Color tint,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: _pressing ? null : onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _rowBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: tint,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: iconColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(color: _muted, fontSize: 11)),
-                ],
-              ),
-            ),
-            Icon(AppIcons.chevronRight, color: _muted, size: 20),
-          ],
-        ),
-      ),
+  /// The unit this responder is on and who crews it, from the dispatches.
+  Widget? _crew() {
+    final mine =
+        _myDispatch ??
+        _dispatches.where((d) => d['responder_id'] == widget.myId).firstOrNull;
+    final vehicle = (mine?['vehicle_name'] as String?)?.trim();
+    if (vehicle == null || vehicle.isEmpty) return null;
+    final crew = _dispatches
+        .where((d) => (d['vehicle_name'] as String?)?.trim() == vehicle)
+        .toList();
+    String? driver;
+    for (final c in crew) {
+      final role = (c['crew_role'] as String?)?.toLowerCase() ?? '';
+      if (role.contains('driver')) {
+        driver = c['responder_name'] as String?;
+        break;
+      }
+    }
+    final kind = _fleetByName[vehicle]?.subtitle ?? 'Fire truck';
+    return ListRow(
+      leading: const IconPlate(AppIcons.fireTruck),
+      title: vehicle,
+      subtitle: [
+        kind,
+        if (driver != null) 'Driver $driver',
+        crew.length == 1 ? '1 on it' : '${crew.length} on it',
+      ].join(' · '),
     );
   }
 
-  Widget _gradientButton(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: _busy ? null : onTap,
-      child: Container(
-        height: 54,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          gradient: AppColors.accentGradient,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: [
-            BoxShadow(
-              color: context.pal.accentTint,
-              blurRadius: 24,
-              offset: Offset(0, 8),
-            ),
-          ],
+  List<Widget> _codes(AreaView area) {
+    final pal = context.pal;
+    Widget code(
+      IconData icon,
+      Color tint,
+      String title,
+      String subtitle,
+      VoidCallback onTap,
+    ) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListRow(
+        leading: IconPlate(icon, tint: tint),
+        title: title,
+        subtitle: subtitle,
+        chevron: true,
+        onTap: _pressing ? null : onTap,
+      ),
+    );
+    return [
+      if (_fireCrew)
+        code(
+          AppIcons.waterDrop,
+          pal.water,
+          'Need water',
+          'More water supply to this Area',
+          () => _pressCode('FC-6', 'Need water'),
         ),
-        child: _busy
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.accentText,
-                ),
-              )
-            : Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.accentText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                ),
-              ),
+      code(
+        AppIcons.groupAdd,
+        pal.warn,
+        'Need assistance',
+        'Backup responders to this Area',
+        () => _pressCode('FC-7', 'Need assistance'),
       ),
-    );
-  }
-
-  Widget _infoBox(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.pal.glass,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: context.pal.line),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: context.pal.muted, size: 18),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: context.pal.muted,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _fireOutButton() {
-    final enabled = _hasActiveDispatch && _status == 'arrived' && !_pressing;
-    return Opacity(
-      opacity: enabled ? 1 : 0.4,
-      child: GestureDetector(
-        onTap: enabled ? _requestFireOut : null,
-        child: Container(
-          height: 56,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: AppColors.accentGradient,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            boxShadow: [
-              BoxShadow(
-                color: context.pal.accentTint,
-                blurRadius: 32,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Text(
-            'REQUEST FIRE OUT',
-            style: TextStyle(
-              color: AppColors.accentText,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.6,
-            ),
-          ),
+      if (mayRequestAlarm(widget.agency))
+        code(
+          AppIcons.campaign,
+          pal.live,
+          'Escalate to BFP',
+          'Ask BFP to raise the alarm',
+          () => _escalateBfp(area),
         ),
-      ),
-    );
+      // Fire out is the Captain's to mark; a crew on scene tells command.
+      if (_fireCrew && _status == 'arrived')
+        code(
+          AppIcons.flag,
+          pal.ok,
+          'Fire is out',
+          'Tell command — the Captain marks it',
+          () => _pressCode('FC-3', 'Fire out'),
+        ),
+    ];
   }
 }

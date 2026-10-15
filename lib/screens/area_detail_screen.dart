@@ -12,6 +12,7 @@ import '../location/sos_location.dart';
 import '../models/resident_status.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import 'live_update_screen.dart';
@@ -300,13 +301,10 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
           MapTiles.layer(light: context.pal.isLight),
           CircleLayer(
             circles: [
-              CircleMarker(
-                point: c,
-                radius: kClusterRadiusMetres,
-                useRadiusInMeter: true,
-                color: context.pal.live.withValues(alpha: 0.08),
-                borderColor: context.pal.live.withValues(alpha: 0.45),
-                borderStrokeWidth: 1,
+              MapAreas.incidentRadius(
+                context.pal,
+                c,
+                metres: kClusterRadiusMetres,
               ),
             ],
           ),

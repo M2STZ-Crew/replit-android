@@ -163,7 +163,6 @@ class _ProfileTabState extends State<ProfileTab> {
                         'Any agency can accept. Only Fire Volunteer and BFP '
                         'can reject.',
                     chevron: true,
-                    edge: pal.accent,
                     onTap: () => _push(PermissionsScreen(me: _me)),
                   ),
                   const SizedBox(height: 16),
@@ -274,7 +273,6 @@ class PermissionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pal = context.pal;
     final bfp = me['agency_type'] == 'bfp';
     final can = <(String, String)>[
       (
@@ -304,58 +302,11 @@ class PermissionsScreen extends StatelessWidget {
       ('Edit a filed report', 'A post-incident report saves once'),
       ('Reopen a rejected Area', 'It has left the live feed for good'),
     ];
-    Widget row((String, String) item, {required bool allowed}) => Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Opacity(
-        opacity: allowed ? 1 : 0.6,
-        child: ListRow(
-          leading: IconPlate(
-            allowed ? AppIcons.check : AppIcons.close,
-            tint: allowed ? pal.ok : pal.live,
-          ),
-          title: item.$1,
-          subtitle: item.$2,
-        ),
-      ),
-    );
-    return Scaffold(
-      backgroundColor: pal.background,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            DetailHeader(
-              eyebrow:
-                  'Coordinator · ${responderAgencyLabel(me['agency_type'] as String?)}',
-              title: 'What you can do',
-              subtitle:
-                  'The server enforces these rules. This screen only mirrors '
-                  'them.',
-            ),
-            Expanded(
-              child: ScrollFade(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    24,
-                    8,
-                    24,
-                    kScrollFadeEndPadding,
-                  ),
-                  children: [
-                    const SectionHeader('You can'),
-                    const SizedBox(height: 12),
-                    for (final c in can) row(c, allowed: true),
-                    const SizedBox(height: 8),
-                    const SectionHeader("You can't"),
-                    const SizedBox(height: 12),
-                    for (final c in cannot) row(c, allowed: false),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return CapabilitiesScreen(
+      eyebrow:
+          'Coordinator · ${responderAgencyLabel(me['agency_type'] as String?)}',
+      can: can,
+      cannot: cannot,
     );
   }
 }

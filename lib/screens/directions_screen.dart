@@ -22,6 +22,7 @@ import '../widgets/design.dart';
 import '../widgets/maneuver_arrow.dart';
 import '../widgets/map_glass.dart';
 import '../widgets/map_marker.dart';
+import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/you_are_here.dart';
 
@@ -443,13 +444,10 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 if (_toFire)
                   CircleLayer(
                     circles: [
-                      CircleMarker(
-                        point: _nav.destination,
-                        radius: kAreaRadiusMetres,
-                        useRadiusInMeter: true,
-                        color: context.pal.live.withValues(alpha: 0.10),
-                        borderColor: context.pal.live,
-                        borderStrokeWidth: 1,
+                      MapAreas.incidentRadius(
+                        context.pal,
+                        _nav.destination,
+                        metres: kAreaRadiusMetres,
                       ),
                     ],
                   ),

@@ -837,7 +837,7 @@ class SummaryCard extends StatelessWidget {
 /// A tappable row on a card (List item). The whole row is the target, at
 /// least 56px tall. Leading takes an [IconPlate] or [AgencyPlate]; trailing a
 /// chevron (opens detail), a value, or a switch.
-class ListRow extends StatelessWidget {
+class ListRow extends StatefulWidget {
   const ListRow({
     super.key,
     required this.title,
@@ -846,7 +846,6 @@ class ListRow extends StatelessWidget {
     this.trailing,
     this.chevron = false,
     this.onTap,
-    this.edge,
   });
 
   final String title;
@@ -856,71 +855,125 @@ class ListRow extends StatelessWidget {
   final bool chevron;
   final VoidCallback? onTap;
 
-  /// A coloured edge in place of the hairline, for a row that is the point
-  /// of its screen.
-  final Color? edge;
+  @override
+  State<ListRow> createState() => _ListRowState();
+}
+
+/// A row's states (COMPONENTS: List item): hover and pressed are the token
+/// overlays over the same fill; focus from a keyboard or switch is a ring
+/// outside the row, never a fill that could be mistaken for a selection.
+///
+/// A row has no emphasis edge. The coral 1.5 px edge is how the app draws
+/// selected and focused, so an idle row that wore one ("You can accept and
+/// reject" on the coordinator's Profile) read as pressed.
+class _ListRowState extends State<ListRow> {
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    FocusManager.instance.addHighlightModeListener(_onHighlightMode);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeHighlightModeListener(_onHighlightMode);
+    super.dispose();
+  }
+
+  /// A touch after a keyboard hides the ring at once, focus or not.
+  void _onHighlightMode(FocusHighlightMode _) {
+    if (_focused && mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
     final shape = BorderRadius.circular(AppRadius.card);
-    return Material(
-      color: Colors.transparent,
-      borderRadius: shape,
-      child: InkWell(
+    final title = widget.title;
+    final subtitle = widget.subtitle;
+    final leading = widget.leading;
+    final trailing = widget.trailing;
+    final chevron = widget.chevron;
+    final ring =
+        _focused &&
+        FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+    return Container(
+      // The ring sits 3 px outside the row, so focus never moves the layout.
+      foregroundDecoration: ring
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card + 3),
+              border: Border.all(
+                color: pal.focusRing,
+                width: 2,
+                strokeAlign: BorderSide.strokeAlignOutside,
+              ),
+            )
+          : null,
+      child: Material(
+        color: Colors.transparent,
         borderRadius: shape,
-        onTap: onTap,
-        highlightColor: pal.pressed,
-        splashColor: pal.pressed,
-        child: Ink(
-          decoration: BoxDecoration(
-            color: pal.surface,
-            borderRadius: shape,
-            border: Border.all(
-              color: edge ?? pal.line,
-              width: edge == null ? 1 : 1.5,
+        child: InkWell(
+          borderRadius: shape,
+          onTap: widget.onTap,
+          onFocusChange: (on) => setState(() => _focused = on),
+          hoverColor: pal.hover,
+          highlightColor: pal.pressed,
+          splashColor: pal.pressed,
+          focusColor: Colors.transparent,
+          child: Ink(
+            decoration: BoxDecoration(
+              color: pal.surface,
+              borderRadius: shape,
+              border: Border.all(color: pal.line),
             ),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 56),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  if (leading != null) ...[leading!, const SizedBox(width: 12)],
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.type.listTitle,
-                        ),
-                        if (subtitle != null) ...[
-                          const SizedBox(height: 2),
-                          Text(subtitle!, style: context.type.bodySm),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 56),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    if (leading != null) ...[
+                      leading,
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.type.listTitle,
+                          ),
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(subtitle, style: context.type.bodySm),
+                          ],
                         ],
-                      ],
-                    ),
-                  ),
-                  if (trailing != null) ...[
-                    const SizedBox(width: 12),
-                    trailing!,
-                  ],
-                  if (chevron) ...[
-                    const SizedBox(width: 12),
-                    ExcludeSemantics(
-                      child: Icon(
-                        AppIcons.chevronRight,
-                        size: 20,
-                        color: pal.label,
                       ),
                     ),
+                    if (trailing != null) ...[
+                      const SizedBox(width: 12),
+                      trailing,
+                    ],
+                    if (chevron) ...[
+                      const SizedBox(width: 12),
+                      ExcludeSemantics(
+                        child: Icon(
+                          AppIcons.chevronRight,
+                          size: 20,
+                          color: pal.label,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -1276,6 +1329,167 @@ class PickChip extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// How far along one step of a real server process is (Progress step).
+enum ProgressState { done, current, pending }
+
+/// One step of a process (Progress step): a green check when done, a
+/// spinner while under way, an empty ring when it has not happened — with
+/// its name and a line on what it means. The server's work after a report
+/// is filed (C14); what happens next on a run (R09, R10).
+class ProgressStep extends StatelessWidget {
+  const ProgressStep({
+    super.key,
+    required this.state,
+    required this.title,
+    this.detail,
+  });
+
+  final ProgressState state;
+  final String title;
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final word = switch (state) {
+      ProgressState.done => 'done',
+      ProgressState.current => 'under way',
+      ProgressState.pending => 'not under way',
+    };
+    return Semantics(
+      label: '$title, $word${detail == null ? '' : '. $detail'}',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox.square(
+              dimension: 24,
+              child: switch (state) {
+                ProgressState.done => DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: pal.ok,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    AppIcons.check,
+                    size: 16,
+                    color: AppColors.background,
+                  ),
+                ),
+                ProgressState.current => Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: pal.accent,
+                    // Still under reduced motion; the words carry the state.
+                    value: Motion.of(context).reduced ? 0.3 : null,
+                  ),
+                ),
+                ProgressState.pending => DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: pal.lineStrong, width: 1.5),
+                  ),
+                ),
+              },
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: context.type.listTitle),
+                  if (detail != null) ...[
+                    const SizedBox(height: 2),
+                    Text(detail!, style: context.type.bodySm),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What a staff member may do (06 · C15b, 07 · R14): what they can, and what
+/// they cannot, each with who or what decides. The server enforces every
+/// line; the screen only mirrors it, so it never promises more.
+class CapabilitiesScreen extends StatelessWidget {
+  const CapabilitiesScreen({
+    super.key,
+    required this.eyebrow,
+    required this.can,
+    required this.cannot,
+  });
+
+  final String eyebrow;
+
+  /// (what, how or who decides) pairs.
+  final List<(String, String)> can;
+  final List<(String, String)> cannot;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    Widget row((String, String) item, {required bool allowed}) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Opacity(
+        opacity: allowed ? 1 : 0.6,
+        child: ListRow(
+          leading: IconPlate(
+            allowed ? AppIcons.check : AppIcons.close,
+            tint: allowed ? pal.ok : pal.live,
+          ),
+          title: item.$1,
+          subtitle: item.$2,
+        ),
+      ),
+    );
+    return Scaffold(
+      backgroundColor: pal.background,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DetailHeader(
+              eyebrow: eyebrow,
+              title: 'What you can do',
+              subtitle:
+                  'The server enforces these rules. This screen only mirrors '
+                  'them.',
+            ),
+            Expanded(
+              child: ScrollFade(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    8,
+                    24,
+                    kScrollFadeEndPadding,
+                  ),
+                  children: [
+                    const SectionHeader('You can'),
+                    const SizedBox(height: 12),
+                    for (final c in can) row(c, allowed: true),
+                    const SizedBox(height: 8),
+                    const SectionHeader("You can't"),
+                    const SizedBox(height: 12),
+                    for (final c in cannot) row(c, allowed: false),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

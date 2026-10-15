@@ -27,6 +27,21 @@ enum MapMarkerKind {
 
   /// What a screen reader calls it, before the place's own name.
   final String noun;
+
+  /// The category's colour in the legend and on the ground: a layer chip's
+  /// dot, wash and edge, and the area a layer draws (MapAreas). The bright
+  /// ink, where [surface] is the 700 step a white glyph sits on. Incident is
+  /// the fire's coral and a risk zone red, on every role's map.
+  Color tone(AppPalette pal) => switch (this) {
+    incident => pal.accentInk,
+    risk => pal.live,
+    hydrant || water || cistern => pal.water,
+    shelter => pal.ok,
+    police => pal.police,
+    medical => pal.medical,
+    barangay => pal.barangay,
+    unit => pal.muted,
+  };
 }
 
 /// One map point, in the archive MAP | ELEMENTS shape: a rounded square in
@@ -120,6 +135,26 @@ class MapMarker extends StatelessWidget {
           child: Opacity(opacity: dimmed ? 0.5 : 1, child: body),
         ),
       ),
+    );
+  }
+}
+
+/// The corner sign on a shelter outside Pasay (§2.4): an outward arrow on
+/// the shelter green, so the trip's length reads before the name does.
+class OutsidePasayBadge extends StatelessWidget {
+  const OutsidePasayBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 14,
+      height: 14,
+      decoration: BoxDecoration(
+        color: context.pal.ok,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.background, width: 1.5),
+      ),
+      child: Icon(AppIcons.northEast, size: 9, color: AppColors.background),
     );
   }
 }

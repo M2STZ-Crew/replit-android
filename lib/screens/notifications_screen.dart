@@ -27,10 +27,19 @@ typedef NotificationOpener =
 /// anything unread, glass for everything already seen, and the same uppercase
 /// headings as the rest of the app.
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key, this.api, this.opener});
+  const NotificationsScreen({
+    super.key,
+    this.api,
+    this.opener,
+    this.asTab = false,
+  });
 
   final ApiClient? api;
   final NotificationOpener? opener;
+
+  /// A tab on a bottom bar (the responder's Alerts): nothing sits under it,
+  /// so it has no Back.
+  final bool asTab;
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -175,6 +184,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: ScreenHeader(
                 eyebrow: unread == 0 ? 'Nothing unread' : '$unread unread',
                 title: 'Alerts',
+                showBack: !widget.asTab,
                 trailing: unread == 0
                     ? null
                     : GestureDetector(

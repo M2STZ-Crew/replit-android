@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -20,6 +19,7 @@ import '../widgets/design.dart';
 import '../widgets/drag_down_sheet.dart';
 import '../widgets/map_coach_marks.dart';
 import '../widgets/map_glass.dart';
+import '../widgets/map_layers.dart';
 import '../widgets/map_marker.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
@@ -69,12 +69,9 @@ class _Layer {
     _Tone.incident => MapMarkerKind.incident,
   };
 
-  Color colour(AppPalette pal) => switch (tone) {
-    _Tone.incident => pal.accentInk,
-    _Tone.shelter => pal.ok,
-    _Tone.hydrant || _Tone.water || _Tone.cistern => pal.water,
-    _Tone.risk => pal.live,
-  };
+  /// The shared legend tone (MapMarkerKind.tone), so this map and the staff
+  /// maps draw each category in one colour.
+  Color colour(AppPalette pal) => markerKind.tone(pal);
 
   /// The eyebrow on this layer's detail sheet.
   final String tag;
@@ -741,7 +738,13 @@ class _MapScreenState extends State<MapScreen> {
       ),
       children: [
         MapTiles.layer(light: context.pal.isLight),
-        if (_on.contains('risk')) PolygonLayer(polygons: _riskPolygons()),
+        if (_on.contains('risk'))
+          PolygonLayer(
+            polygons: [
+              for (final r in _gis['risk'] ?? const <Map<String, dynamic>>[])
+                ...MapAreas.riskZone(context.pal, r['area_geojson']),
+            ],
+          ),
         MarkerLayer(rotate: true, markers: _markers()),
         YouAreHereLayer(follow: _follow),
         MapLocationButtons(
@@ -771,7 +774,7 @@ class _MapScreenState extends State<MapScreen> {
               // A shelter that is not open still marks the place, dimmed.
               dimmed: s['is_active'] == false,
               badge: s['outside_pasay'] == true
-                  ? const _OutsidePasayBadge()
+                  ? const OutsidePasayBadge()
                   : null,
               onTap: () => _showEvacSheet(s),
             ),
@@ -830,44 +833,6 @@ class _MapScreenState extends State<MapScreen> {
 
     // "You are here" is YouAreHereLayer's: it also shows which way you face.
     return markers;
-  }
-
-  List<Polygon> _riskPolygons() => [
-    for (final r in _gis['risk'] ?? const <Map<String, dynamic>>[])
-      for (final shape in _shapes(r['area_geojson']))
-        Polygon(
-          points: shape.outer,
-          holePointsList: shape.holes,
-          color: context.pal.live.withValues(alpha: 0.08),
-          borderColor: context.pal.live.withValues(alpha: 0.45),
-          borderStrokeWidth: 1,
-        ),
-  ];
-
-  /// Polygon and MultiPolygon GeoJSON, as the server's ST_AsGeoJSON sends it.
-  static List<({List<LatLng> outer, List<List<LatLng>> holes})> _shapes(
-    Object? geojson,
-  ) {
-    try {
-      final g = geojson is String ? jsonDecode(geojson) : geojson;
-      if (g is! Map) return const [];
-      final coords = g['coordinates'] as List;
-      final polygons = switch (g['type']) {
-        'Polygon' => [coords],
-        'MultiPolygon' => coords,
-        _ => const <dynamic>[],
-      };
-      List<LatLng> ring(dynamic r) => [
-        for (final c in r as List)
-          LatLng(((c as List)[1] as num).toDouble(), (c[0] as num).toDouble()),
-      ];
-      return [
-        for (final p in polygons.cast<List>())
-          (outer: ring(p.first), holes: [for (final h in p.skip(1)) ring(h)]),
-      ];
-    } catch (_) {
-      return const [];
-    }
   }
 
   // --------------------------------------------------------- top overlay ---
@@ -953,10 +918,8 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  /// The Map layer chips (04 · pass 2): a 36 px pill in a 44 px target. A
-  /// layer that is on is washed in its colour at 10 %, edged in it and
-  /// checked, so "on" never rests on colour alone; one that is off is plain
-  /// glass with its colour dot.
+  /// The Map layer chips (04 · pass 2) — the shared [MapLayerChip], so the
+  /// staff maps' legends read the same.
   Widget _chips() {
     return SizedBox(
       height: 44,
@@ -966,59 +929,11 @@ class _MapScreenState extends State<MapScreen> {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final layer = _layers[i];
-          final on = _on.contains(layer.key);
-          return Semantics(
-            button: true,
-            toggled: on,
+          return MapLayerChip(
             label: layer.label,
-            excludeSemantics: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _toggle(layer),
-              child: Center(
-                child: _Glass(
-                  radius: AppRadius.chip,
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  // DAWI "MAP | LEGENDS": a layer that is on is washed in its
-                  // colour at 10% and edged in it; one that is off is the
-                  // plain glass. The label stays light either way.
-                  color: on
-                      ? layer.colour(context.pal).withValues(alpha: 0.1)
-                      : MapGlass.glass(context),
-                  edge: on ? layer.colour(context.pal) : context.pal.line,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (on)
-                        Icon(
-                          AppIcons.check,
-                          size: 14,
-                          color: layer.colour(context.pal),
-                        )
-                      else
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: layer.colour(context.pal),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      const SizedBox(width: 6),
-                      Text(
-                        layer.label.toUpperCase(),
-                        style: context.type.eyebrow.copyWith(
-                          color: on
-                              ? context.pal.onBackground
-                              : context.pal.label,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            tone: layer.colour(context.pal),
+            on: _on.contains(layer.key),
+            onTap: () => _toggle(layer),
           );
         },
       ),
@@ -1676,24 +1591,6 @@ class _Vignette extends StatelessWidget {
 /// the light basemap.
 /// The corner sign on a shelter outside Pasay (PRD §4.4: such sites are
 /// drawn with a distinct marker).
-class _OutsidePasayBadge extends StatelessWidget {
-  const _OutsidePasayBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        color: context.pal.ok,
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.background, width: 1.5),
-      ),
-      child: Icon(AppIcons.northEast, size: 9, color: AppColors.background),
-    );
-  }
-}
-
 /// An Area still being responded to: its marker pulses.
 bool _isLive(String? status) =>
     const {'reported', 'verified', 'en_route', 'arrived'}.contains(status);

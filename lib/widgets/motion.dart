@@ -83,7 +83,13 @@ class _PressableState extends State<Pressable> {
   @override
   Widget build(BuildContext context) {
     final motion = Motion.of(context);
-    if (!widget.enabled || motion.reduced) return widget.child;
+    if (!widget.enabled || motion.reduced) {
+      // A control disabled mid-press (busy while it saves) loses its
+      // Listener, so the pointer's release never arrives. Let the press go
+      // here, or the control comes back scaled down: pressed while idle.
+      _down = false;
+      return widget.child;
+    }
     return Listener(
       onPointerDown: (_) => _set(true),
       onPointerUp: (_) => _set(false),

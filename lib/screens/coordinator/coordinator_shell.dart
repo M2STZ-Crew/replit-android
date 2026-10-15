@@ -152,7 +152,6 @@ class CoordinatorShellState extends State<CoordinatorShell> {
         bottomNavigationBar: NavBarShell(
           disc: 'LIVE',
           discLabel: 'Live — the incident under way',
-          discGlow: false,
           discActive: _tab == CoordinatorTab.live,
           onDisc: () => show(CoordinatorTab.live),
           items: [

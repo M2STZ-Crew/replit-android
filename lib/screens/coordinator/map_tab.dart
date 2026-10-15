@@ -9,6 +9,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../../widgets/map_glass.dart';
 import '../../widgets/map_marker.dart';
+import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/ops_layers.dart';
 import '../../widgets/you_are_here.dart';
@@ -121,16 +122,6 @@ class _MapTabState extends State<MapTab> {
     await widget.feed.load();
   }
 
-  /// Which marker a layer's points wear; null keeps the small dot.
-  static MapMarkerKind? _kind(String key) => switch (key) {
-    'evac' => MapMarkerKind.shelter,
-    'risk' => MapMarkerKind.risk,
-    'hydrants' => MapMarkerKind.hydrant,
-    'water' => MapMarkerKind.water,
-    'cisterns' => MapMarkerKind.cistern,
-    _ => null,
-  };
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -167,19 +158,12 @@ class _MapTabState extends State<MapTab> {
   }
 
   Widget _map(List<AreaView> areas) {
+    final pal = context.pal;
     final markers = <Marker>[
       for (final layer in _layers)
         if (layer.key != 'incidents' && _on.contains(layer.key))
           for (final p in _cache[layer.key] ?? const <OpsPoint>[])
-            switch (_kind(layer.key)) {
-              final kind? => Marker(
-                point: p.point,
-                width: MapMarker.target,
-                height: MapMarker.target,
-                child: MapMarker(kind: kind, label: layer.label),
-              ),
-              null => opsMarker(layer, p),
-            },
+            opsMarker(pal, layer, p),
       if (_on.contains('incidents'))
         for (final a in areas)
           if (a.centre != null)
@@ -204,19 +188,25 @@ class _MapTabState extends State<MapTab> {
         onMapEvent: _follow.onMapEvent,
       ),
       children: [
-        MapTiles.layer(light: context.pal.isLight),
+        MapTiles.layer(light: pal.isLight),
+        // Risk zones in red, as on the resident's map; the marker is the
+        // zone's handle.
+        if (_on.contains('risk'))
+          PolygonLayer(
+            polygons: [
+              for (final p in _cache['risk'] ?? const <OpsPoint>[])
+                ...MapAreas.riskZone(pal, p.area),
+            ],
+          ),
         if (_on.contains('incidents'))
           CircleLayer(
             circles: [
               for (final a in areas)
                 if (a.centre != null)
-                  CircleMarker(
-                    point: a.centre!,
-                    radius: kAreaRadiusMetres,
-                    useRadiusInMeter: true,
-                    color: context.pal.live.withValues(alpha: 0.10),
-                    borderColor: context.pal.live,
-                    borderStrokeWidth: 1,
+                  MapAreas.incidentRadius(
+                    pal,
+                    a.centre!,
+                    metres: kAreaRadiusMetres,
                   ),
             ],
           ),
@@ -243,9 +233,9 @@ class _MapTabState extends State<MapTab> {
       separatorBuilder: (_, _) => const SizedBox(width: 8),
       itemBuilder: (_, i) {
         final layer = _layers[i];
-        return _LayerChip(
+        return MapLayerChip(
           label: _chipLabel(layer),
-          tone: layer.key == 'incidents' ? context.pal.accent : layer.color,
+          tone: layer.colour(context.pal),
           on: _on.contains(layer.key),
           onTap: () => _toggle(layer),
         );
@@ -428,74 +418,6 @@ class _Standing extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// A map layer chip: the layer's tone on its edge and a check while it is
-/// on; a dot in the tone while it is off. Glass, over the map.
-class _LayerChip extends StatelessWidget {
-  const _LayerChip({
-    required this.label,
-    required this.tone,
-    required this.on,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color tone;
-  final bool on;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final shape = BorderRadius.circular(AppRadius.chip);
-    return Semantics(
-      button: true,
-      toggled: on,
-      label: '$label layer',
-      excludeSemantics: true,
-      onTap: onTap,
-      child: Center(
-        child: Material(
-          color: MapGlass.strong(context),
-          borderRadius: shape,
-          child: InkWell(
-            borderRadius: shape,
-            onTap: onTap,
-            child: AnimatedContainer(
-              duration: Motion.of(context).state,
-              height: 36,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                borderRadius: shape,
-                border: Border.all(
-                  color: on ? tone : context.pal.line,
-                  width: on ? 1.5 : 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (on)
-                    Icon(AppIcons.check, size: 14, color: tone)
-                  else
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: tone,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  Eyebrow(label, color: context.pal.onBackground),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -15,6 +15,7 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../../widgets/map_marker.dart';
+import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/you_are_here.dart';
 import '../bfp/bfp_alarm_requests_screen.dart';
@@ -581,13 +582,10 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         MapTiles.layer(light: context.pal.isLight),
         CircleLayer(
           circles: [
-            CircleMarker(
-              point: centre,
-              radius: kAreaRadiusMetres,
-              useRadiusInMeter: true,
-              color: context.pal.live.withValues(alpha: 0.10),
-              borderColor: context.pal.live,
-              borderStrokeWidth: 1,
+            MapAreas.incidentRadius(
+              context.pal,
+              centre,
+              metres: kAreaRadiusMetres,
             ),
           ],
         ),

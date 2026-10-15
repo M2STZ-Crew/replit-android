@@ -5,12 +5,13 @@ import 'package:latlong2/latlong.dart';
 import '../theme.dart';
 import 'coordinator_kit.dart';
 import 'map_marker.dart';
+import 'map_layers.dart';
 import 'map_tiles.dart';
 import 'you_are_here.dart';
 
 /// The map extract on an Area's detail (06 · C04, C07): each Area's centre as
-/// a selected incident marker inside its 300 m radius (Area radius: the tone
-/// at 10 % with a 1 px tone outline), framed to fit. A real map: it pans,
+/// a selected incident marker inside its 300 m radius (the shared incident
+/// radius, [MapAreas.incidentRadius]), framed to fit. A real map: it pans,
 /// zooms and turns like every other map in the app, shows where you are, and
 /// its location button finds you.
 class AreaMapPreview extends StatefulWidget {
@@ -56,7 +57,6 @@ class _AreaMapPreviewState extends State<AreaMapPreview> {
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
-    final tone = pal.live;
     final centres = widget.centres;
     return Container(
       height: widget.height,
@@ -84,13 +84,10 @@ class _AreaMapPreviewState extends State<AreaMapPreview> {
                 CircleLayer(
                   circles: [
                     for (final c in centres)
-                      CircleMarker(
-                        point: c,
-                        radius: kAreaRadiusMetres,
-                        useRadiusInMeter: true,
-                        color: tone.withValues(alpha: 0.10),
-                        borderColor: tone,
-                        borderStrokeWidth: 1,
+                      MapAreas.incidentRadius(
+                        pal,
+                        c,
+                        metres: kAreaRadiusMetres,
                       ),
                   ],
                 ),

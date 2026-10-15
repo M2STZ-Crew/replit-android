@@ -150,26 +150,32 @@ fade the app draws is `IgnorePointer`.
 
 ### Responder (07)
 
-Same console as the coordinator; Figma's Duty · Map · RUN · Runs · Profile
-bar is deferred with it.
+Since v1.12.17 the responder has the Responder app: `ResponderShell` with
+the Duty · Map · RUN · Alerts · Profile bar — the same `NavBarShell` and disc
+as the resident's SOS and the coordinator's LIVE. Figma's fourth tab, Runs
+(R12), needs a list of a responder's past runs that no endpoint gives; it
+stays on standby, and Alerts (the inbox the old console reached from the
+bell) holds the slot. The old dashboard, "My duty", the responder incident
+list and the old report view are gone; each one's information and actions
+moved to the screens below.
 
-| Screen | Figma | App source · data | Status | Action in this change | Validation |
+| Screen | Figma | App source · data | Status | Notes | Validation |
 |---|---|---|---|---|---|
-| R01 Duty · needs a unit | `390:3` | `responder_duty_screen.dart` · `GET /incidents`, stats | PARTIAL | Scroll fade, lifecycle chips. No "needs a unit" alert (Q3) | `responder_duty_test` (1.0×, 1.5×) |
-| R02 Duty · nothing waiting | `390:185` | duty and home empty states | READY | Shared | `responder_test` |
-| R03 Area brief | `390:280` | `responder_incident_screen.dart` · `GET /incidents/{id}` | PARTIAL | Shared | `responder_test` |
-| R04 I am going · confirm | `390:393` | `selfDispatch` | READY | Dialog timing and scrim | `responder_test` |
-| R05 Route choice | `391:376` | — | STANDBY | — | — |
-| R05b Routes failed | `391:453` | — | STANDBY | — | — |
-| R06 Navigation · en route | `391:513` | `directions_screen.dart` | PARTIAL | Shared. No maneuver banner or voice | `directions_live_test` |
-| R07 Navigation · GPS lost | `391:583` | `directions_screen.dart` | PARTIAL | Shared; the GPS-lost state was not checked in this pass | — |
-| R08 Mark arrived · confirm | `391:648` | `markArrived` | READY | Dialog timing and scrim | `responder_test` |
-| R09 On scene | `392:592` | `responder_incident_screen.dart` | PARTIAL | Shared | `responder_test` |
-| R10 Stood down | `392:718` | `responder_incident_screen.dart` | PARTIAL | Shared | `responder_test` |
-| R11 Field map | `392:838` | `responder_home_screen.dart` live map | PARTIAL | Shared map glass and controls | `responder_test` |
-| R12 Runs | `392:1010` | — (the incident list is not a run history) | STANDBY | — | — |
-| R13 Profile | `394:996` | — | STANDBY | — | — |
-| R14 What you can do | `394:1146` | — | STANDBY | — | — |
+| R01 Duty · needs a unit | `390:3` | `duty_tab.dart` · `GET /incidents`, `/incidents/stats` | READY | Area cards say "Area 1.2" where Figma names an incident type: the API has no type. The old dashboard's counters stay, under "Pasay now" | `responder_app_test` |
+| R02 Duty · nothing waiting | `390:185` | `duty_tab.dart` | PARTIAL | "Last run" needs a responder's run history (no endpoint); the run of this session shows as "Your run" | `responder_app_test` |
+| R03 Area brief | `390:280` | `responder_incident_screen.dart` · `GET /incidents/{id}`, `/reports` | READY | Title is the street (no incident type). Reports opens every report; "Verify, without going" keeps the old Verify on a Reported Area | `responder_app_test` |
+| R04 I am going · confirm | `390:393` | `verifyIncident` (if Reported), `selfDispatch` | READY | Then straight to the route choice | `responder_app_test` |
+| R05 Route choice | `391:376` | `directions_screen.dart` (C09, shared) | READY | Fastest and shortest | `directions_live_test` |
+| R05b Routes failed | `391:453` | `directions_screen.dart` | PARTIAL | Shared error state; not re-checked against R05b | `directions_live_test` |
+| R06 Navigation · en route | `391:513` | `directions_screen.dart` (C10, shared) | READY | Maneuver banner and voice; arriving ends navigation and marks arrived | `directions_live_test` |
+| R07 Navigation · GPS lost | `391:583` | `directions_screen.dart` | PARTIAL | Not re-checked in this change | — |
+| R08 Mark arrived · confirm | `391:648` | `markArrived` | READY | Sheet | `responder_app_test` |
+| R09 On scene | `392:592` | `responder_incident_screen.dart` (RUN) | READY | What happens next from real times. The codes (Need water, Need assistance, Escalate to BFP, Fire is out) stay | `responder_app_test` |
+| R10 Stood down | `392:718` | `responder_incident_screen.dart` (RUN) | READY | "Capt. R. Alonzo" is "the Captain": the API does not name the captain | `responder_app_test` |
+| R11 Field map | `392:838` | `field_map_tab.dart` | READY | Shared legend (`MapLayerChip`, `MapAreas`); "Around you" lists hydrants, shelters, water and cisterns within 500 m of the phone | `responder_app_test` |
+| R12 Runs | `392:1010` | — | STANDBY | No endpoint lists a responder's past runs | — |
+| R13 Profile | `394:996` | `responder_profile_tab.dart` | PARTIAL | "Affiliate registration" needs its URL (standby) | `responder_app_test` |
+| R14 What you can do | `394:1146` | `CapabilitiesScreen` (shared with C15b) | READY | Mirrors the server's rules | `responder_app_test` |
 
 ## Standby backlog
 
@@ -183,18 +189,18 @@ Nothing below has a route, a placeholder or a fake answer in the app.
 | 06 · C07 Merge or keep separate | A merge endpoint in the client | The backend exposes merge to coordinators |
 | 06 · C09, 07 · R05, R05b Route choice | Up to three truck-passable routes and `POST /routes/choose` (work on branch `feat/turn-by-turn`, not merged) | That work lands |
 | 06 · C10, 07 · R06 maneuver banner and voice | Turn-by-turn instructions and text-to-speech | As above |
-| 06 · C15, C15b, C16 and 07 · R13, R14 Profile, "What you can do", "My decisions" | A staff profile screen and an audit-log endpoint for one's own decisions | The staff bottom nav is approved (conflict 1) and the endpoint exists |
-| 07 · R12 Runs | An endpoint for a responder's own past runs | The backend lists them |
+| 07 · R12 Runs, and R02's "Last run" | An endpoint for a responder's own past runs | The backend lists them; Runs then takes the fourth tab back from Alerts |
+| 07 · R13 "Affiliate registration" | An affiliate registration URL | The URL exists and is set at build time |
 | Coordinator counted queue segments (C01–C03) and staff bottom navigation | A product decision (conflict 1) | Decided |
 
 ## Conflicts and intentional differences
 
-1. **Staff navigation.** Figma 06/07 give coordinators and responders a
-   bottom nav. The app replaced the responder's bar with one shared console
-   in v1.12.3 because the bar sent responders to the citizen profile and
-   changed navigation on the Map tab. Rebuilding staff navigation is a
-   product decision, so it is deferred; every staff screen still gets the
-   new visual system.
+1. **Staff navigation.** Resolved. Coordinators (v1.12.10) and responders
+   (v1.12.17) have their Figma bars on the one `NavBarShell`; the old
+   console's problems (a bar that sent responders to the citizen profile)
+   do not recur because each role's tabs are its own. The disc in the middle
+   is one object for SOS, LIVE and RUN, glow included: the PRD §4.7.1 rule
+   that only SOS glows gave way to the direction that all three match.
 2. **Responding trucks on a citizen's live tracking.** PRD §4.4 and the
    Figma audit (F1) leave responding units off citizen screens. The app's
    Track It Live shows them to the reporter, which the backend allows

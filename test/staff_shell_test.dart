@@ -72,20 +72,23 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a responder: the RESPONDER tag and the responder menu', (
-    tester,
-  ) async {
+  testWidgets('a responder: the RESPONDER tag, and none of the coordinator '
+      'sections', (tester) async {
     await pump(tester, responder);
     expect(tester.takeException(), isNull);
     expect(find.text('DASHBOARD'), findsOneWidget);
     expect(find.text('Responder'), findsOneWidget);
     expect(find.text('Coordinator'), findsNothing);
 
+    // Responders work from their own bar (07): Duty, Map, RUN, Alerts,
+    // Profile. The console's responder sections went with the old dashboard.
     await openMenu(tester);
     expect(find.text('M. Bautista'), findsOneWidget);
-    for (final item in ['Dashboard', 'Incidents', 'My duty', 'Log out']) {
+    for (final item in ['Dashboard', 'Log out']) {
       expect(find.text(item), findsOneWidget, reason: item);
     }
+    expect(find.text('My duty'), findsNothing);
+    expect(find.text('Incidents'), findsNothing, reason: 'coordinators only');
     expect(find.text('Pending reports'), findsNothing);
     expect(find.text('Responders'), findsNothing, reason: 'coordinators only');
     expect(

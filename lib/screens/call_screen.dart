@@ -174,13 +174,13 @@ class _HotlineRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.control),
               ),
               alignment: Alignment.center,
-              child: hotline.art != null
-                  ? Image.asset(hotline.art!, width: 21, height: 21)
-                  : Icon(
-                      hotline.icon,
-                      size: 19,
-                      color: neutral ? tint : context.pal.glyphOn(tint),
-                    ),
+              // One filled glyph family for every row (03 · pass 3); the
+              // agency's tone still carries on the well.
+              child: Icon(
+                hotline.icon,
+                size: 20,
+                color: neutral ? tint : context.pal.glyphOn(tint),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(

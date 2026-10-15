@@ -14,6 +14,7 @@ import '../models/responder_unit.dart';
 import '../models/tracking.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/map_marker.dart';
 import '../widgets/unit_groups.dart';
@@ -625,14 +626,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         if (centre != null)
           CircleLayer(
             circles: [
-              CircleMarker(
-                point: centre,
-                radius: kClusterRadiusMetres,
-                useRadiusInMeter: true,
-                // DAWI "INCIDENT RADIUS | FIRE": the fire's coral.
-                color: context.pal.accent.withValues(alpha: 0.1),
-                borderColor: context.pal.accent.withValues(alpha: 0.8),
-                borderStrokeWidth: 1,
+              // DAWI "INCIDENT RADIUS | FIRE": the fire's coral.
+              MapAreas.incidentRadius(
+                context.pal,
+                centre,
+                metres: kClusterRadiusMetres,
               ),
             ],
           ),

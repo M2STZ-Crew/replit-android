@@ -406,10 +406,12 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: on
-              ? layer.color.withValues(alpha: 0.12)
+              ? layer.colour(context.pal).withValues(alpha: 0.12)
               : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: on ? layer.color : const Color(0xFF2A2A2A)),
+          border: Border.all(
+            color: on ? layer.colour(context.pal) : const Color(0xFF2A2A2A),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -418,7 +420,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               width: 14,
               height: 14,
               decoration: BoxDecoration(
-                color: layer.color,
+                color: layer.colour(context.pal),
                 shape: BoxShape.circle,
               ),
             ),
@@ -463,7 +465,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
       final pts = _cache[layer.key];
       if (pts == null) continue;
       for (final p in pts) {
-        markers.add(opsMarker(layer, p));
+        markers.add(opsMarker(context.pal, layer, p));
       }
     }
     if (_enabled.contains('incidents')) {

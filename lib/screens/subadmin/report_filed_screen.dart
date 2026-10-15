@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../models/area_view.dart';
 import '../../theme.dart';
-import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../coordinator/coordinator_shell.dart';
@@ -162,12 +161,14 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
                     LifecycleRail(status: _status),
                     const SizedBox(height: 16),
                     const ProgressStep(
-                      state: StepState.done,
+                      state: ProgressState.done,
                       title: 'Report saved',
                       detail: 'Trucks, driver, crew, equipment and notes',
                     ),
                     ProgressStep(
-                      state: closed ? StepState.done : StepState.current,
+                      state: closed
+                          ? ProgressState.done
+                          : ProgressState.current,
                       title: 'Area closed',
                       detail: closed
                           ? 'It has left the live feed for every role'
@@ -175,9 +176,9 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
                     ),
                     ProgressStep(
                       state: switch (_narrative) {
-                        NarrativeState.ready => StepState.done,
-                        NarrativeState.writing => StepState.current,
-                        NarrativeState.unavailable => StepState.pending,
+                        NarrativeState.ready => ProgressState.done,
+                        NarrativeState.writing => ProgressState.current,
+                        NarrativeState.unavailable => ProgressState.pending,
                       },
                       title: 'Formal narrative',
                       detail: switch (_narrative) {
@@ -217,91 +218,6 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
       text: _summary,
       meta: _narrative == NarrativeState.writing ? 'Writing…' : null,
       empty: 'No summary. The report you filed is the full record.',
-    );
-  }
-}
-
-/// How far along one step of a real server process is (Progress step).
-enum StepState { done, current, pending }
-
-/// One step of the server's work: a green check when done, a spinner while
-/// under way, an empty ring when it is not happening — with its name and a
-/// line on what it means.
-class ProgressStep extends StatelessWidget {
-  const ProgressStep({
-    super.key,
-    required this.state,
-    required this.title,
-    this.detail,
-  });
-
-  final StepState state;
-  final String title;
-  final String? detail;
-
-  @override
-  Widget build(BuildContext context) {
-    final pal = context.pal;
-    final word = switch (state) {
-      StepState.done => 'done',
-      StepState.current => 'under way',
-      StepState.pending => 'not under way',
-    };
-    return Semantics(
-      label: '$title, $word${detail == null ? '' : '. $detail'}',
-      excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox.square(
-              dimension: 24,
-              child: switch (state) {
-                StepState.done => DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: pal.ok,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    AppIcons.check,
-                    size: 16,
-                    color: AppColors.background,
-                  ),
-                ),
-                StepState.current => Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: pal.accent,
-                    // Still under reduced motion; the words carry the state.
-                    value: Motion.of(context).reduced ? 0.3 : null,
-                  ),
-                ),
-                StepState.pending => DecoratedBox(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: pal.lineStrong, width: 1.5),
-                  ),
-                ),
-              },
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: context.type.listTitle),
-                  if (detail != null) ...[
-                    const SizedBox(height: 2),
-                    Text(detail!, style: context.type.bodySm),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -57,7 +57,9 @@ typedef NavBarItem = ({
 ///
 /// Three roles have one — Map/SOS for a resident, Duty/RUN for a responder,
 /// Queue/LIVE for a coordinator — and they are the same object with different
-/// slots, so it lives in one place rather than three.
+/// slots, so it lives in one place rather than three. The disc is one too:
+/// SOS, LIVE and RUN share its size, place, ring, gradient, glow, label and
+/// press, and differ only in the word and where it goes.
 ///
 /// Selection follows the Nav tab component (04, pass 3): the selected tab
 /// sits in a 56 × 32 pill with a coral edge and gets a bright glyph and a bold
@@ -71,7 +73,6 @@ class NavBarShell extends StatelessWidget {
     required this.discActive,
     required this.onDisc,
     this.discLabel,
-    this.discGlow = true,
     this.discSlot = 2,
   });
 
@@ -85,10 +86,6 @@ class NavBarShell extends StatelessWidget {
   /// What a screen reader calls the disc — its full act ("SOS — hold to
   /// report"). Defaults to [disc].
   final String? discLabel;
-
-  /// Only the resident's SOS disc glows: PRD §4.7.1 allows glow on exactly
-  /// two objects, the splash mark and the SOS button.
-  final bool discGlow;
 
   /// Which slot the disc covers.
   final int discSlot;
@@ -157,7 +154,6 @@ class NavBarShell extends StatelessWidget {
               label: disc,
               semantics: discLabel ?? disc,
               active: discActive,
-              glow: discGlow,
               onTap: onDisc,
             ),
           ),
@@ -312,22 +308,22 @@ class _NavItem extends StatelessWidget {
 }
 
 /// The raised disc: 72px, the coral gradient top to bottom, edged in a 6px
-/// ground stroke that cuts the notch in the bar. The resident's SOS disc
-/// glows (one of the two places the design permits it, §2.7); on its own
-/// screen the disc gains a 2px white ring 6px outside it.
+/// ground stroke that cuts the notch in the bar, with the SOS disc's coral
+/// glow. On its own screen the disc gains a 2px white ring 6px outside it.
+/// SOS, LIVE and RUN are this one disc: the glow that marks the centre
+/// control is the resident's SOS's, and every role's centre control wears it
+/// so the three bars read as one family.
 class _Disc extends StatelessWidget {
   const _Disc({
     required this.label,
     required this.semantics,
     required this.active,
-    required this.glow,
     required this.onTap,
   });
 
   final String label;
   final String semantics;
   final bool active;
-  final bool glow;
   final VoidCallback onTap;
 
   static const double _size = 72;
@@ -378,28 +374,19 @@ class _Disc extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: AppColors.accentGradient,
                     border: Border.all(color: context.pal.background, width: 6),
-                    boxShadow: glow
-                        ? [
-                            BoxShadow(
-                              color: context.pal.accent.withValues(alpha: 0.3),
-                              blurRadius: 14,
-                            ),
-                          ]
-                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.pal.accent.withValues(alpha: 0.3),
+                        blurRadius: 14,
+                      ),
+                    ],
                   ),
                   child: SizedBox.square(
                     dimension: _size,
                     child: Center(
-                      child: Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 15,
-                          height: 20 / 15,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                          color: AppColors.accentText,
-                        ),
-                      ),
+                      // Type/Button large on the gradient, which both themes
+                      // share — so the dark-brown ink, not a palette's.
+                      child: Text(label, style: AppText.actionRun),
                     ),
                   ),
                 ),
