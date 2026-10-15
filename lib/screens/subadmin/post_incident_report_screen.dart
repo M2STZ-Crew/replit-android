@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
+import '../../location/place_names.dart';
 import '../../models/fleet_unit.dart';
 import '../../models/post_incident_report.dart';
 import '../../theme.dart';
-import '../../widgets/design.dart';
-import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/coordinator_kit.dart';
+import '../../widgets/design.dart';
 
 export '../../models/post_incident_report.dart' show kCommonEquipment;
 
@@ -14,45 +15,39 @@ export '../../models/post_incident_report.dart' show kCommonEquipment;
 const Set<String> _unitCategories = {'fire_truck', 'vehicle', 'truck'};
 
 /// Right after fire out: offer the Post-Incident Report now, while the crew is
-/// fresh in mind, or leave it in the Pending reports tray. Never blocking —
-/// the response is over either way. Returns true if the report was filed.
+/// fresh in mind, or leave it in the queue's To file. Never blocking — the
+/// response is over either way. Returns true if the report was filed.
 ///
 /// Every place a coordinator can declare fire out calls this, so the offer is
-/// the same from the command screen and from the review screen.
+/// the same from LIVE and from the Area.
 Future<bool> offerPostIncidentReport(
   BuildContext context, {
   required String areaId,
   String? designation,
   ApiClient? api,
 }) async {
-  final fileNow = await showAppDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (dctx) => AlertDialog(
-      backgroundColor: context.pal.surface,
-      title: const Text(
-        'Fire out recorded',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-      ),
-      content: Text(
-        'File the Post-Incident Report now — units, driver, roster and equipment? '
-        'The incident closes when it is filed. You can also do it later from Pending reports.',
-        style: TextStyle(color: context.pal.muted),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dctx).pop(false),
-          child: Text('LATER', style: TextStyle(color: context.pal.muted)),
+  final fileNow = await showFrameSheet<bool>(
+    context,
+    builder: (sheet) => SheetFrame(
+      children: [
+        const SheetTitles(
+          eyebrow: 'Fire out recorded',
+          title: 'File the report now?',
+          body:
+              'The trucks, the driver, the crew and what came off the units — '
+              'while the crew is fresh in mind. The Area closes when it is '
+              'filed. It also waits in the queue, under To file.',
         ),
-        TextButton(
-          onPressed: () => Navigator.of(dctx).pop(true),
-          child: Text(
-            'FILE NOW',
-            style: TextStyle(
-              color: context.pal.accent,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+        const SizedBox(height: 16),
+        AppButton(
+          'File the report',
+          run: true,
+          onPressed: () => Navigator.of(sheet).pop(true),
+        ),
+        const SizedBox(height: 10),
+        AppButton.secondary(
+          'Later',
+          onPressed: () => Navigator.of(sheet).pop(false),
         ),
       ],
     ),
@@ -72,24 +67,27 @@ Future<bool> offerPostIncidentReport(
   }
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(
-      content: Text(
-        'Fire out. The Post-Incident Report is waiting in Pending reports.',
-      ),
+      content: Text('Fire out. The report waits in the queue, under To file.'),
     ),
   );
   return false;
 }
 
-/// The Post-Incident Report form (Master Context v10 §2.5).
+/// The Post-Incident Report (Master Context v10 §2.5; REPLIT (MAIN) 06 · C13).
 ///
 /// Filed by each responding team's captain once the fire is out, for everyone
 /// on their team who went. The first report closes the incident; another
-/// team's captain adds theirs afterwards. Nothing on it is typed: the two times start from what the system
-/// recorded and are changed with a picker, and the units, the driver, the
-/// roster and the equipment are picked from the organisation's own register
-/// and members. It is single-submit with no draft: the button only arms once
-/// everything is picked, and filing closes the incident. Pops `true` when
-/// filed.
+/// team's captain adds theirs afterwards.
+///
+/// The outcome, the trucks, the driver, the crew and the equipment are picked
+/// from the organisation's own register and members, starting from what the
+/// response recorded (the unit named on an Accept, who responded). Notes are
+/// the one thing typed: optional, except for a false alarm, which must say
+/// what the team found — a quick pick does, or the notes. The AI summary
+/// reads them. The two times start as the system recorded them and change
+/// with a picker. It is single-submit with no draft: the button only arms
+/// once everything is picked, and filing closes the incident. Pops `true`
+/// when filed.
 class PostIncidentReportScreen extends StatefulWidget {
   const PostIncidentReportScreen({
     super.key,
@@ -109,6 +107,7 @@ class PostIncidentReportScreen extends StatefulWidget {
 
 class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
+  final TextEditingController _notes = TextEditingController();
 
   /// When it happened and when the fire was out. They start as the system
   /// recorded them — the first report, and the Fire out press.
@@ -126,12 +125,12 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   final Set<String> _equipment = {};
 
   /// v11 §2.5.3: the team reached the scene and found nothing. It must say
-  /// what they found, so "false alarm" is never an unexplained tick — here by
-  /// picking which of the cases it was.
+  /// what they found, so "false alarm" is never an unexplained tick.
   bool _falseAlarm = false;
   String? _falseAlarmReason;
 
   String? _designation;
+  String? _street;
   bool _loading = true;
   bool _submitting = false;
 
@@ -143,7 +142,14 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   void initState() {
     super.initState();
     _designation = widget.designation;
+    _notes.addListener(() => setState(() {}));
     _load();
+  }
+
+  @override
+  void dispose() {
+    _notes.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -219,6 +225,12 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
         }
         _loading = false;
       });
+      final lat = (incident['centroid_lat'] as num?)?.toDouble();
+      final lng = (incident['centroid_lng'] as num?)?.toDouble();
+      if (lat != null && lng != null) {
+        final place = await PlaceNames.of(lat, lng);
+        if (mounted) setState(() => _street = place.street);
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -232,10 +244,18 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', //
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
+    return '${months[t.month - 1]} ${t.day}, ${t.year} · ${_clock(t)}';
+  }
+
+  static String _clock(DateTime t) {
     final hour = t.hour % 12 == 0 ? 12 : t.hour % 12;
     final minute = t.minute.toString().padLeft(2, '0');
-    return '${months[t.month - 1]} ${t.day}, ${t.year} · '
-        '$hour:$minute ${t.hour < 12 ? 'AM' : 'PM'}';
+    return '$hour:$minute ${t.hour < 12 ? 'AM' : 'PM'}';
+  }
+
+  String get _areaName {
+    final d = _designation ?? 'Incident';
+    return d.toLowerCase().startsWith('area') ? d : 'Area $d';
   }
 
   /// Change a time with the date and time pickers — picked, not typed.
@@ -282,7 +302,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     if (!_units.remove(unit.key)) _units.add(unit.key);
   });
 
-  /// One driver. Whoever drives went, so they join the roster too.
+  /// One driver. Whoever drives went, so they join the crew too.
   void _pickDriver(OrgMember member) => setState(() {
     _driverId = member.id;
     _rosterIds.add(member.id);
@@ -290,7 +310,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
 
   void _toggleRoster(OrgMember member) => setState(() {
     if (_rosterIds.remove(member.id)) {
-      // Taken off the roster, they cannot still be the driver.
+      // Taken off the crew, they cannot still be the driver.
       if (_driverId == member.id) _driverId = null;
     } else {
       _rosterIds.add(member.id);
@@ -301,6 +321,14 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     if (!_equipment.remove(item)) _equipment.add(item);
   });
 
+  /// What a false alarm says the team found: the quick pick, the notes, or
+  /// both.
+  String? get _falseAlarmNote {
+    final notes = _notes.text.trim();
+    final parts = [?_falseAlarmReason, if (notes.isNotEmpty) notes];
+    return parts.isEmpty ? null : parts.join('. ');
+  }
+
   List<String> get _missing => missingPostIncidentFields(
     units: _units.length,
     hasDriver: _driverId != null,
@@ -309,38 +337,101 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     incidentAt: _incidentAt,
     fireOutAt: _fireOutAt,
     falseAlarm: _falseAlarm,
-    falseAlarmReason: _falseAlarmReason,
+    falseAlarmReason: _falseAlarmNote,
   );
 
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  Future<void> _submit() async {
-    final confirm = await showAppDialog<bool>(
-      context: context,
-      builder: (dctx) => AlertDialog(
-        title: const Text(
-          'File and close?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          'The report is saved once and cannot be edited. Filing it closes the incident.',
-          style: TextStyle(color: context.pal.muted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dctx).pop(false),
-            child: Text('REVIEW', style: TextStyle(color: context.pal.muted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dctx).pop(true),
-            child: Text(
-              'FILE REPORT',
-              style: TextStyle(
-                color: context.pal.accent,
-                fontWeight: FontWeight.w800,
-              ),
+  /// The units, in a sheet: every one that went.
+  Future<void> _chooseUnits() async {
+    await showFrameSheet<void>(
+      context,
+      builder: (sheet) => StatefulBuilder(
+        builder: (sheet, set) => SheetFrame(
+          children: [
+            const SheetTitles(
+              eyebrow: 'Truck',
+              title: 'Which vehicles went?',
+              body: 'Pick every unit that went to this fire.',
             ),
+            const SizedBox(height: 12),
+            for (final u in _unitChoices)
+              CheckRow(
+                label: _unitLabel(u),
+                checked: _units.contains(u.key),
+                onTap: () => set(() => _toggleUnit(u)),
+              ),
+            const SizedBox(height: 12),
+            AppButton(
+              'Done',
+              run: true,
+              onPressed: () => Navigator.of(sheet).pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The driver, in a sheet: one of the team.
+  Future<void> _chooseDriver() async {
+    if (_members.isEmpty) return;
+    await showFrameSheet<void>(
+      context,
+      builder: (sheet) => SheetFrame(
+        children: [
+          const SheetTitles(
+            eyebrow: 'Driver',
+            title: 'Who drove?',
+            body: 'Whoever drove went, so they join the crew too.',
+          ),
+          const SizedBox(height: 12),
+          for (final m in _members)
+            RadioRow(
+              label: m.name,
+              selected: _driverId == m.id,
+              onTap: () {
+                _pickDriver(m);
+                Navigator.of(sheet).pop();
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  static String _unitLabel(ReportUnit u) {
+    final type = u.type?.trim();
+    return type == null ||
+            type.isEmpty ||
+            type.toLowerCase() == u.name.toLowerCase()
+        ? u.name
+        : '${u.name} · ${type.toLowerCase()}';
+  }
+
+  Future<void> _submit() async {
+    final confirm = await showFrameSheet<bool>(
+      context,
+      builder: (sheet) => SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: 'Confirm · can\'t be undone',
+            title: 'Submit and close $_areaName?',
+            body:
+                'The report saves once and cannot be edited. Filing it closes '
+                'the Area.',
+          ),
+          const SizedBox(height: 16),
+          AppButton(
+            'Submit and close Area',
+            run: true,
+            onPressed: () => Navigator.of(sheet).pop(true),
+          ),
+          const SizedBox(height: 10),
+          AppButton.secondary(
+            'Review',
+            onPressed: () => Navigator.of(sheet).pop(false),
           ),
         ],
       ),
@@ -349,6 +440,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
     setState(() => _submitting = true);
     final navigator = Navigator.of(context);
     final driver = _members.firstWhere((m) => m.id == _driverId);
+    final notes = _notes.text.trim();
     try {
       await _api.filePostIncidentReport(
         widget.areaId,
@@ -369,11 +461,12 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
           for (final item in _equipmentChoices)
             if (_equipment.contains(item)) item,
         ],
+        notes: notes.isEmpty ? null : notes,
         falseAlarm: _falseAlarm,
-        falseAlarmNote: _falseAlarm ? _falseAlarmReason : null,
+        falseAlarmNote: _falseAlarm ? _falseAlarmNote : null,
       );
       if (!mounted) return;
-      _toast('Post-Incident Report filed.');
+      _toast('Post-incident report filed. $_areaName is closed.');
       navigator.pop(true);
     } on ApiException catch (e) {
       if (mounted) {
@@ -392,170 +485,222 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   @override
   Widget build(BuildContext context) {
     final missing = _missing;
-    return StaffScaffold(
-      page: StaffPage.reports,
-      title: 'Post-Incident Report',
-      body: _loading
-          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
-          : ScrollFade(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-                children: [
-                  ScreenHeader(
-                    showBack: false,
-                    eyebrow: "Your team's report",
-                    title: _designation ?? 'Incident',
-                  ),
-                  const SizedBox(height: 18),
-                  _intro(),
-                  const SizedBox(height: 24),
-                  _section('When'),
-                  _timeRow(
-                    label: 'Time of the incident',
-                    value: _incidentAt,
-                    onTap: () => _pickTime(fireOut: false),
-                  ),
-                  const SizedBox(height: 8),
-                  _timeRow(
-                    label: 'Time the fire was out',
-                    value: _fireOutAt,
-                    onTap: () => _pickTime(fireOut: true),
-                  ),
-                  const SizedBox(height: 24),
-                  _section('Units · ${_units.length}'),
-                  _hint('Pick every unit that went.'),
-                  _chips([
-                    for (final u in _unitChoices)
-                      _chip(
-                        u.name,
-                        selected: _units.contains(u.key),
-                        onTap: () => _toggleUnit(u),
-                      ),
-                  ]),
-                  const SizedBox(height: 24),
-                  _section('Driver'),
-                  if (_members.isEmpty)
-                    _noTeam()
-                  else ...[
-                    _hint('Pick one.'),
-                    _chips([
-                      for (final m in _members)
-                        _chip(
-                          m.name,
-                          selected: _driverId == m.id,
-                          onTap: () => _pickDriver(m),
-                        ),
-                    ]),
-                  ],
-                  const SizedBox(height: 24),
-                  _section('Roster · ${_rosterIds.length}'),
-                  if (_members.isNotEmpty) ...[
-                    _hint('Pick everyone who went, the driver included.'),
-                    _chips([
-                      for (final m in _members)
-                        _chip(
-                          m.name,
-                          selected: _rosterIds.contains(m.id),
-                          onTap: () => _toggleRoster(m),
-                        ),
-                    ]),
-                  ] else
-                    _hint('Your team has to load before you can pick.'),
-                  const SizedBox(height: 24),
-                  _section('Equipment taken · ${_equipment.length}'),
-                  _hint('Pick everything that came off the units.'),
-                  _chips([
-                    for (final item in _equipmentChoices)
-                      _chip(
-                        item,
-                        selected: _equipment.contains(item),
-                        onTap: () => _toggleEquipment(item),
-                      ),
-                  ]),
-                  const SizedBox(height: 24),
-                  _section('False alarm'),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    value: _falseAlarm,
-                    onChanged: (v) => setState(() {
-                      _falseAlarm = v;
-                      if (!v) _falseAlarmReason = null;
-                    }),
-                    activeThumbColor: context.pal.accent,
-                    title: Text(
-                      'We arrived and found nothing',
-                      style: context.type.body,
-                    ),
-                    subtitle: Text(
-                      'A prank, a fire already out, or the wrong address.',
-                      style: context.type.meta,
+    final out = _fireOutAt;
+    return Scaffold(
+      backgroundColor: context.pal.background,
+      bottomNavigationBar: _loading
+          ? null
+          : ActionBar(
+              children: [
+                if (missing.isNotEmpty)
+                  Text(
+                    'Still needed: ${missing.join(', ')}',
+                    textAlign: TextAlign.center,
+                    style: context.type.caption.copyWith(
+                      color: context.pal.warn,
                     ),
                   ),
-                  if (_falseAlarm) ...[
-                    const SizedBox(height: 8),
-                    _hint('What did the team find? Pick one.'),
-                    _chips([
-                      for (final reason in kFalseAlarmReasons)
-                        _chip(
-                          reason,
-                          selected: _falseAlarmReason == reason,
-                          onTap: () =>
-                              setState(() => _falseAlarmReason = reason),
-                        ),
-                    ]),
-                  ],
-                  const SizedBox(height: 28),
-                  if (missing.isNotEmpty) ...[
-                    Text(
-                      'Still needed: ${missing.join(', ')}',
-                      style: context.type.meta.copyWith(
-                        color: context.pal.warn,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  AppButton(
-                    'File report & close incident',
-                    icon: AppIcons.taskAlt,
-                    busy: _submitting,
-                    onPressed: missing.isEmpty ? _submit : null,
-                  ),
-                ],
-              ),
+                AppButton(
+                  'Submit and close Area',
+                  run: true,
+                  busy: _submitting,
+                  onPressed: missing.isEmpty ? _submit : null,
+                ),
+              ],
             ),
-    );
-  }
-
-  Widget _intro() {
-    return Panel(
-      color: context.pal.glassDim,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          IconWell(tint: context.pal.accent, icon: AppIcons.assignmentTurnedIn),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              'Fire out. File this once, for everyone who went — just tap to '
-              'pick. It closes the incident and cannot be edited afterwards.',
-              style: context.type.body.copyWith(fontSize: 13),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DetailHeader(
+              eyebrow: [_areaName, ?_street].join(' · '),
+              title: 'Post-incident report',
+              subtitle: out == null ? null : 'Fire out ${_clock(out)}',
             ),
-          ),
-        ],
+            Expanded(
+              child: _loading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: context.pal.accent,
+                      ),
+                    )
+                  : ScrollFade(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          24,
+                          8,
+                          24,
+                          kScrollFadeEndPadding,
+                        ),
+                        children: _form(),
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _section(String label) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Eyebrow(label, color: context.pal.label),
-  );
-
-  Widget _hint(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Text(text, style: context.type.meta),
-  );
+  List<Widget> _form() {
+    const gap = SizedBox(height: 16);
+    final chosenUnits = [
+      for (final u in _unitChoices)
+        if (_units.contains(u.key)) u,
+    ];
+    final driver = _members.where((m) => m.id == _driverId).firstOrNull;
+    return [
+      const InlineAlert(
+        tone: AlertTone.warning,
+        body:
+            'Fill it in one go. There is no draft — the Area closes when this '
+            'saves.',
+      ),
+      gap,
+      const SectionHeader('Outcome'),
+      const SizedBox(height: 4),
+      Wrap(
+        spacing: 8,
+        children: [
+          PickChip(
+            label: 'Fire attended',
+            selected: !_falseAlarm,
+            onTap: () => setState(() {
+              _falseAlarm = false;
+              _falseAlarmReason = null;
+            }),
+          ),
+          PickChip(
+            label: 'False alarm',
+            selected: _falseAlarm,
+            onTap: () => setState(() => _falseAlarm = true),
+          ),
+        ],
+      ),
+      Text(
+        'False alarm means the team arrived and found nothing — a prank, a '
+        'wrong address, or already out. It must say what they found.',
+        style: context.type.caption.copyWith(color: context.pal.label),
+      ),
+      if (_falseAlarm) ...[
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final reason in kFalseAlarmReasons)
+              PickChip(
+                label: reason,
+                selected: _falseAlarmReason == reason,
+                onTap: () => setState(
+                  () => _falseAlarmReason = _falseAlarmReason == reason
+                      ? null
+                      : reason,
+                ),
+              ),
+          ],
+        ),
+      ],
+      gap,
+      _SelectField(
+        label: 'Truck',
+        value: chosenUnits.isEmpty
+            ? null
+            : chosenUnits.map(_unitLabel).join(', '),
+        placeholder: 'Pick the units that went',
+        helper: chosenUnits.length > 1
+            ? 'Which vehicles went'
+            : 'Which vehicle went',
+        onTap: _chooseUnits,
+      ),
+      gap,
+      if (_members.isEmpty)
+        _noTeam()
+      else
+        _SelectField(
+          label: 'Driver',
+          value: driver?.name,
+          placeholder: 'Pick the driver',
+          onTap: _chooseDriver,
+        ),
+      gap,
+      SectionHeader(
+        'Crew who went out',
+        meta: _members.isEmpty ? null : '${_rosterIds.length} selected',
+      ),
+      const SizedBox(height: 4),
+      if (_members.isEmpty)
+        Text(
+          'Your team has to load before you can pick.',
+          style: context.type.bodySm,
+        )
+      else
+        for (final m in _members)
+          CheckRow(
+            label: m.id == _driverId ? '${m.name} — Driver' : m.name,
+            checked: _rosterIds.contains(m.id),
+            onTap: () => _toggleRoster(m),
+          ),
+      gap,
+      Text(
+        'Equipment taken',
+        style: context.type.label.copyWith(color: context.pal.textSoft),
+      ),
+      const SizedBox(height: 4),
+      Wrap(
+        spacing: 8,
+        children: [
+          for (final item in _equipmentChoices)
+            PickChip(
+              label: item,
+              selected: _equipment.contains(item),
+              onTap: () => _toggleEquipment(item),
+            ),
+        ],
+      ),
+      Text(
+        'Only what left the unit.',
+        style: context.type.detail.copyWith(color: context.pal.label),
+      ),
+      gap,
+      LabeledField(
+        label: 'Notes',
+        builder: (focus) => TextField(
+          controller: _notes,
+          focusNode: focus,
+          minLines: 4,
+          maxLines: 10,
+          maxLength: 2000,
+          keyboardType: TextInputType.multiline,
+          textCapitalization: TextCapitalization.sentences,
+          style: context.type.input,
+          decoration: const InputDecoration(counterText: ''),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        _falseAlarm
+            ? 'Required for a false alarm unless you picked what the team '
+                  'found. The AI summary turns this into the formal narrative.'
+            : 'Optional. The AI summary turns this into the formal narrative.',
+        style: context.type.detail.copyWith(color: context.pal.label),
+      ),
+      gap,
+      const SectionHeader('Times'),
+      const SizedBox(height: 12),
+      _timeRow(
+        label: 'Time of the incident',
+        value: _incidentAt,
+        onTap: () => _pickTime(fireOut: false),
+      ),
+      const SizedBox(height: 8),
+      _timeRow(
+        label: 'Time the fire was out',
+        value: _fireOutAt,
+        onTap: () => _pickTime(fireOut: true),
+      ),
+    ];
+  }
 
   /// A time as the system has it, and a tap to change it.
   Widget _timeRow({
@@ -567,55 +712,15 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       button: true,
       label: '$label. ${value == null ? 'Not set' : _when(value)}. Change.',
       excludeSemantics: true,
-      child: Panel(
-        radius: AppRadius.control,
-        color: context.pal.glassDim,
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        onTap: onTap,
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: context.type.meta),
-                  const SizedBox(height: 4),
-                  Text(
-                    value == null ? 'Tap to set' : _when(value),
-                    style: context.type.rowTitle.copyWith(fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            Icon(AppIcons.schedule, color: context.pal.accent, size: 20),
-          ],
+      child: ListRow(
+        leading: const IconPlate(AppIcons.schedule),
+        title: label,
+        subtitle: value == null ? 'Tap to set' : _when(value),
+        trailing: Text(
+          'Change',
+          style: context.type.label.copyWith(color: context.pal.accentInk),
         ),
-      ),
-    );
-  }
-
-  Widget _chips(List<Widget> chips) =>
-      Wrap(spacing: 8, runSpacing: 8, children: chips);
-
-  Widget _chip(
-    String label, {
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      showCheckmark: false,
-      selectedColor: context.pal.accentTint,
-      backgroundColor: context.pal.glass,
-      side: BorderSide(color: selected ? context.pal.accent : context.pal.line),
-      labelStyle: TextStyle(
-        color: selected ? context.pal.accent : context.pal.textSoft,
-        fontWeight: FontWeight.w700,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.chip),
+        onTap: onTap,
       ),
     );
   }
@@ -623,31 +728,95 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   /// Nobody to pick: the team did not load, or this captain's account is in
   /// no organisation. Say which, and offer the one thing that can fix it here.
   Widget _noTeam() {
-    return Panel(
-      radius: AppRadius.control,
-      color: context.pal.glassDim,
-      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-      child: Row(
+    return InlineAlert(
+      tone: _teamFailed ? AlertTone.danger : AlertTone.warning,
+      title: _teamFailed ? 'Could not load your team' : 'No team to pick from',
+      body: _teamFailed
+          ? 'Could not load your team. Check your connection.'
+          : 'Your account is not in an organization yet, so there is nobody '
+                'to pick. Ask the admin to add you to your team.',
+      action: 'Try again',
+      onAction: _load,
+    );
+  }
+}
+
+/// A picked value in the Text field's frame (label above, 54px inset field,
+/// helper under): tapping opens the picker.
+class _SelectField extends StatelessWidget {
+  const _SelectField({
+    required this.label,
+    required this.value,
+    required this.placeholder,
+    required this.onTap,
+    this.helper,
+  });
+
+  final String label;
+  final String? value;
+  final String placeholder;
+  final String? helper;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final shape = BorderRadius.circular(AppRadius.control);
+    return Semantics(
+      button: true,
+      label: '$label: ${value ?? placeholder}',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Text(
-              _teamFailed
-                  ? 'Could not load your team. Check your connection.'
-                  : 'Your account is not in an organization yet, so there is '
-                        'nobody to pick. Ask the admin to add you to your team.',
-              style: context.type.meta,
-            ),
-          ),
-          TextButton(
-            onPressed: _load,
-            child: Text(
-              'TRY AGAIN',
-              style: TextStyle(
-                color: context.pal.accent,
-                fontWeight: FontWeight.w800,
+          Text(label, style: context.type.label.copyWith(color: pal.textSoft)),
+          const SizedBox(height: 8),
+          Material(
+            color: pal.inputBg,
+            borderRadius: shape,
+            child: InkWell(
+              borderRadius: shape,
+              onTap: onTap,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 54),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: shape,
+                  border: Border.all(color: pal.lineStrong),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        value ?? placeholder,
+                        style: context.type.input.copyWith(
+                          color: value == null
+                              ? pal.placeholder
+                              : pal.onBackground,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      AppIcons.keyboardArrowDown,
+                      size: 20,
+                      color: pal.label,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+          if (helper != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              helper!,
+              style: context.type.detail.copyWith(color: pal.label),
+            ),
+          ],
         ],
       ),
     );

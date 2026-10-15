@@ -333,10 +333,10 @@ void main() {
       );
       await tester.tap(find.text('GO'));
       await tester.pumpAndSettle();
-      expect(find.text('Fire out recorded'), findsOneWidget);
+      expect(find.text('FIRE OUT RECORDED'), findsOneWidget);
       await tester.tap(find.text('LATER'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('waiting in Pending reports'), findsOneWidget);
+      expect(find.textContaining('waits in the queue'), findsOneWidget);
     });
 
     testWidgets('"file now" opens the report', (tester) async {
@@ -348,7 +348,7 @@ void main() {
       );
       await tester.tap(find.text('GO'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('FILE NOW'));
+      await tester.tap(find.text('FILE THE REPORT'));
       await tester.pumpAndSettle();
       expect(find.byType(PostIncidentReportScreen), findsOneWidget);
     });
