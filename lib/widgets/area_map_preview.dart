@@ -6,12 +6,14 @@ import '../theme.dart';
 import 'coordinator_kit.dart';
 import 'map_marker.dart';
 import 'map_tiles.dart';
+import 'you_are_here.dart';
 
 /// The map extract on an Area's detail (06 · C04, C07): each Area's centre as
 /// a selected incident marker inside its 300 m radius (Area radius: the tone
-/// at 10 % with a 1 px tone outline), framed to fit. A picture, not a map to
-/// work in — it takes no gestures, so the page scrolls over it.
-class AreaMapPreview extends StatelessWidget {
+/// at 10 % with a 1 px tone outline), framed to fit. A real map: it pans,
+/// zooms and turns like every other map in the app, shows where you are, and
+/// its location button finds you.
+class AreaMapPreview extends StatefulWidget {
   const AreaMapPreview({
     super.key,
     required this.centres,
@@ -24,6 +26,19 @@ class AreaMapPreview extends StatelessWidget {
 
   /// What a screen reader calls each marker.
   final String label;
+
+  @override
+  State<AreaMapPreview> createState() => _AreaMapPreviewState();
+}
+
+class _AreaMapPreviewState extends State<AreaMapPreview> {
+  final MapFollow _follow = MapFollow();
+
+  @override
+  void dispose() {
+    _follow.dispose();
+    super.dispose();
+  }
 
   /// The centres' bounds, grown by a little more than the radius.
   static LatLngBounds _around(List<LatLng> centres) {
@@ -42,8 +57,9 @@ class AreaMapPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final pal = context.pal;
     final tone = pal.live;
+    final centres = widget.centres;
     return Container(
-      height: height,
+      height: widget.height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: pal.background,
@@ -60,9 +76,8 @@ class AreaMapPreview extends StatelessWidget {
                 ),
                 initialCenter: centres.first,
                 backgroundColor: pal.background,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.none,
-                ),
+                interactionOptions: kMapGestures,
+                onMapEvent: _follow.onMapEvent,
               ),
               children: [
                 MapTiles.layer(light: pal.isLight),
@@ -80,6 +95,7 @@ class AreaMapPreview extends StatelessWidget {
                   ],
                 ),
                 MarkerLayer(
+                  rotate: true,
                   markers: [
                     for (final c in centres)
                       Marker(
@@ -88,12 +104,19 @@ class AreaMapPreview extends StatelessWidget {
                         height: MapMarker.target,
                         child: MapMarker(
                           kind: MapMarkerKind.incident,
-                          label: label,
+                          label: widget.label,
                           selected: true,
                         ),
                       ),
                   ],
                 ),
+                YouAreHereLayer(follow: _follow),
+                MapLocationButtons(
+                  follow: _follow,
+                  alignment: Alignment.bottomRight,
+                  padding: const EdgeInsets.all(8),
+                ),
+                MapTiles.attribution(),
               ],
             ),
     );

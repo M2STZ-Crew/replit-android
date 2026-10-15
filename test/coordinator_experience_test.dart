@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -268,6 +269,21 @@ void main() {
       );
       expect(find.text('ACCEPT'), findsOneWidget);
       expect(find.text('REJECT THIS AREA'), findsOneWidget);
+      await done(tester);
+    });
+
+    testWidgets('its map moves like every other map', (tester) async {
+      await openArea(tester, 'a1');
+      MapCamera camera() =>
+          MapCamera.of(tester.element(find.byType(MarkerLayer).first));
+      final before = camera().center;
+      await tester.dragFrom(
+        tester.getRect(find.byType(FlutterMap)).center,
+        const Offset(120, 0),
+      );
+      await settle(tester);
+      expect(camera().center, isNot(before), reason: 'it pans');
+      expect(find.bySemanticsLabel('Show where I am'), findsOneWidget);
       await done(tester);
     });
 
