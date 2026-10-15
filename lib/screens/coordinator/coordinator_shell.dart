@@ -57,6 +57,16 @@ class CoordinatorShell extends StatefulWidget {
     return true;
   }
 
+  /// Bring the mounted shell back to the Queue, closing anything pushed over
+  /// it. False when no coordinator shell is showing.
+  static bool showQueue(NavigatorState nav) {
+    final shell = _mounted;
+    if (shell == null || !shell.mounted) return false;
+    nav.popUntil((route) => route.isFirst);
+    shell.show(CoordinatorTab.queue);
+    return true;
+  }
+
   @override
   State<CoordinatorShell> createState() => CoordinatorShellState();
 }

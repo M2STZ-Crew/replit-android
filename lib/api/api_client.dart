@@ -885,6 +885,7 @@ class ApiClient {
     String? driverUserId,
     required List<Map<String, dynamic>> roster,
     required List<String> equipmentTaken,
+    String? notes,
     bool falseAlarm = false,
     String? falseAlarmNote,
   }) async {
@@ -912,6 +913,8 @@ class ApiClient {
         'driver_user_id': ?driverUserId,
         'roster': roster,
         'equipment_taken': equipmentTaken,
+        // The captain's own words; the AI summary reads them.
+        'notes': ?notes,
         // v11 §2.5.3: the team reached the scene and found nothing. The server
         // requires the reason whenever the flag is set.
         'false_alarm': falseAlarm,

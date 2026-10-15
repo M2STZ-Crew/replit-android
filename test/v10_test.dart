@@ -295,22 +295,25 @@ void main() {
           textScale: scale,
         );
         expect(tester.takeException(), isNull);
+        // 06 · C13: the Area, the title, the warning that there is no draft.
         expect(find.text('AREA 11'), findsOneWidget);
-        // Picked, never typed: there is not one text box on the form.
-        expect(find.byType(TextField), findsNothing);
-        expect(find.text('Time of the incident'), findsOneWidget);
-        expect(find.text('Time the fire was out'), findsOneWidget);
-        // The team is there to pick from — once as driver, once for the roster.
-        await scrollTo(tester, find.text('Pick one.'));
-        expect(find.text('Ramon Dizon'), findsWidgets);
-        await scrollTo(
-          tester,
-          find.text('Pick everyone who went, the driver included.'),
-        );
-        expect(find.text('Maria Santos'), findsWidgets);
+        expect(find.text('POST-INCIDENT REPORT'), findsOneWidget);
+        expect(find.textContaining('There is no draft'), findsOneWidget);
         // Started from the response: the truck, its driver and the crew are
-        // already picked. Nothing came off the truck yet, so it cannot be filed.
-        await scrollTo(tester, find.textContaining('Still needed'));
+        // already picked.
+        await scrollTo(tester, find.text('Apollo · fire truck'));
+        await scrollTo(tester, find.text('Juan Dela Cruz'));
+        await scrollTo(tester, find.text('Maria Santos'));
+        expect(
+          find.text('Juan Dela Cruz — Driver', skipOffstage: false),
+          findsOneWidget,
+        );
+        // Notes are the one typed answer.
+        await scrollTo(tester, find.text('Notes'));
+        expect(find.byType(TextField), findsOneWidget);
+        await scrollTo(tester, find.text('Time the fire was out'));
+        expect(find.text('Time of the incident'), findsOneWidget);
+        // Nothing came off the truck yet, so it cannot be filed.
         expect(find.text('Still needed: equipment taken'), findsOneWidget);
       });
 
@@ -347,46 +350,47 @@ void main() {
       });
     }
 
-    // Scroll until the [nth] match is built, bring it on screen, let the list
-    // lay out, then tap. A member appears twice — as a driver choice and as a
-    // roster choice — so the roster's is nth: 1.
-    Future<void> tapChip(
-      WidgetTester tester,
-      Finder chip, {
-      int nth = 0,
-    }) async {
-      final list = find
-          .descendant(
-            of: find.byType(ListView),
-            matching: find.byType(Scrollable),
-          )
-          .first;
-      if (chip.evaluate().length <= nth) {
-        // It may be above: go back to the top and look down from there.
-        await tester.drag(list, const Offset(0, 5000));
-        await tester.pump(const Duration(milliseconds: 50));
+    // Bring a control in the form on screen, then tap it. It may be above
+    // where the form is scrolled: then go back to the top and look down.
+    Future<void> tapIn(WidgetTester tester, Finder finder) async {
+      if (finder.evaluate().isEmpty) {
+        await tester.drag(
+          find
+              .descendant(
+                of: find.byType(ListView),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+          const Offset(0, 5000),
+        );
+        await tester.pumpAndSettle();
       }
-      for (var i = 0; i < 60 && chip.evaluate().length <= nth; i++) {
-        await tester.drag(list, const Offset(0, -150));
-        await tester.pump(const Duration(milliseconds: 50));
-      }
-      // Pin the element itself: once it scrolls into view an earlier match can
-      // be unloaded, and "the nth" would then be a different one.
-      final element = chip.evaluate().elementAt(nth);
-      final target = find.byElementPredicate((e) => identical(e, element));
-      await tester.ensureVisible(target);
+      await scrollTo(tester, finder);
+      await tester.ensureVisible(finder);
       await tester.pump();
-      await tester.tap(target);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    // Tap a choice in an open sheet — the last match, over the form.
+    Future<void> tapInSheet(WidgetTester tester, Finder finder) async {
+      await tester.ensureVisible(finder.last);
+      await tester.pump();
+      await tester.tap(finder.last);
       await tester.pumpAndSettle();
     }
 
     Future<void> file(WidgetTester tester) async {
-      await scrollTo(tester, find.text('FILE REPORT & CLOSE INCIDENT'));
       expect(find.textContaining('Still needed'), findsNothing);
-      await tester.tap(find.text('FILE REPORT & CLOSE INCIDENT'));
+      await tester.tap(find.text('SUBMIT AND CLOSE AREA'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('FILE REPORT'));
-      await tester.pumpAndSettle();
+      // The confirm sheet's own button, over the action bar's.
+      await tester.tap(find.text('SUBMIT AND CLOSE AREA').last);
+      // 06 · C14 follows, its narrative spinner turning: pump, not settle.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text('REPORT FILED'), findsOneWidget);
     }
 
     testWidgets('picking the equipment arms the submit, and it files what '
@@ -395,8 +399,8 @@ void main() {
         tester,
         PostIncidentReportScreen(areaId: 'a4', api: fakeApi()),
       );
-      await tapChip(tester, find.text('SCBA'));
-      await tapChip(tester, find.text('Hose line'));
+      await tapIn(tester, find.text('SCBA'));
+      await tapIn(tester, find.text('Hose line'));
       await file(tester);
 
       expect(filed, isNotNull);
@@ -413,22 +417,26 @@ void main() {
       // The times the system recorded, unless the captain changes them.
       expect(filed!['incident_at'], '2026-09-10T09:40:00.000Z');
       expect(filed!['fire_out_at'], '2026-09-10T11:00:00.000Z');
-      expect(filed!.containsKey('notes'), isFalse);
+      expect(filed!.containsKey('notes'), isFalse, reason: 'none written');
+      expect(filed!['false_alarm'], isFalse);
       // Still readable by a server from before several units were recorded.
       expect(filed!['truck_label'], 'Apollo');
     });
 
-    testWidgets('several units, one driver, and the driver joins the roster', (
+    testWidgets('several units, one driver, and the driver joins the crew', (
       tester,
     ) async {
       await pump(
         tester,
         PostIncidentReportScreen(areaId: 'a4', api: fakeApi()),
       );
-      await tapChip(tester, find.text('Achilles'));
-      // Ramon drove instead: the first "Ramon Dizon" chip is the driver's.
-      await tapChip(tester, find.text('Ramon Dizon'));
-      await tapChip(tester, find.text('Ladder'));
+      await tapIn(tester, find.bySemanticsLabel(RegExp('^Truck: ')));
+      await tapInSheet(tester, find.text('Achilles · fire truck'));
+      await tapInSheet(tester, find.text('DONE'));
+      // Ramon drove instead.
+      await tapIn(tester, find.bySemanticsLabel(RegExp('^Driver: ')));
+      await tapInSheet(tester, find.text('Ramon Dizon'));
+      await tapIn(tester, find.text('Ladder'));
       await file(tester);
 
       expect(
@@ -443,34 +451,39 @@ void main() {
       );
     });
 
-    testWidgets('taking the driver off the roster unpicks the driver', (
+    testWidgets('taking the driver off the crew unpicks the driver', (
       tester,
     ) async {
       await pump(
         tester,
         PostIncidentReportScreen(areaId: 'a4', api: fakeApi()),
       );
-      await tapChip(tester, find.text('SCBA'));
-      await tapChip(tester, find.text('Juan Dela Cruz'), nth: 1);
-      await scrollTo(tester, find.textContaining('Still needed'));
+      await tapIn(tester, find.text('SCBA'));
+      await tapIn(tester, find.text('Juan Dela Cruz — Driver'));
       expect(find.text('Still needed: driver'), findsOneWidget);
     });
 
-    testWidgets('a false alarm asks which kind, to pick', (tester) async {
+    testWidgets('a false alarm must say what the team found — picked or '
+        'written', (tester) async {
       await pump(
         tester,
         PostIncidentReportScreen(areaId: 'a4', api: fakeApi()),
       );
-      await tapChip(tester, find.text('SCBA'));
-      await tapChip(tester, find.text('We arrived and found nothing'));
-      await scrollTo(tester, find.textContaining('Still needed'));
+      await tapIn(tester, find.text('SCBA'));
+      await tapIn(tester, find.text('False alarm'));
       expect(find.text('Still needed: what the team found'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
 
-      await tapChip(tester, find.text('Wrong address'));
+      await tapIn(tester, find.text('Wrong address'));
+      await scrollTo(tester, find.byType(TextField));
+      await tester.enterText(find.byType(TextField), 'Nobody home at No. 12.');
+      await tester.pumpAndSettle();
       await file(tester);
       expect(filed!['false_alarm'], isTrue);
-      expect(filed!['false_alarm_note'], 'Wrong address');
+      expect(
+        filed!['false_alarm_note'],
+        'Wrong address. Nobody home at No. 12.',
+      );
+      expect(filed!['notes'], 'Nobody home at No. 12.');
     });
 
     testWidgets('a team with no units registered picks the kind that went', (
@@ -483,10 +496,13 @@ void main() {
           api: fakeApi(equipment: const [], joined: const []),
         ),
       );
-      await tapChip(tester, find.text('Fire truck'));
-      await tapChip(tester, find.text('Water tanker'));
-      await tapChip(tester, find.text('Maria Santos'));
-      await tapChip(tester, find.text('Nozzle'));
+      await tapIn(tester, find.bySemanticsLabel(RegExp('^Truck: ')));
+      await tapInSheet(tester, find.text('Fire truck'));
+      await tapInSheet(tester, find.text('Water tanker'));
+      await tapInSheet(tester, find.text('DONE'));
+      await tapIn(tester, find.bySemanticsLabel(RegExp('^Driver: ')));
+      await tapInSheet(tester, find.text('Maria Santos'));
+      await tapIn(tester, find.text('Nozzle'));
       await file(tester);
       expect(
         [for (final u in filed!['units'] as List) u['name']],
@@ -518,7 +534,7 @@ void main() {
           api: fakeApi(joined: [...dispatches, outsider]),
         ),
       );
-      await tapChip(tester, find.text('SCBA'));
+      await tapIn(tester, find.text('SCBA'));
       expect(find.text('Outside Responder'), findsNothing);
       await file(tester);
       expect(
@@ -560,9 +576,11 @@ void main() {
           api: fakeApi(members: null, joined: const []),
         ),
       );
-      await scrollTo(tester, find.textContaining('Could not load your team'));
-      expect(find.text('TRY AGAIN'), findsOneWidget);
-      await scrollTo(tester, find.textContaining('Still needed'));
+      await scrollTo(
+        tester,
+        find.text('Could not load your team. Check your connection.'),
+      );
+      expect(find.text('Try again'), findsOneWidget);
       expect(find.textContaining('driver, roster'), findsOneWidget);
     });
   });

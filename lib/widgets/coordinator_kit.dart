@@ -770,7 +770,13 @@ class LifecycleRail extends StatelessWidget {
 /// The Area summary (§4.8): plain operator text. A missing summary points to
 /// the report list, so it never blocks a decision.
 class SummaryCard extends StatelessWidget {
-  const SummaryCard({super.key, this.text, this.meta, this.writing = false});
+  const SummaryCard({
+    super.key,
+    this.text,
+    this.meta,
+    this.writing = false,
+    this.empty = 'No summary yet. The reports below are the full record.',
+  });
 
   /// The summary, or null when there is none.
   final String? text;
@@ -780,6 +786,10 @@ class SummaryCard extends StatelessWidget {
 
   /// The server is writing it now.
   final bool writing;
+
+  /// What the card says when there is no summary: where the record is
+  /// instead.
+  final String empty;
 
   @override
   Widget build(BuildContext context) {
@@ -813,7 +823,7 @@ class SummaryCard extends StatelessWidget {
                 : writing
                 ? 'Lit is writing the summary. The reports below are the full '
                       'record until it is ready.'
-                : 'No summary yet. The reports below are the full record.',
+                : empty,
             style: context.type.body.copyWith(
               color: ready ? pal.textSoft : pal.label,
             ),
@@ -1134,4 +1144,140 @@ String placeLine(AreaView area, PlaceName place) {
   final c = area.centre;
   return place.line ??
       (c == null ? 'Location unknown' : degrees(c.latitude, c.longitude));
+}
+
+/// One box of a multi-select list (Checkbox): a 22px box and its label, the
+/// whole 44px row the target. Checked fills coral with a dark check.
+class CheckRow extends StatelessWidget {
+  const CheckRow({
+    super.key,
+    required this.label,
+    required this.checked,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool checked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    return Semantics(
+      checked: checked,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: Motion.of(context).state,
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: checked ? pal.accent : pal.background,
+                  borderRadius: BorderRadius.circular(4),
+                  border: checked
+                      ? null
+                      : Border.all(color: pal.lineStrong, width: 1.5),
+                ),
+                alignment: Alignment.center,
+                child: checked
+                    ? const Icon(
+                        AppIcons.check,
+                        size: 16,
+                        color: AppColors.accentText,
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: context.type.bodySm.copyWith(color: pal.textSoft),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A choice chip that may be one of many (Chip): a 36px pill in a 44px
+/// target; selected adds a check, the coral tint and a 1.5px coral edge.
+class PickChip extends StatelessWidget {
+  const PickChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final shape = BorderRadius.circular(AppRadius.chip);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: SizedBox(
+        height: 44,
+        child: Center(
+          widthFactor: 1,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: shape,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: shape,
+              child: AnimatedContainer(
+                duration: Motion.of(context).state,
+                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? pal.accent.withValues(alpha: 0.16)
+                      : pal.surface,
+                  borderRadius: shape,
+                  border: Border.all(
+                    color: selected ? pal.accent : pal.line,
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (selected) ...[
+                      Icon(AppIcons.check, size: 16, color: pal.accentInk),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      label,
+                      style: context.type.label.copyWith(
+                        color: selected ? pal.accentInk : pal.onBackground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
