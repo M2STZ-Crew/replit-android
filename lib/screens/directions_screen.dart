@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -15,8 +16,11 @@ import '../navigation/routing_service.dart';
 import '../navigation/voice_guide.dart';
 import '../theme.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import '../widgets/maneuver_arrow.dart';
+import '../widgets/map_glass.dart';
+import '../widgets/map_marker.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/you_are_here.dart';
 
@@ -288,7 +292,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         _map.fitCamera(
           CameraFit.coordinates(
             coordinates: [...route.points, _nav.destination],
-            padding: const EdgeInsets.fromLTRB(60, 120, 60, 320),
+            padding: _framePadding,
           ),
         );
       } catch (_) {
@@ -296,6 +300,22 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       }
     });
   }
+
+  /// Room the route is framed in: clear of the header and of whatever card
+  /// or sheet is over the bottom of the map.
+  EdgeInsets get _framePadding => _choosingFireRoute
+      ? EdgeInsets.fromLTRB(
+          48,
+          120,
+          48,
+          MediaQuery.sizeOf(context).height * 0.6 + 16,
+        )
+      : const EdgeInsets.fromLTRB(60, 120, 60, 320);
+
+  /// Before Start on the way to a fire: the Choose a route sheet (06 · C09),
+  /// shared by the responder and the coordinator.
+  bool get _choosingFireRoute =>
+      _toFire && !_noLocation && !_nav.navigating && !_nav.arrived;
 
   void _startOrStop() {
     final on = !_nav.navigating;
@@ -332,47 +352,99 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     ? null
                     : CameraFit.coordinates(
                         coordinates: [origin, _nav.destination],
-                        padding: const EdgeInsets.fromLTRB(60, 120, 60, 320),
+                        padding: _framePadding,
                       ),
+                backgroundColor: context.pal.background,
                 interactionOptions: kMapGestures,
                 onMapEvent: _follow.onMapEvent,
               ),
               children: [
                 MapTiles.layer(light: context.pal.isLight),
+                // The fire's Area radius, under the routes and markers.
+                if (_toFire)
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: _nav.destination,
+                        radius: kAreaRadiusMetres,
+                        useRadiusInMeter: true,
+                        color: context.pal.live.withValues(alpha: 0.10),
+                        borderColor: context.pal.live,
+                        borderStrokeWidth: 1,
+                      ),
+                    ],
+                  ),
                 if (_nav.routes.isNotEmpty) PolylineLayer(polylines: _lines()),
                 MarkerLayer(
                   rotate: true,
                   markers: [
                     Marker(
                       point: _nav.destination,
-                      width: 36,
-                      height: 36,
-                      child: _destMarker(),
+                      width: _toFire ? MapMarker.target : 36,
+                      height: _toFire ? MapMarker.target : 36,
+                      child: _toFire
+                          ? MapMarker(
+                              kind: MapMarkerKind.incident,
+                              label: widget.destName,
+                              selected: true,
+                            )
+                          : _destMarker(),
                     ),
                   ],
                 ),
                 YouAreHereLayer(follow: _follow, navigating: navigating),
-                MapLocationButtons(
-                  follow: _follow,
-                  alignment: const Alignment(1, -0.1),
-                ),
+                // Choosing a route, the sheet covers where these sit.
+                if (!_choosingFireRoute)
+                  MapLocationButtons(
+                    follow: _follow,
+                    alignment: const Alignment(1, -0.1),
+                  ),
                 MapTiles.attribution(),
               ],
             ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child:
-                  banner ??
-                  Row(
-                    children: [
-                      const BackWell(),
-                      const SizedBox(width: 12),
-                      Expanded(child: _titlePill()),
-                    ],
+          if (_choosingFireRoute) ...[
+            // The top veil keeps the status bar readable over the map.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              height: 120,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        context.pal.background.withValues(alpha: 0.92),
+                        context.pal.background.withValues(alpha: 0),
+                      ],
+                    ),
                   ),
+                ),
+              ),
             ),
-          ),
+            const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: _GlassBack(),
+              ),
+            ),
+          ] else
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child:
+                    banner ??
+                    Row(
+                      children: [
+                        const BackWell(),
+                        const SizedBox(width: 12),
+                        Expanded(child: _titlePill()),
+                      ],
+                    ),
+              ),
+            ),
           if (_nav.loading)
             Positioned(
               top: 0,
@@ -384,16 +456,19 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 backgroundColor: Colors.transparent,
               ),
             ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [if (navigating) _recentre(), _routeCard()],
+          if (_choosingFireRoute)
+            Positioned(left: 0, right: 0, bottom: 0, child: _chooseRouteSheet())
+          else
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [if (navigating) _recentre(), _routeCard()],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -406,16 +481,26 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final routes = _nav.routes;
     final active = _nav.route!;
     final p = _nav.progress;
+    // To a fire (06 · C09) the chosen route is coral and the others dotted;
+    // to a shelter the chosen one is blue and the others grey.
+    final chosenColour = _toFire ? context.pal.accent : context.pal.info;
     final lines = <Polyline>[
       for (var i = 0; i < routes.length; i++)
         if (i != _nav.active && !routes[i].approximate)
-          Polyline(
-            points: routes[i].points,
-            strokeWidth: 5,
-            color: context.pal.muted.withValues(alpha: 0.6),
-            borderStrokeWidth: 1,
-            borderColor: Colors.black38,
-          ),
+          _toFire
+              ? Polyline(
+                  points: routes[i].points,
+                  strokeWidth: 4,
+                  color: context.pal.textSoft.withValues(alpha: 0.8),
+                  pattern: const StrokePattern.dotted(spacingFactor: 2),
+                )
+              : Polyline(
+                  points: routes[i].points,
+                  strokeWidth: 5,
+                  color: context.pal.muted.withValues(alpha: 0.6),
+                  borderStrokeWidth: 1,
+                  borderColor: Colors.black38,
+                ),
     ];
     final seg = p == null ? 0 : _segmentAt(active, p.along);
     final behind = p == null
@@ -438,7 +523,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         Polyline(
           points: ahead,
           strokeWidth: 6,
-          color: context.pal.info,
+          color: chosenColour,
           borderStrokeWidth: 1.5,
           borderColor: Colors.black54,
           pattern: active.approximate
@@ -923,6 +1008,102 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     );
   }
 
+  /// C09 — Choose a route: every road route to the fire, the chosen one
+  /// marked, and Start navigation. On glass over the map, full width.
+  Widget _chooseRouteSheet() {
+    final routes = _nav.routes;
+    final real = routes.where((r) => !r.approximate).length;
+    final notes = [?_trafficNote, ?_note];
+    final body = DecoratedBox(
+      decoration: BoxDecoration(
+        color: MapGlass.strong(context),
+        border: Border(top: BorderSide(color: context.pal.line)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          12,
+          24,
+          12 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF979797),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Semantics(
+              header: true,
+              child: Text('Choose a route', style: context.type.sheetTitle),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _nav.provider == 'osrm'
+                  ? 'To ${widget.destName}. These driving routes come from '
+                        'the backup router, which cannot check street width.'
+                  : 'To ${widget.destName}. Every route avoids footpaths and '
+                        'streets too narrow for a truck.',
+              style: context.type.body.copyWith(color: context.pal.textSoft),
+            ),
+            const SizedBox(height: 12),
+            if (_nav.loading && routes.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Finding the best route…',
+                  style: context.type.bodySm,
+                ),
+              )
+            else
+              for (var i = 0; i < routes.length; i++)
+                if (real <= 1 || !routes[i].approximate) ...[
+                  _FireRouteOption(
+                    key: ValueKey('route-$i'),
+                    route: routes[i],
+                    chosen: i == _nav.active,
+                    badge: real < 2
+                        ? null
+                        : i == _nav.fastest
+                        ? 'Fastest'
+                        : i == _nav.shortest
+                        ? 'Shortest'
+                        : null,
+                    onTap: () => _nav.select(i),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+            for (final n in notes) ...[
+              Text(n, style: context.type.caption),
+              const SizedBox(height: 8),
+            ],
+            AppButton(
+              'Start navigation',
+              run: true,
+              onPressed: routes.isEmpty ? null : _startOrStop,
+            ),
+          ],
+        ),
+      ),
+    );
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(AppRadius.sheet),
+      ),
+      child: MapGlass.blurs(context)
+          ? BackdropFilter(filter: MapGlass.blur, child: body)
+          : body,
+    );
+  }
+
   /// Under way: time, distance and arrival; voice; Stop.
   Widget _navigatingCard() {
     final note = _note;
@@ -1040,6 +1221,193 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// One road route to the fire (Route option, 06 · C09): its time, distance
+/// and the badge the provider's numbers earn it, with its main road under.
+/// Radio behaviour; the whole card is the target.
+class _FireRouteOption extends StatelessWidget {
+  const _FireRouteOption({
+    super.key,
+    required this.route,
+    required this.chosen,
+    required this.onTap,
+    this.badge,
+  });
+
+  final NavRoute route;
+  final bool chosen;
+  final VoidCallback onTap;
+
+  /// "Fastest" or "Shortest" — facts the route numbers show, never a claim
+  /// about safety.
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final minutes = (route.duration / 60).ceil();
+    final shape = BorderRadius.circular(AppRadius.card);
+    final via = route.approximate
+        ? 'Direct line — no road route'
+        : route.summary.isEmpty
+        ? 'By road'
+        : 'Via ${route.summary}';
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      checked: chosen,
+      label:
+          '$minutes min, ${formatDistance(route.length)}'
+          '${badge == null ? '' : ', $badge'}, $via',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: shape,
+        child: InkWell(
+          borderRadius: shape,
+          onTap: onTap,
+          highlightColor: pal.pressed,
+          splashColor: pal.pressed,
+          child: AnimatedContainer(
+            duration: Motion.of(context).state,
+            constraints: const BoxConstraints(minHeight: 72),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: chosen ? pal.accent.withValues(alpha: 0.16) : pal.surface,
+              borderRadius: shape,
+              border: Border.all(
+                color: chosen ? pal.accent : pal.line,
+                width: chosen ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Ring(on: chosen),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            '$minutes min',
+                            style: context.type.numeralSm.copyWith(
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            formatDistance(route.length),
+                            style: context.type.rowValue,
+                          ),
+                          if (badge != null)
+                            Tag(badge!, color: pal.accentInk, dot: true),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(via, style: context.type.bodySm),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The radio's 22px ring: inset and grey, or coral with a coral dot.
+class _Ring extends StatelessWidget {
+  const _Ring({required this.on});
+
+  final bool on;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    return AnimatedContainer(
+      duration: Motion.of(context).state,
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: pal.background,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: on ? pal.accent : pal.lineStrong,
+          width: on ? 2 : 1.5,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: on
+          ? Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: pal.accent,
+                shape: BoxShape.circle,
+              ),
+            )
+          : null,
+    );
+  }
+}
+
+/// Back, as an Icon button over a map: glass and a blur, 48px.
+class _GlassBack extends StatelessWidget {
+  const _GlassBack();
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = BorderRadius.circular(AppRadius.control);
+    final button = Material(
+      color: MapGlass.glass(context),
+      borderRadius: shape,
+      child: InkWell(
+        borderRadius: shape,
+        onTap: () => Navigator.of(context).maybePop(),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: shape,
+            border: Border.all(color: context.pal.line),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            AppIcons.chevronLeft,
+            size: 24,
+            color: context.pal.onBackground,
+          ),
+        ),
+      ),
+    );
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Semantics(
+        button: true,
+        label: 'Back',
+        excludeSemantics: true,
+        child: ClipRRect(
+          borderRadius: shape,
+          child: MapGlass.blurs(context)
+              ? BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+                  child: button,
+                )
+              : button,
+        ),
+      ),
     );
   }
 }

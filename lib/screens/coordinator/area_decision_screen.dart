@@ -199,15 +199,8 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
   }
 
   void _route() {
-    final c = _area?.centre;
-    if (c == null) return;
-    openRouteToFire(
-      context,
-      lat: c.latitude,
-      lng: c.longitude,
-      name: _area!.name,
-      areaId: widget.areaId,
-    );
+    final area = _area;
+    if (area != null) openRouteToArea(context, area);
   }
 
   void _openReport(Map<String, dynamic> report, int index) {
@@ -422,6 +415,23 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         return null;
     }
   }
+}
+
+/// Road directions to an Area (06 · C09), named as the route sheet says it:
+/// "Area 1.2, F. Victor Street", or the Area alone when the street is not
+/// known.
+Future<void> openRouteToArea(BuildContext context, AreaView area) async {
+  final c = area.centre;
+  if (c == null) return;
+  final street = (await PlaceNames.of(c.latitude, c.longitude)).street;
+  if (!context.mounted) return;
+  await openRouteToFire(
+    context,
+    lat: c.latitude,
+    lng: c.longitude,
+    name: street == null ? area.name : '${area.name}, $street',
+    areaId: area.id,
+  );
 }
 
 /// What the Accept sheet decided: whether this coordinator is going, and on

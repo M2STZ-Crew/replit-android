@@ -116,6 +116,16 @@ class NavigationController extends ChangeNotifier {
     return best;
   }
 
+  /// The index of the shortest route by distance, labelled "Shortest" when
+  /// it is not also the fastest.
+  int get shortest {
+    var best = 0;
+    for (var i = 1; i < _routes.length; i++) {
+      if (_routes[i].length < _routes[best].length) best = i;
+    }
+    return best;
+  }
+
   /// Who routed it, and whether its times include live traffic.
   String? get provider => _provider;
   String? _provider;

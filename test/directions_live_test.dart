@@ -271,15 +271,25 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('driving time comes from the road route, and counts down', (
-      tester,
-    ) async {
+    testWidgets('Choose a route (06 · C09): the road time, then it counts '
+        'down once under way', (tester) async {
       await pump(tester);
       expect(tester.takeException(), isNull);
-      expect(find.text('ROUTE TO THE FIRE'), findsOneWidget);
-      expect(find.text('~4 min'), findsOneWidget);
-      expect(find.text('DRIVING'), findsOneWidget);
+      expect(find.text('Choose a route'), findsOneWidget);
+      expect(
+        find.text(
+          'To Area 7. Every route avoids footpaths and streets too narrow '
+          'for a truck.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('4 min'), findsOneWidget);
+      expect(find.text('Via Taft Avenue, Gil Puyat Avenue'), findsOneWidget);
       expect(find.text('Times include live traffic.'), findsOneWidget);
+      expect(find.text('START NAVIGATION'), findsOneWidget);
+      expect(find.byType(CircleLayer), findsOneWidget, reason: 'Area radius');
+      await tester.tap(find.text('START NAVIGATION'));
+      await tester.pump(const Duration(milliseconds: 100));
       await moveTo(tester, at(1000));
       expect(find.text('~2 min'), findsOneWidget);
     });
@@ -294,6 +304,11 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Times include live traffic.'), findsNothing);
+      expect(
+        find.textContaining('cannot check street width'),
+        findsOneWidget,
+        reason: 'the backup router has no truck width limit',
+      );
     });
 
     testWidgets('every route offered, the fastest chosen; another can be', (
@@ -302,8 +317,9 @@ void main() {
       offered = [nt.longRoute, nt.lRoute];
       await pump(tester);
       expect(find.text('Fastest'), findsOneWidget);
-      expect(find.text('~4 min'), findsOneWidget);
-      expect(find.text('~7 min'), findsOneWidget);
+      expect(find.text('Shortest'), findsNothing, reason: 'the same route');
+      expect(find.text('4 min'), findsOneWidget);
+      expect(find.text('7 min'), findsOneWidget);
       List<LatLng> grey() => tester
           .widget<PolylineLayer>(find.byType(PolylineLayer))
           .polylines
@@ -320,10 +336,19 @@ void main() {
       );
     });
 
+    testWidgets('a shorter, slower route is marked Shortest', (tester) async {
+      offered = [nt.lRoute, _shortSlow];
+      await pump(tester);
+      expect(find.text('Fastest'), findsOneWidget);
+      expect(find.text('Shortest'), findsOneWidget);
+      expect(find.text('10 min'), findsOneWidget);
+      expect(find.text('Via Libertad Street'), findsOneWidget);
+    });
+
     testWidgets('Start: the next turn in the banner, counting down, then the '
         'next; the voice says each', (tester) async {
       await pump(tester);
-      await tester.tap(find.text('START'));
+      await tester.tap(find.text('START NAVIGATION'));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Turn right onto Gil Puyat Avenue'), findsOneWidget);
       expect(find.text('1.0 km'), findsWidgets);
@@ -350,7 +375,7 @@ void main() {
     testWidgets('looking around the map stops following; Re-centre brings the '
         'navigation view back', (tester) async {
       await pump(tester);
-      await tester.tap(find.text('START'));
+      await tester.tap(find.text('START NAVIGATION'));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byKey(const ValueKey('recentre')), findsNothing);
 
@@ -386,3 +411,16 @@ void main() {
     });
   });
 }
+
+/// Straight across to the fire: about 1.4 km, shorter than the L, but slow.
+final _shortSlow = (
+  points: [at(0), at(1000, east: 1000)],
+  steps: [
+    nt.step('depart', at(0), name: 'Libertad Street', duration: 600),
+    nt.step('arrive', at(1000, east: 1000)),
+  ],
+  duration: 600.0,
+  summary: 'Libertad Street',
+  congestion: null,
+  typical: null,
+);

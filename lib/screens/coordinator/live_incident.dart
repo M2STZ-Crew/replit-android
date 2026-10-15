@@ -18,7 +18,6 @@ import '../../widgets/map_marker.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/you_are_here.dart';
 import '../bfp/bfp_alarm_requests_screen.dart';
-import '../directions_screen.dart';
 import '../responder/responder_status.dart';
 import '../subadmin/post_incident_report_screen.dart';
 import 'area_decision_screen.dart';
@@ -289,15 +288,8 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
       _act(() => _api.markArrived(widget.areaId), 'Marked on scene.');
 
   void _route() {
-    final c = _area?.centre;
-    if (c == null) return;
-    openRouteToFire(
-      context,
-      lat: c.latitude,
-      lng: c.longitude,
-      name: _area!.name,
-      areaId: widget.areaId,
-    );
+    final area = _area;
+    if (area != null) openRouteToArea(context, area);
   }
 
   /// C12 — confirm, then fire out; the report is offered straight after.
