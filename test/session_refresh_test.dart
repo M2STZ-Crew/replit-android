@@ -60,6 +60,83 @@ void main() {
     expect(prefs.getString('access_token'), 'fresh-token');
   });
 
+  test('a GPS fix sent with a lapsed token is renewed and replayed', () async {
+    // An hour into a response every fix used to fail quietly, so the server
+    // never saw the crew reach the fire and never marked it arrived.
+    final seen = <String>[];
+    Map<String, dynamic>? posted;
+    final api = ApiClient(
+      client: MockClient((req) async {
+        seen.add(
+          '${req.method} ${req.url.path} ${req.headers['Authorization']}',
+        );
+        if (req.url.path.endsWith('/auth/refresh')) {
+          return http.Response(tokens('fresh-token'), 200);
+        }
+        if (req.headers['Authorization'] != 'Bearer fresh-token') {
+          return http.Response(jsonEncode({'message': 'Token expired'}), 401);
+        }
+        posted = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response(jsonEncode({'ok': true}), 200);
+      }),
+    );
+
+    await api.postResponderLocation('a1', lat: 14.5, lng: 121.0);
+
+    expect(seen, [
+      'POST /incidents/a1/location Bearer expired-token',
+      'POST /auth/refresh null',
+      'POST /incidents/a1/location Bearer fresh-token',
+    ]);
+    expect(posted!['lat'], 14.5, reason: 'the same fix, replayed whole');
+    expect(Session.instance.accessToken, 'fresh-token');
+  });
+
+  test('two calls that lapse together renew once', () async {
+    var refreshes = 0;
+    final api = ApiClient(
+      client: MockClient((req) async {
+        if (req.url.path.endsWith('/auth/refresh')) {
+          refreshes++;
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          return http.Response(tokens('fresh-token'), 200);
+        }
+        return req.headers['Authorization'] == 'Bearer fresh-token'
+            ? http.Response(jsonEncode({'ok': true}), 200)
+            : http.Response(jsonEncode({'message': 'Token expired'}), 401);
+      }),
+    );
+    await Future.wait([
+      api.postResponderLocation('a1', lat: 1, lng: 2),
+      api.markArrived('a1'),
+    ]);
+    expect(refreshes, 1, reason: 'Supabase rotates the refresh token');
+  });
+
+  test('when renewing fails, an action says the session ended', () async {
+    final api = ApiClient(
+      client: MockClient((req) async {
+        if (req.url.path.endsWith('/auth/refresh')) {
+          return http.Response(jsonEncode({'message': 'Invalid'}), 401);
+        }
+        return http.Response(
+          jsonEncode({'message': 'Missing or malformed Authorization header.'}),
+          401,
+        );
+      }),
+    );
+    await expectLater(
+      api.markArrived('a1'),
+      throwsA(
+        isA<ApiException>().having(
+          (e) => e.message,
+          'message',
+          'Your session has ended. Please sign in again.',
+        ),
+      ),
+    );
+  });
+
   test('a dead refresh token clears the session instead of keeping it', () async {
     final api = ApiClient(
       client: MockClient((req) async {
@@ -93,27 +170,30 @@ void main() {
     expect(refreshes, 0);
   });
 
-  test('concurrent calls share one refresh, because the token rotates', () async {
-    // Supabase retires a refresh token the moment it is used, so two parallel
-    // refreshes would race and the loser would present a retired token.
-    var refreshes = 0;
-    final api = ApiClient(
-      client: MockClient((req) async {
-        if (req.url.path.endsWith('/auth/refresh')) {
-          refreshes++;
-          await Future<void>.delayed(const Duration(milliseconds: 20));
-          return http.Response(tokens('fresh-token'), 200);
-        }
-        return req.headers['Authorization'] == 'Bearer fresh-token'
-            ? http.Response(jsonEncode(profile), 200)
-            : http.Response(jsonEncode({'message': 'Unauthorized'}), 401);
-      }),
-    );
+  test(
+    'concurrent calls share one refresh, because the token rotates',
+    () async {
+      // Supabase retires a refresh token the moment it is used, so two parallel
+      // refreshes would race and the loser would present a retired token.
+      var refreshes = 0;
+      final api = ApiClient(
+        client: MockClient((req) async {
+          if (req.url.path.endsWith('/auth/refresh')) {
+            refreshes++;
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+            return http.Response(tokens('fresh-token'), 200);
+          }
+          return req.headers['Authorization'] == 'Bearer fresh-token'
+              ? http.Response(jsonEncode(profile), 200)
+              : http.Response(jsonEncode({'message': 'Unauthorized'}), 401);
+        }),
+      );
 
-    await Future.wait([api.getMe(), api.getMe(), api.getMe()]);
+      await Future.wait([api.getMe(), api.getMe(), api.getMe()]);
 
-    expect(refreshes, 1);
-  });
+      expect(refreshes, 1);
+    },
+  );
 
   _wrongServerTests();
 
@@ -145,7 +225,10 @@ void _wrongServerTests() {
     test('an HTML reply says the address is wrong, and names it', () async {
       final api = ApiClient(
         client: MockClient(
-          (_) async => http.Response('<html><body>Redirecting to another site</body></html>', 200),
+          (_) async => http.Response(
+            '<html><body>Redirecting to another site</body></html>',
+            200,
+          ),
         ),
       );
 
@@ -155,15 +238,23 @@ void _wrongServerTests() {
           isA<ApiException>().having(
             (e) => e.message,
             'message',
-            allOf(contains('did not reply with RepLiT data'), contains('install')),
+            allOf(
+              contains('did not reply with RepLiT data'),
+              contains('install'),
+            ),
           ),
         ),
       );
     });
 
-    test('an empty body is still fine, since some endpoints return none', () async {
-      final api = ApiClient(client: MockClient((_) async => http.Response('', 200)));
-      expect(await api.getMe(), isEmpty);
-    });
+    test(
+      'an empty body is still fine, since some endpoints return none',
+      () async {
+        final api = ApiClient(
+          client: MockClient((_) async => http.Response('', 200)),
+        );
+        expect(await api.getMe(), isEmpty);
+      },
+    );
   });
 }

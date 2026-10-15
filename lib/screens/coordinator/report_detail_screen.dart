@@ -97,10 +97,18 @@ class ReportDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     if (lat != null && lng != null)
-                      ListRow(
-                        leading: const IconPlate(AppIcons.locationOn),
-                        title: 'Where the phone was',
-                        subtitle: degrees(lat, lng),
+                      // The street first, from the phone's geocoder; the
+                      // degrees stay, since they are what was sent.
+                      FutureBuilder<PlaceName>(
+                        future: PlaceNames.of(lat, lng),
+                        builder: (context, snap) => ListRow(
+                          leading: const IconPlate(AppIcons.locationOn),
+                          title: 'Where the phone was',
+                          subtitle: [
+                            ?snap.data?.line,
+                            degrees(lat, lng),
+                          ].join(' · '),
+                        ),
                       ),
                     const SizedBox(height: 16),
                     if (r['gps_discrepancy_flag'] == true)

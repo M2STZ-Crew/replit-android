@@ -200,6 +200,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   String? _areaStatus;
   bool _arriving = false;
 
+  /// The run reached the fire and that has been acted on, once.
+  bool _arrivalHandled = false;
+
   /// Water layers drawn while driving (the Map layers button).
   final Set<String> _water = {};
   final Map<String, List<LatLng>> _waterPoints = {};
@@ -279,6 +282,21 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     if (!_framed && _nav.routes.isNotEmpty) {
       _framed = true;
       _fitRoute();
+    }
+    if (_toFire && _nav.arrived && !_arrivalHandled) {
+      _arrivalHandled = true;
+      unawaited(_reachedTheFire());
+    }
+  }
+
+  /// Within reach of the fire: navigation ends there, and someone responding
+  /// is marked on scene without having to press anything — the server's own
+  /// GPS check may beat this to it, which counts the same.
+  Future<void> _reachedTheFire() async {
+    if (_nav.navigating) _nav.setNavigating(false);
+    _follow.release();
+    if (widget.run?.markArrived != null && _areaStatus != 'arrived') {
+      await _markArrived();
     }
   }
 
@@ -1347,15 +1365,29 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   Future<void> _markArrived() async {
     final mark = widget.run?.markArrived;
-    if (mark == null) return;
+    if (mark == null || _arriving) return;
     setState(() => _arriving = true);
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
       await mark();
-      messenger.showSnackBar(const SnackBar(content: Text('Marked on scene.')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('You are on scene. Marked arrived.')),
+      );
       navigator.pop(true);
     } on ApiException catch (e) {
+      // Already on scene — the GPS check or another unit got there first —
+      // is the outcome wanted, not a failure.
+      if (e.statusCode == 409) {
+        await _refreshDestination();
+        if (_areaStatus == 'arrived') {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('You are on scene.')),
+          );
+          navigator.pop(true);
+          return;
+        }
+      }
       if (mounted) setState(() => _arriving = false);
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {

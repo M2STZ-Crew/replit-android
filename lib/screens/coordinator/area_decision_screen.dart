@@ -53,6 +53,9 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
   bool _responding = false;
   String? _summary;
   DateTime? _summaryAt;
+
+  /// The server keeps the summary to the teams that responded.
+  bool _summaryNotYours = false;
   String? _error;
   bool _busy = false;
   bool _changed = false;
@@ -114,6 +117,10 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         _summary = newest['summary_text'] as String?;
         _summaryAt = parseTime(newest['generated_at']);
       });
+    } on ApiException catch (e) {
+      if (e.statusCode == 403 && mounted) {
+        setState(() => _summaryNotYours = true);
+      }
     } catch (_) {
       // The card says there is none; the reports are the record.
     }
@@ -168,7 +175,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     if (area == null) return;
     final reason = await showFrameSheet<String>(
       context,
-      builder: (_) => _RejectSheet(area: area, reports: _reports),
+      builder: (_) => RejectSheet(area: area, reports: _reports),
     );
     if (reason == null || !mounted) return;
     setState(() => _busy = true);
@@ -322,6 +329,10 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
       SummaryCard(
         text: _summary,
         meta: _summaryAt == null ? null : whenText(_summaryAt!),
+        empty: _summaryNotYours
+            ? 'The summary and the post-incident reports are for the teams '
+                  'that responded.'
+            : 'No summary yet. The reports below are the full record.',
       ),
       gap,
       SectionHeader('Reports', meta: '$n · photos are staff-only'),
@@ -621,17 +632,17 @@ class GoSheetState extends State<GoSheet> {
 
 /// C06 — Reject Area 2.1? Destructive and final, so it says what the Area
 /// is, what rejecting does, and asks why (the server keeps the reason).
-class _RejectSheet extends StatefulWidget {
-  const _RejectSheet({required this.area, required this.reports});
+class RejectSheet extends StatefulWidget {
+  const RejectSheet({super.key, required this.area, required this.reports});
 
   final AreaView area;
   final List<Map<String, dynamic>> reports;
 
   @override
-  State<_RejectSheet> createState() => _RejectSheetState();
+  State<RejectSheet> createState() => _RejectSheetState();
 }
 
-class _RejectSheetState extends State<_RejectSheet> {
+class _RejectSheetState extends State<RejectSheet> {
   static const _reasons = [
     'False alarm — no fire found',
     'Duplicate of another Area',

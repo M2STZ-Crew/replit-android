@@ -415,8 +415,33 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     );
   }
 
+  /// C06 — straight to the reject sheet: why, then reject. The Area's
+  /// details are their own row ([_details]).
   Future<void> _reject() async {
-    // The decision screen owns the reject sheet and its reasons.
+    final area = _area;
+    if (area == null) return;
+    List<Map<String, dynamic>> reports;
+    try {
+      reports = (await _api.getIncidentReports(
+        widget.areaId,
+      )).cast<Map<String, dynamic>>();
+    } catch (_) {
+      reports = const [];
+    }
+    if (!mounted) return;
+    final reason = await showFrameSheet<String>(
+      context,
+      builder: (_) => RejectSheet(area: area, reports: reports),
+    );
+    if (reason == null || !mounted) return;
+    await _act(
+      () => _api.rejectIncident(widget.areaId, reason),
+      '${area.name} rejected. It has left the live feed.',
+    );
+  }
+
+  /// The Area's details — where it is, how sure, the summary, every report.
+  Future<void> _details() async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) =>
@@ -690,6 +715,14 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                 trailing: RowValue(alarmWord(area.alarmLevel)),
                 chevron: true,
                 onTap: _busy ? null : _alarm,
+              ),
+              const SizedBox(height: 12),
+              ListRow(
+                leading: const IconPlate(AppIcons.description),
+                title: 'Area details',
+                subtitle: 'Where it is, confidence, summary and reports',
+                chevron: true,
+                onTap: _details,
               ),
               const SizedBox(height: 12),
               ..._myActions(area, mine),

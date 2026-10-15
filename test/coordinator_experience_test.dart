@@ -17,6 +17,7 @@ import 'package:replit/screens/coordinator/coordinator_feed.dart';
 import 'package:replit/screens/coordinator/coordinator_shell.dart';
 import 'package:replit/screens/coordinator/live_incident.dart';
 import 'package:replit/screens/coordinator/my_decisions_screen.dart';
+import 'package:replit/screens/coordinator/report_detail_screen.dart';
 import 'package:replit/screens/subadmin/report_filed_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/coordinator_kit.dart';
@@ -341,6 +342,48 @@ void main() {
   });
 
   group('LIVE', () {
+    Future<void> openLive(WidgetTester tester) => pump(
+      tester,
+      Scaffold(
+        body: LiveIncidentView(areaId: 'a3', me: me, api: api()),
+      ),
+    );
+
+    Future<void> scrollSheetTo(WidgetTester tester, Finder target) =>
+        tester.dragUntilVisible(
+          target,
+          find.byType(ListView).last,
+          const Offset(0, -200),
+        );
+
+    testWidgets('Reject this Area opens the reject sheet, and rejects', (
+      tester,
+    ) async {
+      await openLive(tester);
+      await scrollSheetTo(tester, find.text('Reject this Area'));
+      await tester.tap(find.text('Reject this Area'));
+      await settle(tester);
+      expect(find.text('Reject Area 3.1?'), findsOneWidget);
+      expect(find.byType(AreaDecisionScreen), findsNothing);
+      await tester.tap(find.text('Duplicate of another Area'));
+      await settle(tester);
+      await tester.tap(find.text('REJECT AREA 3.1'));
+      await settle(tester);
+      expect(posted.single.$2, '/incidents/a3/reject');
+      expect(posted.single.$3['reason'], 'Duplicate of another Area');
+      await done(tester);
+    });
+
+    testWidgets('Area details opens the Area', (tester) async {
+      await openLive(tester);
+      await scrollSheetTo(tester, find.text('Area details'));
+      await tester.tap(find.text('Area details'));
+      await settle(tester);
+      expect(find.byType(AreaDecisionScreen), findsOneWidget);
+      expect(find.text('Medium — 0.46'), findsOneWidget);
+      await done(tester);
+    });
+
     testWidgets('lists units by truck and confirms fire out', (tester) async {
       dispatches = [
         {
@@ -563,6 +606,35 @@ void main() {
         findsOneWidget,
       );
       await tester.pumpWidget(const SizedBox());
+    });
+  });
+
+  group('a report', () {
+    testWidgets('says the street where the phone was, and the degrees', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        const ReportDetailScreen(
+          number: 1,
+          report: {
+            'id': 'r1',
+            'reporter_name': 'Ana',
+            'device_lat': 14.5378,
+            'device_lng': 121.0014,
+            'user_verified_percent': 100,
+            'selected_agencies': ['fire_volunteer'],
+          },
+        ),
+      );
+      expect(
+        find.text(
+          'F. Victor Street, Barangay 76, Pasay City · '
+          '14.5378° N, 121.0014° E',
+        ),
+        findsOneWidget,
+      );
+      await done(tester);
     });
   });
 

@@ -5,6 +5,7 @@ import 'package:geolocator_platform_interface/geolocator_platform_interface.dart
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:replit/api/api_client.dart';
 import 'package:replit/location/live_position.dart';
 import 'package:replit/location/route_progress.dart';
 import 'package:replit/navigation/nav_route.dart';
@@ -469,6 +470,102 @@ void main() {
         await settle(tester);
         expect(find.bySemanticsLabel('Status: Arrived'), findsOneWidget);
         expect(find.text('MARK ARRIVED'), findsNothing);
+      });
+
+      /// The directions pushed over a page, as the app opens them, so
+      /// leaving them can be seen.
+      Future<void> pushOver(WidgetTester tester, FireRun run) async {
+        tester.view.physicalSize = const Size(402, 874);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final fire = at(1000, east: 1000);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildAppTheme(),
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => DirectionsScreen(
+                          destLat: fire.latitude,
+                          destLng: fire.longitude,
+                          destName: 'Area 1.2',
+                          to: DirectionsTo.fire,
+                          fetchRoute: fetch,
+                          voice: voice,
+                          run: run,
+                        ),
+                      ),
+                    ),
+                    child: const Text('LIVE'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('LIVE'));
+        await settle(tester);
+        await settle(tester);
+      }
+
+      testWidgets('reaching the fire ends navigation and marks arrived by '
+          'itself', (tester) async {
+        await pushOver(tester, run());
+        await tester.tap(find.text('START NAVIGATION'));
+        await settle(tester);
+        await moveTo(tester, at(1000, east: 950));
+        await settle(tester);
+        expect(arrivals, 1, reason: 'nobody pressed Mark arrived');
+        await tester.pumpAndSettle();
+        expect(find.byType(DirectionsScreen), findsNothing, reason: 'it ends');
+        expect(find.text('You are on scene. Marked arrived.'), findsOneWidget);
+      });
+
+      testWidgets('already on scene by the GPS check counts as arrived', (
+        tester,
+      ) async {
+        await pushOver(
+          tester,
+          FireRun(
+            areaId: 'a1',
+            areaName: 'Area 1.2',
+            markArrived: () async {
+              status = 'arrived'; // the server moved it a moment ago
+              throw ApiException(
+                409,
+                "Cannot move an incident from 'arrived' to 'arrived'.",
+              );
+            },
+            readArea: () async => {
+              'status': status,
+              'centroid_lat': at(1000, east: 1000).latitude,
+              'centroid_lng': at(1000, east: 1000).longitude,
+            },
+          ),
+        );
+        await tester.tap(find.text('START NAVIGATION'));
+        await settle(tester);
+        await moveTo(tester, at(1000, east: 950));
+        await settle(tester);
+        await tester.pumpAndSettle();
+        expect(find.byType(DirectionsScreen), findsNothing);
+        expect(find.text('You are on scene.'), findsOneWidget);
+      });
+
+      testWidgets('someone not responding just stops at the fire', (
+        tester,
+      ) async {
+        await pump(tester, run: run(responding: false));
+        await tester.tap(find.text('START NAVIGATION'));
+        await settle(tester);
+        await moveTo(tester, at(1000, east: 950));
+        await settle(tester);
+        expect(find.text('You are at the fire — Area 1.2'), findsOneWidget);
+        expect(find.text('DONE'), findsOneWidget, reason: 'navigation ended');
+        expect(arrivals, 0);
       });
 
       testWidgets('north up, then heading up again', (tester) async {

@@ -35,8 +35,14 @@ class SessionExpiredException extends ApiException {
 }
 
 class ApiClient {
-  ApiClient({http.Client? client}) : _client = client ?? http.Client();
-  final http.Client _client;
+  ApiClient({http.Client? client}) : _raw = client ?? http.Client();
+
+  /// The bare connection; the session refresh goes over it.
+  final http.Client _raw;
+
+  /// Every other request goes over this one: a lapsed access token is renewed
+  /// and the request replayed, whichever call it was ([_RenewingClient]).
+  late final http.Client _client = _RenewingClient(_raw, _refreshSession);
 
   /// A refresh already under way, shared by every caller that hits a 401.
   static Future<bool>? _refreshing;
@@ -1109,7 +1115,7 @@ class ApiClient {
     final token = Session.instance.refreshToken;
     if (token == null || token.isEmpty) return false;
     try {
-      final resp = await _client.post(
+      final resp = await _raw.post(
         Uri.parse('${ApiConfig.baseUrl}/auth/refresh'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh_token': token}),
@@ -1123,31 +1129,21 @@ class ApiClient {
     }
   }
 
-  /// Send an authenticated request, renewing the session once if it has lapsed.
+  /// Send a request whose 401 means the session is over.
   ///
-  /// Access tokens last about an hour, so any app left alone overnight wakes up
-  /// with a dead one. Without this the request simply failed and the stored
-  /// token stayed dead for good: every retry re-sent it, and the only way out
-  /// was to clear the app's data. Now a 401 spends the refresh token, and the
-  /// request is replayed with the new access token. [send] is a closure rather
-  /// than a prepared request so the replay picks up that new token.
-  ///
-  /// If the refresh token is missing or also expired the session is cleared —
-  /// leaving dead credentials on the device is what made this stick — and
-  /// [SessionExpiredException] is thrown for the caller to route to login.
+  /// [_client] has already renewed a lapsed access token and replayed the
+  /// request, so a 401 that reaches here is one renewing could not fix: the
+  /// refresh token is missing or also expired. The session is cleared —
+  /// leaving dead credentials on the device is what made this stick once —
+  /// and [SessionExpiredException] is thrown for the caller to route to
+  /// login. Used by the calls the app starts up with (/auth/me and friends).
   Future<http.Response> _authed(Future<http.Response> Function() send) async {
-    final first = await send();
-    if (first.statusCode != 401) return first;
-    if (!await _refreshSession()) {
+    final resp = await send();
+    if (resp.statusCode == 401) {
       await Session.instance.clear();
       throw SessionExpiredException();
     }
-    final second = await send();
-    if (second.statusCode == 401) {
-      await Session.instance.clear();
-      throw SessionExpiredException();
-    }
-    return second;
+    return resp;
   }
 
   void _storeSession(Map<String, dynamic> data) {
@@ -1199,4 +1195,71 @@ class ApiClient {
     }
     return body;
   }
+}
+
+/// Renews a lapsed access token for any request, then sends it again.
+///
+/// Access tokens last about an hour. Only the start-up calls used to renew
+/// one, so an hour into a response every other request — the location fixes
+/// the server marks a crew arrived from, the incident polls, Mark arrived —
+/// went out with a dead token and failed quietly; the GPS arrival never came.
+/// Now a 401 on a request that carried a token spends the refresh token once
+/// (shared by every request that hit it, since Supabase rotates it), and the
+/// request is replayed with the new token. A multipart upload cannot be
+/// replayed; it still renews, so its retry goes through.
+///
+/// When renewing fails the 401 comes back saying the session has ended, in
+/// words a person can act on, rather than the server's note about a header.
+class _RenewingClient extends http.BaseClient {
+  _RenewingClient(this._inner, this._renew);
+
+  final http.Client _inner;
+  final Future<bool> Function() _renew;
+
+  static const _ended = 'Your session has ended. Please sign in again.';
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    final authorised =
+        request.headers['Authorization']?.startsWith('Bearer') ?? false;
+    final replay = authorised && request is http.Request
+        ? _copy(request)
+        : null;
+    final first = await _inner.send(request);
+    if (first.statusCode != 401 || !authorised) return first;
+    final body = await first.stream.toBytes();
+    final again = http.StreamedResponse(
+      Stream.value(body),
+      401,
+      headers: first.headers,
+      request: first.request,
+      reasonPhrase: first.reasonPhrase,
+    );
+    if (!await _renew()) {
+      return http.StreamedResponse(
+        Stream.value(
+          utf8.encode(
+            jsonEncode({'message': _ended, 'error': 'session_expired'}),
+          ),
+        ),
+        401,
+        headers: const {'content-type': 'application/json'},
+        request: first.request,
+      );
+    }
+    if (replay == null) return again;
+    replay.headers['Authorization'] =
+        'Bearer ${Session.instance.accessToken ?? ''}';
+    return _inner.send(replay);
+  }
+
+  static http.Request _copy(http.Request r) => http.Request(r.method, r.url)
+    ..bodyBytes = r.bodyBytes
+    ..headers.addAll(r.headers)
+    ..followRedirects = r.followRedirects
+    ..maxRedirects = r.maxRedirects
+    ..persistentConnection = r.persistentConnection;
+
+  @override
+  void close() => _inner.close();
 }
