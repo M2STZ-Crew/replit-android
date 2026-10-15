@@ -101,7 +101,7 @@ abstract final class AppIcons {
   static const IconData dashboard = IconData(0xe871, fontFamily: _family);
 
   /// Material Symbols "description".
-  static const IconData description = IconData(0xe683, fontFamily: _family);
+  static const IconData description = IconData(0xe873, fontFamily: _family);
 
   /// Material Symbols "desktop_windows".
   static const IconData desktopWindows = IconData(0xe30c, fontFamily: _family);
@@ -160,6 +160,9 @@ abstract final class AppIcons {
   /// Material Symbols "flash_on".
   static const IconData flashOn = IconData(0xe3e7, fontFamily: _family);
 
+  /// Material Symbols "grid_view".
+  static const IconData gridView = IconData(0xe9b0, fontFamily: _family);
+
   /// Material Symbols "group".
   static const IconData group = IconData(0xe7ef, fontFamily: _family);
 
@@ -174,6 +177,9 @@ abstract final class AppIcons {
 
   /// Material Symbols "help".
   static const IconData help = IconData(0xe887, fontFamily: _family);
+
+  /// Material Symbols "history".
+  static const IconData history = IconData(0xe28e, fontFamily: _family);
 
   /// Material Symbols "home".
   static const IconData home = IconData(0xe88a, fontFamily: _family);
@@ -195,6 +201,9 @@ abstract final class AppIcons {
 
   /// Material Symbols "info".
   static const IconData info = IconData(0xe88e, fontFamily: _family);
+
+  /// Material Symbols "join_inner".
+  static const IconData joinInner = IconData(0xeaf4, fontFamily: _family);
 
   /// Material Symbols "key".
   static const IconData key = IconData(0xe73c, fontFamily: _family);

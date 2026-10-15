@@ -17,6 +17,8 @@ class SoundCues {
   static final SoundCues instance = SoundCues._();
 
   static const String _prefKey = 'sound.report_sent';
+  static const String _fireKey = 'sound.fire_alarm';
+  static const String _fireVolumeKey = 'sound.fire_alarm_volume';
   static const String _asset = 'sounds/report_sent.wav';
   static const String _fireAsset = 'sounds/fire_alarm.wav';
 
@@ -57,12 +59,40 @@ class SoundCues {
     }
   }
 
-  /// Ring the fire alarm. Never throws: a sound that fails to play must not
-  /// stop the alert from showing.
+  /// Whether the fire alarm rings in the app (the coordinator's Profile).
+  /// With the app closed, the phone's "Fire alerts" channel decides.
+  Future<bool> fireAlarmEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_fireKey) ?? true;
+  }
+
+  Future<void> setFireAlarmEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_fireKey, value);
+  }
+
+  /// The in-app alarm's volume, 0–1, on top of the phone's notification
+  /// volume. Zero mutes only this.
+  Future<double> fireAlarmVolume() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getDouble(_fireVolumeKey) ?? 1).clamp(0, 1).toDouble();
+  }
+
+  Future<void> setFireAlarmVolume(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_fireVolumeKey, value.clamp(0, 1).toDouble());
+  }
+
+  /// Ring the fire alarm, unless it is turned off or at zero. Never throws:
+  /// a sound that fails to play must not stop the alert from showing.
   Future<void> playFireAlarm() async {
     try {
+      if (!await fireAlarmEnabled()) return;
+      final volume = await fireAlarmVolume();
+      if (volume <= 0) return;
       final player = _firePlayer ??= AudioPlayer(playerId: 'fire_alarm');
       await player.stop();
+      await player.setVolume(volume);
       await player.play(AssetSource(_fireAsset), ctx: _asNotification);
     } catch (_) {
       // No audio focus, missing codec — the banner still shows.

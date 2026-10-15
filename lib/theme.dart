@@ -629,6 +629,34 @@ class AppText {
     letterSpacing: -0.2,
     color: AppColors.onBackground,
   );
+
+  /// "Type/Row title large" — the 15px name on a list item or an Area card.
+  static const TextStyle listTitle = TextStyle(
+    fontSize: 15,
+    height: 20 / 15,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.2,
+    color: AppColors.onBackground,
+  );
+
+  /// A bottom sheet's question — "Accept Area 1.2?", "Reject Area 2.1?".
+  static const TextStyle sheetTitle = TextStyle(
+    fontSize: 22,
+    height: 28 / 22,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.6,
+    color: AppColors.onBackground,
+  );
+
+  /// "Type/Button large" — the 56px run-screen action (Accept, Mark arrived,
+  /// Mark fire out), uppercase like every other button label.
+  static const TextStyle actionRun = TextStyle(
+    fontSize: 15,
+    height: 20 / 15,
+    fontWeight: FontWeight.w900,
+    letterSpacing: 1,
+    color: AppColors.accentText,
+  );
   static const TextStyle rowValue = TextStyle(
     fontSize: 13,
     height: 16 / 13,
@@ -769,6 +797,10 @@ class AppType {
       AppText.cardTitleSm.copyWith(color: _p.onBackground);
   TextStyle get rowTitleLg =>
       AppText.rowTitleLg.copyWith(color: _p.onBackground);
+  TextStyle get listTitle => AppText.listTitle.copyWith(color: _p.onBackground);
+  TextStyle get sheetTitle =>
+      AppText.sheetTitle.copyWith(color: _p.onBackground);
+  TextStyle get actionRun => AppText.actionRun.copyWith(color: _p.accentText);
   TextStyle get rowValue => AppText.rowValue.copyWith(color: _p.textSoft);
   TextStyle get bodySm => AppText.bodySm.copyWith(color: _p.label);
   TextStyle get detail => AppText.detail.copyWith(color: _p.muted);

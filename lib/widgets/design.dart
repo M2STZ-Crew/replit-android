@@ -361,6 +361,7 @@ class AppButton extends StatelessWidget {
     this.height = 54,
     this.busy = false,
     this.large = false,
+    this.run = false,
   }) : _tone = _Tone.primary;
 
   const AppButton.secondary(
@@ -371,6 +372,7 @@ class AppButton extends StatelessWidget {
     this.height = 54,
     this.busy = false,
     this.large = false,
+    this.run = false,
   }) : _tone = _Tone.secondary;
 
   /// Destructive — the design uses a red-tinted glass panel, never a red fill.
@@ -382,6 +384,7 @@ class AppButton extends StatelessWidget {
     this.height = 54,
     this.busy = false,
     this.large = false,
+    this.run = false,
   }) : _tone = _Tone.danger;
 
   final String label;
@@ -393,6 +396,10 @@ class AppButton extends StatelessWidget {
   /// Type/Button large, sentence case: the onboarding tour's call to action.
   /// A welcome screen is not the place for 12px shouting.
   final bool large;
+
+  /// The Large button (56px, Type/Button large) that run and decision
+  /// screens put in their action bar: Accept, Mark arrived, Mark fire out.
+  final bool run;
   final _Tone _tone;
 
   @override
@@ -445,7 +452,7 @@ class AppButton extends StatelessWidget {
             splashColor: context.pal.pressed,
             focusColor: Colors.transparent,
             child: Container(
-              height: height,
+              height: run ? 56 : height,
               decoration: BoxDecoration(
                 color: gradient == null ? (bg ?? context.pal.glass) : null,
                 gradient: gradient,
@@ -476,6 +483,8 @@ class AppButton extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: large
                                 ? context.type.actionLarge.copyWith(color: fg)
+                                : run
+                                ? context.type.actionRun.copyWith(color: fg)
                                 : context.type.action.copyWith(color: fg),
                           ),
                         ),

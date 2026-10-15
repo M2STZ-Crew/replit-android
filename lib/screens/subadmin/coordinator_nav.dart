@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
 import 'post_incident_report_screen.dart';
-import 'subadmin_incident_command_screen.dart';
-import 'subadmin_incident_report_screen.dart';
+import '../coordinator/area_decision_screen.dart';
+import '../coordinator/coordinator_shell.dart';
+import '../coordinator/live_incident.dart';
 
 /// Where a coordinator — a Fire Volunteer or BFP team captain — goes for an
 /// incident (Master Context v12 §2.5: both verify, both may respond):
 ///
-///  * live response (on the way, on scene) → the command screen, where they
-///    may join, mark arrived, reject before anyone is on scene, or fire out;
+///  * live response (on the way, on scene) → LIVE: the coordinator shell's
+///    tab when it is showing, else the same view on its own screen;
 ///  * fire out with the report still owed → the Post-Incident Report;
-///  * before the response (new, verified) → the review screen, where the
-///    reports are and where verify / respond / reject / fire out are.
+///  * anything else (reported, verified, ended) → the Area and its decision.
 ///
-/// Shared by both captains' dashboards and the "routed to your team" push, so a
-/// BFP captain lands in the same place a Fire Volunteer captain does. Returns
+/// Shared by the queue, the map and the "routed to your team" push, so a BFP
+/// captain lands in the same place a Fire Volunteer captain does. Returns
 /// true if anything changed, so the caller can reload.
 Future<bool> openCoordinatorIncident(
   BuildContext context, {
@@ -28,15 +28,15 @@ Future<bool> openCoordinatorIncident(
   final navigator = Navigator.of(context);
 
   if (const {'en_route', 'arrived'}.contains(status)) {
-    return await navigator.push<bool>(
-          MaterialPageRoute(
-            builder: (_) =>
-                SubAdminIncidentCommandScreen(areaId: areaId, me: me, api: api),
-          ),
-        ) ==
-        true;
+    if (CoordinatorShell.showLive(navigator, areaId)) return false;
+    await navigator.push<void>(
+      MaterialPageRoute(
+        builder: (_) => LiveIncidentScreen(areaId: areaId, me: me, api: api),
+      ),
+    );
+    return true;
   }
-  if (status == 'post_incident_report') {
+  if (const {'fire_out', 'post_incident_report'}.contains(status)) {
     return await navigator.push<bool>(
           MaterialPageRoute(
             builder: (_) => PostIncidentReportScreen(
@@ -48,29 +48,13 @@ Future<bool> openCoordinatorIncident(
         ) ==
         true;
   }
-
-  List<dynamic> reports;
-  try {
-    reports = await api.getIncidentReports(areaId);
-  } catch (_) {
-    reports = const [];
-  }
-  if (!context.mounted) return false;
-  if (reports.isEmpty) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('No reports to review yet.')));
-    return false;
-  }
   return await navigator.push<bool>(
         MaterialPageRoute(
-          builder: (_) => SubAdminIncidentReportScreen(
-            report: (reports.first as Map).cast<String, dynamic>(),
+          builder: (_) => AreaDecisionScreen(
             areaId: areaId,
-            status: status,
-            agency: me['agency_type'] as String?,
             me: me,
             api: api,
+            onLive: (id) => CoordinatorShell.showLive(navigator, id),
           ),
         ),
       ) ==

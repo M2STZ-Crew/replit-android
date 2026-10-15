@@ -562,11 +562,19 @@ class ApiClient {
   /// Open to responders and to Fire Volunteer / BFP coordinators once an
   /// incident is verified. The first to respond puts it On the way; responding
   /// twice to the same incident is refused (409).
-  Future<Map<String, dynamic>> selfDispatch(String id, {String? notes}) async {
+  ///
+  /// [vehicleName] is the unit they are going on — the coordinator's Accept
+  /// sheet picks it. A label on the response (the citizen's tracking card
+  /// shows it); a server without the field simply ignores it.
+  Future<Map<String, dynamic>> selfDispatch(
+    String id, {
+    String? notes,
+    String? vehicleName,
+  }) async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/incidents/$id/self-dispatch'),
       headers: _jsonAuth,
-      body: jsonEncode({'notes': ?notes}),
+      body: jsonEncode({'notes': ?notes, 'vehicle_name': ?vehicleName}),
     );
     return _decode(resp);
   }
@@ -786,6 +794,63 @@ class ApiClient {
     return _decode(resp);
   }
 
+  /// Two Areas that have grown to within reach of each other and wait on a
+  /// merge-or-keep-separate decision (120 s window): GET
+  /// /areas/overlaps/pending. Items carry area_a_id/area_b_id, their
+  /// designations, distance_m and expires_at.
+  Future<List<dynamic>> getPendingOverlaps() async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/areas/overlaps/pending'),
+      headers: _auth,
+    );
+    if (resp.statusCode >= 400) _decode(resp); // throws with the server's words
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  /// Fold Area B into Area A: POST /areas/overlaps/{id}/merge.
+  Future<Map<String, dynamic>> mergeOverlap(String overlapId) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/areas/overlaps/$overlapId/merge'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
+  /// Keep two overlapping Areas apart: POST /areas/overlaps/{id}/keep-separate.
+  Future<Map<String, dynamic>> keepOverlapSeparate(String overlapId) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/areas/overlaps/$overlapId/keep-separate'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
+  /// What this person has done, newest first, from the audit log: GET
+  /// /audit-logs?actor_user_id=… (Admin and sub-admins only; a sub-admin sees
+  /// entries for incidents their agency can see).
+  Future<List<dynamic>> getMyDecisions(String userId, {int limit = 200}) async {
+    final query = Uri(
+      queryParameters: {'actor_user_id': userId, 'limit': '$limit'},
+    ).query;
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/audit-logs?$query'),
+      headers: _auth,
+    );
+    if (resp.statusCode >= 400) _decode(resp); // throws with the server's words
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  /// The AI summaries written for one incident, newest first: GET
+  /// /incidents/{id}/summaries. Written once the fire is out (v1.12.5).
+  Future<List<dynamic>> getIncidentSummaries(String id) async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/summaries'),
+      headers: _auth,
+    );
+    if (resp.statusCode >= 400) _decode(resp); // throws with the server's words
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
   /// Reject an incident (sub-admin): POST /incidents/{id}/reject.
   Future<Map<String, dynamic>> rejectIncident(String id, String reason) async {
     final resp = await _client.post(
@@ -838,7 +903,9 @@ class ApiClient {
         // A server from before several units could be recorded reads one
         // truck: the units as a line. The current server ignores these once
         // `units` is there.
-        'truck_equipment_id': ?(units.isEmpty ? null : units.first['equipment_id']),
+        'truck_equipment_id': ?(units.isEmpty
+            ? null
+            : units.first['equipment_id']),
         'truck_label': units.map((u) => u['name']).join(', '),
         'truck_type': types.join(', '),
         'driver_name': driverName,

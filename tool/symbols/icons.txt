@@ -119,3 +119,6 @@ water_damage
 water_drop
 waves
 zoom_in
+grid_view
+history
+join_inner

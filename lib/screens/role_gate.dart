@@ -4,7 +4,7 @@ import '../api/api_client.dart';
 import '../api/session.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
-import 'bfp/bfp_dashboard_screen.dart';
+import 'coordinator/coordinator_shell.dart';
 import 'login_screen.dart';
 import '../models/active_report.dart';
 import 'map_screen.dart';
@@ -13,7 +13,6 @@ import 'report_status_screen.dart';
 import 'observer_handoff_screen.dart';
 import 'phone_verify_screen.dart';
 import 'responder/responder_home_screen.dart';
-import 'subadmin/subadmin_dashboard_screen.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
 
@@ -134,11 +133,10 @@ class _RoleGateState extends State<RoleGate> {
         return ObserverHandoffScreen(me: me);
       }
       StaffAccount.current = me;
-      // BFP adds the alarm-review queue; Fire Volunteer the rest of the console.
-      if (me['agency_type'] == 'bfp') {
-        return BfpDashboardScreen(me: me);
-      }
-      return SubAdminDashboardScreen(me: me);
+      // Fire Volunteer and BFP coordinators work from the Coordinator
+      // Experience (REPLIT (MAIN) 06): Queue, Map, LIVE, Codes, Profile. BFP's
+      // alarm requests sit under Profile and on LIVE's alarm level.
+      return CoordinatorShell(me: me);
     }
     if (me['phone_verification_required'] == true) {
       return PhoneVerifyScreen(
