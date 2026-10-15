@@ -312,7 +312,13 @@ class _ResponderIncidentReportScreenState
   void _route() {
     final to = _routeTo;
     if (to == null) return;
-    openRouteToFire(context, lat: to.lat, lng: to.lng, name: 'The fire');
+    openRouteToFire(
+      context,
+      lat: to.lat,
+      lng: to.lng,
+      name: 'The fire',
+      areaId: widget.areaId,
+    );
   }
 
   Future<void> _verify() async {

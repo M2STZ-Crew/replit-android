@@ -299,7 +299,13 @@ class _SubAdminIncidentReportScreenState
     final lat = _centroidLat ?? _lat;
     final lng = _centroidLng ?? _lng;
     if (lat == null || lng == null) return;
-    openRouteToFire(context, lat: lat, lng: lng, name: 'The fire');
+    openRouteToFire(
+      context,
+      lat: lat,
+      lng: lng,
+      name: 'The fire',
+      areaId: widget.areaId,
+    );
   }
 
   /// Fire out from review: the incident moves to the Post-Incident Report step,

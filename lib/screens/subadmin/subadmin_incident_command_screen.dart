@@ -1,17 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart' as geo;
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
 import '../../location/responder_tracker.dart';
 import '../../models/fleet_unit.dart';
+import '../../navigation/routing_service.dart';
 import '../../theme.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
@@ -65,6 +64,7 @@ class _SubAdminIncidentCommandScreenState
   late final ApiClient _api = widget.api ?? ApiClient();
   Timer? _poll;
   final ResponderTracker _tracker = ResponderTracker.instance;
+  final DriveTime _driveTime = DriveTime();
   late final LiveRefresh _live = LiveRefresh([
     incidentChannel(widget.areaId),
   ], _refresh);
@@ -230,23 +230,11 @@ class _SubAdminIncidentCommandScreenState
         nearest = l;
       }
     }
-    try {
-      final url =
-          'https://router.project-osrm.org/route/v1/driving/'
-          '${nearest.longitude},${nearest.latitude};${c.longitude},${c.latitude}'
-          '?overview=false';
-      final resp = await http
-          .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 8));
-      final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      final routes = data['routes'] as List?;
-      if (routes != null && routes.isNotEmpty) {
-        final dur = (routes.first as Map)['duration'] as num;
-        if (mounted) setState(() => _etaText = _fmtDuration(dur.toDouble()));
-        return;
-      }
-    } catch (_) {
-      // fall through to straight-line estimate
+    // By road, traffic-aware with Mapbox (the same routes as the directions).
+    final byRoad = await _driveTime.seconds(nearest, c);
+    if (byRoad != null) {
+      if (mounted) setState(() => _etaText = _fmtDuration(byRoad));
+      return;
     }
     if (mounted) setState(() => _etaText = _fmtDuration(best / (30000 / 3600)));
   }
@@ -457,6 +445,7 @@ class _SubAdminIncidentCommandScreenState
       lat: c.latitude,
       lng: c.longitude,
       name: (_incident?['designation'] as String?) ?? 'The fire',
+      areaId: widget.areaId,
     );
   }
 
