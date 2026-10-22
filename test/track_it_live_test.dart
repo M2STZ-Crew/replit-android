@@ -309,30 +309,30 @@ void main() {
     expect(find.text('Hercules Fire Brigade · On scene'), findsOneWidget);
   });
 
-  testWidgets('the resident sees which team verified it (v1.12.1)', (
+  testWidgets('the resident sees which team acknowledged it (pass 6)', (
     tester,
   ) async {
     final feed = FakeFeed()..liveNow.value = true;
     await pump(tester, feed);
-    expect(find.textContaining('Verified by'), findsNothing);
+    expect(find.textContaining('Acknowledged by'), findsNothing);
     await push(
       tester,
       feed,
       snapshot(status: 'verified', verifiedBy: 'Hercules Fire Brigade'),
     );
     expect(tester.takeException(), isNull);
-    expect(find.text('Verified by Hercules Fire Brigade'), findsOneWidget);
-    expect(find.text('Confirmed as a real fire · 4 min ago'), findsOneWidget);
+    expect(find.text('Acknowledged by Hercules Fire Brigade'), findsOneWidget);
+    expect(find.text('Seen and being checked · 4 min ago'), findsOneWidget);
     expect(find.byIcon(AppIcons.verified), findsOneWidget);
   });
 
-  testWidgets('someone who did not report it is not told who verified it', (
+  testWidgets('someone who did not report it is not told who acknowledged it', (
     tester,
   ) async {
     reporter = false;
     served = snapshot(verifiedBy: 'Hercules Fire Brigade');
     await pump(tester, FakeFeed());
-    expect(find.textContaining('Verified by'), findsNothing);
+    expect(find.textContaining('Acknowledged by'), findsNothing);
   });
 
   testWidgets(

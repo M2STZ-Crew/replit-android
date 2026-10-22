@@ -268,10 +268,13 @@ class Tag extends StatelessWidget {
   }
 }
 
-/// An incident's status in the PRD v12 words (§4.5) — the Lifecycle chip.
+/// An incident's status in the PRD words (§4.5) — the Lifecycle chip.
 ///
 /// The labels are fixed on purpose: no "Pending", "Dispatched" or
-/// "Resolved". Read by a screen reader as "Status: En route".
+/// "Resolved". Read by a screen reader as "Status: En route". The server still
+/// sends `verified` for the act PRD v13 renamed Acknowledged (pass 6: "Status
+/// reads Acknowledged"); a person's identity "Verified" is a different thing
+/// and keeps its word. `declined` is drawn the day the server sends it.
 class LifecycleChip extends StatelessWidget {
   const LifecycleChip(this.status, {super.key});
 
@@ -280,7 +283,8 @@ class LifecycleChip extends StatelessWidget {
   /// The PRD word for a public.area_status value.
   static String word(String status) => switch (status) {
     'reported' => 'Reported',
-    'verified' => 'Verified',
+    'verified' || 'acknowledged' => 'Acknowledged',
+    'declined' => 'Declined',
     'en_route' => 'En route',
     'arrived' => 'Arrived',
     'fire_out' => 'Fire out',

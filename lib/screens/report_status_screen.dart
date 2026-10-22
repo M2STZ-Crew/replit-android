@@ -344,7 +344,8 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
       'fire_out' => ('Fire out', 1.0),
       'rejected' => ('Closed', 1.0),
       'arrived' => ('On scene', 0.9),
-      'en_route' || 'verified' => ('On the way', 0.8),
+      'en_route' => ('On the way', 0.8),
+      'verified' => ('Acknowledged', 0.7),
       _ => ('Confirming', 0.6),
     };
 

@@ -652,7 +652,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           ),
           if (verifier != null) ...[
             gap,
-            ListRow(title: 'Verified by', subtitle: verifier),
+            ListRow(title: 'Acknowledged by', subtitle: verifier),
           ],
           if (centre != null && area.active) ...[
             gap,

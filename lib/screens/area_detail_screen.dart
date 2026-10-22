@@ -180,7 +180,8 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
 
   static String _meaning(String status) => switch (status) {
     'reported' => 'Waiting for a responding agency to accept it.',
-    'verified' => 'Accepted. A crew is being sent.',
+    'verified' => 'Acknowledged. A responding organisation is checking it.',
+    'declined' => 'No emergency found. Responders checked and closed it.',
     'en_route' => 'Responders are on the way.',
     'arrived' => 'Responders are on scene.',
     'fire_out' => 'Fire out. Responders have finished here.',

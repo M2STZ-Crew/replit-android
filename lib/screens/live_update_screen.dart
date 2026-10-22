@@ -517,8 +517,12 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
           'confirms it next. Stay somewhere safe — this screen updates as the '
           'incident moves.',
     'verified' =>
-      'Accepted. A crew is being sent now. Stay somewhere safe and keep this '
-          'screen open — it updates as the incident moves.',
+      'Acknowledged. A responding organisation has seen it and is checking. '
+          'Stay somewhere safe and keep this screen open — it updates as the '
+          'incident moves.',
+    'declined' =>
+      'No emergency found. Responders checked the place and closed it. If you '
+          'still see a fire, report it again.',
     'en_route' =>
       'Responders are on the way. Keep the street clear and stay somewhere '
           'safe.${_units.isEmpty ? '' : ' The map shows where they are.'}',
@@ -966,10 +970,10 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
             ? context.pal.ok
             : context.pal.forAgency(snap.verifiedByAgency),
         icon: AppIcons.verified,
-        title: 'Verified by $team',
+        title: 'Acknowledged by $team',
         line: at == null
-            ? 'Confirmed as a real fire'
-            : 'Confirmed as a real fire · ${_ago(at)}',
+            ? 'Seen and being checked'
+            : 'Seen and being checked · ${_ago(at)}',
       ),
     ];
   }

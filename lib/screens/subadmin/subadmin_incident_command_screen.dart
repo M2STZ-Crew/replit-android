@@ -822,7 +822,7 @@ class _SubAdminIncidentCommandScreenState
                 if (verifierLine(_incident) case final verifier?) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Verified by $verifier',
+                    'Acknowledged by $verifier',
                     style: TextStyle(color: _muted, fontSize: 12),
                   ),
                 ],

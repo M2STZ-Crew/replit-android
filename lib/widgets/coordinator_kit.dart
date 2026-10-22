@@ -364,9 +364,10 @@ class AgencyPlate extends StatelessWidget {
   }
 }
 
-/// A 40px icon on a plate, for rows that are not an agency's. Untinted, it
-/// sits on the subtle surface; tinted, on the tone's wash with the glyph in
-/// the tone.
+/// A 40px icon on a plate, for rows that are not an agency's (04 · Icon
+/// plate). Pass 5: the glyph is always white; a tone is carried by the plate
+/// and a 1px edge in the tone — the accent on its deep brown, the statuses on
+/// their tint. Untinted, it sits on the subtle surface with no edge.
 class IconPlate extends StatelessWidget {
   const IconPlate(this.icon, {super.key, this.tint});
 
@@ -375,17 +376,31 @@ class IconPlate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = context.pal;
     final t = tint;
+    final Color plate;
+    if (t == null) {
+      plate = _subtle(context);
+    } else if (t == pal.accent || t == pal.accentInk) {
+      plate = pal.wellFor(t);
+    } else {
+      plate = pal.statusTint(t);
+    }
     return ExcludeSemantics(
       child: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: t == null ? _subtle(context) : context.pal.statusTint(t),
+          color: plate,
           borderRadius: BorderRadius.circular(8),
+          border: t == null ? null : Border.all(color: t),
         ),
         alignment: Alignment.center,
-        child: Icon(icon, size: 20, color: t ?? context.pal.textSoft),
+        child: Icon(
+          icon,
+          size: 20,
+          color: t == null ? pal.onBackground : pal.glyphOn(t),
+        ),
       ),
     );
   }
@@ -694,7 +709,7 @@ class LifecycleRail extends StatelessWidget {
 
   static const steps = [
     'Reported',
-    'Verified',
+    'Acknowledged',
     'En route',
     'Arrived',
     'Fire out',
@@ -703,7 +718,7 @@ class LifecycleRail extends StatelessWidget {
 
   static int indexOf(String status) => switch (status) {
     'reported' => 0,
-    'verified' => 1,
+    'verified' || 'acknowledged' => 1,
     'en_route' => 2,
     'arrived' => 3,
     'fire_out' || 'post_incident_report' => 4,

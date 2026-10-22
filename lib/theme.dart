@@ -94,6 +94,10 @@ class AppColors {
   /// primary button from reading as a warning.
   static const Color accentText = Color(0xFF581A00);
 
+  /// color/brand/primary-solid: the filled check badge on a selected Choice
+  /// row (04 · pass 6), the same step the incident marker surface uses.
+  static const Color accentSolid = markerIncident;
+
   // ── meaning ─────────────────────────────────────────────────────────────
   static const Color live = Color(0xFFFF544E); // active incident, destructive
   static const Color ok = Color(0xFF22C55E); // resolved, verified, ready
