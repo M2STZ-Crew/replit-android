@@ -68,7 +68,7 @@ class _ProfileTabState extends State<ProfileTab> {
           children: [
             const SheetTitles(
               eyebrow: 'Alerts',
-              title: 'Fire alert volume',
+              title: 'Alert volume',
               body:
                   'How loud the alarm rings in the app, on top of your '
                   "phone's notification volume. At 0% it stays quiet here "
@@ -107,7 +107,9 @@ class _ProfileTabState extends State<ProfileTab> {
               onPressed: () async {
                 final before = await _sound.fireAlarmVolume();
                 await _sound.setFireAlarmVolume(value);
-                await _sound.playFireAlarm();
+                await _sound.playAlert(
+                  SoundCues.categoryForAgency(_me['agency_type'] as String?),
+                );
                 await _sound.setFireAlarmVolume(before);
               },
             ),
@@ -185,7 +187,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.volumeUp),
-                    title: 'Fire alert volume',
+                    title: 'Alert volume',
                     subtitle: 'In the app only. At 0% it is quiet here.',
                     trailing: RowValue(
                       '${((_volume ?? 1) * 100).round()}%',

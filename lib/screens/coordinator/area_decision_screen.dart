@@ -67,6 +67,10 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     super.initState();
     _load();
     _live.start();
+    // Opening the Area is seeing it: no more reminder pings for it.
+    if (widget.me['role'] == 'sub_admin') {
+      unawaited(_api.markIncidentSeen(widget.areaId));
+    }
   }
 
   @override

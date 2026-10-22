@@ -800,6 +800,20 @@ class ApiClient {
     return _decode(resp);
   }
 
+  /// A coordinator has seen this incident: stop their reminder pings
+  /// (POST /incidents/{id}/seen, PRD v14 §4.13.2). Best-effort: a reminder
+  /// that keeps coming is better than an error on opening an incident.
+  Future<void> markIncidentSeen(String id) async {
+    try {
+      await _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/incidents/$id/seen'),
+        headers: _auth,
+      );
+    } catch (_) {
+      // best-effort
+    }
+  }
+
   /// Two Areas that have grown to within reach of each other and wait on a
   /// merge-or-keep-separate decision (120 s window): GET
   /// /areas/overlaps/pending. Items carry area_a_id/area_b_id, their

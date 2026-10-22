@@ -7,10 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   v10 §2.8). `assets/sounds/report_sent.wav` is a synthesized three-note
 ///   placeholder (sa · la · mat); replace that file when the recording
 ///   exists. Residents can turn it off in Notification settings.
-/// - The fire alarm (v1.12.6), for a push saying there is a fire that arrives
-///   while the app is open. With the app closed the phone plays the same
-///   sound itself, from the "Fire alerts" notification channel
-///   (android/.../res/raw/fire_alarm.wav — keep the two files the same).
+/// - The alert sounds (v1.12.9: the recordings chosen for the pilot), for a
+///   push that arrives while the app is open. The push names its sound in
+///   `sound_category` — fire, police, medical, barangay, or citizen. With the
+///   app closed the phone plays the same recording itself, from that sound's
+///   notification channel (android/.../res/raw/`sound_<category>.mp3` — keep
+///   them the same as assets/sounds/).
 class SoundCues {
   SoundCues._();
 
@@ -20,7 +22,21 @@ class SoundCues {
   static const String _fireKey = 'sound.fire_alarm';
   static const String _fireVolumeKey = 'sound.fire_alarm_volume';
   static const String _asset = 'sounds/report_sent.wav';
-  static const String _fireAsset = 'sounds/fire_alarm.wav';
+  static const Set<String> categories = {
+    'fire',
+    'police',
+    'medical',
+    'barangay',
+    'citizen',
+  };
+
+  /// The staff member's own agency's sound: fire for Fire Volunteers and BFP.
+  static String categoryForAgency(String? agency) => switch (agency) {
+    'police' => 'police',
+    'medical' => 'medical',
+    'barangay' => 'barangay',
+    _ => 'fire',
+  };
 
   /// Played as a notification, not as media: it follows the phone's
   /// notification volume and stays quiet when the phone is on silent, as the
@@ -59,8 +75,8 @@ class SoundCues {
     }
   }
 
-  /// Whether the fire alarm rings in the app (the coordinator's Profile).
-  /// With the app closed, the phone's "Fire alerts" channel decides.
+  /// Whether alert sounds play in the app (the coordinator's Profile).
+  /// With the app closed, the phone's notification channels decide.
   Future<bool> fireAlarmEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_fireKey) ?? true;
@@ -83,17 +99,22 @@ class SoundCues {
     await prefs.setDouble(_fireVolumeKey, value.clamp(0, 1).toDouble());
   }
 
-  /// Ring the fire alarm, unless it is turned off or at zero. Never throws:
-  /// a sound that fails to play must not stop the alert from showing.
-  Future<void> playFireAlarm() async {
+  /// Play one category's recording, unless alert sounds are turned off or at
+  /// zero. An unknown category plays nothing. Never throws: a sound that
+  /// fails to play must not stop the alert from showing.
+  Future<void> playAlert(String? category) async {
+    if (!categories.contains(category)) return;
     try {
       if (!await fireAlarmEnabled()) return;
       final volume = await fireAlarmVolume();
       if (volume <= 0) return;
-      final player = _firePlayer ??= AudioPlayer(playerId: 'fire_alarm');
+      final player = _firePlayer ??= AudioPlayer(playerId: 'alert');
       await player.stop();
       await player.setVolume(volume);
-      await player.play(AssetSource(_fireAsset), ctx: _asNotification);
+      await player.play(
+        AssetSource('sounds/sound_$category.mp3'),
+        ctx: _asNotification,
+      );
     } catch (_) {
       // No audio focus, missing codec — the banner still shows.
     }

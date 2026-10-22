@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../screens/bfp/bfp_alarm_requests_screen.dart';
@@ -29,11 +31,11 @@ enum NotificationTarget {
   none,
 }
 
-/// Notification types that say there is a fire. They ring the fire alarm when
-/// they arrive with the app open; with it closed the server sends them to the
-/// "Fire alerts" channel, which rings the same sound.
+/// Notification types that say there is a fire: their in-app banner is red
+/// and stays longer. (The sound comes from the push's `sound_category`.)
 const fireAlertTypes = {
   'incident_new',
+  'incident_reminder',
   'neighborhood_alert',
   'fire_alert',
   'alarm_request',
@@ -53,8 +55,10 @@ bool worksIncidentsInApp(Map<String, dynamic>? me) {
 NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
   final staff = worksIncidentsInApp(me);
   switch (type) {
-    // A new fire, and the v10 types a phone may still hold in its Alerts.
+    // A new fire, a coordinator's reminder of it, and the v10 types a phone
+    // may still hold in its Alerts.
     case 'incident_new':
+    case 'incident_reminder':
     case 'responder_dispatch':
     case 'incident_routed':
     case 'alarm_executed':
@@ -104,6 +108,13 @@ class NotificationRouter {
       final me = await _api.getMe();
       final target = targetFor(type, me);
       final areaId = data['area_id'] as String?;
+      // A coordinator who taps a new fire has seen it: stop their reminders
+      // (PRD v14 §4.13.2), whether or not this app can open it for them.
+      if (me['role'] == 'sub_admin' &&
+          areaId != null &&
+          (type == 'incident_new' || type == 'incident_reminder')) {
+        unawaited(_api.markIncidentSeen(areaId));
+      }
       if (target == NotificationTarget.none) return false;
       if (target != NotificationTarget.alarmRequests && areaId == null) {
         return false;

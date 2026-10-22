@@ -251,8 +251,13 @@ void main() {
   });
 
   group('the decision', () {
-    Future<void> openArea(WidgetTester tester, String id) =>
-        pump(tester, AreaDecisionScreen(areaId: id, me: me, api: api()));
+    Future<void> openArea(WidgetTester tester, String id) async {
+      await pump(tester, AreaDecisionScreen(areaId: id, me: me, api: api()));
+      // Opening it is seeing it: the coordinator's reminder pings stop
+      // (PRD v14 §4.13.2). The decisions below start from a clean record.
+      expect([for (final p in posted) p.$2], ['/incidents/$id/seen']);
+      posted.clear();
+    }
 
     testWidgets('shows where it is, how sure, and every report', (
       tester,

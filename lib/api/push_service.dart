@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,9 +26,11 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 /// surfaces foreground pushes in-app, and unregisters on logout.
 ///
 /// v1.12.6: every push opens what it is about when tapped — in the shade, or
-/// on the banner shown while the app is open ([NotificationRouter]) — and one
-/// that says there is a fire rings the fire alarm while the app is open, as
-/// the "Fire alerts" channel does while it is closed.
+/// on the banner shown while the app is open ([NotificationRouter]).
+///
+/// v1.12.9: a push arriving while the app is open plays the recording it
+/// names (`sound_category`), as its notification channel does while the app
+/// is closed; a silent reminder only vibrates.
 class PushService {
   PushService._();
   static final PushService instance = PushService._();
@@ -149,8 +152,12 @@ class PushService {
 
   void _onForeground(RemoteMessage message) {
     final type = message.data['type'] as String?;
-    if (fireAlertTypes.contains(type)) {
-      unawaited(SoundCues.instance.playFireAlarm());
+    if (message.data['silent'] == 'true') {
+      unawaited(HapticFeedback.vibrate());
+    } else {
+      unawaited(
+        SoundCues.instance.playAlert(message.data['sound_category'] as String?),
+      );
     }
     // A fire near them, with the app open: straight to "Do you see it too?"
     // ("11 Corroborate — 300 m") — or, for staff, the incident.

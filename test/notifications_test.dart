@@ -65,6 +65,20 @@ void main() {
       expect(targetFor('incident_new', citizen), NotificationTarget.none);
     });
 
+    test(
+      "a coordinator's reminder opens the incident, as the first push did",
+      () {
+        expect(
+          targetFor('incident_reminder', fireCoordinator),
+          NotificationTarget.staffIncident,
+        );
+        expect(
+          targetFor('incident_reminder', citizen),
+          NotificationTarget.none,
+        );
+      },
+    );
+
     test('a fire nearby asks a resident, and takes staff to the incident', () {
       expect(
         targetFor('neighborhood_alert', citizen),
@@ -112,9 +126,10 @@ void main() {
       expect(targetFor(null, citizen), NotificationTarget.none);
     });
 
-    test('the types that ring the fire alarm', () {
+    test('the types that say there is a fire', () {
       expect(fireAlertTypes, {
         'incident_new',
+        'incident_reminder',
         'neighborhood_alert',
         'fire_alert',
         'alarm_request',
