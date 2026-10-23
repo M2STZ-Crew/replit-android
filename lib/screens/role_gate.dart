@@ -10,16 +10,15 @@ import '../models/active_report.dart';
 import 'map_screen.dart';
 import 'onboarding_screen.dart';
 import 'report_status_screen.dart';
-import 'observer_handoff_screen.dart';
 import 'phone_verify_screen.dart';
 import 'responder/responder_shell.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
-/// role from GET /auth/me: response_team → the responder console; a coordinator
-/// sub-admin (Fire Volunteer, BFP) → their console; an observer sub-admin
-/// (Police, Medical, Barangay) → a pointer to the Observer Console on the web;
+/// role from GET /auth/me: response_team → the responder console; a
+/// coordinator (sub-admin) of any organisation → the coordinator app (PRD v14
+/// §4.6: there is no Observer tier, and no web console for them to go to);
 /// everyone else → the citizen app — once their phone is verified.
 ///
 /// The phone gate: the server refuses a resident account that has not verified
@@ -126,15 +125,12 @@ class _RoleGateState extends State<RoleGate> {
       return ResponderShell(me: me);
     }
     if (role == 'sub_admin') {
-      // Observers (police, medical, barangay) work from the Observer Console on
-      // the web (v10 §2.6); only the coordinators run the response from here.
-      if (isObserverCaptain(me)) {
-        return ObserverHandoffScreen(me: me);
-      }
       StaffAccount.current = me;
-      // Fire Volunteer and BFP coordinators work from the Coordinator
-      // Experience (REPLIT (MAIN) 06): Queue, Map, LIVE, Codes, Profile. BFP's
-      // alarm requests sit under Profile and on LIVE's alarm level.
+      // Every organisation's coordinators work from the Coordinator
+      // Experience (REPLIT (MAIN) 06): Queue, Map, LIVE, Codes, Profile — a
+      // PNP Coordinator's is C01P. What each may do there is the server's
+      // (CoordinatorPowers); BFP's alarm requests sit under Profile and on
+      // LIVE's alarm level.
       return CoordinatorShell(me: me);
     }
     if (me['phone_verification_required'] == true) {

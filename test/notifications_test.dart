@@ -45,11 +45,14 @@ void main() {
 
   group('where a notification leads', () {
     test('a new fire opens the incident for whoever works it in the app', () {
+      // PRD v14 §4.6: no Observer tier — every organisation's coordinator
+      // works incidents here, a barangay one included.
       for (final me in [
         responder,
         policeResponder,
         fireCoordinator,
         bfpCoordinator,
+        barangayCoordinator,
       ]) {
         expect(
           targetFor('incident_new', me),
@@ -57,11 +60,6 @@ void main() {
           reason: '$me',
         );
       }
-      expect(
-        targetFor('incident_new', barangayCoordinator),
-        NotificationTarget.none,
-        reason: 'their incidents are on the Observer Console',
-      );
       expect(targetFor('incident_new', citizen), NotificationTarget.none);
     });
 
@@ -166,26 +164,56 @@ void main() {
       expect(opened, isFalse);
     });
 
-    testWidgets('opens nothing for an observer coordinator', (tester) async {
+    testWidgets('a barangay coordinator lands on the Area, not on the web', (
+      tester,
+    ) async {
       final nav = GlobalKey<NavigatorState>();
       await tester.pumpWidget(
-        MaterialApp(navigatorKey: nav, home: const SizedBox()),
+        MaterialApp(
+          theme: buildAppTheme(),
+          navigatorKey: nav,
+          home: const SizedBox(),
+        ),
       );
+      final asked = <String>[];
       final router = NotificationRouter(
         api: ApiClient(
-          client: MockClient(
-            (_) async => http.Response(jsonEncode(barangayCoordinator), 200),
-          ),
+          client: MockClient((req) async {
+            asked.add('${req.method} ${req.url.path}');
+            if (req.url.path == '/auth/me') {
+              return http.Response(jsonEncode(barangayCoordinator), 200);
+            }
+            if (req.url.path == '/incidents/a1') {
+              return http.Response(
+                jsonEncode({
+                  'id': 'a1',
+                  'designation': '1.2',
+                  'status': 'reported',
+                }),
+                200,
+              );
+            }
+            return http.Response('[]', 200);
+          }),
         ),
       );
-      expect(
-        await router.open(
-          nav.currentState!,
-          type: 'incident_new',
-          data: const {'area_id': 'a1'},
-        ),
-        isFalse,
+      final opening = router.open(
+        nav.currentState!,
+        type: 'incident_new',
+        data: const {'area_id': 'a1'},
       );
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(asked, contains('GET /incidents/a1'));
+      expect(asked, contains('POST /incidents/a1/seen'));
+      nav.currentState!.pop();
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(await opening, isTrue);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 1));
     });
   });
 

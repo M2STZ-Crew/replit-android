@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../location/responder_tracker.dart';
 import '../../models/area_view.dart';
+import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
@@ -126,7 +127,11 @@ class _CodesTabState extends State<CodesTab> {
     );
   }
 
-  Widget _list(AreaView? area) {
+  Widget _list(AreaView? live) {
+    // Fire codes direct the fire response: only Fire Volunteer and BFP
+    // coordinators press them (fire_codes.py). Everyone else sees them.
+    final presses = CoordinatorPowers.of(widget.feed.me).pressesCodes;
+    final area = presses ? live : null;
     final codes = _codes;
     if (codes == null) {
       return _error == null
@@ -146,7 +151,13 @@ class _CodesTabState extends State<CodesTab> {
           MediaQuery.paddingOf(context).bottom + kScrollFadeEndPadding,
         ),
         children: [
-          if (area == null)
+          if (!presses)
+            const InlineAlert(
+              body:
+                  'Fire codes are pressed by Fire Volunteer and BFP '
+                  'Coordinators. You can see each one here.',
+            )
+          else if (area == null)
             const InlineAlert(
               body:
                   'Codes are pressed on a live incident. When an Area is '

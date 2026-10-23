@@ -77,7 +77,6 @@ Same page, **Variables** tab → **New repository variable**. These are not secr
 | Variable name | Value |
 |---|---|
 | `REPLIT_API_BASE` | `https://replit-backend-2li4.onrender.com` |
-| `OBSERVER_CONSOLE_URL` | `https://replit-backend-gedk.vercel.app` |
 | `FIREBASE_TESTER_GROUPS` | the alias from step 1, e.g. `m2stz` |
 
 ### 5. Run it

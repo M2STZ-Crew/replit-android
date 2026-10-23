@@ -41,14 +41,12 @@ const fireAlertTypes = {
   'alarm_request',
 };
 
-/// Whoever works incidents in this app: every responder, and Fire Volunteer
-/// and BFP coordinators. Police, medical and barangay coordinators work from
-/// the Observer Console on the web.
+/// Whoever works incidents in this app: every responder and every
+/// organisation's coordinator (PRD v14 §4.6: no Observer tier, no web console
+/// for them). What each may do once it is open is the server's.
 bool worksIncidentsInApp(Map<String, dynamic>? me) {
   final role = me?['role'];
-  if (role == 'response_team') return true;
-  return role == 'sub_admin' &&
-      const {'fire_volunteer', 'bfp'}.contains(me?['agency_type']);
+  return role == 'response_team' || role == 'sub_admin';
 }
 
 /// Where a notification of [type] leads for the signed-in account [me].

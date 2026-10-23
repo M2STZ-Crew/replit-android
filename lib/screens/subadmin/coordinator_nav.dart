@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
+import '../../models/coordinator_powers.dart';
 import 'post_incident_report_screen.dart';
 import '../coordinator/area_decision_screen.dart';
 import '../coordinator/coordinator_shell.dart';
 import '../coordinator/live_incident.dart';
 
-/// Where a coordinator — a Fire Volunteer or BFP team captain — goes for an
-/// incident (Master Context v12 §2.5: both verify, both may respond):
+/// Where a coordinator goes for an incident (Master Context v12 §2.5):
 ///
 ///  * live response (on the way, on scene) → LIVE: the coordinator shell's
 ///    tab when it is showing, else the same view on its own screen;
-///  * fire out with the report still owed → the Post-Incident Report;
+///  * fire out with the report still owed → the Post-Incident Report, for a
+///    coordinator who files one (Fire Volunteer, BFP);
 ///  * anything else (reported, verified, ended) → the Area and its decision.
 ///
 /// Shared by the queue, the map and the "routed to your team" push, so a BFP
@@ -36,7 +37,8 @@ Future<bool> openCoordinatorIncident(
     );
     return true;
   }
-  if (const {'fire_out', 'post_incident_report'}.contains(status)) {
+  if (const {'fire_out', 'post_incident_report'}.contains(status) &&
+      CoordinatorPowers.of(me).files) {
     return await navigator.push<bool>(
           MaterialPageRoute(
             builder: (_) => PostIncidentReportScreen(

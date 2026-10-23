@@ -7,15 +7,13 @@ import 'package:http/testing.dart';
 
 import 'package:replit/api/api_client.dart';
 import 'package:replit/models/post_incident_report.dart';
-import 'package:replit/screens/observer_handoff_screen.dart';
 import 'package:replit/screens/responder/responder_status.dart';
 import 'package:replit/screens/subadmin/pending_reports_screen.dart';
 import 'package:replit/screens/subadmin/post_incident_report_screen.dart';
 import 'package:replit/theme.dart';
 
 /// Master Context v10 on the phone: the Post-Incident Report a team captain
-/// files after fire out, the tray that holds it until they do, and the handoff
-/// that sends observer captains to the web.
+/// files after fire out, and the tray that holds it until they do.
 void main() {
   const designSize = Size(402, 874);
 
@@ -328,26 +326,6 @@ void main() {
         // team's report already closed.
         expect(find.text('AREA 12'), findsOneWidget);
       });
-
-      testWidgets('observer handoff at ${scale}x', (tester) async {
-        await pump(
-          tester,
-          const ObserverHandoffScreen(
-            me: {
-              'role': 'sub_admin',
-              'agency_type': 'police',
-              'full_name': 'Pedro Pulis',
-            },
-          ),
-          textScale: scale,
-        );
-        expect(tester.takeException(), isNull);
-        expect(find.text('YOUR CONSOLE IS ON THE WEB'), findsOneWidget);
-        // Nothing that the server would refuse an observer is offered here.
-        for (final action in ['VERIFY', 'DISPATCH', 'FIRE OUT', 'REJECT']) {
-          expect(find.textContaining(action), findsNothing);
-        }
-      });
     }
 
     // Bring a control in the form on screen, then tap it. It may be above
@@ -582,32 +560,6 @@ void main() {
       );
       expect(find.text('Try again'), findsOneWidget);
       expect(find.textContaining('driver, roster'), findsOneWidget);
-    });
-  });
-
-  group('who the phone sends to the web', () {
-    test('observer captains, and only them', () {
-      for (final agency in ['police', 'medical', 'barangay']) {
-        expect(
-          isObserverCaptain({'role': 'sub_admin', 'agency_type': agency}),
-          isTrue,
-        );
-      }
-      expect(
-        isObserverCaptain({
-          'role': 'sub_admin',
-          'agency_type': 'fire_volunteer',
-        }),
-        isFalse,
-      );
-      expect(
-        isObserverCaptain({'role': 'sub_admin', 'agency_type': 'bfp'}),
-        isFalse,
-      );
-      expect(
-        isObserverCaptain({'role': 'response_team', 'agency_type': 'police'}),
-        isFalse,
-      );
     });
   });
 }

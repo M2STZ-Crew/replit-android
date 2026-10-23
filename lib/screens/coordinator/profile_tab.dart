@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/coordinator_powers.dart';
 import '../../sound/sound_cues.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
@@ -134,6 +135,13 @@ class _ProfileTabState extends State<ProfileTab> {
     final team = (_me['organization_name'] as String?)?.trim();
     final agency = responderAgencyLabel(widget.feed.agency);
     final bfp = widget.feed.isBfp;
+    final powers = CoordinatorPowers.of(_me);
+    final asked = switch (widget.feed.agency) {
+      'police' => 'Police',
+      'medical' => 'Medical',
+      'barangay' => 'Barangay',
+      _ => 'Fire',
+    };
     const gap = SizedBox(height: 8);
     return SafeArea(
       bottom: false,
@@ -160,10 +168,14 @@ class _ProfileTabState extends State<ProfileTab> {
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.shield),
-                    title: 'You can accept and reject',
-                    subtitle:
-                        'Any agency can accept. Only Fire Volunteer and BFP '
-                        'can reject.',
+                    title: powers.rejects
+                        ? 'You can accept and reject'
+                        : 'You can accept',
+                    subtitle: powers.rejects
+                        ? 'Any agency can accept. Only Fire Volunteer and BFP '
+                              'can reject.'
+                        : 'Accepting acknowledges the Areas that ask for '
+                              '$asked. Only Fire Volunteer and BFP can reject.',
                     chevron: true,
                     onTap: () => _push(PermissionsScreen(me: _me)),
                   ),
@@ -174,8 +186,9 @@ class _ProfileTabState extends State<ProfileTab> {
                     leading: const IconPlate(AppIcons.volumeUp),
                     title: 'Fire alert sound',
                     subtitle:
-                        'Rings in the app when a new Area asks for Fire. With '
-                        "the app closed, Android's Fire alerts channel rings it.",
+                        'Rings in the app when a new Area asks for $asked. '
+                        "With the app closed, Android's $asked alerts channel "
+                        'rings it.',
                     trailing: Switch(
                       value: _alarmOn ?? true,
                       onChanged: _alarmOn == null ? null : _setAlarm,
@@ -221,14 +234,18 @@ class _ProfileTabState extends State<ProfileTab> {
                     chevron: true,
                     onTap: () => _push(TeamScreen(me: _me)),
                   ),
-                  gap,
-                  ListRow(
-                    leading: const IconPlate(AppIcons.autoAwesome),
-                    title: 'AI summaries',
-                    subtitle: 'What each fire your teams filed for came to',
-                    chevron: true,
-                    onTap: () => _push(AiSummariesScreen(me: _me)),
-                  ),
+                  // The server keeps AI summaries to the coordinators who run
+                  // the response (ai.py: assert_coordinator).
+                  if (powers.coordinates) ...[
+                    gap,
+                    ListRow(
+                      leading: const IconPlate(AppIcons.autoAwesome),
+                      title: 'AI summaries',
+                      subtitle: 'What each fire your teams filed for came to',
+                      chevron: true,
+                      onTap: () => _push(AiSummariesScreen(me: _me)),
+                    ),
+                  ],
                   if (bfp) ...[
                     gap,
                     ListRow(
@@ -276,6 +293,36 @@ class PermissionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bfp = me['agency_type'] == 'bfp';
+    final powers = CoordinatorPowers.of(me);
+    if (!powers.coordinates) {
+      // A Police, Medical or Barangay coordinator (06 · C01P): the server
+      // lets them acknowledge their agency's Areas and follow them.
+      return CapabilitiesScreen(
+        eyebrow:
+            'Coordinator · ${responderAgencyLabel(me['agency_type'] as String?)}',
+        can: const [
+          (
+            'Accept an Area',
+            'Acknowledges it for your organisation when it asks for your '
+                'agency',
+          ),
+          ('Merge or keep separate', 'When two Areas overlap'),
+          (
+            'Follow an Area on LIVE and the map',
+            'Its units and its alarm level',
+          ),
+          ("Make your responders' accounts", 'Under Profile, Responders'),
+          ('Report a fire', 'From the map, like a resident'),
+        ],
+        cannot: const [
+          ('Reject an Area', 'Fire Volunteer and BFP coordinators'),
+          ('Go to the scene or mark fire out', 'Fire Volunteer and BFP'),
+          ('Press fire codes', 'Fire Volunteer and BFP coordinators'),
+          ('File the post-incident report', 'The responding fire team'),
+          ('Change the alarm level', 'BFP coordinators only'),
+        ],
+      );
+    }
     final can = <(String, String)>[
       (
         'Accept an Area',

@@ -61,8 +61,7 @@ cp env.example.json env.json
 ```json
 {
   "MAPBOX_TOKEN": "pk.your_mapbox_public_token",
-  "REPLIT_API_BASE": "http://10.0.2.2:8000",
-  "OBSERVER_CONSOLE_URL": ""
+  "REPLIT_API_BASE": "http://10.0.2.2:8000"
 }
 ```
 
@@ -80,10 +79,6 @@ cp env.example.json env.json
     blocks cleartext HTTP to any address not named there.
   - **Deployed backend:** the `https://…` URL. No config file entry needed,
     because HTTPS is allowed by default.
-- `OBSERVER_CONSOLE_URL` — optional. Police, Medical and Barangay team
-  captains work from the Observer Console on the web (Master Context v10
-  §2.6); when one signs in to the app it shows them this address with an
-  **Open** button. Leave it blank and it tells them to ask their Admin.
 
 `env.json` is gitignored. Never commit it.
 

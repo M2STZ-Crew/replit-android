@@ -10,6 +10,7 @@ import '../../api/live_refresh.dart';
 import '../../location/live_position.dart';
 import '../../location/responder_tracker.dart';
 import '../../models/area_view.dart';
+import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
@@ -182,6 +183,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
 
   String get _myId => widget.me['id'] as String? ?? '';
   String? get _agency => widget.me['agency_type'] as String?;
+  CoordinatorPowers get _powers => CoordinatorPowers.of(widget.me);
 
   Map<String, dynamic>? get _mine {
     for (final d in _dispatches) {
@@ -707,12 +709,16 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
               ListRow(
                 leading: const IconPlate(AppIcons.warning),
                 title: 'Alarm level',
-                subtitle: _agency == 'bfp'
+                subtitle: _powers.decidesAlarm
                     ? 'Set by BFP · requests wait in your queue'
-                    : 'Set by BFP · read-only for Fire Volunteer',
+                    : _powers.requestsAlarm
+                    ? 'Set by BFP · read-only for Fire Volunteer'
+                    : 'Set by BFP',
                 trailing: RowValue(alarmWord(area.alarmLevel)),
-                chevron: true,
-                onTap: _busy ? null : _alarm,
+                chevron: _powers.requestsAlarm || _powers.decidesAlarm,
+                onTap: _busy || !(_powers.requestsAlarm || _powers.decidesAlarm)
+                    ? null
+                    : _alarm,
               ),
               const SizedBox(height: 12),
               ListRow(
@@ -723,19 +729,28 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                 onTap: _details,
               ),
               const SizedBox(height: 12),
-              ..._myActions(area, mine),
-              AppButton.secondary(
-                'Mark fire out',
-                busy: _busy,
-                onPressed: _busy ? null : _fireOut,
-              ),
-              if (area.status == 'en_route' || area.status == 'verified')
+              if (_powers.responds) ..._myActions(area, mine),
+              if (_powers.marksFireOut)
+                AppButton.secondary(
+                  'Mark fire out',
+                  busy: _busy,
+                  onPressed: _busy ? null : _fireOut,
+                ),
+              if (_powers.rejects &&
+                  (area.status == 'en_route' || area.status == 'verified'))
                 Center(
                   child: TextLink(
                     'Reject this Area',
                     color: pal.live,
                     onTap: _reject,
                   ),
+                ),
+              if (!_powers.coordinates)
+                const InlineAlert(
+                  body:
+                      'You follow this Area here. Fire Volunteer and BFP '
+                      'coordinators and responders run the response: going, '
+                      'fire out and the report.',
                 ),
             ],
           ),

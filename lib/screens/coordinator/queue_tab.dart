@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/area_view.dart';
+import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
@@ -30,6 +31,15 @@ class _QueueTabState extends State<QueueTab> {
   QueueSegment _segment = QueueSegment.decide;
 
   CoordinatorFeed get _feed => widget.feed;
+  CoordinatorPowers get _powers => CoordinatorPowers.of(_feed.me);
+
+  /// What a new Area asks this coordinator's agency for: "Fire", "Police".
+  String get _askedWord => switch (_feed.agency) {
+    'police' => 'Police',
+    'medical' => 'Medical',
+    'barangay' => 'Barangay',
+    _ => 'Fire',
+  };
 
   /// "Pasay Fire Volunteers · Team 2": whose queue this is.
   String get _team {
@@ -170,9 +180,9 @@ class _QueueTabState extends State<QueueTab> {
     return [
       for (final o in _feed.overlaps.take(1)) _overlapAlert(o),
       if (areas.isEmpty)
-        const _Empty(
+        _Empty(
           title: 'Nothing to decide',
-          body: 'A new Area that asks for Fire lands here first.',
+          body: 'A new Area that asks for $_askedWord lands here first.',
         )
       else ...[
         SectionHeader('Waiting on you', meta: _areas(areas.length)),
@@ -186,11 +196,20 @@ class _QueueTabState extends State<QueueTab> {
             facts: true,
           ),
       ],
-      const InlineAlert(
-        body:
-            'Any responding agency can accept. Only a Fire Volunteer or BFP '
-            'coordinator can reject.',
-      ),
+      if (_powers.rejects)
+        const InlineAlert(
+          body:
+              'Any responding agency can accept. Only a Fire Volunteer or BFP '
+              'coordinator can reject.',
+        )
+      else
+        // 06 · C01P: a PNP Coordinator's queue.
+        InlineAlert(
+          body:
+              'These Areas asked for $_askedWord. Accepting acknowledges them '
+              'for $_team. Only a Fire Volunteer or BFP Coordinator can '
+              'reject.',
+        ),
     ];
   }
 
@@ -336,6 +355,7 @@ class _QueueTabState extends State<QueueTab> {
       area: a,
       builder: (context, place) => AreaCard(
         status: a.status,
+        agency: _feed.agency ?? 'fire_volunteer',
         title: a.name,
         place: placeLine(a, place),
         facts: facts

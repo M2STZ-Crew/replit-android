@@ -122,7 +122,7 @@ void main() {
     expect(find.text('AI summaries'), findsOneWidget);
   });
 
-  testWidgets('an observer coordinator has no AI summaries: the server keeps '
+  testWidgets('a barangay coordinator has no AI summaries: the server keeps '
       'them to the fire agencies', (tester) async {
     await pump(tester, const {
       'id': 'u4',

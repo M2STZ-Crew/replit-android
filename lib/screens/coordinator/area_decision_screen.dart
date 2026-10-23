@@ -7,6 +7,7 @@ import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
 import '../../location/place_names.dart';
 import '../../models/area_view.dart';
+import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/area_map_preview.dart';
@@ -61,6 +62,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
   bool _changed = false;
 
   String get _myId => widget.me['id'] as String? ?? '';
+  CoordinatorPowers get _powers => CoordinatorPowers.of(widget.me);
 
   @override
   void initState() {
@@ -141,8 +143,13 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     if (area == null) return;
     final choice = await showFrameSheet<GoChoice>(
       context,
-      builder: (_) =>
-          GoSheet(area: area, api: _api, alreadyAccepted: alreadyAccepted),
+      builder: (_) => GoSheet(
+        area: area,
+        api: _api,
+        alreadyAccepted: alreadyAccepted,
+        canGo: _powers.responds,
+        organisation: widget.me['organization_name'] as String?,
+      ),
     );
     if (choice == null || !mounted) return;
     setState(() => _busy = true);
@@ -160,7 +167,9 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         _goLive();
         return;
       }
-      if (mounted) _toast('Accepted. Every agency asked for sees it verified.');
+      if (mounted) {
+        _toast('Accepted. Every agency asked for sees it acknowledged.');
+      }
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
@@ -394,33 +403,40 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
               busy: _busy,
               onPressed: _busy ? null : () => _accept(alreadyAccepted: false),
             ),
-            AppButton.secondary(
-              'Reject this area',
-              onPressed: _busy ? null : _reject,
-            ),
+            if (_powers.rejects)
+              AppButton.secondary(
+                'Reject this area',
+                onPressed: _busy ? null : _reject,
+              ),
           ],
         );
       case 'verified':
+        // Acknowledged: what is left is going, and rejecting a false one —
+        // a Fire Volunteer or BFP coordinator's (CoordinatorPowers).
+        if (!_powers.responds && !_powers.rejects) return null;
         return ActionBar(
           children: [
-            if (_responding)
-              AppButton(
-                'Route to the fire',
-                run: true,
-                icon: AppIcons.directions,
-                onPressed: _route,
-              )
-            else
-              AppButton(
-                'I am going',
-                run: true,
-                busy: _busy,
-                onPressed: _busy ? null : () => _accept(alreadyAccepted: true),
+            if (_powers.responds)
+              _responding
+                  ? AppButton(
+                      'Route to the fire',
+                      run: true,
+                      icon: AppIcons.directions,
+                      onPressed: _route,
+                    )
+                  : AppButton(
+                      'I am going',
+                      run: true,
+                      busy: _busy,
+                      onPressed: _busy
+                          ? null
+                          : () => _accept(alreadyAccepted: true),
+                    ),
+            if (_powers.rejects)
+              AppButton.secondary(
+                'Reject this area',
+                onPressed: _busy ? null : _reject,
               ),
-            AppButton.secondary(
-              'Reject this area',
-              onPressed: _busy ? null : _reject,
-            ),
           ],
         );
       case 'en_route' || 'arrived':
@@ -485,6 +501,8 @@ class GoSheet extends StatefulWidget {
     required this.area,
     required this.api,
     required this.alreadyAccepted,
+    this.canGo = true,
+    this.organisation,
   });
 
   final AreaView area;
@@ -492,6 +510,13 @@ class GoSheet extends StatefulWidget {
 
   /// Someone has accepted it already: the only question is going.
   final bool alreadyAccepted;
+
+  /// This coordinator may go to the scene (Fire Volunteer, BFP). A Police,
+  /// Medical or Barangay coordinator's Accept only acknowledges.
+  final bool canGo;
+
+  /// Whose acknowledgement it is, for the one that only acknowledges.
+  final String? organisation;
 
   static const String _lastUnitKey = 'coordinator.last_unit';
 
@@ -520,7 +545,7 @@ class GoSheetState extends State<GoSheet> {
   @override
   void initState() {
     super.initState();
-    _loadUnits();
+    if (widget.canGo) _loadUnits();
   }
 
   Future<void> _loadUnits() async {
@@ -556,6 +581,35 @@ class GoSheetState extends State<GoSheet> {
   Widget build(BuildContext context) {
     final area = widget.area;
     final asked = askedFor(area.requested);
+    if (!widget.canGo) {
+      final org = widget.organisation?.trim();
+      return SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: '${area.name} — ${LifecycleChip.word(area.status)}',
+            title: 'Accept ${area.name}?',
+            body:
+                'Accepting acknowledges it for '
+                '${org == null || org.isEmpty ? 'your organisation' : org}. '
+                'Every agency the reporter asked for'
+                '${asked.isEmpty ? '' : ' — $asked —'} sees it as '
+                'acknowledged.',
+          ),
+          const SizedBox(height: 16),
+          AppButton(
+            'Accept',
+            run: true,
+            onPressed: () =>
+                Navigator.of(context).pop(const GoChoice(going: false)),
+          ),
+          const SizedBox(height: 10),
+          AppButton.secondary(
+            'Cancel',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      );
+    }
     final units = _units;
     return SheetFrame(
       children: [
@@ -686,8 +740,8 @@ class _RejectSheetState extends State<RejectSheet> {
         const SizedBox(height: 16),
         const InlineAlert(
           body:
-              'Only Fire Volunteer and BFP coordinators can reject. Observers '
-              'and Admin cannot.',
+              'Only Fire Volunteer and BFP coordinators can reject. Admins '
+              'cannot.',
         ),
         const SizedBox(height: 16),
         const SectionHeader('Why'),

@@ -26,8 +26,10 @@ enum CoordinatorTab {
   final IconData icon;
 }
 
-/// The Fire Volunteer and BFP coordinator's app: one bar, five tabs, and the
-/// shared [CoordinatorFeed] they read from.
+/// Every organisation's coordinator app: one bar, five tabs, and the shared
+/// [CoordinatorFeed] they read from. A Police, Medical or Barangay
+/// coordinator gets the same tabs (06 · C01P) with only what the server lets
+/// them do ([CoordinatorPowers]).
 ///
 /// Tabs keep their place when you leave them (an IndexedStack), and are built
 /// the first time they are opened. Detail screens — an Area, an overlap, the

@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/api/api_client.dart';
 import 'package:replit/location/place_names.dart';
+import 'package:replit/models/coordinator_powers.dart';
 import 'package:replit/screens/coordinator/area_decision_screen.dart';
 import 'package:replit/screens/coordinator/codes_tab.dart';
 import 'package:replit/screens/coordinator/coordinator_feed.dart';
@@ -455,6 +456,120 @@ void main() {
       expect(posted.single.$2, '/fire-codes/c1/press');
       expect(posted.single.$3['area_id'], 'a3');
       expect(find.textContaining('Code A recorded at'), findsOneWidget);
+      feed.dispose();
+      await done(tester);
+    });
+  });
+
+  group('a PNP Coordinator (06 · C01P)', () {
+    const police = {
+      'id': 'pnp',
+      'role': 'sub_admin',
+      'agency_type': 'police',
+      'organization_name': 'PNP Pasay',
+      'full_name': 'P. Cruz',
+    };
+
+    test('may do what the server lets them, and no more', () {
+      for (final agency in ['police', 'medical', 'barangay']) {
+        final p = CoordinatorPowers.of({
+          'role': 'sub_admin',
+          'agency_type': agency,
+        });
+        expect(p.coordinates, isFalse, reason: agency);
+        expect(p.responds, isFalse);
+        expect(p.rejects, isFalse);
+        expect(p.marksFireOut, isFalse);
+        expect(p.pressesCodes, isFalse);
+        expect(p.files, isFalse);
+        expect(p.requestsAlarm, isFalse);
+        expect(p.decidesAlarm, isFalse);
+        expect(p.updatesWater, isFalse);
+      }
+      final fv = CoordinatorPowers.of(me);
+      expect(fv.coordinates && fv.requestsAlarm && fv.updatesWater, isTrue);
+      expect(fv.decidesAlarm, isFalse);
+      final bfp = CoordinatorPowers.of(const {'agency_type': 'bfp'});
+      expect(bfp.coordinates && bfp.decidesAlarm, isTrue);
+      expect(bfp.updatesWater, isFalse);
+    });
+
+    testWidgets('the same queue, with what Accepting does for them', (
+      tester,
+    ) async {
+      await pump(tester, CoordinatorShell(me: police, api: api()));
+      expect(find.text('QUEUE'), findsOneWidget);
+      expect(find.text('PNP PASAY'), findsOneWidget);
+      expect(find.text('DECIDE'), findsNWidgets(2));
+      await tester.dragUntilVisible(
+        find.textContaining('These Areas asked for Police'),
+        find.byType(ListView).first,
+        const Offset(0, -200),
+      );
+      expect(
+        find.text(
+          'These Areas asked for Police. Accepting acknowledges them for PNP '
+          'Pasay. Only a Fire Volunteer or BFP Coordinator can reject.',
+        ),
+        findsOneWidget,
+      );
+      await done(tester);
+    });
+
+    testWidgets('Accept acknowledges for PNP Pasay: no going, no Reject', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        AreaDecisionScreen(areaId: 'a1', me: police, api: api()),
+      );
+      posted.clear();
+      expect(find.text('ACCEPT'), findsOneWidget);
+      expect(find.text('REJECT THIS AREA'), findsNothing);
+      await tester.tap(find.text('ACCEPT'));
+      await settle(tester);
+      expect(
+        find.textContaining('Accepting acknowledges it for PNP Pasay'),
+        findsOneWidget,
+      );
+      expect(find.text('I am going too'), findsNothing);
+      await tester.tap(find.text('ACCEPT').last);
+      await settle(tester);
+      expect([for (final p in posted) p.$2], ['/incidents/a1/verify']);
+      await done(tester);
+    });
+
+    testWidgets('LIVE: they follow it; going, fire out and Reject are not '
+        'theirs', (tester) async {
+      await pump(
+        tester,
+        Scaffold(
+          body: LiveIncidentView(areaId: 'a3', me: police, api: api()),
+        ),
+      );
+      expect(find.text('I AM GOING'), findsNothing);
+      expect(find.text('MARK FIRE OUT'), findsNothing);
+      expect(find.text('Reject this Area'), findsNothing);
+      await tester.dragUntilVisible(
+        find.textContaining('You follow this Area here'),
+        find.byType(ListView).last,
+        const Offset(0, -200),
+      );
+      expect(find.textContaining('You follow this Area here'), findsOneWidget);
+      await done(tester);
+    });
+
+    testWidgets('Codes: they see them; a tap records nothing', (tester) async {
+      final feed = CoordinatorFeed(me: police, api: api());
+      await feed.load();
+      await pump(tester, Scaffold(body: CodesTab(feed: feed, focus: null)));
+      expect(
+        find.textContaining('Fire codes are pressed by Fire Volunteer and BFP'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Water supply established'));
+      await settle(tester);
+      expect(posted, isEmpty);
       feed.dispose();
       await done(tester);
     });
