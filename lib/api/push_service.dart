@@ -169,34 +169,55 @@ class PushService {
     final title = notification?.title ?? 'RepLiT';
     final body = notification?.body ?? (message.data['body'] as String?) ?? '';
     if (body.isEmpty) return;
-    final fire = fireAlertTypes.contains(type);
     messengerKey.currentState?.showSnackBar(
-      SnackBar(
-        backgroundColor: fire ? AppColors.live : AppColors.gradientEnd,
-        // Long enough to reach for on a new fire; the Alerts list keeps it too.
-        duration: Duration(seconds: fire ? 12 : 6),
-        action: canOpen(type, message.data)
-            ? SnackBarAction(
-                label: 'OPEN',
-                textColor: Colors.white,
-                onPressed: () => _onOpened(message),
-              )
-            : null,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
+      inAppBanner(
+        title: title,
+        body: body,
+        fire: fireAlertTypes.contains(type),
+        onOpen: canOpen(type, message.data) ? () => _onOpened(message) : null,
+      ),
+    );
+  }
+
+  /// How long the in-app banner for a push stays up without a tap.
+  static const Duration bannerFor = Duration(seconds: 10);
+
+  /// The banner a push shows while the app is open ("Help is on the way",
+  /// OPEN). It goes away by itself after [bannerFor] whether or not OPEN was
+  /// tapped: a banner with an action would otherwise stay until tapped
+  /// (Flutter keeps those by default). The Alerts list keeps every one.
+  @visibleForTesting
+  static SnackBar inAppBanner({
+    required String title,
+    required String body,
+    required bool fire,
+    VoidCallback? onOpen,
+  }) {
+    return SnackBar(
+      backgroundColor: fire ? AppColors.live : AppColors.gradientEnd,
+      duration: bannerFor,
+      persist: false,
+      action: onOpen == null
+          ? null
+          : SnackBarAction(
+              label: 'OPEN',
+              textColor: Colors.white,
+              onPressed: onOpen,
             ),
-            const SizedBox(height: 2),
-            Text(body, style: const TextStyle(color: Colors.white)),
-          ],
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(body, style: const TextStyle(color: Colors.white)),
+        ],
       ),
     );
   }
