@@ -14,6 +14,7 @@ import 'package:replit/navigation/voice_guide.dart';
 import 'package:replit/screens/directions_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/app_icons.dart';
+import 'package:replit/widgets/drag_down_sheet.dart';
 
 import 'navigation_test.dart' as nt;
 
@@ -377,6 +378,28 @@ void main() {
       expect(find.text('The old route is now the grey line'), findsOneWidget);
       expect(grey().last, at(1000, east: 1000), reason: 'now the other');
       expect(voice.said, isNotEmpty, reason: 'guidance follows the new route');
+    });
+
+    testWidgets('the trip panel drags down out of the way, and back up', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pump(tester);
+      DragDownSheetState sheet() =>
+          tester.state(find.byKey(const ValueKey('run-panel')));
+      expect(sheet().isOpen, isTrue);
+
+      await tester.fling(find.text('AREA 7'), const Offset(0, 300), 1200);
+      await settle(tester);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(sheet().isOpen, isFalse, reason: 'folded to its status row');
+      expect(find.bySemanticsLabel('Show the trip details'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Show the trip details'));
+      await settle(tester);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(sheet().isOpen, isTrue);
+      handle.dispose();
     });
 
     testWidgets('R06d: with one way only, it says to keep to it', (

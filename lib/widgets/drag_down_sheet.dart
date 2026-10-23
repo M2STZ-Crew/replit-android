@@ -17,6 +17,7 @@ class DragDownSheet extends StatefulWidget {
     required this.body,
     required this.frame,
     this.onChanged,
+    this.subject = 'the list',
   });
 
   /// What stays showing when the sheet is folded down.
@@ -28,6 +29,9 @@ class DragDownSheet extends StatefulWidget {
 
   /// Told whenever the sheet settles open (true) or folded (false).
   final ValueChanged<bool>? onChanged;
+
+  /// What folds away, for a screen reader: "Hide the list", "Show the list".
+  final String subject;
 
   @override
   State<DragDownSheet> createState() => DragDownSheetState();
@@ -92,7 +96,9 @@ class DragDownSheetState extends State<DragDownSheet>
           children: [
             Semantics(
               button: true,
-              label: _open ? 'Hide the list' : 'Show the list',
+              label: _open
+                  ? 'Hide ${widget.subject}'
+                  : 'Show ${widget.subject}',
               onTap: toggle,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,

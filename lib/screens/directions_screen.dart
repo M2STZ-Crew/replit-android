@@ -19,6 +19,7 @@ import '../theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
+import '../widgets/drag_down_sheet.dart';
 import '../widgets/lane_strip.dart';
 import '../widgets/maneuver_arrow.dart';
 import '../widgets/map_glass.dart';
@@ -1457,6 +1458,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   /// C10 — the run panel: where the Area stands, whether this phone is
   /// sharing its location, where it is going, how far and how long, and
   /// Mark arrived for someone who is responding.
+  ///
+  /// Like the map's own sheet, it drags down out of the way (or folds with a
+  /// tap on its top) to just the handle and the status row, and back up.
   Widget _runPanel() {
     final run = widget.run;
     final p = _nav.progress;
@@ -1470,110 +1474,125 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final note = straight ? null : _note;
     final notes = [?_trafficNote, ?_widthNote, ?note];
     final where = run == null ? '' : ' — ${run.areaName}';
-    final body = DecoratedBox(
-      decoration: BoxDecoration(
-        color: MapGlass.strong(context),
-        border: Border(top: BorderSide(color: context.pal.line)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          12,
-          24,
-          12 + MediaQuery.viewPaddingOf(context).bottom,
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Center(
+          child: Container(
+            width: 36,
+            height: 5,
+            decoration: BoxDecoration(
+              color: const Color(0xFF979797),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+        const SizedBox(height: 12),
+        Row(
           children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF979797),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (run != null) LifecycleChip(_areaStatus ?? 'en_route'),
-                const Spacer(),
-                ValueListenableBuilder<String?>(
-                  valueListenable: ResponderTracker.instance.sharingFor,
-                  builder: (context, sharing, _) =>
-                      run == null || sharing != run.areaId
-                      ? const SizedBox.shrink()
-                      : Row(
-                          children: [
-                            Icon(
-                              AppIcons.podcasts,
-                              size: 16,
-                              color: context.pal.live,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Sharing your location',
-                              style: context.type.detail.copyWith(
-                                color: context.pal.label,
-                              ),
-                            ),
-                          ],
+            if (run != null) LifecycleChip(_areaStatus ?? 'en_route'),
+            const Spacer(),
+            ValueListenableBuilder<String?>(
+              valueListenable: ResponderTracker.instance.sharingFor,
+              builder: (context, sharing, _) =>
+                  run == null || sharing != run.areaId
+                  ? const SizedBox.shrink()
+                  : Row(
+                      children: [
+                        Icon(
+                          AppIcons.podcasts,
+                          size: 16,
+                          color: context.pal.live,
                         ),
-                ),
-              ],
+                        const SizedBox(width: 6),
+                        Text(
+                          'Sharing your location',
+                          style: context.type.detail.copyWith(
+                            color: context.pal.label,
+                          ),
+                        ),
+                      ],
+                    ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              (run?.place ?? widget.destName).toUpperCase(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: context.type.headline,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              arrived
-                  ? 'You are at the fire$where'
-                  : straight && metres != null
-                  ? '${formatDistance(metres)} straight line$where'
-                  : '${metres == null ? '—' : formatDistance(metres)}, about '
-                        '${seconds == null ? '—' : _minutes(seconds)} min$where',
-              style: context.type.body.copyWith(color: context.pal.textSoft),
-            ),
-            for (final n in notes) ...[
-              const SizedBox(height: 8),
-              Text(n, style: context.type.caption),
-            ],
-            const SizedBox(height: 12),
-            if (run?.markArrived != null && !onScene) ...[
-              AppButton(
-                'Mark arrived',
-                run: true,
-                busy: _arriving,
-                onPressed: _arriving ? null : _markArrived,
-              ),
-              if (_nav.navigating && !arrived)
-                Center(child: TextLink('End navigation', onTap: _startOrStop)),
-            ] else if (_nav.navigating && !arrived)
-              AppButton.secondary('End navigation', onPressed: _startOrStop)
-            else
-              AppButton.secondary(
-                'Done',
-                onPressed: () => Navigator.of(context).maybePop(),
-              ),
           ],
         ),
-      ),
+      ],
     );
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(AppRadius.sheet),
-      ),
-      child: MapGlass.blurs(context)
-          ? BackdropFilter(filter: MapGlass.blur, child: body)
-          : body,
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          (run?.place ?? widget.destName).toUpperCase(),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: context.type.headline,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          arrived
+              ? 'You are at the fire$where'
+              : straight && metres != null
+              ? '${formatDistance(metres)} straight line$where'
+              : '${metres == null ? '—' : formatDistance(metres)}, about '
+                    '${seconds == null ? '—' : _minutes(seconds)} min$where',
+          style: context.type.body.copyWith(color: context.pal.textSoft),
+        ),
+        for (final n in notes) ...[
+          const SizedBox(height: 8),
+          Text(n, style: context.type.caption),
+        ],
+        const SizedBox(height: 12),
+        if (run?.markArrived != null && !onScene) ...[
+          AppButton(
+            'Mark arrived',
+            run: true,
+            busy: _arriving,
+            onPressed: _arriving ? null : _markArrived,
+          ),
+          if (_nav.navigating && !arrived)
+            Center(child: TextLink('End navigation', onTap: _startOrStop)),
+        ] else if (_nav.navigating && !arrived)
+          AppButton.secondary('End navigation', onPressed: _startOrStop)
+        else
+          AppButton.secondary(
+            'Done',
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+      ],
+    );
+    return DragDownSheet(
+      key: const ValueKey('run-panel'),
+      subject: 'the trip details',
+      header: header,
+      body: body,
+      frame: (context, content) {
+        final framed = DecoratedBox(
+          decoration: BoxDecoration(
+            color: MapGlass.strong(context),
+            border: Border(top: BorderSide(color: context.pal.line)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              24,
+              12,
+              24,
+              12 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
+            child: content,
+          ),
+        );
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.sheet),
+          ),
+          child: MapGlass.blurs(context)
+              ? BackdropFilter(filter: MapGlass.blur, child: framed)
+              : framed,
+        );
+      },
     );
   }
 
