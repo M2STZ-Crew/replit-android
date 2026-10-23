@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart' as geo;
@@ -11,13 +13,16 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
-import 'area_detail_screen.dart' show kClusterRadiusMetres;
 import 'camera_capture_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
 
-/// "11 Corroborate — 300 m" from the REPLIT-OVERHAUL Figma: the 300 m
-/// neighbourhood alert, as a screen rather than v2's dialog.
+/// How far from a fire a neighbour is asked about it: the server's
+/// NEIGHBORHOOD_RADIUS_M (app/workers/neighborhood.py; PRD v14 §4.2).
+const double kNeighbourAlertMetres = 150;
+
+/// "11 Corroborate" from the REPLIT-OVERHAUL Figma: the 150 m neighbourhood
+/// alert (PRD v13 cut it from 300 m), as a screen rather than v2's dialog.
 ///
 /// "Yes" is a real report (v10 §2.2): it opens the same photo step as SOS,
 /// with the GPS fix already started when this screen opened. "No, and stop
@@ -109,7 +114,8 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     final where = _street == null ? 'near you' : 'on $_street';
     final at = DateTime.tryParse('${_area?['reported_at']}')?.toLocal();
     final when = at == null ? '' : ' ${_ago(at)}';
-    return 'Someone within 300 metres reported a fire $where$when.';
+    return 'Someone within ${kNeighbourAlertMetres.round()} metres reported '
+        'a fire $where$when.';
   }
 
   static String _ago(DateTime t) {
@@ -122,7 +128,11 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
   }
 
   void _yes() {
-    _api.respondToAlert(widget.areaId, 'report');
+    // Best-effort: the photo report that follows is the real answer, and
+    // filing it stops the alerts for this Area by itself.
+    unawaited(
+      _api.respondToAlert(widget.areaId, 'report').catchError((Object _) {}),
+    );
     ReportTiming.instance.start('neighbour_alert');
     _location.warmUp();
     Navigator.of(context).pushReplacement(
@@ -130,9 +140,29 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     );
   }
 
-  void _no() {
-    _api.respondToAlert(widget.areaId, 'ignore');
+  bool _sending = false;
+
+  Future<void> _no() async {
+    if (_sending) return;
+    setState(() => _sending = true);
     final messenger = ScaffoldMessenger.of(context);
+    try {
+      await _api.respondToAlert(widget.areaId, 'ignore');
+    } catch (_) {
+      // Not recorded: the alerts would keep coming, so say so and stay.
+      if (!mounted) return;
+      setState(() => _sending = false);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your answer did not reach RepLiT, so you may be asked again. '
+            'Check your connection and try once more.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
     Navigator.of(context).pop();
     messenger.showSnackBar(
       const SnackBar(content: Text("You won't be asked about this one again.")),
@@ -185,7 +215,8 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
               AppButton.secondary(
                 'No, and stop asking about this',
                 height: 48,
-                onPressed: _no,
+                busy: _sending,
+                onPressed: _sending ? null : _no,
               ),
             ],
           ),
@@ -217,7 +248,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     );
   }
 
-  /// The reported area, its 300 m, and you.
+  /// The reported area, the 150 m its neighbours are asked from, and you.
   Widget _proximityMap() {
     final c = _centre;
     final me = _me;
@@ -237,7 +268,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                 FlutterMap(
                   options: MapOptions(
                     initialCenter: c,
-                    // ~3 m a pixel: the 300 m circle is ~190 px across.
+                    // ~3 m a pixel: the 150 m circle is ~95 px across.
                     initialZoom: 15.5,
                     backgroundColor: context.pal.background,
                     interactionOptions: kMapGestures,
@@ -250,7 +281,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                         MapAreas.incidentRadius(
                           context.pal,
                           c,
-                          metres: kClusterRadiusMetres,
+                          metres: kNeighbourAlertMetres,
                         ),
                       ],
                     ),

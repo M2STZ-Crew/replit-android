@@ -341,11 +341,14 @@ class ApiClient {
     return jsonDecode(resp.body) as List<dynamic>;
   }
 
-  /// Respond to a 300 m neighborhood alert: POST /notifications/respond.
+  /// Respond to a 150 m neighborhood alert: POST /notifications/respond.
   /// [response] is 'report' (confirm a fire nearby) or 'ignore' (dismiss).
+  /// Throws [ApiException] when the server did not record it — then the
+  /// alerts for this Area keep coming, and the screen must not say otherwise.
   Future<void> respondToAlert(String areaId, String response) async {
+    final http.Response resp;
     try {
-      await _client.post(
+      resp = await _client.post(
         Uri.parse('${ApiConfig.baseUrl}/notifications/respond'),
         headers: {
           'Content-Type': 'application/json',
@@ -354,7 +357,10 @@ class ApiClient {
         body: jsonEncode({'area_id': areaId, 'response': response}),
       );
     } catch (_) {
-      // best-effort
+      throw ApiException(0, 'Could not reach the server.');
+    }
+    if (resp.statusCode >= 400) {
+      throw ApiException(resp.statusCode, 'Your answer was not recorded.');
     }
   }
 
@@ -397,7 +403,7 @@ class ApiClient {
 
   /// Update the caller's last-known location: POST /auth/me/location.
   ///
-  /// Sets users.location so the 300 m neighborhood-alert worker can reach this
+  /// Sets users.location so the 150 m neighborhood-alert worker can reach this
   /// device. Best-effort — a failure must not block the app.
   Future<void> updateMyLocation(double lat, double lng) async {
     try {

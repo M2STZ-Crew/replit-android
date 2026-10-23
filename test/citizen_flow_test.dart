@@ -265,14 +265,17 @@ void main() {
     });
   });
 
-  group('the 300 m alert', () {
+  group('the 150 m alert', () {
     late List<http.Request> seen;
+    late bool answerFails;
 
     ApiClient api() => ApiClient(
       client: MockClient((req) async {
         seen.add(req);
         if (req.url.path.endsWith('/notifications/respond')) {
-          return http.Response('{"message":"ok"}', 200);
+          return answerFails
+              ? http.Response('{"detail":"down"}', 503)
+              : http.Response('{"message":"ok"}', 200);
         }
         return http.Response(
           jsonEncode({
@@ -328,7 +331,10 @@ void main() {
       }
     }
 
-    setUp(() => seen = []);
+    setUp(() {
+      seen = [];
+      answerFails = false;
+    });
 
     for (final scale in <double>[1.0, 1.5]) {
       testWidgets('asks, with the distance, at ${scale}x', (tester) async {
@@ -368,6 +374,41 @@ void main() {
         find.text("You won't be asked about this one again."),
         findsOneWidget,
       );
+    });
+
+    testWidgets('a "No" that does not reach the server says so, and stays', (
+      tester,
+    ) async {
+      answerFails = true;
+      await open(tester);
+      await tester.tap(find.text('NO, AND STOP ASKING ABOUT THIS'));
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(NeighbourAlertScreen), findsOneWidget);
+      expect(find.textContaining('you may be asked again'), findsOneWidget);
+      expect(
+        find.text("You won't be asked about this one again."),
+        findsNothing,
+      );
+
+      // Once the connection is back, the same tap goes through.
+      answerFails = false;
+      ScaffoldMessenger.of(
+        tester.element(find.byType(NeighbourAlertScreen)),
+      ).hideCurrentSnackBar();
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.tap(find.text('NO, AND STOP ASKING ABOUT THIS'));
+      await tester.pumpAndSettle();
+      expect(find.byType(NeighbourAlertScreen), findsNothing);
+    });
+
+    testWidgets('it asks from 150 m, as the server does', (tester) async {
+      await open(tester);
+      expect(kNeighbourAlertMetres, 150);
+      expect(find.textContaining('within 150 metres'), findsOneWidget);
     });
   });
 }

@@ -36,7 +36,7 @@ abstract final class Tour {
 /// who comes, how reports become one Area, and why a neighbour gets asked.
 ///
 /// Every claim here is one the system keeps: the hold really is three seconds,
-/// the photo really is required, 300 m really is the corroboration radius.
+/// the photo really is required, 150 m really is the corroboration radius.
 /// The practice step sends nothing, and says so twice.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, this.onFinish});
@@ -771,7 +771,7 @@ class _Areas extends StatelessWidget {
   }
 }
 
-// ── T5 · 300 m ─────────────────────────────────────────────────────────────
+// ── T5 · 150 m ─────────────────────────────────────────────────────────────
 
 class _Nearby extends StatelessWidget {
   const _Nearby({
@@ -794,14 +794,14 @@ class _Nearby extends StatelessWidget {
       onSkip: onSkip,
       title: 'You may be asked to confirm',
       body:
-          'When something is reported within 300 metres of you, RepLiT asks '
+          'When something is reported within 150 metres of you, RepLiT asks '
           'one question. Answering makes the report more certain.',
       stage: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           _TourMap(
             height: 140,
-            chip: '300 m around you',
+            chip: '150 m around you',
             children: [
               _Blob(left: 0.32, top: 0.42, diameter: 126, ring: true),
               _Blob(left: 0.32, top: 0.42, diameter: 13, live: true),

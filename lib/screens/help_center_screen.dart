@@ -38,7 +38,7 @@ const List<_Faq> _faqs = [
   ),
   _Faq(
     "What are the 'fire near you' alerts?",
-    'If someone reports a fire within 300 m of you, you receive a push alert. Tap '
+    'If someone reports a fire within 150 m of you, you receive a push alert. Tap '
         'it to confirm there is a fire (which files a corroborating report) or to '
         'ignore it. Manage alerts in Profile → Notifications.',
   ),

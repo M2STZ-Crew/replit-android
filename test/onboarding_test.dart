@@ -80,7 +80,7 @@ void main() {
       await next(tester, 'Next');
 
       expect(find.text('You may be asked to confirm'), findsOneWidget);
-      expect(find.text('300 m around you'), findsOneWidget);
+      expect(find.text('150 m around you'), findsOneWidget);
       await next(tester, 'Next');
 
       expect(find.text('Practice — nothing is sent'), findsOneWidget);

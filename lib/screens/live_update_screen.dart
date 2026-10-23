@@ -882,7 +882,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                   title: others == 0
                       ? 'No neighbours have confirmed yet'
                       : '$others ${others == 1 ? 'neighbour' : 'neighbours'} confirmed',
-                  line: 'Asked within 300 m of the area',
+                  line: 'Asked within 150 m of the area',
                 ),
                 if (_shelter != null) ...[
                   const SizedBox(height: 10),
