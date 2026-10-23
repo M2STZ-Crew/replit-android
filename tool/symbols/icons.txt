@@ -128,3 +128,10 @@ health_and_safety
 directions_boat
 flood
 record_voice_over
+apartment
+construction
+delete
+fire_extinguisher
+front_hand
+send
+trending_up

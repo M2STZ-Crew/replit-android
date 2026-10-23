@@ -29,6 +29,9 @@ abstract final class AppIcons {
   /// Material Symbols "alternate_email".
   static const IconData alternateEmail = IconData(0xe0e6, fontFamily: _family);
 
+  /// Material Symbols "apartment".
+  static const IconData apartment = IconData(0xea40, fontFamily: _family);
+
   /// Material Symbols "assignment".
   static const IconData assignment = IconData(0xe85d, fontFamily: _family);
 
@@ -94,11 +97,17 @@ abstract final class AppIcons {
   /// Material Symbols "cloud_off".
   static const IconData cloudOff = IconData(0xe2c1, fontFamily: _family);
 
+  /// Material Symbols "construction".
+  static const IconData construction = IconData(0xea3c, fontFamily: _family);
+
   /// Material Symbols "content_copy".
   static const IconData contentCopy = IconData(0xe14d, fontFamily: _family);
 
   /// Material Symbols "dashboard".
   static const IconData dashboard = IconData(0xe871, fontFamily: _family);
+
+  /// Material Symbols "delete".
+  static const IconData delete = IconData(0xe872, fontFamily: _family);
 
   /// Material Symbols "description".
   static const IconData description = IconData(0xe873, fontFamily: _family);
@@ -151,6 +160,12 @@ abstract final class AppIcons {
   /// Material Symbols "favorite".
   static const IconData favorite = IconData(0xe87d, fontFamily: _family);
 
+  /// Material Symbols "fire_extinguisher".
+  static const IconData fireExtinguisher = IconData(
+    0xf1d8,
+    fontFamily: _family,
+  );
+
   /// Material Symbols "fire_hydrant".
   static const IconData fireHydrant = IconData(0xf1a3, fontFamily: _family);
 
@@ -168,6 +183,9 @@ abstract final class AppIcons {
 
   /// Material Symbols "flood".
   static const IconData flood = IconData(0xebe6, fontFamily: _family);
+
+  /// Material Symbols "front_hand".
+  static const IconData frontHand = IconData(0xe769, fontFamily: _family);
 
   /// Material Symbols "grid_view".
   static const IconData gridView = IconData(0xe9b0, fontFamily: _family);
@@ -347,6 +365,9 @@ abstract final class AppIcons {
   /// Material Symbols "schedule".
   static const IconData schedule = IconData(0xe192, fontFamily: _family);
 
+  /// Material Symbols "send".
+  static const IconData send = IconData(0xe163, fontFamily: _family);
+
   /// Material Symbols "shield".
   static const IconData shield = IconData(0xe75b, fontFamily: _family);
 
@@ -361,6 +382,9 @@ abstract final class AppIcons {
 
   /// Material Symbols "traffic".
   static const IconData traffic = IconData(0xe565, fontFamily: _family);
+
+  /// Material Symbols "trending_up".
+  static const IconData trendingUp = IconData(0xe8e5, fontFamily: _family);
 
   /// Material Symbols "verified".
   static const IconData verified = IconData(0xe031, fontFamily: _family);
