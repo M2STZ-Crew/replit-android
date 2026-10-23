@@ -227,6 +227,7 @@ void main() {
     late List<LatLng> askedTo;
     late List<dynamic> offered;
     late bool traffic;
+    late bool failing;
     late _Voice voice;
 
     setUp(() {
@@ -235,11 +236,13 @@ void main() {
       askedTo = [];
       offered = [nt.lRoute];
       traffic = true;
+      failing = false;
       voice = _Voice();
     });
 
     Future<RouteSet> fetch(LatLng from, LatLng to, {double? headingDeg}) async {
       askedTo.add(to);
+      if (failing) throw Exception('no route');
       return RouteSet(
         routes: parseRoutes(nt.answer(offered.cast())),
         provider: traffic ? 'mapbox' : 'osrm',
@@ -274,25 +277,16 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('Choose a route (06 · C09): the road time, then it counts '
-        'down once under way', (tester) async {
+    testWidgets('C10: the run starts at once, with no route to choose first', (
+      tester,
+    ) async {
       await pump(tester);
       expect(tester.takeException(), isNull);
-      expect(find.text('Choose a route'), findsOneWidget);
-      expect(
-        find.text(
-          'To Area 7. Every route avoids footpaths and streets too narrow '
-          'for a truck.',
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('4 min'), findsOneWidget);
-      expect(find.text('Via Taft Avenue, Gil Puyat Avenue'), findsOneWidget);
-      expect(find.text('Times include live traffic.'), findsOneWidget);
-      expect(find.text('START NAVIGATION'), findsOneWidget);
+      expect(find.text('Choose a route'), findsNothing);
+      expect(find.text('START NAVIGATION'), findsNothing);
+      expect(find.text('Turn right onto Gil Puyat Avenue'), findsOneWidget);
       expect(find.byType(CircleLayer), findsOneWidget, reason: 'Area radius');
-      await tester.tap(find.text('START NAVIGATION'));
-      await tester.pump(const Duration(milliseconds: 100));
+      expect(voice.said, isNotEmpty, reason: 'guidance is on from the start');
       await moveTo(tester, at(1000));
       expect(find.text('1.0 km, about 2 min'), findsOneWidget);
     });
@@ -333,7 +327,6 @@ void main() {
         ),
       ];
       await pump(tester);
-      await tester.tap(find.text('START NAVIGATION'));
       await tester.pump(const Duration(milliseconds: 100));
       await moveTo(tester, at(100));
       expect(find.byKey(const ValueKey('lane-strip')), findsNothing);
@@ -364,44 +357,61 @@ void main() {
       );
     });
 
-    testWidgets('every route offered, the fastest chosen; another can be', (
-      tester,
-    ) async {
+    testWidgets('R06: the quickest in coral, one other way in grey; one tap '
+        'switches, and the old route turns grey (R06b)', (tester) async {
       offered = [nt.longRoute, nt.lRoute];
       await pump(tester);
-      expect(find.text('Fastest'), findsOneWidget);
-      expect(find.text('Shortest'), findsNothing, reason: 'the same route');
-      expect(find.text('4 min'), findsOneWidget);
-      expect(find.text('7 min'), findsOneWidget);
       List<LatLng> grey() => tester
-          .widget<PolylineLayer>(find.byType(PolylineLayer))
+          .widget<PolylineLayer<bool>>(find.byType(PolylineLayer<bool>))
           .polylines
-          .first
+          .single
           .points;
       expect(grey().last, at(3000), reason: 'the long way, in grey');
+      expect(find.text('+3 min · via EDSA'), findsOneWidget);
+      expect(find.text('Tap the grey line to switch'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('route-0')));
+      voice.said.clear();
+      await tester.tap(find.byKey(const ValueKey('route-alternative')));
       await tester.pump();
-      expect(
-        grey().last,
-        at(1000, east: 1000),
-        reason: 'now the other is grey',
-      );
+      expect(find.text('Switched · 7 min via EDSA'), findsOneWidget);
+      expect(find.text('The old route is now the grey line'), findsOneWidget);
+      expect(grey().last, at(1000, east: 1000), reason: 'now the other');
+      expect(voice.said, isNotEmpty, reason: 'guidance follows the new route');
     });
 
-    testWidgets('a shorter, slower route is marked Shortest', (tester) async {
-      offered = [nt.lRoute, _shortSlow];
+    testWidgets('R06d: with one way only, it says to keep to it', (
+      tester,
+    ) async {
       await pump(tester);
-      expect(find.text('Fastest'), findsOneWidget);
-      expect(find.text('Shortest'), findsOneWidget);
-      expect(find.text('10 min'), findsOneWidget);
-      expect(find.text('Via Libertad Street'), findsOneWidget);
+      expect(find.text('No other route right now'), findsOneWidget);
+      expect(find.text('Keep to the coral line'), findsOneWidget);
+      expect(find.byType(PolylineLayer<bool>), findsNothing);
+    });
+
+    testWidgets('R06e: no road route — no line, where to head, and Try again', (
+      tester,
+    ) async {
+      failing = true;
+      await pump(tester);
+      expect(find.text("Couldn't load a route"), findsOneWidget);
+      expect(find.text('Head to Area 7'), findsOneWidget);
+      expect(
+        find.text('Turn-by-turn returns when a route loads'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('straight line'), findsOneWidget);
+      expect(find.byType(PolylineLayer), findsNothing, reason: 'no line');
+
+      failing = false;
+      await tester.tap(find.text('Try again'));
+      await settle(tester);
+      expect(find.text("Couldn't load a route"), findsNothing);
+      expect(find.text('Turn right onto Gil Puyat Avenue'), findsOneWidget);
     });
 
     testWidgets('Start: the next turn in the banner, counting down, then the '
         'next; the voice says each', (tester) async {
       await pump(tester);
-      await tester.tap(find.text('START NAVIGATION'));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Turn right onto Gil Puyat Avenue'), findsOneWidget);
       expect(find.text('1.0 km'), findsWidgets);
@@ -427,7 +437,6 @@ void main() {
     testWidgets('looking around the map stops following; Re-centre brings the '
         'navigation view back', (tester) async {
       await pump(tester);
-      await tester.tap(find.text('START NAVIGATION'));
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.byKey(const ValueKey('recentre')), findsNothing);
 
@@ -486,7 +495,6 @@ void main() {
       testWidgets('says where, how far and the Area, and Mark arrived marks '
           'it', (tester) async {
         await pump(tester, run: run());
-        await tester.tap(find.text('START NAVIGATION'));
         await settle(tester);
         expect(find.bySemanticsLabel('Status: En route'), findsOneWidget);
         expect(find.text('F. VICTOR STREET, BARANGAY 76'), findsOneWidget);
@@ -505,7 +513,6 @@ void main() {
 
       testWidgets('someone not responding has no Mark arrived', (tester) async {
         await pump(tester, run: run(responding: false));
-        await tester.tap(find.text('START NAVIGATION'));
         await settle(tester);
         expect(find.text('MARK ARRIVED'), findsNothing);
         expect(find.text('END NAVIGATION'), findsOneWidget);
@@ -516,7 +523,6 @@ void main() {
       ) async {
         status = 'arrived';
         await pump(tester, run: run());
-        await tester.tap(find.text('START NAVIGATION'));
         await settle(tester);
         expect(find.bySemanticsLabel('Status: Arrived'), findsOneWidget);
         expect(find.text('MARK ARRIVED'), findsNothing);
@@ -564,7 +570,6 @@ void main() {
       testWidgets('reaching the fire ends navigation and marks arrived by '
           'itself', (tester) async {
         await pushOver(tester, run());
-        await tester.tap(find.text('START NAVIGATION'));
         await settle(tester);
         await moveTo(tester, at(1000, east: 950));
         await settle(tester);
@@ -596,7 +601,6 @@ void main() {
             },
           ),
         );
-        await tester.tap(find.text('START NAVIGATION'));
         await settle(tester);
         await moveTo(tester, at(1000, east: 950));
         await settle(tester);
@@ -609,7 +613,6 @@ void main() {
         tester,
       ) async {
         await pump(tester, run: run(responding: false));
-        await tester.tap(find.text('START NAVIGATION'));
         await settle(tester);
         await moveTo(tester, at(1000, east: 950));
         await settle(tester);
@@ -620,7 +623,6 @@ void main() {
 
       testWidgets('north up, then heading up again', (tester) async {
         await pump(tester, run: run());
-        await tester.tap(find.text('START NAVIGATION'));
         await settle(tester);
         await tester.tap(
           find.bySemanticsLabel('Heading up — tap for north up'),
@@ -634,16 +636,3 @@ void main() {
     });
   });
 }
-
-/// Straight across to the fire: about 1.4 km, shorter than the L, but slow.
-final _shortSlow = (
-  points: [at(0), at(1000, east: 1000)],
-  steps: [
-    nt.step('depart', at(0), name: 'Libertad Street', duration: 600),
-    nt.step('arrive', at(1000, east: 1000)),
-  ],
-  duration: 600.0,
-  summary: 'Libertad Street',
-  congestion: null,
-  typical: null,
-);

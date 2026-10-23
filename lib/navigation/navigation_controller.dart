@@ -42,6 +42,15 @@ class NavProgress {
   final double metresToNext;
 }
 
+/// The best other way to go (PRD v14 §4.9.2): route [index] of
+/// [NavigationController.routes], about [seconds] from where the person is.
+class NavAlternative {
+  const NavAlternative(this.index, this.route, this.seconds);
+  final int index;
+  final NavRoute route;
+  final double seconds;
+}
+
 /// What the map should draw for "you": the point (placed on the road when the
 /// fix agrees with it), how sure it is, and the direction of travel while
 /// moving (null when still, so the compass turns the map instead).
@@ -74,6 +83,13 @@ class NavDisplay {
 ///   in, with no turns, and a real route is retried on the same schedule.
 /// - **Voice.** [announcements] says each maneuver twice — once ahead (300 m
 ///   driving, 60 m walking) and once at it — and arrival once.
+/// - **The other way** (PRD v14 §4.9.2). [alternative] is the quickest other
+///   route that still starts where the person is — one whose fork is behind
+///   them is no way to go. [takeAlternative] follows it at once. With
+///   [liveAlternatives], while navigating with no alternative left, routes
+///   are asked for again from here at most once a minute; the route being
+///   followed is kept as it is (no reroute, nothing said again) and only the
+///   other ways are replaced.
 class NavigationController extends ChangeNotifier {
   NavigationController({
     required LatLng destination,
@@ -81,12 +97,16 @@ class NavigationController extends ChangeNotifier {
     required this.mode,
     required this.destinationName,
     required this.arrivedWithinMetres,
+    this.liveAlternatives = false,
     DateTime Function()? clock,
   }) : _destination = destination,
        _clock = clock ?? DateTime.now;
 
   final RouteFetch fetch;
   final TravelMode mode;
+
+  /// Look for other ways while under way (a driver on the road to a fire).
+  final bool liveAlternatives;
 
   /// How the voice and banner name where this ends ("the fire").
   final String destinationName;
@@ -149,6 +169,14 @@ class NavigationController extends ChangeNotifier {
   String? get problem => _problem;
   String? _problem;
 
+  /// The best other way from here, or null when there is none.
+  NavAlternative? get alternative => _alternative;
+  NavAlternative? _alternative;
+
+  /// Other ways are being asked for while the current route is followed.
+  bool get lookingForAlternative => _looking;
+  bool _looking = false;
+
   NavProgress? get progress => _progress;
   NavProgress? _progress;
   LiveFix? get lastFix => _lastFix;
@@ -180,6 +208,10 @@ class NavigationController extends ChangeNotifier {
   static const double _usableAccuracy = 50;
   static const Duration _offRouteFor = Duration(seconds: 3);
   static const Duration _rerouteGap = Duration(seconds: 8);
+  static const Duration _lookEvery = Duration(minutes: 1);
+
+  /// Two routes this close all along are the same way.
+  static const double _sameWayMetres = 30;
 
   /// Moving at least this fast (m/s, about 3 km/h) the direction of travel
   /// turns the map; slower, the compass does (PRD v12 §4.9.4).
@@ -201,6 +233,7 @@ class NavigationController extends ChangeNotifier {
   int _offCount = 0;
   final Set<String> _said = {};
   bool _disposed = false;
+  DateTime? _lookedAt;
 
   /// The first route, from [from].
   Future<void> start(LatLng from, {double? headingDeg}) =>
@@ -213,6 +246,13 @@ class NavigationController extends ChangeNotifier {
     _resetTracking();
     _replace();
     notifyListeners();
+  }
+
+  /// Follow [alternative] instead: at once, with no question asked. The
+  /// route left behind becomes the alternative while it is still in reach.
+  void takeAlternative() {
+    final other = _alternative;
+    if (other != null) select(other.index);
   }
 
   /// Start or stop turn-by-turn guidance on the active route.
@@ -268,6 +308,8 @@ class NavigationController extends ChangeNotifier {
         if (_navigating) _announceNext(route, placed);
       }
     }
+    _pickAlternative();
+    _maybeLook(fix);
     notifyListeners();
   }
 
@@ -309,6 +351,7 @@ class NavigationController extends ChangeNotifier {
       _failures = 0;
       _problem = null;
       _nextAttempt = _clock().add(_rerouteGap);
+      _lookedAt = _clock(); // this answer's other routes are the latest
       _resetTracking();
       _replace();
       if (rerouted && _navigating) _say('rerouted', 'Route updated.');
@@ -367,10 +410,105 @@ class NavigationController extends ChangeNotifier {
   void _replace() {
     final fix = _lastFix;
     final route = this.route;
+    _pickAlternative();
     if (fix == null || route == null) return;
     _progress = _place(route, fix.point);
     _displays.add(_display(route, _progress!, fix));
     if (_navigating && !_arrived) _announceStart();
+  }
+
+  // ----------------------------------------------------- the other way ---
+  /// The quickest route other than the active one that the person is still
+  /// on (within the off-route measure). A straight line is never one, and
+  /// a straight line being followed has none.
+  void _pickAlternative() {
+    final active = route;
+    final fix = _lastFix;
+    NavAlternative? best;
+    if (active != null && !active.approximate && !_arrived) {
+      for (var i = 0; i < _routes.length; i++) {
+        final r = _routes[i];
+        if (i == _active || r.approximate) continue;
+        var seconds = r.duration;
+        if (fix != null) {
+          final here = RouteProgress.of(r.points, fix.point);
+          if (here.offRouteMetres > _offRouteLimit(fix.accuracy)) continue;
+          if (r.length > 0) {
+            seconds = r.duration * here.remainingMetres / r.length;
+          }
+        }
+        if (best == null || seconds < best.seconds) {
+          best = NavAlternative(i, r, seconds);
+        }
+      }
+    }
+    _alternative = best;
+  }
+
+  /// Under way with no other way left: ask again from here, at most once a
+  /// minute, never alongside a reroute.
+  void _maybeLook(LiveFix fix) {
+    final active = route;
+    if (!liveAlternatives ||
+        !_navigating ||
+        _arrived ||
+        _looking ||
+        _inFlight ||
+        _alternative != null ||
+        active == null ||
+        active.approximate) {
+      return;
+    }
+    final now = _clock();
+    if (_lookedAt != null && now.difference(_lookedAt!) < _lookEvery) return;
+    _lookedAt = now;
+    unawaited(_lookForAlternatives(fix));
+  }
+
+  Future<void> _lookForAlternatives(LiveFix fix) async {
+    final generation = _generation;
+    final seq = _seq;
+    _looking = true;
+    notifyListeners();
+    try {
+      final set = await fetch(
+        fix.point,
+        _destination,
+        headingDeg: _travelHeading(fix),
+      );
+      // Rerouted, switched or sent elsewhere since: this answer is stale.
+      if (_disposed || generation != _generation || seq != _seq) return;
+      final active = route!;
+      _routes = [
+        active,
+        for (final r in set.routes)
+          if (!r.approximate && !_sameWay(r, active)) r,
+      ];
+      _active = 0;
+      _pickAlternative();
+    } catch (_) {
+      // Nothing new: the route being followed goes on; asked again later.
+    } finally {
+      if (!_disposed) {
+        _looking = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Whether [r] goes the way [active] does: nearly all of it within
+  /// [_sameWayMetres] of [active]'s line.
+  static bool _sameWay(NavRoute r, NavRoute active) {
+    final points = r.points;
+    final samples = math.min(points.length, 25);
+    if (samples == 0) return true;
+    var near = 0;
+    for (var k = 0; k < samples; k++) {
+      final i = samples == 1 ? 0 : k * (points.length - 1) ~/ (samples - 1);
+      final off = RouteProgress.of(active.points, points[i]).offRouteMetres;
+      if (off <= _sameWayMetres) near++;
+    }
+    return near >= samples * 0.9;
   }
 
   // --------------------------------------------------------- tracking ---
@@ -486,14 +624,15 @@ class NavigationController extends ChangeNotifier {
     return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
   }
 
+  /// How far from a route counts as off it, for a fix this accurate: 35 m,
+  /// or more for a poorer fix, up to 80 m.
+  static double _offRouteLimit(double? accuracy) =>
+      math.min(_maxOffRoute, math.max(_minOffRoute, (accuracy ?? 15) * 1.5));
+
   void _watchOffRoute(NavProgress p, LiveFix fix) {
     final accuracy = fix.accuracy ?? 15;
     if (accuracy > _usableAccuracy) return; // poor GPS: neither way
-    final limit = math.min(
-      _maxOffRoute,
-      math.max(_minOffRoute, accuracy * 1.5),
-    );
-    if (p.offRoute <= limit) {
+    if (p.offRoute <= _offRouteLimit(accuracy)) {
       _offSince = null;
       _offCount = 0;
       return;
@@ -516,8 +655,7 @@ class NavigationController extends ChangeNotifier {
     if (p == null || r == null || r.approximate) return false;
     final accuracy = _lastFix?.accuracy ?? 15;
     if (accuracy > _usableAccuracy) return false;
-    return p.offRoute >
-        math.min(_maxOffRoute, math.max(_minOffRoute, accuracy * 1.5));
+    return p.offRoute > _offRouteLimit(accuracy);
   }
 
   // ------------------------------------------------------------ voice ---

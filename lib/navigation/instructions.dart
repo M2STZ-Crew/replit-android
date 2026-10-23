@@ -75,6 +75,22 @@ String spokenInstruction(
   return lanes == null ? said : '$said. Stay in $lanes';
 }
 
+/// The road that sets [route] apart from [other], for "via Harrison
+/// Street": its first named step that [other] does not take, else the first
+/// road of its summary that [other]'s does not list. Null when nothing does.
+String? viaName(NavRoute route, NavRoute other) {
+  final taken = {for (final s in other.steps) s.name};
+  for (final s in route.steps) {
+    if (s.name.isNotEmpty && !taken.contains(s.name)) return s.name;
+  }
+  final theirs = {for (final r in other.summary.split(',')) r.trim()};
+  for (final road in route.summary.split(',')) {
+    final r = road.trim();
+    if (r.isNotEmpty && !theirs.contains(r)) return r;
+  }
+  return null;
+}
+
 /// Which lanes to be in, in words: "the left two lanes", "the right lane",
 /// "the middle lane" (PRD v14 §4.9.2). Null when the lanes do not narrow the
 /// choice (every lane works, or there is one lane), when there are none, or

@@ -228,7 +228,14 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           widget.fetchRoute ??
           (from, to, {headingDeg}) =>
               service.routes(from, to, mode: _mode, headingDeg: headingDeg),
+      liveAlternatives: _toFire,
     )..addListener(_changed);
+    // To a fire there is no route to choose first (V13, kept in V14): the
+    // run starts at once on the quickest, with the other way in grey.
+    if (_toFire) {
+      _nav.setNavigating(true);
+      _follow.navigate();
+    }
     _displaySub = _nav.displays.listen((d) {
       _dot.add(
         LocationMarkerPosition(
@@ -273,6 +280,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       ..removeListener(_changed)
       ..dispose();
     _follow.dispose();
+    _alternativeHits.dispose();
     unawaited(_dot.close());
     unawaited(_travel.close());
     super.dispose();
@@ -283,7 +291,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     setState(() {});
     if (!_framed && _nav.routes.isNotEmpty) {
       _framed = true;
-      _fitRoute();
+      if (!_nav.navigating) _fitRoute();
     }
     if (_toFire && _nav.arrived && !_arrivalHandled) {
       _arrivalHandled = true;
@@ -384,19 +392,25 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   /// Room the route is framed in: clear of the header and of whatever card
   /// or sheet is over the bottom of the map.
-  EdgeInsets get _framePadding => _choosingFireRoute
-      ? EdgeInsets.fromLTRB(
-          48,
-          120,
-          48,
-          MediaQuery.sizeOf(context).height * 0.6 + 16,
-        )
-      : const EdgeInsets.fromLTRB(60, 120, 60, 320);
+  EdgeInsets get _framePadding => const EdgeInsets.fromLTRB(60, 120, 60, 320);
 
-  /// Before Start on the way to a fire: the Choose a route sheet (06 · C09),
-  /// shared by the responder and the coordinator.
-  bool get _choosingFireRoute =>
-      _toFire && !_noLocation && !_nav.navigating && !_nav.arrived;
+  /// Taps on the grey alternative line.
+  final LayerHitNotifier<bool> _alternativeHits = ValueNotifier(null);
+
+  /// When the alternative was taken, and the road it goes by, for the
+  /// "Switched" chip (R06b).
+  DateTime? _switchedAt;
+  String? _switchedVia;
+
+  /// R06b: take the grey route at once, no confirmation (PRD v14 §4.9.2).
+  void _takeAlternative() {
+    final old = _nav.route;
+    final other = _nav.alternative;
+    if (old == null || other == null) return;
+    _switchedVia = viaName(other.route, old);
+    _nav.takeAlternative();
+    setState(() => _switchedAt = DateTime.now());
+  }
 
   void _startOrStop() {
     final on = !_nav.navigating;
@@ -452,7 +466,29 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                       ),
                     ],
                   ),
-                if (_nav.routes.isNotEmpty) PolylineLayer(polylines: _lines()),
+                if (_toFire && _nav.alternative != null)
+                  GestureDetector(
+                    onTap: () {
+                      if (_alternativeHits.value != null) _takeAlternative();
+                    },
+                    child: PolylineLayer<bool>(
+                      hitNotifier: _alternativeHits,
+                      minimumHitbox: 24,
+                      polylines: [
+                        Polyline(
+                          points: _nav.alternative!.route.points,
+                          strokeWidth: 6,
+                          color: context.pal.muted.withValues(alpha: 0.85),
+                          hitValue: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                // No road route to a fire: no line that could be taken for
+                // one (R06e) — the Area pin and the person stay live.
+                if (_nav.routes.isNotEmpty &&
+                    !(_toFire && _nav.route!.approximate))
+                  PolylineLayer(polylines: _lines()),
                 MarkerLayer(
                   rotate: true,
                   markers: [
@@ -492,35 +528,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 MapTiles.attribution(),
               ],
             ),
-          if (_choosingFireRoute) ...[
-            // The top veil keeps the status bar readable over the map.
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              height: 120,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        context.pal.background.withValues(alpha: 0.92),
-                        context.pal.background.withValues(alpha: 0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: _GlassBack(),
-              ),
-            ),
-          ] else if (_onFireRun)
+          if (_onFireRun)
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -574,9 +582,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 backgroundColor: Colors.transparent,
               ),
             ),
-          if (_choosingFireRoute)
-            Positioned(left: 0, right: 0, bottom: 0, child: _chooseRouteSheet())
-          else if (_onFireRun)
+          if (_onFireRun)
             Positioned(
               left: 0,
               right: 0,
@@ -585,6 +591,14 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (_fireRouteState() case final state?)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: state,
+                      ),
+                    ),
                   if (navigating)
                     Padding(
                       padding: const EdgeInsets.only(right: 16),
@@ -617,26 +631,21 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final routes = _nav.routes;
     final active = _nav.route!;
     final p = _nav.progress;
-    // To a fire (06 · C09) the chosen route is coral and the others dotted;
-    // to a shelter the chosen one is blue and the others grey.
+    // To a fire (06 · C10) the route is coral and the alternative grey; to
+    // a shelter the chosen one is blue and the others grey.
     final chosenColour = _toFire ? context.pal.accent : context.pal.info;
+    // To a fire the one alternative is drawn in its own tappable layer.
     final lines = <Polyline>[
-      for (var i = 0; i < routes.length; i++)
-        if (i != _nav.active && !routes[i].approximate)
-          _toFire
-              ? Polyline(
-                  points: routes[i].points,
-                  strokeWidth: 4,
-                  color: context.pal.textSoft.withValues(alpha: 0.8),
-                  pattern: const StrokePattern.dotted(spacingFactor: 2),
-                )
-              : Polyline(
-                  points: routes[i].points,
-                  strokeWidth: 5,
-                  color: context.pal.muted.withValues(alpha: 0.6),
-                  borderStrokeWidth: 1,
-                  borderColor: Colors.black38,
-                ),
+      if (!_toFire)
+        for (var i = 0; i < routes.length; i++)
+          if (i != _nav.active && !routes[i].approximate)
+            Polyline(
+              points: routes[i].points,
+              strokeWidth: 5,
+              color: context.pal.muted.withValues(alpha: 0.6),
+              borderStrokeWidth: 1,
+              borderColor: Colors.black38,
+            ),
     ];
     final seg = p == null ? 0 : _segmentAt(active, p.along);
     final behind = p == null
@@ -736,6 +745,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   Widget? _banner() {
     final route = _nav.route;
     final p = _nav.progress;
+    if (_toFire && route != null && route.approximate) return _noRouteBanner();
     if (route == null || p == null || p.nextStep == null) return null;
     final step = route.steps[p.nextStep!];
     final dest = _toFire ? 'the fire' : widget.destName;
@@ -963,8 +973,19 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   String? get _trafficNote {
     final route = _nav.route;
     if (!_toFire || route == null || route.approximate) return null;
-    if (_nav.trafficAware) return 'Times include live traffic.';
+    if (_nav.trafficAware) return null;
     return 'No live traffic data — times are estimates.';
+  }
+
+  /// A safety note: the backup router does not keep a truck off streets
+  /// too narrow for it.
+  String? get _widthNote {
+    final route = _nav.route;
+    if (!_toFire || route == null || route.approximate) return null;
+    return _nav.provider == 'osrm'
+        ? 'This route is from the backup router, which cannot check street '
+              'width.'
+        : null;
   }
 
   Widget _routeCard() {
@@ -1147,7 +1168,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   /// On the way to a fire, or there (06 · C10): the run panel replaces the
   /// card, the C10 banner the shelter one.
-  bool get _onFireRun => _toFire && !_noLocation && !_choosingFireRoute;
+  bool get _onFireRun => _toFire && !_noLocation;
 
   /// C10 — the next turn: its arrow on the brand plate, how far, the
   /// instruction in plain words (the same sentence the voice says), the one
@@ -1444,7 +1465,10 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final seconds = p?.remainingSeconds ?? route?.duration;
     final arrived = _nav.arrived;
     final onScene = _areaStatus == 'arrived';
-    final notes = [?_note];
+    final straight = route?.approximate ?? false;
+    // With no road route the failure card says it (R06e).
+    final note = straight ? null : _note;
+    final notes = [?_trafficNote, ?_widthNote, ?note];
     final where = run == null ? '' : ' — ${run.areaName}';
     final body = DecoratedBox(
       decoration: BoxDecoration(
@@ -1512,6 +1536,8 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
             Text(
               arrived
                   ? 'You are at the fire$where'
+                  : straight && metres != null
+                  ? '${formatDistance(metres)} straight line$where'
                   : '${metres == null ? '—' : formatDistance(metres)}, about '
                         '${seconds == null ? '—' : _minutes(seconds)} min$where',
               style: context.type.body.copyWith(color: context.pal.textSoft),
@@ -1551,96 +1577,180 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     );
   }
 
-  /// C09 — Choose a route: every road route to the fire, the chosen one
-  /// marked, and Start navigation. On glass over the map, full width.
-  Widget _chooseRouteSheet() {
-    final routes = _nav.routes;
-    final real = routes.where((r) => !r.approximate).length;
-    final notes = [?_trafficNote, ?_note];
+  /// R06–R06e: under the map, what there is besides the coral route — one
+  /// other way to tap (or this chip, for a screen reader), the switch just
+  /// made, the search for one, none, or no road route at all.
+  Widget? _fireRouteState() {
+    final route = _nav.route;
+    if (!_toFire || route == null || _nav.arrived || !_nav.navigating) {
+      return null;
+    }
+    if (route.approximate) {
+      return _nav.loading ? null : _routeFailedCard();
+    }
+    final pal = context.pal;
+    final remaining = _nav.progress?.remainingSeconds ?? route.duration;
+    final other = _nav.alternative;
+    final at = _switchedAt;
+    if (at != null &&
+        DateTime.now().difference(at) < const Duration(seconds: 8)) {
+      final via = _switchedVia == null ? '' : ' via $_switchedVia';
+      return _RouteChip(
+        key: const ValueKey('route-switched'),
+        leading: _RouteChip.swatch(pal.accent),
+        title: 'Switched · ${_minutes(remaining)} min$via',
+        detail: other == null
+            ? 'Keep to the coral line'
+            : 'The old route is now the grey line',
+      );
+    }
+    if (other != null) {
+      final via = viaName(other.route, route);
+      final minutes = ((other.seconds - remaining) / 60).round();
+      final time = minutes > 0
+          ? '+$minutes min'
+          : minutes < 0
+          ? '${-minutes} min faster'
+          : 'Same time';
+      final title = via == null ? time : '$time · via $via';
+      return _RouteChip(
+        key: const ValueKey('route-alternative'),
+        leading: _RouteChip.swatch(pal.muted),
+        title: title,
+        detail: 'Tap the grey line to switch',
+        onTap: _takeAlternative,
+        semanticsLabel: 'Another route: $title. Switch to it',
+      );
+    }
+    if (_nav.lookingForAlternative) {
+      return _RouteChip(
+        key: const ValueKey('route-looking'),
+        leading: SizedBox.square(
+          dimension: 16,
+          child: CircularProgressIndicator(strokeWidth: 2, color: pal.label),
+        ),
+        title: 'Looking for an alternative…',
+        detail: 'The coral line is still your route',
+      );
+    }
+    return _RouteChip(
+      key: const ValueKey('route-none'),
+      leading: Icon(AppIcons.info, size: 18, color: pal.label),
+      title: 'No other route right now',
+      detail: 'Keep to the coral line',
+    );
+  }
+
+  /// R06e — no road route: say so, keep the pin and the person live, and
+  /// let them try again or go by sight.
+  Widget _routeFailedCard() {
+    final pal = context.pal;
+    return Container(
+      key: const ValueKey('route-failed'),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          pal.live.withValues(alpha: 0.14),
+          MapGlass.strong(context),
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        border: Border.all(color: pal.live.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(AppIcons.warning, size: 20, color: pal.onBackground),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Couldn't load a route", style: context.type.label),
+                const SizedBox(height: 4),
+                Text(
+                  'The Area pin and your position are still live. Try again '
+                  'or drive there by sight.',
+                  style: context.type.detail.copyWith(color: pal.textSoft),
+                ),
+                const SizedBox(height: 8),
+                TextLink('Try again', onTap: () => unawaited(_nav.retry())),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// R06e's banner: where to head, with no turns until a route loads.
+  Widget _noRouteBanner() {
+    final place = widget.run?.place ?? widget.destName;
     final body = DecoratedBox(
       decoration: BoxDecoration(
         color: MapGlass.strong(context),
-        border: Border(top: BorderSide(color: context.pal.line)),
+        borderRadius: BorderRadius.circular(AppRadius.panel),
+        border: Border.all(color: context.pal.line),
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          12,
-          24,
-          12 + MediaQuery.viewPaddingOf(context).bottom,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF979797),
-                  borderRadius: BorderRadius.circular(3),
-                ),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.wellFire,
+                borderRadius: BorderRadius.circular(AppRadius.control),
+              ),
+              alignment: Alignment.center,
+              child: const ManeuverArrow(
+                type: 'depart',
+                size: 32,
+                color: Colors.white,
               ),
             ),
-            const SizedBox(height: 12),
-            Semantics(
-              header: true,
-              child: Text('Choose a route', style: context.type.sheetTitle),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _nav.provider == 'osrm'
-                  ? 'To ${widget.destName}. These driving routes come from '
-                        'the backup router, which cannot check street width.'
-                  : 'To ${widget.destName}. Every route avoids footpaths and '
-                        'streets too narrow for a truck.',
-              style: context.type.body.copyWith(color: context.pal.textSoft),
-            ),
-            const SizedBox(height: 12),
-            if (_nav.loading && routes.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  'Finding the best route…',
-                  style: context.type.bodySm,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Semantics(
+                liveRegion: true,
+                container: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '—',
+                      key: const ValueKey('maneuver-distance'),
+                      style: context.type.numeralXl,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Head to $place',
+                      key: const ValueKey('maneuver-text'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.type.instruction,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Turn-by-turn returns when a route loads',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.type.detail.copyWith(
+                        color: context.pal.label,
+                      ),
+                    ),
+                  ],
                 ),
-              )
-            else
-              for (var i = 0; i < routes.length; i++)
-                if (real <= 1 || !routes[i].approximate) ...[
-                  _FireRouteOption(
-                    key: ValueKey('route-$i'),
-                    route: routes[i],
-                    chosen: i == _nav.active,
-                    badge: real < 2
-                        ? null
-                        : i == _nav.fastest
-                        ? 'Fastest'
-                        : i == _nav.shortest
-                        ? 'Shortest'
-                        : null,
-                    onTap: () => _nav.select(i),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-            for (final n in notes) ...[
-              Text(n, style: context.type.caption),
-              const SizedBox(height: 8),
-            ],
-            AppButton(
-              'Start navigation',
-              run: true,
-              onPressed: routes.isEmpty ? null : _startOrStop,
+              ),
             ),
           ],
         ),
       ),
     );
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        top: Radius.circular(AppRadius.sheet),
-      ),
+      borderRadius: BorderRadius.circular(AppRadius.panel),
       child: MapGlass.blurs(context)
           ? BackdropFilter(filter: MapGlass.blur, child: body)
           : body,
@@ -1771,97 +1881,82 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 /// One road route to the fire (Route option, 06 · C09): its time, distance
 /// and the badge the provider's numbers earn it, with its main road under.
 /// Radio behaviour; the whole card is the target.
-class _FireRouteOption extends StatelessWidget {
-  const _FireRouteOption({
+/// The chip under the map on the road to a fire (R06–R06d): a mark, what
+/// there is, and what to do about it. Tappable when [onTap] is given.
+class _RouteChip extends StatelessWidget {
+  const _RouteChip({
     super.key,
-    required this.route,
-    required this.chosen,
-    required this.onTap,
-    this.badge,
+    required this.leading,
+    required this.title,
+    required this.detail,
+    this.onTap,
+    this.semanticsLabel,
   });
 
-  final NavRoute route;
-  final bool chosen;
-  final VoidCallback onTap;
+  /// A short bar in a route's colour.
+  static Widget swatch(Color colour) => Container(
+    width: 16,
+    height: 4,
+    decoration: BoxDecoration(
+      color: colour,
+      borderRadius: BorderRadius.circular(2),
+    ),
+  );
 
-  /// "Fastest" or "Shortest" — facts the route numbers show, never a claim
-  /// about safety.
-  final String? badge;
+  final Widget leading;
+  final String title;
+  final String detail;
+  final VoidCallback? onTap;
+  final String? semanticsLabel;
 
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
-    final minutes = (route.duration / 60).ceil();
-    final shape = BorderRadius.circular(AppRadius.card);
-    final via = route.approximate
-        ? 'Direct line — no road route'
-        : route.summary.isEmpty
-        ? 'By road'
-        : 'Via ${route.summary}';
     return Semantics(
-      inMutuallyExclusiveGroup: true,
-      checked: chosen,
-      label:
-          '$minutes min, ${formatDistance(route.length)}'
-          '${badge == null ? '' : ', $badge'}, $via',
+      container: true,
+      button: onTap != null,
+      label: semanticsLabel ?? '$title. $detail',
       excludeSemantics: true,
-      onTap: onTap,
       child: Material(
-        color: Colors.transparent,
-        borderRadius: shape,
+        color: MapGlass.strong(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          side: BorderSide(color: pal.line),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: shape,
           onTap: onTap,
-          highlightColor: pal.pressed,
-          splashColor: pal.pressed,
-          child: AnimatedContainer(
-            duration: Motion.of(context).state,
-            constraints: const BoxConstraints(minHeight: 72),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: chosen ? pal.accent.withValues(alpha: 0.16) : pal.surface,
-              borderRadius: shape,
-              border: Border.all(
-                color: chosen ? pal.accent : pal.line,
-                width: chosen ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Ring(on: chosen),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            '$minutes min',
-                            style: context.type.numeralSm.copyWith(
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            formatDistance(route.length),
-                            style: context.type.rowValue,
-                          ),
-                          if (badge != null)
-                            Tag(badge!, color: pal.accentInk, dot: true),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(via, style: context.type.bodySm),
-                    ],
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  leading,
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.type.label,
+                        ),
+                        Text(
+                          detail,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.type.detail.copyWith(color: pal.label),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1870,43 +1965,6 @@ class _FireRouteOption extends StatelessWidget {
   }
 }
 
-/// The radio's 22px ring: inset and grey, or coral with a coral dot.
-class _Ring extends StatelessWidget {
-  const _Ring({required this.on});
-
-  final bool on;
-
-  @override
-  Widget build(BuildContext context) {
-    final pal = context.pal;
-    return AnimatedContainer(
-      duration: Motion.of(context).state,
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        color: pal.background,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: on ? pal.accent : pal.lineStrong,
-          width: on ? 2 : 1.5,
-        ),
-      ),
-      alignment: Alignment.center,
-      child: on
-          ? Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: pal.accent,
-                shape: BoxShape.circle,
-              ),
-            )
-          : null,
-    );
-  }
-}
-
-/// Back, as an Icon button over a map: glass and a blur, 48px.
 class _GlassBack extends StatelessWidget {
   const _GlassBack();
 
