@@ -13,6 +13,70 @@ Congestion _congestion(Object? raw) => switch (raw) {
   _ => Congestion.unknown,
 };
 
+/// One lane at a maneuver, left to right, as the routing provider lists it
+/// (PRD v14 §4.9.2): the ways it goes, and whether it can be taken for this
+/// maneuver. Read from the maneuver's own intersection in the Directions
+/// answer (`intersections[0].lanes`, the same format for Mapbox and OSRM).
+class LaneInfo {
+  const LaneInfo({
+    required this.indications,
+    required this.valid,
+    this.preferred = false,
+    this.validIndication,
+  });
+
+  /// `left`, `slight left`, `sharp left`, `straight`, `slight right`,
+  /// `right`, `sharp right`, `uturn` or `none`.
+  final List<String> indications;
+
+  /// This lane can be used to make the maneuver.
+  final bool valid;
+
+  /// Mapbox's `active`: the lane the route prefers among the valid ones.
+  final bool preferred;
+
+  /// Which of [indications] the maneuver uses, when the provider says.
+  final String? validIndication;
+
+  /// The way this lane's arrow points on the strip.
+  String get shown =>
+      valid && validIndication != null ? validIndication! : indications.first;
+}
+
+/// The lanes of a step's maneuver, or null when there is nothing usable:
+/// no lane data, a malformed entry, or no lane that can be taken. Nothing is
+/// guessed — a strip that might be wrong is worse than none.
+List<LaneInfo>? parseLanes(Object? intersections) {
+  if (intersections is! List || intersections.isEmpty) return null;
+  final first = intersections.first;
+  if (first is! Map) return null;
+  final raw = first['lanes'];
+  if (raw is! List || raw.isEmpty) return null;
+  final lanes = <LaneInfo>[];
+  for (final lane in raw) {
+    if (lane is! Map) return null;
+    final indications = lane['indications'];
+    final valid = lane['valid'];
+    if (indications is! List ||
+        indications.isEmpty ||
+        indications.any((i) => i is! String) ||
+        valid is! bool) {
+      return null;
+    }
+    final chosen = lane['valid_indication'];
+    lanes.add(
+      LaneInfo(
+        indications: List.unmodifiable(indications.cast<String>()),
+        valid: valid,
+        preferred: lane['active'] == true,
+        validIndication: chosen is String ? chosen : null,
+      ),
+    );
+  }
+  if (!lanes.any((l) => l.valid)) return null;
+  return List.unmodifiable(lanes);
+}
+
 /// One maneuver of a route: what to do, where, and onto which street.
 ///
 /// Fields follow the OSRM step format, which Mapbox Directions shares, so one
@@ -28,6 +92,7 @@ class NavStep {
     this.modifier,
     this.exit,
     this.bearingAfter,
+    this.lanes,
   });
 
   /// `depart`, `turn`, `new name`, `continue`, `merge`, `on ramp`,
@@ -59,6 +124,9 @@ class NavStep {
 
   /// Metres along the route geometry at which this maneuver happens.
   final double at;
+
+  /// The lanes at this maneuver, when the provider gave usable ones.
+  final List<LaneInfo>? lanes;
 }
 
 /// One road route: its geometry, its steps, and what the provider says it
@@ -172,6 +240,7 @@ List<NavRoute> parseRoutes(Map<String, dynamic> json, {double? walkingPace}) {
               ? metres / walkingPace
               : (step['duration'] as num?)?.toDouble() ?? 0,
           at: along[from],
+          lanes: parseLanes(step['intersections']),
         ),
       );
     }

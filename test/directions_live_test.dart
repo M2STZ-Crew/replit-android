@@ -297,6 +297,56 @@ void main() {
       expect(find.text('1.0 km, about 2 min'), findsOneWidget);
     });
 
+    testWidgets('the lanes for the turn show from 500 m out, and the driver '
+        'hears them (V14 §4.9.2)', (tester) async {
+      final steps = [...nt.lRoute.steps];
+      steps[1] = {
+        ...steps[1],
+        'intersections': [
+          {
+            'lanes': [
+              {
+                'indications': ['straight'],
+                'valid': false,
+              },
+              {
+                'indications': ['straight', 'right'],
+                'valid': true,
+                'valid_indication': 'right',
+              },
+              {
+                'indications': ['right'],
+                'valid': true,
+              },
+            ],
+          },
+        ],
+      };
+      offered = [
+        (
+          points: nt.lRoute.points,
+          steps: steps,
+          duration: nt.lRoute.duration,
+          summary: nt.lRoute.summary,
+          congestion: nt.lRoute.congestion,
+          typical: nt.lRoute.typical,
+        ),
+      ];
+      await pump(tester);
+      await tester.tap(find.text('START NAVIGATION'));
+      await tester.pump(const Duration(milliseconds: 100));
+      await moveTo(tester, at(100));
+      expect(find.byKey(const ValueKey('lane-strip')), findsNothing);
+      await moveTo(tester, at(750));
+      expect(find.byKey(const ValueKey('lane-strip')), findsOneWidget);
+      expect(find.text('Use the right two lanes'), findsOneWidget);
+      expect(
+        voice.said.where((s) => s.contains('Stay in the right two lanes')),
+        isNotEmpty,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('without traffic data, it says the times are estimates', (
       tester,
     ) async {

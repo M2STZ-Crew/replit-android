@@ -528,7 +528,12 @@ class NavigationController extends ChangeNotifier {
     final step = route.steps[p.nextStep!];
     _say(
       'start',
-      spokenInstruction(step, p.metresToNext, destination: destinationName),
+      spokenInstruction(
+        step,
+        p.metresToNext,
+        destination: destinationName,
+        withLanes: mode == TravelMode.driving,
+      ),
     );
   }
 
@@ -542,7 +547,7 @@ class NavigationController extends ChangeNotifier {
     } else if (d <= _aheadMetres) {
       _say(
         '$k:ahead',
-        '${spokenInstruction(step, d, destination: destinationName)}.',
+        '${spokenInstruction(step, d, destination: destinationName, withLanes: mode == TravelMode.driving)}.',
       );
     }
   }

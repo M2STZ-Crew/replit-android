@@ -19,6 +19,7 @@ import '../theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
+import '../widgets/lane_strip.dart';
 import '../widgets/maneuver_arrow.dart';
 import '../widgets/map_glass.dart';
 import '../widgets/map_marker.dart';
@@ -1157,6 +1158,10 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final then = after == null || after.type == 'arrive'
         ? null
         : instructionFor(after, destination: dest);
+    // PRD v14 §4.9.2: the lanes for the next maneuver, under the instruction,
+    // once it is close enough to change lanes for.
+    final lanes = laneStripVisible(step, metres) ? step.lanes : null;
+    final useLanes = lanes == null ? null : laneInstruction(step);
     final body = DecoratedBox(
       decoration: BoxDecoration(
         color: MapGlass.strong(context),
@@ -1165,85 +1170,117 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.wellFire,
-                borderRadius: BorderRadius.circular(AppRadius.control),
-              ),
-              alignment: Alignment.center,
-              child: ManeuverArrow(
-                type: step.type,
-                modifier: step.modifier,
-                size: 32,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              // Read out as it changes; the voice toggle stays its own node.
-              child: Semantics(
-                liveRegion: true,
-                container: true,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      bannerDistance(metres),
-                      key: const ValueKey('maneuver-distance'),
-                      style: context.type.numeralXl,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      instructionFor(step, destination: dest),
-                      key: const ValueKey('maneuver-text'),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.type.instruction,
-                    ),
-                    if (then != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        'Then ${then[0].toLowerCase()}${then.substring(1)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.type.detail.copyWith(
-                          color: context.pal.label,
-                        ),
-                      ),
-                    ],
-                  ],
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.wellFire,
+                    borderRadius: BorderRadius.circular(AppRadius.control),
+                  ),
+                  alignment: Alignment.center,
+                  child: ManeuverArrow(
+                    type: step.type,
+                    modifier: step.modifier,
+                    size: 32,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            ValueListenableBuilder<bool>(
-              valueListenable: _voice.enabled,
-              builder: (context, on, _) => Semantics(
-                container: true,
-                button: true,
-                toggled: on,
-                label: on ? 'Voice guidance on' : 'Voice guidance off',
-                onTap: () => _voice.setEnabled(!on),
-                excludeSemantics: true,
-                child: InkResponse(
-                  onTap: () => _voice.setEnabled(!on),
-                  radius: 24,
-                  child: SizedBox.square(
-                    dimension: 48,
-                    child: Icon(
-                      on ? AppIcons.volumeUp : AppIcons.volumeOff,
-                      size: 24,
-                      color: on ? context.pal.onBackground : context.pal.label,
+                const SizedBox(width: 16),
+                Expanded(
+                  // Read out as it changes; the voice toggle stays its own node.
+                  child: Semantics(
+                    liveRegion: true,
+                    container: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          bannerDistance(metres),
+                          key: const ValueKey('maneuver-distance'),
+                          style: context.type.numeralXl,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          instructionFor(step, destination: dest),
+                          key: const ValueKey('maneuver-text'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.type.instruction,
+                        ),
+                        if (then != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Then ${then[0].toLowerCase()}${then.substring(1)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.type.detail.copyWith(
+                              color: context.pal.label,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                ValueListenableBuilder<bool>(
+                  valueListenable: _voice.enabled,
+                  builder: (context, on, _) => Semantics(
+                    container: true,
+                    button: true,
+                    toggled: on,
+                    label: on ? 'Voice guidance on' : 'Voice guidance off',
+                    onTap: () => _voice.setEnabled(!on),
+                    excludeSemantics: true,
+                    child: InkResponse(
+                      onTap: () => _voice.setEnabled(!on),
+                      radius: 24,
+                      child: SizedBox.square(
+                        dimension: 48,
+                        child: Icon(
+                          on ? AppIcons.volumeUp : AppIcons.volumeOff,
+                          size: 24,
+                          color: on
+                              ? context.pal.onBackground
+                              : context.pal.label,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
+            if (lanes != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  LaneStrip(lanes: lanes),
+                  if (useLanes != null) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ExcludeSemantics(
+                        child: Text(
+                          useLanes,
+                          key: const ValueKey('lane-text'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.type.detail.copyWith(
+                            color: context.pal.textSoft,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ],
         ),
       ),

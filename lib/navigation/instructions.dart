@@ -57,18 +57,65 @@ String instructionFor(NavStep step, {String destination = 'your destination'}) {
 }
 
 /// "In 200 m, turn left onto Taft Avenue" — the instruction with the distance
-/// left before it, as the voice says it.
+/// left before it, as the voice says it. [withLanes] adds which lanes to be
+/// in, when the step has them ("… Stay in the left two lanes"): for a driver.
 String spokenInstruction(
   NavStep step,
   double metres, {
   String destination = 'your destination',
+  bool withLanes = false,
 }) {
   final what = instructionFor(step, destination: destination);
   if (step.type == 'arrive') {
     return 'In ${spokenDistance(metres)}, you will arrive at $destination';
   }
-  return 'In ${spokenDistance(metres)}, ${what[0].toLowerCase()}${what.substring(1)}';
+  final said =
+      'In ${spokenDistance(metres)}, ${what[0].toLowerCase()}${what.substring(1)}';
+  final lanes = withLanes ? lanePhrase(step.lanes) : null;
+  return lanes == null ? said : '$said. Stay in $lanes';
 }
+
+/// Which lanes to be in, in words: "the left two lanes", "the right lane",
+/// "the middle lane" (PRD v14 §4.9.2). Null when the lanes do not narrow the
+/// choice (every lane works, or there is one lane), when there are none, or
+/// when the usable lanes are not side by side — the strip still shows those.
+String? lanePhrase(List<LaneInfo>? lanes) {
+  if (lanes == null || lanes.length < 2) return null;
+  final valid = [
+    for (var i = 0; i < lanes.length; i++)
+      if (lanes[i].valid) i,
+  ];
+  if (valid.isEmpty || valid.length == lanes.length) return null;
+  final first = valid.first;
+  final last = valid.last;
+  if (last - first + 1 != valid.length) return null;
+  final side = first == 0
+      ? 'left'
+      : last == lanes.length - 1
+      ? 'right'
+      : 'middle';
+  final n = valid.length;
+  if (n == 1) return 'the $side lane';
+  const words = {2: 'two', 3: 'three', 4: 'four', 5: 'five'};
+  return 'the $side ${words[n] ?? '$n'} lanes';
+}
+
+/// The banner's lane line: "Use the left two lanes", or null.
+String? laneInstruction(NavStep step) {
+  final phrase = lanePhrase(step.lanes);
+  return phrase == null ? null : 'Use $phrase';
+}
+
+/// Metres before a maneuver at which its lane strip appears.
+///
+/// PRD v14 §18 leaves open whether the strip shows only for maneuvers or on
+/// every road. This shows it for the next maneuver only, from 500 m out —
+/// one place to change that policy without touching how lanes are drawn.
+const double kLaneStripFromMetres = 500;
+
+/// Whether the banner shows [step]'s lane strip, [metres] before it.
+bool laneStripVisible(NavStep step, double metres) =>
+    step.lanes != null && metres <= kLaneStripFromMetres;
 
 /// A distance the way a driver hears it: "50 metres", "200 metres",
 /// "1.2 kilometres". Rounded so it never sounds more precise than GPS is.
