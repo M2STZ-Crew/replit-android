@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import '../widgets/field_ops.dart';
+import '../widgets/map_pitch.dart';
 
 /// DEVELOPMENT PREVIEW ONLY — the pass 6 field-operations parts that are
 /// UI READY: drawn and working on screen, with no server behind them yet
@@ -43,6 +44,7 @@ class _GalleryState extends State<_Gallery> {
   FireClassification? _fire;
   int _water = 60;
   SafetyAnswer? _answer;
+  int _pitch = kLaunchPitch;
   String? _last;
 
   void _said(String what) => setState(() => _last = what);
@@ -87,6 +89,21 @@ class _GalleryState extends State<_Gallery> {
                   'in the app yet.',
             ),
             if (_last != null) ...[InlineAlert(body: _last!), gap],
+            const SectionHeader('Driving map (PRD v14 §4.9.1)'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                MapPitchButton(
+                  pitch: _pitch,
+                  onChanged: (p) => setState(() => _pitch = p),
+                ),
+                const SizedBox(width: 12),
+                const MapPitchButton(pitch: 0),
+                const SizedBox(width: 12),
+                const Flexible(child: Map3dUnavailableBanner()),
+              ],
+            ),
+            gap,
             const SectionHeader('On scene (C18, C20)'),
             const SizedBox(height: 12),
             AppButton.secondary(
