@@ -312,7 +312,6 @@ class PermissionsScreen extends StatelessWidget {
             'Its units and its alarm level',
           ),
           ("Make your responders' accounts", 'Under Profile, Responders'),
-          ('Report a fire', 'From the map, like a resident'),
         ],
         cannot: const [
           ('Reject an Area', 'Fire Volunteer and BFP coordinators'),
