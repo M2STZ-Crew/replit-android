@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../models/alarm.dart';
 import '../../models/area_view.dart';
 import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import '../bfp/bfp_alarm_requests_screen.dart';
 import '../responder/responder_status.dart';
 import '../subadmin/post_incident_report_screen.dart';
 import 'area_decision_screen.dart';
@@ -79,6 +81,16 @@ class _QueueTabState extends State<QueueTab> {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => OverlapScreen(overlap: overlap, feed: _feed),
+      ),
+    );
+    await _feed.load();
+  }
+
+  Future<void> _answerAlarm(AlarmRequest first) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) =>
+            BfpAlarmRequestsScreen(api: _feed.api, focusRequestId: first.id),
       ),
     );
     await _feed.load();
@@ -178,6 +190,7 @@ class _QueueTabState extends State<QueueTab> {
   List<Widget> _decideList() {
     final areas = _feed.toDecide;
     return [
+      if (_feed.alarmAsks.isNotEmpty) _alarmAlert(_feed.alarmAsks),
       for (final o in _feed.overlaps.take(1)) _overlapAlert(o),
       if (areas.isEmpty)
         _Empty(
@@ -211,6 +224,30 @@ class _QueueTabState extends State<QueueTab> {
               'reject.',
         ),
     ];
+  }
+
+  /// BFP: the alarm requests waiting on it, newest named, red because a fire
+  /// is getting bigger.
+  Widget _alarmAlert(List<AlarmRequest> asks) {
+    final first = asks.first;
+    final asked = first.askedAt;
+    final who = [
+      first.askedBy,
+      ?first.organisation,
+      if (asked != null) agoText(asked),
+    ].join(' · ');
+    return InlineAlert(
+      tone: AlertTone.danger,
+      title: asks.length == 1
+          ? '${first.areaName} asks for ${alarmWord(first.level)}'
+          : '${asks.length} alarm requests waiting',
+      body: asks.length == 1
+          ? '$who. Only BFP sets the alarm level.'
+          : 'Newest: ${first.areaName} asks for ${alarmWord(first.level)} · '
+                '$who.',
+      action: asks.length == 1 ? 'Answer' : 'Answer them',
+      onAction: () => _answerAlarm(first),
+    );
   }
 
   Widget _overlapAlert(Map<String, dynamic> o) {

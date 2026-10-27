@@ -8,10 +8,12 @@ import '../../api/live_refresh.dart';
 import '../../location/live_position.dart';
 import '../../location/place_names.dart';
 import '../../location/responder_tracker.dart';
+import '../../models/alarm.dart';
 import '../../models/area_view.dart';
 import '../../models/fleet_unit.dart';
 import '../../navigation/routing_service.dart';
 import '../../theme.dart';
+import '../../widgets/alarm_ask_sheet.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/area_map_preview.dart';
 import '../../widgets/coordinator_kit.dart';
@@ -414,41 +416,46 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     }
   }
 
+  /// Ask BFP to raise the alarm: the levels above the Area's now, and this
+  /// responder's request still waiting, if any, to change or take back.
   Future<void> _escalateBfp(AreaView area) async {
-    const levels = <(String, String)>[
-      ('positive_fire_alarm', 'Positive fire alarm'),
-      ('first_alarm', 'First alarm'),
-      ('second_alarm', 'Second alarm'),
-      ('general_alarm', 'General alarm'),
-    ];
-    final level = await showFrameSheet<String>(
-      context,
-      builder: (context) => SheetFrame(
-        children: [
-          SheetTitles(
-            eyebrow: area.name,
-            title: 'Ask BFP to raise the alarm',
-            body: 'BFP reviews the request and sets the level.',
-          ),
-          const SizedBox(height: 16),
-          for (final (value, label) in levels) ...[
-            ListRow(
-              title: label,
-              chevron: true,
-              onTap: () => Navigator.of(context).pop(value),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ],
-      ),
-    );
-    if (level == null || !mounted) return;
+    AlarmRequest? waiting;
     try {
+      final mine = await _api.getMyAlarmRequests(areaId: widget.incidentId);
+      for (final r in mine.whereType<Map<String, dynamic>>()) {
+        final ask = AlarmRequest(r);
+        if (ask.areaId == widget.incidentId && ask.waiting) {
+          waiting = ask;
+          break;
+        }
+      }
+    } catch (_) {
+      // Ask anyway: the server answers a repeat with the request waiting.
+    }
+    if (!mounted) return;
+    final ask = await showFrameSheet<AlarmAsk>(
+      context,
+      builder: (_) => AlarmAskSheet(area: area, waiting: waiting),
+    );
+    if (ask == null || !mounted) return;
+    final level = ask.level;
+    try {
+      if (level == null) {
+        if (waiting == null) return;
+        await _api.cancelAlarmRequest(waiting.id);
+        if (mounted) _toast('Request taken back. BFP no longer sees it.');
+        return;
+      }
       await _api.createAlarmRequest(
         areaId: widget.incidentId,
         alarmLevel: level,
+        justification: ask.why,
       );
-      if (mounted) _toast('Alarm request sent to BFP.');
+      if (mounted) {
+        _toast(
+          'Asked BFP for ${alarmWord(level)}. You are told when they answer.',
+        );
+      }
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {

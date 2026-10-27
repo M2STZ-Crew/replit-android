@@ -9,9 +9,11 @@ import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
 import '../../location/live_position.dart';
 import '../../location/responder_tracker.dart';
+import '../../models/alarm.dart';
 import '../../models/area_view.dart';
 import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
+import '../../widgets/alarm_ask_sheet.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
@@ -30,18 +32,6 @@ const double _onSceneMetres = 100;
 
 /// How much of the screen LIVE's sheet covers when it opens.
 const double _sheetStart = 0.62;
-
-/// "1st alarm" — the alarm level in the words the BFP uses.
-String alarmWord(String? level) => switch (level) {
-  'positive_fire_alarm' => 'Positive fire alarm',
-  'first_alarm' => '1st alarm',
-  'second_alarm' => '2nd alarm',
-  'third_alarm' => '3rd alarm',
-  'fourth_alarm' => '4th alarm',
-  'fifth_alarm' => '5th alarm',
-  'general_alarm' => 'General alarm',
-  _ => 'None yet',
-};
 
 /// The LIVE tab (06 · C11): the incident under way.
 ///
@@ -179,11 +169,17 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
   AreaView? _area;
   List<Map<String, dynamic>> _dispatches = const [];
   List<Map<String, dynamic>> _locations = const [];
+
+  /// BFP: this Area's requests waiting on it. Whoever may ask: their own
+  /// for this Area, newest first.
+  List<AlarmRequest> _asks = const [];
   bool _busy = false;
 
   String get _myId => widget.me['id'] as String? ?? '';
   String? get _agency => widget.me['agency_type'] as String?;
   CoordinatorPowers get _powers => CoordinatorPowers.of(widget.me);
+
+  AlarmRequest? get _myAsk => _asks.isEmpty ? null : _asks.first;
 
   Map<String, dynamic>? get _mine {
     for (final d in _dispatches) {
@@ -229,17 +225,36 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         _api
             .getResponderLocations(widget.areaId)
             .catchError((_) => <dynamic>[]),
+        _alarmAsks().catchError((_) => <dynamic>[]),
       ]);
       if (!mounted) return;
       setState(() {
         _area = AreaView(results[0] as Map<String, dynamic>);
         _dispatches = (results[1] as List).cast<Map<String, dynamic>>();
         _locations = (results[2] as List).cast<Map<String, dynamic>>();
+        _asks = [
+          for (final r
+              in (results[3] as List).whereType<Map<String, dynamic>>())
+            if (r['area_id'] == widget.areaId) AlarmRequest(r),
+        ];
       });
       _syncSharing();
     } catch (_) {
       // Keep the last good picture; the next poll tries again.
     }
+  }
+
+  /// The alarm requests the Alarm level row speaks of ([_asks]). Asked,
+  /// answered or taken back on any phone, they reach this screen over the
+  /// Area's channel, which reloads it.
+  Future<List<dynamic>> _alarmAsks() {
+    if (_powers.decidesAlarm) {
+      return _api.getAlarmRequests(status: 'pending', areaId: widget.areaId);
+    }
+    if (_powers.requestsAlarm) {
+      return _api.getMyAlarmRequests(areaId: widget.areaId);
+    }
+    return Future.value(const <dynamic>[]);
   }
 
   /// Share this phone's location while this coordinator is going, and stop
@@ -358,64 +373,69 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     }
   }
 
-  /// Ask BFP to raise the alarm (Fire Volunteer), or open BFP's queue of
-  /// those asks (BFP).
+  /// BFP: this Area's requests, in BFP's queue. Whoever may ask: ask BFP to
+  /// raise the alarm, or change or take back what they asked.
   Future<void> _alarm() async {
-    if (_agency == 'bfp') {
+    final area = _area;
+    if (area == null) return;
+    if (_powers.decidesAlarm) {
       await Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const BfpAlarmRequestsScreen()),
+        MaterialPageRoute<void>(
+          builder: (_) =>
+              BfpAlarmRequestsScreen(api: _api, areaId: widget.areaId),
+        ),
+      );
+      await _load();
+      return;
+    }
+    final waiting = _myAsk != null && _myAsk!.waiting ? _myAsk : null;
+    final ask = await showFrameSheet<AlarmAsk>(
+      context,
+      builder: (_) => AlarmAskSheet(area: area, waiting: waiting),
+    );
+    if (ask == null || !mounted) return;
+    final level = ask.level;
+    if (level == null) {
+      if (waiting == null) return;
+      await _act(
+        () => _api.cancelAlarmRequest(waiting.id),
+        'Request taken back. BFP no longer sees it.',
       );
       return;
     }
-    const levels = [
-      'positive_fire_alarm',
-      'first_alarm',
-      'second_alarm',
-      'third_alarm',
-      'general_alarm',
-    ];
-    String? level;
-    final picked = await showFrameSheet<String>(
-      context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, set) => SheetFrame(
-          children: [
-            const SheetTitles(
-              eyebrow: 'Alarm level',
-              title: 'Ask BFP to raise it?',
-              body:
-                  'BFP sets the alarm level. Your request goes to their queue '
-                  'with this Area attached.',
-            ),
-            const SizedBox(height: 16),
-            for (final l in levels)
-              RadioRow(
-                label: alarmWord(l),
-                selected: l == level,
-                onTap: () => set(() => level = l),
-              ),
-            const SizedBox(height: 12),
-            AppButton(
-              'Send request',
-              run: true,
-              onPressed: level == null
-                  ? null
-                  : () => Navigator.of(context).pop(level),
-            ),
-            const SizedBox(height: 10),
-            AppButton.secondary(
-              'Cancel',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (picked == null || !mounted) return;
     await _act(
-      () => _api.createAlarmRequest(areaId: widget.areaId, alarmLevel: picked),
-      'Request sent to BFP.',
+      () => _api.createAlarmRequest(
+        areaId: widget.areaId,
+        alarmLevel: level,
+        justification: ask.why,
+      ),
+      'Asked BFP for ${alarmWord(level)}. You are told when they answer.',
     );
+  }
+
+  /// What the Alarm level row says under its title.
+  String _alarmLine(AreaView area) {
+    if (_powers.decidesAlarm) {
+      final n = _asks.where((r) => r.waiting).length;
+      return switch (n) {
+        0 => 'Set by BFP · nothing waiting on you',
+        1 => '1 request waiting on you',
+        _ => '$n requests waiting on you',
+      };
+    }
+    if (!_powers.requestsAlarm) return 'Set by BFP';
+    final ask = _myAsk;
+    final at = ask?.answeredAt;
+    final when = at == null ? '' : ' ${agoText(at)}';
+    return switch (ask?.status) {
+      'pending' => 'You asked for ${alarmWord(ask!.level)} · waiting for BFP',
+      'approved' when ask!.level == area.alarmLevel =>
+        'BFP set ${alarmWord(ask.level)}$when, as you asked',
+      'rejected' =>
+        'BFP declined ${alarmWord(ask!.level)}$when'
+            '${ask.notes == null ? '' : ': ${ask.notes}'}',
+      _ => 'Set by BFP · ask them to raise it',
+    };
   }
 
   /// C06 — straight to the reject sheet: why, then reject. The Area's
@@ -707,13 +727,14 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                 const SizedBox(height: 12),
               ],
               ListRow(
-                leading: const IconPlate(AppIcons.warning),
+                // Red while a request waits: on BFP to answer, or on BFP
+                // for the coordinator who asked.
+                leading: IconPlate(
+                  AppIcons.warning,
+                  tint: _asks.any((r) => r.waiting) ? pal.live : null,
+                ),
                 title: 'Alarm level',
-                subtitle: _powers.decidesAlarm
-                    ? 'Set by BFP · requests wait in your queue'
-                    : _powers.requestsAlarm
-                    ? 'Set by BFP · read-only for Fire Volunteer'
-                    : 'Set by BFP',
+                subtitle: _alarmLine(area),
                 trailing: RowValue(alarmWord(area.alarmLevel)),
                 chevron: _powers.requestsAlarm || _powers.decidesAlarm,
                 onTap: _busy || !(_powers.requestsAlarm || _powers.decidesAlarm)

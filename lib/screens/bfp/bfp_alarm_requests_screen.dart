@@ -3,26 +3,45 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
+import '../../api/live_refresh.dart';
+import '../../models/alarm.dart';
+import '../../models/area_view.dart';
 import '../../theme.dart';
-import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
-import '../../widgets/motion.dart';
+import '../../widgets/coordinator_kit.dart';
+import '../../widgets/design.dart';
+import '../../widgets/staff_shell.dart';
+import '../subadmin/coordinator_nav.dart';
 
-Color _panel = AppColors.glassDim;
-Color _panelBorder = AppColors.line;
-Color _muted = AppColors.muted;
-Color _label = AppColors.label;
-Color _green = AppColors.ok;
-Color _amber = AppColors.warn;
-Color _red = AppColors.live;
-
-/// BFP alarm-request review queue: Fire-Volunteer sub-admins/responders raise
-/// alarm-escalation requests; a BFP sub-admin executes (applies the alarm level)
-/// or rejects them. This is BFP's exclusive authority (master context v8 §6).
+/// BFP's alarm request queue: Fire Volunteer coordinators (and their
+/// responders) ask BFP to raise an Area's alarm; a BFP Coordinator sets the
+/// level or declines (PRD v14 §3.4, §4.7: "only authority allowed to execute
+/// alarm escalation"). The server checks every answer again.
+///
+/// Waiting requests come first, the newest on top, each with the Area it is
+/// for (where, how far along, at what level now), who asked and for which
+/// organisation, and when. Set and Decline are one tap and a confirmation;
+/// Open Area goes to the Area itself.
+///
+/// It listens as well as polls: a request asked, answered or taken back on
+/// any phone reaches this screen over the WebSocket (`agency:bfp`) within a
+/// second, and the 15 s poll covers a dropped socket. [focusRequestId] (from
+/// a tapped push) and [areaId] (from an Area's LIVE screen) put that request,
+/// or that Area's, first.
 class BfpAlarmRequestsScreen extends StatefulWidget {
-  const BfpAlarmRequestsScreen({super.key, this.api});
+  const BfpAlarmRequestsScreen({
+    super.key,
+    this.api,
+    this.focusRequestId,
+    this.areaId,
+  });
 
   final ApiClient? api;
+  final String? focusRequestId;
+  final String? areaId;
+
+  /// How often the queue re-reads when the socket is quiet.
+  static const Duration pollEvery = Duration(seconds: 15);
 
   @override
   State<BfpAlarmRequestsScreen> createState() => _BfpAlarmRequestsScreenState();
@@ -30,11 +49,15 @@ class BfpAlarmRequestsScreen extends StatefulWidget {
 
 class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
+  late final LiveRefresh _live = LiveRefresh(
+    agencyChannels('bfp'),
+    () => _load(silent: true),
+  );
   Timer? _poll;
 
-  List<Map<String, dynamic>> _requests = [];
+  List<AlarmRequest> _requests = const [];
   bool _loading = true;
-  bool _pendingOnly = true;
+  bool _answered = false;
   String? _busyId;
   String? _error;
 
@@ -42,8 +65,9 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
   void initState() {
     super.initState();
     _load();
+    _live.start();
     _poll = Timer.periodic(
-      const Duration(seconds: 15),
+      BfpAlarmRequestsScreen.pollEvery,
       (_) => _load(silent: true),
     );
   }
@@ -51,455 +75,469 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    unawaited(_live.dispose());
     super.dispose();
   }
 
   Future<void> _load({bool silent = false}) async {
-    if (!silent) setState(() => _loading = true);
+    if (!silent && mounted) setState(() => _loading = true);
     try {
-      final raw = await _api.getAlarmRequests(
-        status: _pendingOnly ? 'pending' : null,
-      );
+      final rows = await _api.getAlarmRequests();
       if (!mounted) return;
       setState(() {
-        _requests = raw.cast<Map<String, dynamic>>();
+        _requests = [
+          for (final r in rows.whereType<Map<String, dynamic>>())
+            AlarmRequest(r),
+        ];
         _error = null;
         _loading = false;
       });
     } catch (e) {
-      if (mounted) {
-        setState(() {
+      if (!mounted) return;
+      setState(() {
+        // Keep the last good list on a failed refresh; say so only when
+        // there is nothing to show.
+        if (_requests.isEmpty) {
           _error = e is ApiException
               ? e.message
-              : 'Could not load alarm requests.';
-          _loading = false;
-        });
-      }
+              : 'Could not load the alarm requests. Check your signal.';
+        }
+        _loading = false;
+      });
     }
+  }
+
+  List<AlarmRequest> get _waiting =>
+      _ordered(_requests.where((r) => r.waiting));
+  List<AlarmRequest> get _done => _requests.where((r) => !r.waiting).toList();
+
+  /// The request a push named first, then the Area's from LIVE, then newest.
+  List<AlarmRequest> _ordered(Iterable<AlarmRequest> rows) {
+    int weight(AlarmRequest r) => r.id == widget.focusRequestId
+        ? 0
+        : r.areaId == widget.areaId
+        ? 1
+        : 2;
+    final list = rows.toList();
+    list.sort((a, b) {
+      final w = weight(a).compareTo(weight(b));
+      if (w != 0) return w;
+      return (b.askedAt ?? DateTime(0)).compareTo(a.askedAt ?? DateTime(0));
+    });
+    return list;
   }
 
   void _toast(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  String _levelLabel(String raw) => raw
-      .split('_')
-      .where((w) => w.isNotEmpty)
-      .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
-      .join(' ');
-
-  (String, Color) _statusPill(String s) {
-    switch (s) {
-      case 'approved':
-        return ('EXECUTED', _green);
-      case 'rejected':
-        return ('REJECTED', _red);
-      default:
-        return ('PENDING', _amber);
-    }
-  }
-
-  String _fmtWhen(String? iso) {
-    if (iso == null) return '';
-    try {
-      final d = DateTime.parse(iso).toLocal();
-      final mm = d.month.toString().padLeft(2, '0');
-      final dd = d.day.toString().padLeft(2, '0');
-      final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
-      final ampm = d.hour < 12 ? 'AM' : 'PM';
-      return '$mm/$dd/${d.year} • $h:${d.minute.toString().padLeft(2, '0')} $ampm';
-    } catch (_) {
-      return '';
-    }
-  }
-
-  Future<void> _execute(Map<String, dynamic> req) async {
-    final id = req['id'] as String;
-    final confirm = await showAppDialog<bool>(
-      context: context,
-      builder: (dctx) => AlertDialog(
-        backgroundColor: context.pal.surface,
-        title: const Text(
-          'Execute alarm?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          'Apply ${_levelLabel(req['requested_alarm_level'] as String)} to '
-          '${(req['area_designation'] as String?) ?? 'this incident'}? '
-          'This sets the incident alarm level and notifies responding units.',
-          style: TextStyle(color: context.pal.muted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dctx).pop(false),
-            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
+  // ------------------------------------------------------------ actions ---
+  Future<void> _set(AlarmRequest r) async {
+    final yes = await showFrameSheet<bool>(
+      context,
+      builder: (context) => SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: '${r.areaName} · now at ${alarmWord(r.areaLevel)}',
+            title: 'Set ${alarmWord(r.level)}?',
+            body:
+                'Every organisation on ${r.areaName} sees the new level at '
+                'once, and ${r.askedBy} is told.',
           ),
-          TextButton(
-            onPressed: () => Navigator.of(dctx).pop(true),
-            child: Text(
-              'EXECUTE',
-              style: TextStyle(color: _green, fontWeight: FontWeight.w800),
-            ),
+          const SizedBox(height: 16),
+          AppButton(
+            'Set ${alarmWord(r.level)}',
+            run: true,
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+          const SizedBox(height: 10),
+          AppButton.secondary(
+            'Cancel',
+            onPressed: () => Navigator.of(context).pop(false),
           ),
         ],
       ),
     );
-    if (confirm != true) return;
-    setState(() => _busyId = id);
-    try {
-      await _api.executeAlarmRequest(id);
-      if (mounted) _toast('Alarm executed.');
-      await _load(silent: true);
-    } on ApiException catch (e) {
-      if (mounted) _toast(e.message);
-    } catch (_) {
-      if (mounted) _toast('Could not execute. Check your connection.');
-    } finally {
-      if (mounted) setState(() => _busyId = null);
-    }
-  }
-
-  Future<void> _reject(Map<String, dynamic> req) async {
-    final id = req['id'] as String;
-    final reason = await showAppDialog<String>(
-      context: context,
-      builder: (dctx) {
-        final ctrl = TextEditingController();
-        return AlertDialog(
-          backgroundColor: context.pal.surface,
-          title: const Text(
-            'Reject alarm request',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-          ),
-          content: TextField(
-            controller: ctrl,
-            autofocus: true,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Reason (optional)',
-              hintStyle: TextStyle(color: context.pal.darkText),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dctx).pop(),
-              child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dctx).pop(ctrl.text.trim()),
-              child: Text(
-                'REJECT',
-                style: TextStyle(color: _red, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ],
-        );
-      },
+    if (yes != true || !mounted) return;
+    await _answer(
+      r,
+      () => _api.executeAlarmRequest(r.id),
+      '${r.areaName} is now at ${alarmWord(r.level)}.',
     );
-    if (reason == null) return;
-    setState(() => _busyId = id);
+  }
+
+  Future<void> _decline(AlarmRequest r) async {
+    final reason = await showFrameSheet<String>(
+      context,
+      builder: (context) => _DeclineSheet(request: r),
+    );
+    if (reason == null || !mounted) return;
+    await _answer(
+      r,
+      () =>
+          _api.rejectAlarmRequest(r.id, notes: reason.isEmpty ? null : reason),
+      'Declined. ${r.askedBy} is told ${r.areaName} stays as it is.',
+    );
+  }
+
+  Future<void> _answer(
+    AlarmRequest r,
+    Future<Object?> Function() call,
+    String done,
+  ) async {
+    setState(() => _busyId = r.id);
     try {
-      await _api.rejectAlarmRequest(id, notes: reason.isEmpty ? null : reason);
-      if (mounted) _toast('Alarm request rejected.');
-      await _load(silent: true);
+      await call();
+      if (mounted) _toast(done);
     } on ApiException catch (e) {
+      // Answered on another phone, or the Area moved on: say what the
+      // server said, and show the queue as it is now.
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not reject. Check your connection.');
+      if (mounted) _toast('Could not send that. Check your signal.');
     } finally {
       if (mounted) setState(() => _busyId = null);
+      await _load(silent: true);
     }
   }
 
-  // ------------------------------------------------------------- build ---
+  Future<void> _open(AlarmRequest r) async {
+    try {
+      final incident = await _api.getIncident(r.areaId);
+      if (!mounted) return;
+      await openCoordinatorIncident(
+        context,
+        incident: incident,
+        me: StaffAccount.current ?? const {},
+        api: _api,
+      );
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    } catch (_) {
+      if (mounted) _toast('Could not open the Area. Check your signal.');
+    }
+  }
+
+  // -------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return StaffScaffold(
-      page: StaffPage.alarms,
-      home: true,
-      title: 'Alarm requests',
-      body: Column(
-        children: [
-          _filterRow(),
-          Expanded(child: _body()),
-        ],
-      ),
-    );
-  }
-
-  Widget _filterRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 14, 24, 6),
-      child: Row(
-        children: [
-          _filterChip('Pending', _pendingOnly),
-          const SizedBox(width: 10),
-          _filterChip('All', !_pendingOnly),
-        ],
-      ),
-    );
-  }
-
-  Widget _filterChip(String label, bool on) {
-    return GestureDetector(
-      onTap: () {
-        final pending = label == 'Pending';
-        if (pending == _pendingOnly) return;
-        setState(() => _pendingOnly = pending);
-        _load();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: on
-              ? context.pal.accent.withValues(alpha: 0.12)
-              : const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: on ? context.pal.accent : const Color(0xFF2A2A2A),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: on ? Colors.white : Colors.white.withValues(alpha: 0.7),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+    return Scaffold(
+      backgroundColor: context.pal.background,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const DetailHeader(
+              eyebrow: 'BFP',
+              title: 'Alarm requests',
+              subtitle:
+                  'Fire Volunteer coordinators ask. Only BFP sets the alarm '
+                  'level.',
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: CountSegment(
+                        count: _waiting.length,
+                        label: 'Waiting',
+                        tone: SegmentTone.attention,
+                        selected: !_answered,
+                        onTap: () => setState(() => _answered = false),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: CountSegment(
+                        count: _done.length,
+                        label: 'Answered',
+                        tone: SegmentTone.settled,
+                        selected: _answered,
+                        onTap: () => setState(() => _answered = true),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(child: _body()),
+          ],
         ),
       ),
     );
   }
 
   Widget _body() {
-    if (_loading) {
+    if (_loading && _requests.isEmpty) {
       return Center(
         child: CircularProgressIndicator(color: context.pal.accent),
       );
     }
     if (_error != null) {
-      return _centered(AppIcons.cloudOff, _error!, retry: true);
-    }
-    if (_requests.isEmpty) {
-      return _centered(
-        AppIcons.notificationsOff,
-        _pendingOnly ? 'No pending alarm requests.' : 'No alarm requests yet.',
+      return EmptyState(
+        icon: AppIcons.cloudOff,
+        title: 'Requests unavailable',
+        body: _error!,
+        action: AppButton.secondary('Try again', onPressed: _load),
       );
     }
+    final rows = _answered ? _done : _waiting;
     return RefreshIndicator(
       color: context.pal.accent,
-      backgroundColor: context.pal.surfaceSolid,
       onRefresh: _load,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-        itemCount: _requests.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 14),
-        itemBuilder: (_, i) => _card(_requests[i]),
+      child: ScrollFade(
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            4,
+            24,
+            MediaQuery.paddingOf(context).bottom + kScrollFadeEndPadding,
+          ),
+          children: [
+            if (rows.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 48),
+                child: EmptyState(
+                  icon: AppIcons.notificationsOff,
+                  title: _answered ? 'Nothing answered yet' : 'Nothing waiting',
+                  body: _answered
+                      ? 'Requests move here once BFP sets the level or '
+                            'declines, or the coordinator takes one back.'
+                      : 'A request lands here, with the fire alert, when a '
+                            'Fire Volunteer coordinator asks BFP to raise an '
+                            "Area's alarm.",
+                ),
+              )
+            else
+              for (final (i, r) in rows.indexed) ...[
+                if (i > 0) const SizedBox(height: 12),
+                _RequestCard(
+                  key: ValueKey('alarm-request-${r.id}'),
+                  request: r,
+                  focused: r.id == widget.focusRequestId,
+                  busy: _busyId == r.id,
+                  onSet: () => _set(r),
+                  onDecline: () => _decline(r),
+                  onOpen: () => _open(r),
+                ),
+              ],
+          ],
+        ),
       ),
     );
   }
+}
 
-  Widget _card(Map<String, dynamic> req) {
-    final status = (req['status'] as String?) ?? 'pending';
-    final (pillText, pillColor) = _statusPill(status);
-    final area =
-        (req['area_designation'] as String?)?.toUpperCase() ?? 'INCIDENT';
-    final level = _levelLabel(req['requested_alarm_level'] as String);
-    final justification = (req['justification'] as String?)?.trim();
-    final by = (req['requested_by_name'] as String?) ?? 'Unknown';
-    final busy = _busyId == req['id'];
+/// One request: the level asked for, the Area (where, how far along, its
+/// level now), who asked and when, and — while it waits — Set, Decline and
+/// Open Area.
+class _RequestCard extends StatelessWidget {
+  const _RequestCard({
+    super.key,
+    required this.request,
+    required this.focused,
+    required this.busy,
+    required this.onSet,
+    required this.onDecline,
+    required this.onOpen,
+  });
 
+  final AlarmRequest request;
+  final bool focused;
+  final bool busy;
+  final VoidCallback onSet;
+  final VoidCallback onDecline;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final r = request;
+    final tone = switch (r.status) {
+      'approved' => pal.ok,
+      'rejected' || 'cancelled' => pal.muted,
+      _ => pal.warn,
+    };
+    final asked = r.askedAt;
+    final who = [
+      r.askedBy,
+      ?r.organisation,
+      if (asked != null) agoText(asked),
+    ].join(' · ');
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _panelBorder),
+        color: pal.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: focused || r.waiting ? pal.accent : pal.line,
+          width: focused ? 2 : 1,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Text(
-                area,
-                style: TextStyle(
-                  color: _label,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: pillColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: pillColor.withValues(alpha: 0.5)),
-                ),
+              IconPlate(AppIcons.campaign, tint: r.waiting ? pal.live : tone),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Text(
-                  pillText,
-                  style: TextStyle(
-                    color: pillColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  alarmWord(r.level),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.type.rowTitleLg,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(AppIcons.campaign, color: context.pal.accent, size: 18),
               const SizedBox(width: 8),
-              Text(
-                level,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              Tag(alarmRequestWord(r.status), color: tone, dot: r.waiting),
             ],
           ),
-          if (justification != null && justification.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          // "Area 1.2 · F. Victor Street, Barangay 76": the street once the
+          // geocoder answers, the degrees until then.
+          AreaPlace(
+            area: r.area,
+            builder: (context, place) => Text(
+              '${r.areaName} · ${placeLine(r.area, place)}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: context.type.rowTitle,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${LifecycleChip.word(r.areaStatus ?? 'reported')} · now at '
+            '${alarmWord(r.areaLevel)}',
+            style: context.type.detail.copyWith(color: pal.label),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Asked by $who',
+            style: context.type.detail.copyWith(color: pal.label),
+          ),
+          if (r.justification != null) ...[
             const SizedBox(height: 8),
             Text(
-              justification,
-              style: TextStyle(
-                color: context.pal.muted,
-                fontSize: 13,
-                height: 1.4,
-              ),
+              '“${r.justification}”',
+              style: context.type.bodySm.copyWith(color: pal.textSoft),
             ),
           ],
-          const SizedBox(height: 10),
-          Text(
-            'Requested by $by • ${_fmtWhen(req['created_at'] as String?)}',
-            style: TextStyle(color: _muted, fontSize: 11),
-          ),
-          if (status == 'pending') ...[
+          if (r.waiting) ...[
+            if (!r.stillRaises) ...[
+              const SizedBox(height: 12),
+              InlineAlert(
+                tone: AlertTone.warning,
+                body:
+                    '${r.areaName} is already at ${alarmWord(r.areaLevel)}. '
+                    'Setting this would not raise it: decline it instead.',
+              ),
+            ],
             const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _gradientButton('EXECUTE', busy, () => _execute(req)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _outlineButton('REJECT', busy, () => _reject(req)),
-                ),
-              ],
+            AppButton(
+              'Set ${alarmWord(r.level)}',
+              run: true,
+              busy: busy,
+              onPressed: busy || !r.stillRaises ? null : onSet,
             ),
-          ] else if ((req['review_notes'] as String?)?.trim().isNotEmpty ==
-              true) ...[
+            const SizedBox(height: 10),
+            AppButton.secondary('Decline', onPressed: busy ? null : onDecline),
+          ] else ...[
             const SizedBox(height: 10),
             Text(
-              'Note: ${req['review_notes']}',
-              style: TextStyle(
-                color: context.pal.muted,
-                fontSize: 12,
-                height: 1.4,
-              ),
+              _answer(r),
+              style: context.type.bodySm.copyWith(color: pal.textSoft),
             ),
           ],
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextLink('Open ${r.areaName}', onTap: onOpen),
+          ),
         ],
       ),
     );
   }
 
-  Widget _gradientButton(String label, bool busy, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: busy ? null : onTap,
-      child: Container(
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          gradient: AppColors.accentGradient,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
-        child: busy
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.accentText,
-                ),
-              )
-            : Text(
-                label,
-                style: const TextStyle(
-                  color: AppColors.accentText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
-                ),
-              ),
-      ),
-    );
+  static String _answer(AlarmRequest r) {
+    final at = r.answeredAt;
+    final when = at == null ? '' : ' · ${clockText(at)}';
+    final by = r.answeredBy == null ? '' : ' by ${r.answeredBy}';
+    final notes = r.notes == null ? '' : '\n${r.notes}';
+    return switch (r.status) {
+      'approved' => 'Set$by$when.$notes',
+      'rejected' => 'Declined$by$when.$notes',
+      'cancelled' => 'Taken back$when.$notes',
+      _ => '',
+    };
+  }
+}
+
+/// Why BFP declines, optional; the coordinator who asked reads it.
+class _DeclineSheet extends StatefulWidget {
+  const _DeclineSheet({required this.request});
+
+  final AlarmRequest request;
+
+  @override
+  State<_DeclineSheet> createState() => _DeclineSheetState();
+}
+
+class _DeclineSheetState extends State<_DeclineSheet> {
+  final TextEditingController _reason = TextEditingController();
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
   }
 
-  Widget _outlineButton(String label, bool busy, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: busy ? null : onTap,
-      child: Container(
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: _red, width: 2),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: _red,
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.request;
+    // The sheet rides above the keyboard while the reason is typed.
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SheetFrame(
+        children: [
+          SheetTitles(
+            eyebrow: '${r.areaName} · ${alarmWord(r.level)} asked',
+            title: 'Decline this request?',
+            body:
+                '${r.areaName} stays at ${alarmWord(r.areaLevel)}. ${r.askedBy} '
+                'is told, with your reason.',
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _centered(IconData icon, String message, {bool retry = false}) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: context.pal.outline, size: 44),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.pal.muted,
-                fontSize: 14,
-                height: 1.5,
+          const SizedBox(height: 16),
+          LabeledField(
+            label: 'Reason (optional)',
+            builder: (focus) => TextField(
+              controller: _reason,
+              focusNode: focus,
+              maxLength: 1000,
+              minLines: 2,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              style: context.type.input,
+              decoration: const InputDecoration(
+                hintText: 'Contained at 1st alarm',
               ),
             ),
-            if (retry) ...[
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => _load(),
-                child: Text(
-                  'Retry',
-                  style: TextStyle(
-                    color: context.pal.accent,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          AppButton.danger(
+            'Decline',
+            onPressed: () => Navigator.of(context).pop(_reason.text.trim()),
+          ),
+          const SizedBox(height: 10),
+          AppButton.secondary(
+            'Keep it waiting',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
       ),
     );
   }

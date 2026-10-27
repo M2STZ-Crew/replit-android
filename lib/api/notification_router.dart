@@ -24,7 +24,7 @@ enum NotificationTarget {
   /// The incident itself, where staff verify and respond.
   staffIncident,
 
-  /// BFP's queue of alarm escalation requests.
+  /// BFP's queue of alarm escalation requests, the tapped one first.
   alarmRequests,
 
   /// Nothing to open: a test push, or a phone whose work is on the web.
@@ -64,6 +64,9 @@ NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
     case 'alarm_request':
       final bfp = me?['role'] == 'sub_admin' && me?['agency_type'] == 'bfp';
       if (bfp) return NotificationTarget.alarmRequests;
+      return staff ? NotificationTarget.staffIncident : NotificationTarget.none;
+    // BFP's answer to whoever asked: the Area, where the level now shows.
+    case 'alarm_request_answered':
       return staff ? NotificationTarget.staffIncident : NotificationTarget.none;
     // A fire near you: a resident is asked whether they see it; staff, who
     // can act on it, go to the incident.
@@ -140,7 +143,10 @@ class NotificationRouter {
         case NotificationTarget.alarmRequests:
           nav.push(
             MaterialPageRoute<void>(
-              builder: (_) => const BfpAlarmRequestsScreen(),
+              builder: (_) => BfpAlarmRequestsScreen(
+                api: _api,
+                focusRequestId: data['request_id'] as String?,
+              ),
             ),
           );
         case NotificationTarget.none:

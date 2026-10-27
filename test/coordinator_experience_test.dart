@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/api/api_client.dart';
 import 'package:replit/location/place_names.dart';
+import 'package:replit/models/alarm.dart';
 import 'package:replit/models/coordinator_powers.dart';
 import 'package:replit/screens/coordinator/area_decision_screen.dart';
 import 'package:replit/screens/coordinator/codes_tab.dart';
@@ -768,7 +769,20 @@ void main() {
 
     test('alarm levels read as BFP says them', () {
       expect(alarmWord('first_alarm'), '1st alarm');
+      expect(alarmWord('fourth_alarm'), '4th alarm');
       expect(alarmWord(null), 'None yet');
+    });
+
+    test('only a level above the Area can be asked for', () {
+      // The server's ladder, all seven, lowest first.
+      expect(levelsAbove(null), kAlarmLadder);
+      expect(levelsAbove('second_alarm'), [
+        'third_alarm',
+        'fourth_alarm',
+        'fifth_alarm',
+        'general_alarm',
+      ]);
+      expect(levelsAbove('general_alarm'), isEmpty);
     });
   });
 }

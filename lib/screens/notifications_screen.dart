@@ -152,6 +152,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context.pal.live,
     ),
     'alarm_executed' => ('Alarm raised', AppIcons.campaign, context.pal.ok),
+    // BFP's answer to the coordinator or responder who asked.
+    'alarm_request_answered' => (
+      'BFP answered',
+      AppIcons.campaign,
+      context.pal.accent,
+    ),
     _ => ('Notification', AppIcons.notifications, context.pal.info),
   };
 
