@@ -4,10 +4,12 @@ import 'package:flutter/foundation.dart';
 
 import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
+import '../../models/alarm.dart';
 import '../../models/area_view.dart';
 
 /// What the coordinator's tabs share: the live Areas their agency sees, the
-/// reports their team still owes, and the overlaps waiting on a decision.
+/// reports their team still owes, the overlaps waiting on a decision and,
+/// for BFP, the alarm requests waiting on it.
 ///
 /// Read once for all five tabs rather than once per tab, re-read the moment
 /// the server says an incident changed ([LiveRefresh]) and every 10 s as the
@@ -31,6 +33,10 @@ class CoordinatorFeed extends ChangeNotifier {
 
   /// Pending overlap decisions (GET /areas/overlaps/pending).
   List<Map<String, dynamic>> overlaps = const [];
+
+  /// BFP only: alarm requests no BFP Coordinator has answered, newest first.
+  /// A new one reaches `agency:bfp` at once, which reloads the feed.
+  List<AlarmRequest> alarmAsks = const [];
 
   bool loaded = false;
   String? error;
@@ -68,8 +74,17 @@ class CoordinatorFeed extends ChangeNotifier {
         api.getIncidents(),
         api.getOwedPostIncidentReports().catchError((_) => <dynamic>[]),
         api.getPendingOverlaps().catchError((_) => <dynamic>[]),
+        if (isBfp)
+          api
+              .getAlarmRequests(status: 'pending')
+              .catchError((_) => <dynamic>[]),
       ]);
       if (_disposed) return;
+      alarmAsks = [
+        if (isBfp)
+          for (final r in results[3].whereType<Map<String, dynamic>>())
+            AlarmRequest(r),
+      ];
       areas = [
         for (final r in results[0].cast<Map<String, dynamic>>()) AreaView(r),
       ];

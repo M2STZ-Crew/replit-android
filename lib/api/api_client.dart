@@ -671,18 +671,44 @@ class ApiClient {
   }
 
   /// List alarm requests for review (BFP sub-admin/admin): GET /alarm-requests.
-  /// Pass [status] (e.g. 'pending') to filter. Items include area_designation
-  /// and requested_by_name.
-  Future<List<dynamic>> getAlarmRequests({String? status}) async {
-    final query = status == null ? '' : '?status=$status';
+  /// Pass [status] (e.g. 'pending') or [areaId] to filter. Each item carries
+  /// the Area (designation, status, alarm level now, centre), who asked and
+  /// for which organisation, and who answered.
+  Future<List<dynamic>> getAlarmRequests({String? status, String? areaId}) =>
+      _alarmRequests('', {'status': ?status, 'area_id': ?areaId});
+
+  /// The caller's own alarm requests, newest first: GET /alarm-requests/mine.
+  /// Pass [areaId] for one Area's.
+  Future<List<dynamic>> getMyAlarmRequests({String? areaId}) =>
+      _alarmRequests('/mine', {'area_id': ?areaId});
+
+  Future<List<dynamic>> _alarmRequests(
+    String path,
+    Map<String, String> filters,
+  ) async {
+    final query = Uri(queryParameters: filters).query;
     final resp = await _client.get(
-      Uri.parse('${ApiConfig.baseUrl}/alarm-requests$query'),
+      Uri.parse(
+        '${ApiConfig.baseUrl}/alarm-requests$path'
+        '${query.isEmpty ? '' : '?$query'}',
+      ),
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, 'Failed to load alarm requests.');
     }
     return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  /// Take back a request BFP has not answered (whoever asked): POST
+  /// /alarm-requests/{id}/cancel. It stays in the history as Cancelled.
+  Future<Map<String, dynamic>> cancelAlarmRequest(String id) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/alarm-requests/$id/cancel'),
+      headers: _jsonAuth,
+      body: jsonEncode(const <String, Object>{}),
+    );
+    return _decode(resp);
   }
 
   /// Execute (apply) an alarm request — BFP only: POST /alarm-requests/{id}/execute.
