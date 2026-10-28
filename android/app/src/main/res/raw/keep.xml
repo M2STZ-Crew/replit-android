@@ -4,4 +4,5 @@
      shrinker can see — without this they would be stripped from the APK and
      alerts would ring with the default tone. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@raw/sound_fire,@raw/sound_police,@raw/sound_medical,@raw/sound_barangay,@raw/sound_citizen,@drawable/ic_stat_replit" />
+    tools:keep="@raw/sound_fire,@raw/sound_police,@raw/sound_medical,@raw/sound_barangay,@raw/sound_citizen,@raw/sound_verified,@raw/sound_on_route,@raw/sound_on_scene,@raw/sound_fire_out,@drawable/ic_stat_replit" />
+
