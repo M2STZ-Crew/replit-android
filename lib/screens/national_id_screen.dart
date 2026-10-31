@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../api/api_client.dart';
 import '../theme.dart';
+import '../widgets/coordinator_kit.dart' show CheckRow;
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
 
@@ -13,31 +14,40 @@ Color _safeGreen = AppColors.ok;
 /// National ID verification (+50%) via the manual-review path.
 ///
 /// The backend's Didit auto-KYC has no credits, so this uses
-/// POST /verification/national-id/manual: the user supplies a government ID
-/// photo and a matching selfie, which an administrator reviews before
-/// awarding +50%.
+/// POST /verification/national-id/manual: the user supplies a photo of their
+/// PhilID or ePhilID, its QR code and a matching selfie. An administrator runs
+/// the QR code through PSA's PhilSys Check, which takes the holder's consent,
+/// compares the result with the other two, and awards +50%.
 ///
-/// Both images must be taken with the camera. There is no gallery option,
+/// All three images must be taken with the camera. There is no gallery option,
 /// by design: attaching a saved picture is how someone submits an ID that
 /// is not theirs, and the whole value of the selfie is that it was taken at
 /// the same time as the document.
 class NationalIdScreen extends StatefulWidget {
-  const NationalIdScreen({super.key});
+  const NationalIdScreen({super.key, this.api, this.camera});
+
+  final ApiClient? api;
+
+  /// Stands in for the phone's camera in a test.
+  final Future<Uint8List?> Function()? camera;
 
   @override
   State<NationalIdScreen> createState() => _NationalIdScreenState();
 }
 
 class _NationalIdScreenState extends State<NationalIdScreen> {
-  final ApiClient _api = ApiClient();
+  late final ApiClient _api = widget.api ?? ApiClient();
   final ImagePicker _picker = ImagePicker();
 
   Uint8List? _idBytes;
+  Uint8List? _qrBytes;
   Uint8List? _selfieBytes;
+  bool _consent = false;
   bool _submitting = false;
   String? _error;
 
-  bool get _ready => _idBytes != null && _selfieBytes != null;
+  bool get _ready =>
+      _idBytes != null && _qrBytes != null && _selfieBytes != null && _consent;
 
   /// Take one photo with the camera.
   ///
@@ -52,14 +62,17 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   ///
   /// Capped at 1600px and 70% quality: an ID has to stay legible enough for an
   /// administrator to read, but a full-resolution phone photo is several
-  /// megabytes of upload over mobile data.
-  Future<Uint8List?> _capture({bool front = false}) async {
+  /// megabytes of upload over mobile data. [qr] keeps more: PhilSys Check has
+  /// to read every square of the code, and an ePhilID's are small.
+  Future<Uint8List?> _capture({bool front = false, bool qr = false}) async {
+    final camera = widget.camera;
+    if (camera != null) return camera();
     try {
       final shot = await _picker.pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: front ? CameraDevice.front : CameraDevice.rear,
-        imageQuality: 70,
-        maxWidth: 1600,
+        imageQuality: qr ? 90 : 70,
+        maxWidth: qr ? 2000 : 1600,
       );
       if (shot == null) return null; // backed out — not an error
       return shot.readAsBytes();
@@ -84,6 +97,15 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     });
   }
 
+  Future<void> _pickQr() async {
+    final bytes = await _capture(qr: true);
+    if (bytes == null || !mounted) return;
+    setState(() {
+      _qrBytes = bytes;
+      _error = null;
+    });
+  }
+
   Future<void> _pickSelfie() async {
     final bytes = await _capture(front: true);
     if (bytes == null || !mounted) return;
@@ -102,6 +124,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     try {
       await _api.submitNationalIdManual(
         idBytes: _idBytes!,
+        qrBytes: _qrBytes!,
         selfieBytes: _selfieBytes!,
       );
       if (!mounted) return;
@@ -150,18 +173,27 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               Text('VERIFY YOUR IDENTITY', style: context.type.title),
               const SizedBox(height: 10),
               Text(
-                'Photograph your government ID and take a matching selfie. '
-                'Both must be taken now with the camera — saved pictures are '
-                'not accepted. An administrator reviews them and awards +50%.',
+                'Photograph your PhilID card or ePhilID and its QR code, then '
+                'take a matching selfie. All three must be taken now with the '
+                'camera — saved pictures are not accepted. An administrator '
+                "checks the QR code on PSA's PhilSys Check and awards +50%.",
                 style: context.type.body,
               ),
               const SizedBox(height: 26),
               _uploadSlot(
-                label: 'Government ID',
-                hint: 'Tap to photograph your ID',
+                label: 'National ID',
+                hint: 'Tap to photograph the side with your picture',
                 icon: AppIcons.badge,
                 bytes: _idBytes,
                 onTap: _pickId,
+              ),
+              const SizedBox(height: 12),
+              _uploadSlot(
+                label: 'QR code',
+                hint: 'On the back of the card. Fill the photo with it.',
+                icon: AppIcons.photoCamera,
+                bytes: _qrBytes,
+                onTap: _pickQr,
               ),
               const SizedBox(height: 12),
               _uploadSlot(
@@ -170,6 +202,15 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                 icon: AppIcons.face,
                 bytes: _selfieBytes,
                 onTap: _pickSelfie,
+              ),
+              const SizedBox(height: 14),
+              CheckRow(
+                label:
+                    "I agree to an administrator checking my QR code on PSA's "
+                    'PhilSys Check. PSA records the date, my first name and '
+                    'the result.',
+                checked: _consent,
+                onTap: () => setState(() => _consent = !_consent),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 14),
@@ -315,9 +356,9 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Your ID and selfie are held in private storage and shared only '
-              'with the reviewing administrator. The +50% applies once it is '
-              'approved.',
+              'Your photos are held in private storage, seen only by the '
+              'reviewing administrator, and deleted once the review is '
+              'decided. The +50% applies once it is approved.',
               style: context.type.meta.copyWith(height: 16 / 11),
             ),
           ),

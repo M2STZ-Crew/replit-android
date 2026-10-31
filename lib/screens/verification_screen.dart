@@ -130,9 +130,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Documents are held privately and used only to confirm who '
-                'you are. A National ID is checked by an administrator before '
-                'its 50% applies.',
+                'Documents are held privately, used only to confirm who you '
+                'are, and deleted after review. A National ID is checked by an '
+                "administrator on PSA's PhilSys Check before its 50% applies.",
                 style: context.type.caption,
               ),
             ],
@@ -234,8 +234,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
     return _Channel(
       channel: c,
       line: s.isRefused(c)
-          ? 'Not accepted — take the photos again'
-          : 'Camera only — the photo and selfie must be live',
+          ? s.refusalReason(c) ?? 'Not accepted — take the photos again'
+          : 'Camera only — ID, QR code and selfie must be live',
       lineColor: s.isRefused(c) ? context.pal.live : null,
       onTap: _openNationalId,
     );

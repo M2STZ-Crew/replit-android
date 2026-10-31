@@ -158,6 +158,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       AppIcons.campaign,
       context.pal.accent,
     ),
+    'national_id_reviewed' => (
+      'National ID',
+      AppIcons.badge,
+      context.pal.accent,
+    ),
     _ => ('Notification', AppIcons.notifications, context.pal.info),
   };
 

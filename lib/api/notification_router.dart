@@ -7,6 +7,7 @@ import '../screens/live_update_screen.dart';
 import '../screens/neighbour_alert_screen.dart';
 import '../screens/responder/responder_incident_screen.dart';
 import '../screens/subadmin/coordinator_nav.dart';
+import '../screens/verification_screen.dart';
 import 'api_client.dart';
 
 /// Where a notification leads (v1.12.6).
@@ -26,6 +27,9 @@ enum NotificationTarget {
 
   /// BFP's queue of alarm escalation requests, the tapped one first.
   alarmRequests,
+
+  /// Where a resident's verification stands, and why an ID came back.
+  verification,
 
   /// Nothing to open: a test push, or a phone whose work is on the web.
   none,
@@ -80,15 +84,20 @@ NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
       return staff
           ? NotificationTarget.staffIncident
           : NotificationTarget.myReport;
+    // The hub's answer about a National ID.
+    case 'national_id_reviewed':
+      return NotificationTarget.verification;
     default:
       return NotificationTarget.none;
   }
 }
 
 /// Whether a notification has anything to open, before knowing who is asking:
-/// it names an incident, or it is an alarm request.
+/// it names an incident, or it is an alarm request or a National ID answer.
 bool canOpen(String? type, Map<String, dynamic>? data) =>
-    data?['area_id'] is String || type == 'alarm_request';
+    data?['area_id'] is String ||
+    type == 'alarm_request' ||
+    type == 'national_id_reviewed';
 
 /// Opens what a notification is about.
 class NotificationRouter {
@@ -117,7 +126,9 @@ class NotificationRouter {
         unawaited(_api.markIncidentSeen(areaId));
       }
       if (target == NotificationTarget.none) return false;
-      if (target != NotificationTarget.alarmRequests && areaId == null) {
+      if (areaId == null &&
+          target != NotificationTarget.alarmRequests &&
+          target != NotificationTarget.verification) {
         return false;
       }
       switch (target) {
@@ -147,6 +158,12 @@ class NotificationRouter {
                 api: _api,
                 focusRequestId: data['request_id'] as String?,
               ),
+            ),
+          );
+        case NotificationTarget.verification:
+          nav.push(
+            MaterialPageRoute<void>(
+              builder: (_) => VerificationScreen(api: _api),
             ),
           );
         case NotificationTarget.none:

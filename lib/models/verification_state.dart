@@ -28,6 +28,7 @@ class VerificationState {
     required this.percent,
     required this.badge,
     required this.channels,
+    this.reviewNotes = const {},
   });
 
   static const VerificationState empty = VerificationState(
@@ -38,14 +39,18 @@ class VerificationState {
 
   factory VerificationState.fromJson(Map<String, dynamic> json) {
     final channels = <String, String>{};
+    final notes = <String, String>{};
     for (final c in (json['channels'] as List? ?? const [])) {
       final m = c as Map<String, dynamic>;
       channels['${m['type']}'] = '${m['status']}';
+      final note = m['review_notes'];
+      if (note is String && note.isNotEmpty) notes['${m['type']}'] = note;
     }
     return VerificationState(
       percent: (json['verified_percent'] as num?)?.toInt() ?? 0,
       badge: (json['badge'] as String?) ?? 'yellow',
       channels: channels,
+      reviewNotes: notes,
     );
   }
 
@@ -57,6 +62,9 @@ class VerificationState {
   /// channel key → pending | verified | manual_review | rejected | failed.
   final Map<String, String> channels;
 
+  /// channel key → what the reviewer said to fix.
+  final Map<String, String> reviewNotes;
+
   String? status(VerifyChannel c) => channels[c.key];
   bool isVerified(VerifyChannel c) => channels[c.key] == 'verified';
 
@@ -67,6 +75,10 @@ class VerificationState {
 
   bool isRefused(VerifyChannel c) =>
       const {'rejected', 'failed'}.contains(channels[c.key]);
+
+  /// Why a refused channel was refused, when the reviewer said.
+  String? refusalReason(VerifyChannel c) =>
+      isRefused(c) ? reviewNotes[c.key] : null;
 
   bool get complete => badge == 'green_check' || percent >= 100;
 

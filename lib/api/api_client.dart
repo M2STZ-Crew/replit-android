@@ -522,12 +522,15 @@ class ApiClient {
 
   /// National ID (+50%) manual path: POST /verification/national-id/manual.
   ///
-  /// Uploads an ID photo + a matching selfie for Admin review. The +50% is
-  /// awarded once an admin approves. Returns {verified, verified_percent, ...}.
+  /// Uploads an ID photo, its QR code and a matching selfie for Admin review,
+  /// with the holder's consent to PhilSys Check. The +50% is awarded once an
+  /// admin approves. Returns {verified, verified_percent, ...}.
   Future<Map<String, dynamic>> submitNationalIdManual({
     required List<int> idBytes,
+    required List<int> qrBytes,
     required List<int> selfieBytes,
     String idFilename = 'national_id.jpg',
+    String qrFilename = 'national_id_qr.jpg',
     String selfieFilename = 'selfie.jpg',
   }) async {
     final uri = Uri.parse(
@@ -535,7 +538,8 @@ class ApiClient {
     );
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] =
-          'Bearer ${Session.instance.accessToken ?? ''}';
+          'Bearer ${Session.instance.accessToken ?? ''}'
+      ..fields['philsys_consent'] = 'true';
     request.files.add(
       http.MultipartFile.fromBytes(
         'id_image',
@@ -552,7 +556,15 @@ class ApiClient {
         contentType: MediaType('image', 'jpeg'),
       ),
     );
-    final streamed = await request.send();
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'qr_image',
+        qrBytes,
+        filename: qrFilename,
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
+    final streamed = await _client.send(request);
     final resp = await http.Response.fromStream(streamed);
     return _decode(resp);
   }
