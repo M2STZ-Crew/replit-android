@@ -175,12 +175,16 @@ class PushService {
         body: body,
         fire: fireAlertTypes.contains(type),
         onOpen: canOpen(type, message.data) ? () => _onOpened(message) : null,
+        duration: type == 'test' ? testBannerFor : bannerFor,
       ),
     );
   }
 
   /// How long the in-app banner for a push stays up without a tap.
   static const Duration bannerFor = Duration(seconds: 10);
+
+  /// A test alert is a check, not news, and has nothing to open.
+  static const Duration testBannerFor = Duration(seconds: 4);
 
   /// The banner a push shows while the app is open ("Help is on the way",
   /// OPEN). It goes away by itself after [bannerFor] whether or not OPEN was
@@ -192,10 +196,11 @@ class PushService {
     required String body,
     required bool fire,
     VoidCallback? onOpen,
+    Duration duration = bannerFor,
   }) {
     return SnackBar(
       backgroundColor: fire ? AppColors.live : AppColors.gradientEnd,
-      duration: bannerFor,
+      duration: duration,
       persist: false,
       action: onOpen == null
           ? null

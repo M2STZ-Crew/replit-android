@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -47,6 +48,26 @@ class ApiClient {
   /// A refresh already under way, shared by every caller that hits a 401.
   static Future<bool>? _refreshing;
 
+  /// How long signing in waits for the server. The server sleeps after a
+  /// quiet spell and takes about half a minute to wake (measured 32 s on 31
+  /// Oct 2026, against under a second awake), so this has to outlast that.
+  static const Duration signInTimeout = Duration(seconds: 75);
+
+  /// How long a sign-in spins before the screen says why it is taking so long.
+  static const Duration slowAfter = Duration(seconds: 6);
+
+  /// Start waking the server, before anyone needs it. Best-effort: the
+  /// request that matters still waits for it.
+  Future<void> wakeServer() async {
+    try {
+      await _raw
+          .get(Uri.parse('${ApiConfig.baseUrl}/health'))
+          .timeout(signInTimeout);
+    } catch (_) {
+      // No signal, or a server still waking: nothing to tell anyone yet.
+    }
+  }
+
   /// Sign in with an email or a mobile number, and the password.
   ///
   /// A number works only once it is verified on the account; staff, who have
@@ -57,15 +78,17 @@ class ApiClient {
     required String password,
   }) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/auth/login');
-    final resp = await _client.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': ?email,
-        'phone': ?phone,
-        'password': password,
-      }),
-    );
+    final resp = await _client
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': ?email,
+            'phone': ?phone,
+            'password': password,
+          }),
+        )
+        .timeout(signInTimeout);
     _storeSession(_decode(resp));
   }
 
@@ -341,10 +364,21 @@ class ApiClient {
     return jsonDecode(resp.body) as List<dynamic>;
   }
 
+  /// The caller's answer to a 150 m alert, and whether "I am safe" is open to
+  /// them: GET /notifications/respond/{areaId}.
+  Future<Map<String, dynamic>> getAlertAnswer(String areaId) async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/notifications/respond/$areaId'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
   /// Respond to a 150 m neighborhood alert: POST /notifications/respond.
-  /// [response] is 'report' (confirm a fire nearby) or 'ignore' (dismiss).
-  /// Throws [ApiException] when the server did not record it — then the
-  /// alerts for this Area keep coming, and the screen must not say otherwise.
+  /// [response] is 'report' (confirm a fire nearby), 'ignore' (dismiss) or
+  /// 'safe' (the resident says they are safe). Throws [ApiException] when the
+  /// server did not record it — then the alerts for this Area keep coming, and
+  /// the screen must not say otherwise.
   Future<void> respondToAlert(String areaId, String response) async {
     final http.Response resp;
     try {
@@ -359,9 +393,11 @@ class ApiClient {
     } catch (_) {
       throw ApiException(0, 'Could not reach the server.');
     }
-    if (resp.statusCode >= 400) {
+    if (resp.statusCode >= 500) {
       throw ApiException(resp.statusCode, 'Your answer was not recorded.');
     }
+    // A refusal says why ("This fire is over"); the screen shows it.
+    _decode(resp);
   }
 
   /// Register/refresh this device's FCM token: POST /devices.

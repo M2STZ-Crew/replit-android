@@ -29,10 +29,16 @@ String alarmWord(String? level) => switch (level) {
 int alarmRank(String? level) =>
     level == null ? -1 : kAlarmLadder.indexOf(level);
 
+/// What a verified fire starts at. The first verify sets it (the server's
+/// enforce_alarm_authority trigger), so nobody asks for it.
+const String kInitialAlarmLevel = 'positive_fire_alarm';
+
 /// The levels that would raise an Area now at [current]: the only ones the
-/// server accepts a request for.
-List<String> levelsAbove(String? current) =>
-    kAlarmLadder.sublist(alarmRank(current) + 1);
+/// server accepts a request for, from 1st alarm up.
+List<String> levelsAbove(String? current) => [
+  for (final level in kAlarmLadder.skip(alarmRank(current) + 1))
+    if (level != kInitialAlarmLevel) level,
+];
 
 /// One alarm escalation request, as GET /alarm-requests returns it.
 class AlarmRequest {
