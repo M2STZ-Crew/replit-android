@@ -15,7 +15,12 @@ import '../widgets/design.dart';
 /// The numbers themselves are the team's verified [kHotlines] list; see there
 /// for why the frame's extra numbers are not added.
 class CallScreen extends StatefulWidget {
-  const CallScreen({super.key});
+  const CallScreen({super.key, this.guest = false});
+
+  /// Opened with no account behind it: from sign-in, or when the account
+  /// would not load. A plain screen with Back, and nothing that leads from
+  /// here to the parts of the app that need one.
+  final bool guest;
 
   @override
   State<CallScreen> createState() => _CallScreenState();
@@ -56,7 +61,9 @@ class _CallScreenState extends State<CallScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.pal.background,
-      bottomNavigationBar: const AppNavBar(active: AppTab.hotlines),
+      bottomNavigationBar: widget.guest
+          ? null
+          : const AppNavBar(active: AppTab.hotlines),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -67,10 +74,13 @@ class _CallScreenState extends State<CallScreen> {
               child: ScreenHeader(
                 eyebrow: 'Emergency hotlines',
                 title: 'Call for help',
-                showBack: false,
-                trailing: AvatarWell(
-                  onTap: () => AppNavBar.switchTo(context, AppTab.profile),
-                ),
+                showBack: widget.guest,
+                trailing: widget.guest
+                    ? null
+                    : AvatarWell(
+                        onTap: () =>
+                            AppNavBar.switchTo(context, AppTab.profile),
+                      ),
               ),
             ),
             Padding(

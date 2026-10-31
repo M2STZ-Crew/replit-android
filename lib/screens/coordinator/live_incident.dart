@@ -750,7 +750,19 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                 onTap: _details,
               ),
               const SizedBox(height: 12),
-              if (_powers.responds) ..._myActions(area, mine),
+              if (_powers.responds)
+                ..._myActions(area, mine)
+              else ...[
+                // Directions only: nothing is recorded, as on a responder's
+                // Area before they go.
+                AppButton(
+                  'Route to the fire',
+                  run: true,
+                  icon: AppIcons.directions,
+                  onPressed: _route,
+                ),
+                const SizedBox(height: 10),
+              ],
               if (_powers.marksFireOut)
                 AppButton.secondary(
                   'Mark fire out',
@@ -769,9 +781,9 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
               if (!_powers.coordinates)
                 const InlineAlert(
                   body:
-                      'You follow this Area here. Fire Volunteer and BFP '
-                      'coordinators and responders run the response: going, '
-                      'fire out and the report.',
+                      'You follow this Area here, and can get directions to '
+                      'it. Fire Volunteer and BFP coordinators and responders '
+                      'run the response: going, fire out and the report.',
                 ),
             ],
           ),

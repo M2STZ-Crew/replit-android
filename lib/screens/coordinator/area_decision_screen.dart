@@ -412,8 +412,21 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         );
       case 'verified':
         // Acknowledged: what is left is going, and rejecting a false one —
-        // a Fire Volunteer or BFP coordinator's (CoordinatorPowers).
-        if (!_powers.responds && !_powers.rejects) return null;
+        // a Fire Volunteer or BFP coordinator's (CoordinatorPowers). A Police,
+        // Medical or Barangay coordinator does neither, but may still need to
+        // get there: directions need no power over the incident.
+        if (!_powers.responds && !_powers.rejects) {
+          return ActionBar(
+            children: [
+              AppButton(
+                'Route to the fire',
+                run: true,
+                icon: AppIcons.directions,
+                onPressed: _route,
+              ),
+            ],
+          );
+        }
         return ActionBar(
           children: [
             if (_powers.responds)
@@ -590,7 +603,7 @@ class GoSheetState extends State<GoSheet> {
             title: 'Accept ${area.name}?',
             body:
                 'Accepting acknowledges it for '
-                '${org == null || org.isEmpty ? 'your organisation' : org}. '
+                '${org == null || org.isEmpty ? 'your organization' : org}. '
                 'Every agency the reporter asked for'
                 '${asked.isEmpty ? '' : ' — $asked —'} sees it as '
                 'acknowledged.',

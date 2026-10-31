@@ -403,6 +403,19 @@ void main() {
       await done(tester);
     });
 
+    testWidgets('an Area with no level yet starts at 1st alarm, not Positive', (
+      tester,
+    ) async {
+      incident['alarm_level'] = null;
+      await openLive(tester);
+      await showAlarmRow(tester);
+      await tester.tap(find.text('Alarm level'));
+      await settle(tester);
+      expect(inSheet('Positive fire alarm'), findsNothing);
+      expect(inSheet('1st alarm'), findsOneWidget);
+      await done(tester);
+    });
+
     testWidgets('sees the request wait, may take it back, then the answer', (
       tester,
     ) async {

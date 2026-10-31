@@ -140,7 +140,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
             eyebrow: '${r.areaName} · now at ${alarmWord(r.areaLevel)}',
             title: 'Set ${alarmWord(r.level)}?',
             body:
-                'Every organisation on ${r.areaName} sees the new level at '
+                'Every organization on ${r.areaName} sees the new level at '
                 'once, and ${r.askedBy} is told.',
           ),
           const SizedBox(height: 16),

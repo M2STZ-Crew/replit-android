@@ -5,12 +5,16 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
 import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
+import '../models/area_view.dart';
+import '../models/field_ops.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/field_ops.dart';
 import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
@@ -29,6 +33,11 @@ const double kNeighbourAlertMetres = 150;
 /// asking" is exactly what POST /notifications/respond `ignore` does — it
 /// stops further alerts for this area. The alert the server sends is a fire
 /// alert ("Alerto sa Sunog"), so the screen says "a fire".
+///
+/// "I am safe" (PRD v14 §4.2, §4.11) sits below: a resident the alert reached
+/// says so, while the fire is live, and the server keeps it. It is shown only
+/// when the server says this resident may answer, and it is never assumed:
+/// nothing but that tap records it.
 class NeighbourAlertScreen extends StatefulWidget {
   const NeighbourAlertScreen({super.key, required this.areaId, this.api});
 
@@ -48,6 +57,13 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
   Map<String, dynamic>? _area;
   String? _street;
 
+  /// The server said this resident may say they are safe.
+  bool _maySaySafe = false;
+  SafetyAnswer? _answer;
+  DateTime? _answeredAt;
+  SafetyAnswer? _sendingAnswer;
+  String? _answerError;
+
   Position? get _me => _location.position.value;
 
   @override
@@ -58,6 +74,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     // below, and a head start on the fix if the answer is "yes".
     _location.warmUp();
     _load();
+    _loadAnswer();
   }
 
   @override
@@ -91,6 +108,60 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     } catch (_) {
       // Without the area or a geocoder the screen still asks the question.
     }
+  }
+
+  /// What this resident has said about this fire. With no reply the question
+  /// stays hidden: a button the server may refuse is worse than none, and the
+  /// hotlines and "Yes, I can see it" do not depend on it.
+  Future<void> _loadAnswer() async {
+    try {
+      final state = await _api.getAlertAnswer(widget.areaId);
+      if (!mounted) return;
+      final safe = state['response'] == SafetyAnswer.safe.wire;
+      setState(() {
+        _maySaySafe = state['can_say_safe'] == true;
+        _answer = safe ? SafetyAnswer.safe : null;
+        _answeredAt = safe ? parseTime(state['responded_at']) : null;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saySafe(SafetyAnswer answer) async {
+    if (_sendingAnswer != null) return;
+    setState(() {
+      _sendingAnswer = answer;
+      _answerError = null;
+    });
+    try {
+      await _api.respondToAlert(widget.areaId, answer.wire);
+      if (!mounted) return;
+      setState(() {
+        _answer = answer;
+        _answeredAt = DateTime.now();
+        _sendingAnswer = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _sendingAnswer = null;
+        _answerError = e is ApiException && e.statusCode != 0
+            ? e.message
+            : 'Your answer did not reach RepLiT. Check your signal and try '
+                  'again.';
+      });
+    }
+  }
+
+  Future<void> _call911() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (await launchUrl(Uri(scheme: 'tel', path: '911'))) return;
+    } catch (_) {
+      // Said below.
+    }
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Could not open the dialer for 911.')),
+    );
   }
 
   LatLng? get _centre {
@@ -205,6 +276,21 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                 ],
               ),
             ),
+            if (_maySaySafe || _answer != null) ...[
+              const SizedBox(height: 26),
+              SafetyQuestion(
+                choices: const [SafetyAnswer.safe],
+                onAnswer: _saySafe,
+                answer: _answer,
+                answeredAt: _answeredAt == null
+                    ? null
+                    : clockText(_answeredAt!),
+                pendingAnswer: _sendingAnswer,
+                error: _answerError,
+              ),
+              if (_answer == null)
+                TextLink('Need help now? Call 911', onTap: _call911),
+            ],
           ],
           footer: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -212,12 +298,20 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
             children: [
               AppButton('Yes, I can see it', height: 54, onPressed: _yes),
               const SizedBox(height: 12),
-              AppButton.secondary(
-                'No, and stop asking about this',
-                height: 48,
-                busy: _sending,
-                onPressed: _sending ? null : _no,
-              ),
+              // Saying they are safe already stopped the alerts.
+              if (_answer != null)
+                AppButton.secondary(
+                  'Close',
+                  height: 48,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                )
+              else
+                AppButton.secondary(
+                  'No, and stop asking about this',
+                  height: 48,
+                  busy: _sending,
+                  onPressed: _sending ? null : _no,
+                ),
             ],
           ),
         ),
@@ -253,8 +347,10 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     final c = _centre;
     final me = _me;
     final away = _metresAway;
+    // Shorter with "Are you safe?" below it, so "Yes" and "No" stay on a
+    // phone's screen. The 150 m circle still fits.
     return Container(
-      height: 226,
+      height: _maySaySafe || _answer != null ? 150 : 226,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: context.pal.background,

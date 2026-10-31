@@ -9,6 +9,7 @@ import '../api/session.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import 'call_screen.dart';
 import 'register_screen.dart';
 import 'role_gate.dart';
 import '../widgets/app_icons.dart';
@@ -21,7 +22,12 @@ import '../widgets/app_icons.dart';
 /// not verified theirs yet — the server accepts only a verified number. The
 /// overhaul dropped v2's "Keep session active" box: a reporter who is signed
 /// out at 2am is a reporter who cannot send, so the session is always kept.
-/// The line that matters most stays — hotlines work while you are locked out.
+/// The line that matters most stays — hotlines work while you are locked out —
+/// and now it is a button: the same hotlines, with no account and no signal.
+///
+/// The server sleeps after a quiet spell and takes about half a minute to wake,
+/// which is the delay people see at sign-in. So the screen starts waking it as
+/// it opens, while they type, and says what is happening if they still wait.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, this.api});
 
@@ -39,11 +45,22 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
 
+  /// Sign in has been spinning for a while: say why.
+  bool _slow = false;
+  Timer? _slowTimer;
+
   /// Signing in by email instead of by number.
   bool _byEmail = false;
 
   @override
+  void initState() {
+    super.initState();
+    unawaited(_api.wakeServer());
+  }
+
+  @override
   void dispose() {
+    _slowTimer?.cancel();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
@@ -67,6 +84,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     setState(() => _loading = true);
+    _slowTimer = Timer(ApiClient.slowAfter, () {
+      if (mounted) setState(() => _slow = true);
+    });
     try {
       await _api.login(
         email: _byEmail ? email : null,
@@ -88,6 +108,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         'number yet? Use your email instead.')
             : e.message,
       );
+    } on TimeoutException {
+      _showError(
+        'RepLiT did not answer in time. Check your signal and try again. '
+        'Hotlines work without signing in.',
+      );
     } catch (_) {
       _showError(
         'Could not reach RepLiT at ${ApiConfig.host}. Check your internet '
@@ -95,9 +120,19 @@ class _LoginScreenState extends State<LoginScreen> {
         'version of the app.',
       );
     } finally {
-      if (mounted) setState(() => _loading = false);
+      _slowTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _slow = false;
+        });
+      }
     }
   }
+
+  void _hotlines() => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => const CallScreen(guest: true)),
+  );
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -264,7 +299,26 @@ class _LoginScreenState extends State<LoginScreen> {
               busy: _loading,
               onPressed: _loading ? null : _submit,
             ),
-            const SizedBox(height: 26),
+            if (_slow) ...[
+              const SizedBox(height: 10),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  'Still signing in. RepLiT can take up to a minute to wake '
+                  'after a quiet spell.',
+                  style: context.type.caption.copyWith(
+                    color: context.pal.label,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            AppButton.secondary(
+              'Emergency hotlines',
+              icon: AppIcons.call,
+              onPressed: _hotlines,
+            ),
+            const SizedBox(height: 16),
             Panel(
               radius: AppRadius.card,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
@@ -278,8 +332,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Locked out? Every hotline still dials without '
-                      'signing in.',
+                      'Locked out or offline? Hotlines need no account and '
+                      'no internet.',
                       style: context.type.caption.copyWith(
                         color: context.pal.label,
                       ),

@@ -552,11 +552,48 @@ void main() {
       expect(find.text('MARK FIRE OUT'), findsNothing);
       expect(find.text('Reject this Area'), findsNothing);
       await tester.dragUntilVisible(
+        find.text('ROUTE TO THE FIRE'),
+        find.byType(ListView).last,
+        const Offset(0, -200),
+      );
+      expect(find.text('ROUTE TO THE FIRE'), findsOneWidget);
+      await tester.dragUntilVisible(
         find.textContaining('You follow this Area here'),
         find.byType(ListView).last,
         const Offset(0, -200),
       );
       expect(find.textContaining('You follow this Area here'), findsOneWidget);
+      await done(tester);
+    });
+
+    testWidgets('an acknowledged Area: directions, and nothing recorded', (
+      tester,
+    ) async {
+      incidents['a4'] = area('a4', 'Area 4.1', 'verified');
+      await pump(
+        tester,
+        AreaDecisionScreen(areaId: 'a4', me: police, api: api()),
+      );
+      posted.clear();
+      expect(find.text('ROUTE TO THE FIRE'), findsOneWidget);
+      expect(
+        find.text('I AM GOING'),
+        findsNothing,
+        reason: 'going stays theirs',
+      );
+      expect(find.text('REJECT THIS AREA'), findsNothing);
+      await done(tester);
+    });
+
+    testWidgets('an Area nobody accepted yet: Accept first, no route', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        AreaDecisionScreen(areaId: 'a1', me: police, api: api()),
+      );
+      expect(find.text('ACCEPT'), findsOneWidget);
+      expect(find.text('ROUTE TO THE FIRE'), findsNothing);
       await done(tester);
     });
 
@@ -774,8 +811,10 @@ void main() {
     });
 
     test('only a level above the Area can be asked for', () {
-      // The server's ladder, all seven, lowest first.
-      expect(levelsAbove(null), kAlarmLadder);
+      // The server's ladder, lowest first, from 1st alarm: Positive is what a
+      // verified fire starts at, and nobody asks for it.
+      expect(levelsAbove(null), kAlarmLadder.skip(1));
+      expect(levelsAbove(kInitialAlarmLevel), kAlarmLadder.skip(1));
       expect(levelsAbove('second_alarm'), [
         'third_alarm',
         'fourth_alarm',

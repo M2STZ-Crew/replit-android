@@ -303,7 +303,7 @@ class PermissionsScreen extends StatelessWidget {
         can: const [
           (
             'Accept an Area',
-            'Acknowledges it for your organisation when it asks for your '
+            'Acknowledges it for your organization when it asks for your '
                 'agency',
           ),
           ('Merge or keep separate', 'When two Areas overlap'),
@@ -311,11 +311,12 @@ class PermissionsScreen extends StatelessWidget {
             'Follow an Area on LIVE and the map',
             'Its units and its alarm level',
           ),
+          ('Route to an Area', 'Directions, once it has been accepted'),
           ("Make your responders' accounts", 'Under Profile, Responders'),
         ],
         cannot: const [
           ('Reject an Area', 'Fire Volunteer and BFP coordinators'),
-          ('Go to the scene or mark fire out', 'Fire Volunteer and BFP'),
+          ('Respond or mark fire out', 'Fire Volunteer and BFP'),
           ('Press fire codes', 'Fire Volunteer and BFP coordinators'),
           ('File the post-incident report', 'The responding fire team'),
           ('Change the alarm level', 'BFP coordinators only'),

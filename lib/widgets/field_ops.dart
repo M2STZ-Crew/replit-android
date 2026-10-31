@@ -396,7 +396,7 @@ class _SafetyResult extends StatelessWidget {
         pal.ok,
         AppIcons.healthAndSafety,
         'You’re marked safe · $at',
-        'Counted in this Area’s safety roll call.',
+        'Recorded for this fire. You won’t be alerted about it again.',
       ),
       SafetyAnswer.needHelp => (
         pal.live,
@@ -453,8 +453,7 @@ class _SafetyResult extends StatelessWidget {
 /// replaces the three choices with what happened. "I need help" reaches the
 /// responding Coordinator only (§9.4).
 ///
-/// The safety half shows only when [onSafety] is given: no endpoint takes
-/// these answers yet, so the live alert leaves it out.
+/// The safety half shows only when [onSafety] is given.
 class SafetyPromptCard extends StatelessWidget {
   const SafetyPromptCard({
     super.key,
@@ -498,32 +497,10 @@ class SafetyPromptCard extends StatelessWidget {
   /// Why the last answer did not save; the choices stay open to try again.
   final String? safetyError;
 
-  static const _choices = [
-    (
-      SafetyAnswer.safe,
-      'I am safe',
-      'Counts you in the roll call',
-      AppIcons.healthAndSafety,
-    ),
-    (
-      SafetyAnswer.needHelp,
-      'I need help',
-      'The responding Captain sees where you are',
-      AppIcons.frontHand,
-    ),
-    (
-      SafetyAnswer.notInArea,
-      'Not in the area',
-      'No more alerts for this Area',
-      AppIcons.locationOff,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
     final question = context.type.label.copyWith(color: pal.textSoft);
-    final sending = pendingAnswer != null;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -585,42 +562,116 @@ class SafetyPromptCard extends StatelessWidget {
             const SizedBox(height: 14),
             Divider(height: 1, thickness: 1, color: pal.line),
             const SizedBox(height: 14),
-            Text('Are you safe?', style: question),
-            const SizedBox(height: 8),
-            if (answer != null)
-              _SafetyResult(answer: answer!, at: answeredAt ?? '')
-            else ...[
-              for (final (i, (value, label, meta, icon))
-                  in _choices.indexed) ...[
-                if (i > 0) const SizedBox(height: 8),
-                ChoiceRow(
-                  title: label,
-                  meta: meta,
-                  icon: icon,
-                  tint: switch (value) {
-                    SafetyAnswer.safe => pal.ok,
-                    SafetyAnswer.needHelp => pal.live,
-                    SafetyAnswer.notInArea => null,
-                  },
-                  selected: pendingAnswer == value,
-                  onTap: sending ? null : () => onSafety!(value),
-                ),
-              ],
-              if (sending) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Saving your answer…',
-                  style: context.type.detail.copyWith(color: pal.label),
-                ),
-              ],
-              if (safetyError != null) ...[
-                const SizedBox(height: 8),
-                InlineAlert(body: safetyError!, tone: AlertTone.danger),
-              ],
-            ],
+            SafetyQuestion(
+              onAnswer: onSafety!,
+              answer: answer,
+              answeredAt: answeredAt,
+              pendingAnswer: pendingAnswer,
+              error: safetyError,
+            ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// "Are you safe?": the choices, or once answered what the answer did. One tap
+/// sends it, so the choices lock while it goes and a failure leaves them open.
+///
+/// [choices] says which to offer. The live alert offers only "I am safe": the
+/// server does not take the others yet, and "I need help" promises the
+/// responding Captain sees where you are, which must be true before it is said.
+class SafetyQuestion extends StatelessWidget {
+  const SafetyQuestion({
+    super.key,
+    required this.onAnswer,
+    this.choices = SafetyAnswer.values,
+    this.answer,
+    this.answeredAt,
+    this.pendingAnswer,
+    this.error,
+  });
+
+  final ValueChanged<SafetyAnswer> onAnswer;
+  final List<SafetyAnswer> choices;
+
+  /// The answer the server has recorded, and when ("9:43").
+  final SafetyAnswer? answer;
+  final String? answeredAt;
+
+  /// The answer being sent; its row shows selected while it goes.
+  final SafetyAnswer? pendingAnswer;
+
+  /// Why the last answer did not save.
+  final String? error;
+
+  static const _rows = [
+    (
+      SafetyAnswer.safe,
+      'I am safe',
+      'Tell responders you are out of danger',
+      AppIcons.healthAndSafety,
+    ),
+    (
+      SafetyAnswer.needHelp,
+      'I need help',
+      'The responding Captain sees where you are',
+      AppIcons.frontHand,
+    ),
+    (
+      SafetyAnswer.notInArea,
+      'Not in the area',
+      'No more alerts for this Area',
+      AppIcons.locationOff,
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final sending = pendingAnswer != null;
+    final rows = _rows.where((r) => choices.contains(r.$1));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Are you safe?',
+          style: context.type.label.copyWith(color: pal.textSoft),
+        ),
+        const SizedBox(height: 8),
+        if (answer != null)
+          _SafetyResult(answer: answer!, at: answeredAt ?? '')
+        else ...[
+          for (final (i, (value, label, meta, icon)) in rows.indexed) ...[
+            if (i > 0) const SizedBox(height: 8),
+            ChoiceRow(
+              title: label,
+              meta: meta,
+              icon: icon,
+              tint: switch (value) {
+                SafetyAnswer.safe => pal.ok,
+                SafetyAnswer.needHelp => pal.live,
+                SafetyAnswer.notInArea => null,
+              },
+              selected: pendingAnswer == value,
+              onTap: sending ? null : () => onAnswer(value),
+            ),
+          ],
+          if (sending) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Saving your answer…',
+              style: context.type.detail.copyWith(color: pal.label),
+            ),
+          ],
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            InlineAlert(body: error!, tone: AlertTone.danger),
+          ],
+        ],
+      ],
     );
   }
 }
@@ -1529,7 +1580,7 @@ class _RequestSheetState extends State<RequestSheet> {
     final (String title, String body, String send) = switch (widget.type) {
       FieldRequestType.water => (
         'Need water',
-        'Your Admin sees this at once and can ask other organisations for '
+        'Your Admin sees this at once and can ask other organizations for '
             'water.',
         'Send request',
       ),

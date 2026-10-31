@@ -517,7 +517,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
           'confirms it next. Stay somewhere safe — this screen updates as the '
           'incident moves.',
     'verified' =>
-      'Acknowledged. A responding organisation has seen it and is checking. '
+      'Acknowledged. A responding organization has seen it and is checking. '
           'Stay somewhere safe and keep this screen open — it updates as the '
           'incident moves.',
     'declined' =>

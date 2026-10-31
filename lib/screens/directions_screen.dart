@@ -842,7 +842,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           padding: const EdgeInsets.only(bottom: 12),
           child: Semantics(
             button: true,
-            label: 'Re-centre',
+            label: 'Re-center',
             excludeSemantics: true,
             child: Material(
               color: context.pal.surfaceSolid,
@@ -865,7 +865,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                         color: context.pal.info,
                       ),
                       const SizedBox(width: 8),
-                      Text('Re-centre', style: context.type.label),
+                      Text('Re-center', style: context.type.label),
                     ],
                   ),
                 ),

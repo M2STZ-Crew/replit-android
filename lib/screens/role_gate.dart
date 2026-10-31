@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
 import '../api/session.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import 'call_screen.dart';
 import 'coordinator/coordinator_shell.dart';
 import 'login_screen.dart';
 import '../models/active_report.dart';
@@ -43,16 +46,33 @@ class _RoleGateState extends State<RoleGate> {
   Map<String, dynamic>? _me;
   String? _error;
 
+  /// The account is taking a while: say why, and offer the hotlines.
+  bool _slow = false;
+  Timer? _slowTimer;
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
+  @override
+  void dispose() {
+    _slowTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _load() async {
-    setState(() => _error = null);
+    setState(() {
+      _error = null;
+      _slow = false;
+    });
+    _slowTimer?.cancel();
+    _slowTimer = Timer(ApiClient.slowAfter, () {
+      if (mounted) setState(() => _slow = true);
+    });
     try {
-      final me = await _api.getMe();
+      final me = await _api.getMe().timeout(ApiClient.signInTimeout);
       if (mounted) setState(() => _me = me);
     } on SessionExpiredException {
       // The stored session was too old to renew. The client has already cleared
@@ -61,8 +81,21 @@ class _RoleGateState extends State<RoleGate> {
       await _signInAgain();
     } catch (_) {
       if (mounted) setState(() => _error = 'Could not load your account.');
+    } finally {
+      _slowTimer?.cancel();
     }
   }
+
+  /// No account yet, and maybe no signal: the hotlines need neither.
+  Widget _hotlinesLink() => TextButton(
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const CallScreen(guest: true)),
+    ),
+    child: Text(
+      'Emergency hotlines',
+      style: TextStyle(color: context.pal.accent, fontWeight: FontWeight.w700),
+    ),
+  );
 
   /// Drop whatever is stored and start again at the login screen.
   ///
@@ -107,6 +140,7 @@ class _RoleGateState extends State<RoleGate> {
                 style: TextStyle(color: context.pal.muted),
               ),
             ),
+            _hotlinesLink(),
           ],
         ),
       );
@@ -114,7 +148,31 @@ class _RoleGateState extends State<RoleGate> {
     final me = _me;
     if (me == null) {
       return _shell(
-        child: CircularProgressIndicator(color: context.pal.accent),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: context.pal.accent),
+            if (_slow) ...[
+              const SizedBox(height: 18),
+              Semantics(
+                liveRegion: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    'Still connecting. RepLiT can take up to a minute to wake '
+                    'after a quiet spell.',
+                    textAlign: TextAlign.center,
+                    style: context.type.caption.copyWith(
+                      color: context.pal.label,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              _hotlinesLink(),
+            ],
+          ],
+        ),
       );
     }
     final role = me['role'] as String?;

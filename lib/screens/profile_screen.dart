@@ -48,6 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _sounds = true;
   bool _alertsBusy = false;
   bool _testing = false;
+  String? _testNote;
   bool _loggingOut = false;
 
   @override
@@ -138,21 +139,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (on) SoundCues.instance.playReportSent();
   }
 
+  /// The answer goes on the row, not in a banner: the test alert itself
+  /// arrives as a banner (or in the shade) moments later, and a second banner
+  /// would queue behind it and hold the screen for its whole run.
   Future<void> _sendTest() async {
-    setState(() => _testing = true);
-    String message;
+    setState(() {
+      _testing = true;
+      _testNote = null;
+    });
+    String note;
     try {
-      message = await _api.sendTestPush();
+      await _api.sendTestPush();
+      note = 'Sent. It should reach this phone in a few seconds.';
     } on ApiException catch (e) {
-      message = e.message;
+      note = e.message;
     } catch (_) {
-      message = 'Could not send a test alert.';
+      note = 'Could not send a test alert. Check your signal.';
     }
     if (!mounted) return;
-    setState(() => _testing = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    setState(() {
+      _testing = false;
+      _testNote = note;
+    });
   }
 
   Future<void> _logout() async {
@@ -265,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 _Toggle(
                   title: 'Barangay alerts',
-                  line: 'Fires reported within 300 m, and news on your reports',
+                  line: 'Fires reported within 150 m, and news on your reports',
                   value: _alerts,
                   busy: _alertsBusy,
                   onChanged: _setAlerts,
@@ -290,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 _Link(
                   title: 'Send a test alert',
-                  line: 'Check this phone receives them',
+                  line: _testNote ?? 'Check this phone receives them',
                   busy: _testing,
                   onTap: _testing ? null : _sendTest,
                 ),
@@ -310,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 8),
                 _Link(
-                  title: 'Help centre',
+                  title: 'Help center',
                   line: 'How reporting works, and what happens next',
                   onTap: () => _push(const HelpCenterScreen()),
                 ),

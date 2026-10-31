@@ -261,7 +261,6 @@ class _SubAdminIncidentCommandScreenState
 
   Future<void> _escalateBfp() async {
     const levels = <(String, String)>[
-      ('positive_fire_alarm', 'Positive Fire Alarm'),
       ('first_alarm', 'First Alarm'),
       ('second_alarm', 'Second Alarm'),
       ('general_alarm', 'General Alarm'),

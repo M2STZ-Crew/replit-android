@@ -953,7 +953,7 @@ class _MapScreenState extends State<MapScreen> {
         : 'GPS accurate to ${_accuracy!.round()} m';
     return Semantics(
       button: true,
-      label: '$title. $caption. Tap to centre the map on you.',
+      label: '$title. $caption. Tap to center the map on you.',
       excludeSemantics: true,
       child: GestureDetector(
         onTap: _recenter,
@@ -965,19 +965,10 @@ class _MapScreenState extends State<MapScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    // DAWI "LOCATION": the coral gradient, a white pin.
-                    gradient: context.pal.accentGradient,
-                    borderRadius: BorderRadius.circular(AppRadius.control),
-                  ),
-                  child: const Icon(
-                    AppIcons.locationOn,
-                    size: 20,
-                    color: Colors.white,
-                  ),
+                const CoralPlate(
+                  AppIcons.locationOn,
+                  size: 44,
+                  radius: AppRadius.control,
                 ),
                 const SizedBox(width: 14),
                 Flexible(
@@ -997,7 +988,7 @@ class _MapScreenState extends State<MapScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: context.type.caption.copyWith(
-                          color: context.pal.label,
+                          color: context.pal.textSoft,
                         ),
                       ),
                     ],

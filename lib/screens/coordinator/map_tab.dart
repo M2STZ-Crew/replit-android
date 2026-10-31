@@ -259,19 +259,7 @@ class _MapTabState extends State<MapTab> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: AppColors.accentGradient,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                AppIcons.locationOn,
-                size: 20,
-                color: AppColors.accentText,
-              ),
-            ),
+            const CoralPlate(AppIcons.locationOn),
             const SizedBox(width: 12),
             Flexible(
               child: Column(

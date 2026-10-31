@@ -268,6 +268,7 @@ void main() {
   group('the 150 m alert', () {
     late List<http.Request> seen;
     late bool answerFails;
+    late Map<String, dynamic> answer;
 
     ApiClient api() => ApiClient(
       client: MockClient((req) async {
@@ -276,6 +277,9 @@ void main() {
           return answerFails
               ? http.Response('{"detail":"down"}', 503)
               : http.Response('{"message":"ok"}', 200);
+        }
+        if (req.url.path.endsWith('/notifications/respond/a1')) {
+          return http.Response(jsonEncode(answer), 200);
         }
         return http.Response(
           jsonEncode({
@@ -334,6 +338,7 @@ void main() {
     setUp(() {
       seen = [];
       answerFails = false;
+      answer = {'response': null, 'responded_at': null, 'can_say_safe': true};
     });
 
     for (final scale in <double>[1.0, 1.5]) {
@@ -353,6 +358,88 @@ void main() {
         expect(find.text('NO, AND STOP ASKING ABOUT THIS'), findsOneWidget);
       });
     }
+
+    group('"I am safe"', () {
+      List<String> posted() => [
+        for (final r in seen)
+          if (r.method == 'POST') r.body,
+      ];
+
+      Future<void> tapSafe(WidgetTester tester) async {
+        await tester.ensureVisible(find.text('I am safe'));
+        await tester.tap(find.text('I am safe'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      testWidgets('is there for a resident the alert reached', (tester) async {
+        await open(tester);
+        expect(find.text('Are you safe?'), findsOneWidget);
+        expect(find.text('I am safe'), findsOneWidget);
+        expect(find.text('Need help now? Call 911'), findsOneWidget);
+        expect(posted(), isEmpty, reason: 'being alerted says nothing');
+        // Not offered until the server takes it, and a promise it must keep.
+        expect(find.text('I need help'), findsNothing);
+      });
+
+      testWidgets('sends "safe" once and says it was recorded', (tester) async {
+        await open(tester);
+        await tapSafe(tester);
+        expect(posted().single, contains('"response":"safe"'));
+        expect(posted().single, contains('"area_id":"a1"'));
+        expect(find.textContaining('marked safe'), findsOneWidget);
+        expect(
+          find.text('I am safe'),
+          findsNothing,
+          reason: 'nothing to resend',
+        );
+        expect(find.text('NO, AND STOP ASKING ABOUT THIS'), findsNothing);
+        expect(find.text('CLOSE'), findsOneWidget);
+        expect(find.text('YES, I CAN SEE IT'), findsOneWidget);
+      });
+
+      testWidgets('a failed answer says so, and can be tried again', (
+        tester,
+      ) async {
+        answerFails = true;
+        await open(tester);
+        await tapSafe(tester);
+        expect(find.textContaining('marked safe'), findsNothing);
+        expect(find.text('Your answer was not recorded.'), findsOneWidget);
+        expect(find.text('I am safe'), findsOneWidget);
+
+        answerFails = false;
+        await tapSafe(tester);
+        expect(find.textContaining('marked safe'), findsOneWidget);
+      });
+
+      testWidgets('coming back shows the answer, not the question', (
+        tester,
+      ) async {
+        answer = {
+          'response': 'safe',
+          'responded_at': DateTime.now().toUtc().toIso8601String(),
+          'can_say_safe': false,
+        };
+        await open(tester);
+        expect(find.textContaining('marked safe'), findsOneWidget);
+        expect(find.text('I am safe'), findsNothing);
+        expect(posted(), isEmpty);
+      });
+
+      testWidgets('someone the alert did not reach is not asked', (
+        tester,
+      ) async {
+        answer = {
+          'response': null,
+          'responded_at': null,
+          'can_say_safe': false,
+        };
+        await open(tester);
+        expect(find.text('Are you safe?'), findsNothing);
+        expect(find.text('YES, I CAN SEE IT'), findsOneWidget);
+      });
+    });
 
     testWidgets('"No" tells the server to stop asking, and closes', (
       tester,

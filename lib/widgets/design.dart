@@ -112,6 +112,29 @@ class _LabeledFieldState extends State<LabeledField> {
   );
 }
 
+/// The coral plate a map card leads with: where a resident is, a team, a unit.
+/// One treatment for every role: the app's ink on the coral gradient, about
+/// 6:1 ([AppColors.accentText], "text on the coral gradient"). White on the same
+/// gradient is about 2:1, too faint for a glyph someone has to find quickly.
+class CoralPlate extends StatelessWidget {
+  const CoralPlate(this.icon, {super.key, this.size = 40, this.radius = 8});
+
+  final IconData icon;
+  final double size;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      gradient: AppColors.accentGradient,
+      borderRadius: BorderRadius.circular(radius),
+    ),
+    child: Icon(icon, size: 20, color: AppColors.accentText),
+  );
+}
+
 /// A text button (04 · Text button): Type/Label in the accent, sentence case
 /// — a question or an instruction is not a name — over a 44 px target.
 class TextLink extends StatelessWidget {

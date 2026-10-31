@@ -59,6 +59,9 @@ void main() {
 
   ApiClient api() => ApiClient(
     client: MockClient((req) async {
+      // The sign-in screen wakes the server as it opens; that says nothing
+      // about what the screen sends.
+      if (req.url.path == '/health') return json(200, {'status': 'ok'});
       final body = req.body.isEmpty
           ? <String, dynamic>{}
           : jsonDecode(req.body) as Map<String, dynamic>;

@@ -185,7 +185,7 @@ List<Hotline> kHotlines = [
   ),
   Hotline(
     name: 'NDRRMC',
-    summary: 'National disaster operations centre',
+    summary: 'National disaster operations center',
     description:
         'National disaster operations center for typhoons, floods, '
         'earthquakes, and large-scale emergencies.',
