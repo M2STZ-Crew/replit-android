@@ -1,13 +1,13 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../api/api_client.dart';
 import '../theme.dart';
 import '../widgets/coordinator_kit.dart' show CheckRow;
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
+import 'id_camera_screen.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -37,7 +37,6 @@ class NationalIdScreen extends StatefulWidget {
 
 class _NationalIdScreenState extends State<NationalIdScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
-  final ImagePicker _picker = ImagePicker();
 
   Uint8List? _idBytes;
   Uint8List? _qrBytes;
@@ -58,38 +57,18 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   /// physically hold the document, which is the whole point of asking for a
   /// matching selfie alongside it.
   ///
-  /// [front] opens the selfie lens.
-  ///
-  /// Capped at 1600px and 70% quality: an ID has to stay legible enough for an
-  /// administrator to read, but a full-resolution phone photo is several
-  /// megabytes of upload over mobile data. [qr] keeps more: PhilSys Check has
-  /// to read every square of the code, and an ePhilID's are small.
-  Future<Uint8List?> _capture({bool front = false, bool qr = false}) async {
+  /// Null means they closed the camera, which is not an error. A camera that
+  /// cannot start says so on its own screen.
+  Future<Uint8List?> _capture(IdShot shot) async {
     final camera = widget.camera;
     if (camera != null) return camera();
-    try {
-      final shot = await _picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: front ? CameraDevice.front : CameraDevice.rear,
-        imageQuality: qr ? 90 : 70,
-        maxWidth: qr ? 2000 : 1600,
-      );
-      if (shot == null) return null; // backed out — not an error
-      return shot.readAsBytes();
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _error =
-              'Could not open the camera. Check the app permissions in your '
-              'phone settings.',
-        );
-      }
-      return null;
-    }
+    return Navigator.of(context).push<Uint8List>(
+      MaterialPageRoute(builder: (_) => IdCameraScreen(shot: shot)),
+    );
   }
 
   Future<void> _pickId() async {
-    final bytes = await _capture();
+    final bytes = await _capture(IdShot.card);
     if (bytes == null || !mounted) return;
     setState(() {
       _idBytes = bytes;
@@ -98,7 +77,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   }
 
   Future<void> _pickQr() async {
-    final bytes = await _capture(qr: true);
+    final bytes = await _capture(IdShot.qr);
     if (bytes == null || !mounted) return;
     setState(() {
       _qrBytes = bytes;
@@ -107,7 +86,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   }
 
   Future<void> _pickSelfie() async {
-    final bytes = await _capture(front: true);
+    final bytes = await _capture(IdShot.selfie);
     if (bytes == null || !mounted) return;
     setState(() {
       _selfieBytes = bytes;
@@ -190,7 +169,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               const SizedBox(height: 12),
               _uploadSlot(
                 label: 'QR code',
-                hint: 'On the back of the card. Fill the photo with it.',
+                hint: 'On the back of the card. Tap to photograph it.',
                 icon: AppIcons.photoCamera,
                 bytes: _qrBytes,
                 onTap: _pickQr,
@@ -285,7 +264,8 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.memory(bytes, fit: BoxFit.cover),
+                  // Smaller than the photo: the QR one is a 4K frame.
+                  Image.memory(bytes, fit: BoxFit.cover, cacheWidth: 1000),
                   Positioned(
                     top: 10,
                     right: 10,

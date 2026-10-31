@@ -6,6 +6,24 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.22 — 31 October 2026 — The National ID camera from Figma
+
+App-only, UI. The backend stays at v1.12.18.
+
+### Changes
+
+- **The National ID photos open the Figma camera** ("20 National ID · ID photo",
+  460:4632, and "20B · Selfie", 464:1209) instead of the phone's own camera app:
+  close button, title, step, guide frame, hint, 76 px shutter and the camera-only
+  note. Figma has no QR frame, so that step is frame 20 with a square guide, and
+  the steps read 1 to 3.
+- The viewfinder is darkened around the guide, so the words stay readable over a
+  live scene. The flash stays off, and the cached file is deleted after capture.
+- The QR photo is taken at 4K, the other two at 1080p. `image_picker` is gone: this
+  screen was its only user.
+
+---
+
 ## v1.12.9 — 15 October 2026 — Turn-by-turn navigation to the fire
 
 App-only. The backend stays at v1.12.6. Implements PRD v12 §4.9 (route
