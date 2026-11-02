@@ -1,0 +1,124 @@
+# Build an UNSIGNED iOS app on GitHub's Macs, so nobody needs a MacBook. Each
+# tester signs it on Windows with their own free Apple ID (Sideloadly).
+# One-time setup and the Windows steps: docs/ios-sideload.md
+name: iOS unsigned IPA
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch:
+
+# Same as the Android workflow: public repository, no pull_request trigger, so a
+# fork can never run with the secrets.
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-unsigned-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.44.4"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check the secrets and variables are set
+        env:
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          IPA_ZIP_PASSWORD: ${{ secrets.IPA_ZIP_PASSWORD }}
+          REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
+        run: |
+          missing=()
+          for name in MAPBOX_TOKEN IPA_ZIP_PASSWORD; do
+            [ -n "${!name}" ] || missing+=("secret $name")
+          done
+          [ -n "$REPLIT_API_BASE" ] || missing+=("variable REPLIT_API_BASE")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Not set: ${missing[*]}. See docs/ios-sideload.md."
+            exit 1
+          fi
+          case "$REPLIT_API_BASE" in
+            https://*) ;;
+            *)
+              echo "::error::REPLIT_API_BASE must start with https:// — iOS blocks plain http."
+              exit 1
+              ;;
+          esac
+
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        run: flutter pub get
+
+      - name: Write the build configuration from secrets
+        env:
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
+        run: |
+          # No GoogleService-Info.plist: a free Apple ID cannot sign the push
+          # entitlement, so push is off on sideloaded builds either way. main.dart
+          # already runs without Firebase.
+          jq -n \
+            --arg mapbox "$MAPBOX_TOKEN" \
+            --arg api "${REPLIT_API_BASE%/}" \
+            '{MAPBOX_TOKEN: $mapbox, REPLIT_API_BASE: $api}' \
+            > env.json
+
+      - name: Build the app without signing
+        run: >-
+          flutter build ios --release --no-codesign
+          --dart-define-from-file=env.json
+          --build-number=${{ github.run_number }}
+
+      - name: Package the IPA and check the compiled-in backend
+        env:
+          REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
+        run: |
+          app=build/ios/iphoneos/Runner.app
+          host="${REPLIT_API_BASE#https://}"
+          host="${host%%/*}"
+          if ! grep -a -q -F "$host" "$app/Frameworks/App.framework/App"; then
+            echo "::error::$host is not compiled into the app, so env.json was not applied."
+            exit 1
+          fi
+
+          # An .ipa is just Payload/Runner.app zipped.
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$app" "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry "$RUNNER_TEMP/Replit-${{ github.run_number }}.ipa" Payload)
+          echo "Built Replit-${{ github.run_number }}.ipa against $host."
+
+      - name: Encrypt the IPA
+        env:
+          IPA_ZIP_PASSWORD: ${{ secrets.IPA_ZIP_PASSWORD }}
+        run: |
+          # The repository is public, so any GitHub user can download a run's
+          # artifacts. AES-256 7z with encrypted file names: only people given the
+          # password can install the app and send reports into the live system.
+          brew list p7zip >/dev/null 2>&1 || brew install p7zip
+          7z a -t7z -mhe=on -p"$IPA_ZIP_PASSWORD" \
+            "$RUNNER_TEMP/Replit-ios-${{ github.run_number }}.7z" \
+            "$RUNNER_TEMP/Replit-${{ github.run_number }}.ipa" >/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Replit-ios-${{ github.run_number }}
+          path: ${{ runner.temp }}/Replit-ios-${{ github.run_number }}.7z
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Remove the secret files
+        if: always()
+        run: rm -f env.json "$RUNNER_TEMP"/Replit-*.ipa
