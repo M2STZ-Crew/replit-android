@@ -9,7 +9,6 @@ import '../api/report_queue.dart';
 import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
 import '../models/active_report.dart';
-import '../sound/sound_cues.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
@@ -165,9 +164,8 @@ class _SosReportScreenState extends State<SosReportScreen> {
       timing.mark('server_ack');
       timing.finish(outcome: 'sent');
       if (!mounted) return;
-      // "Salamat!" (v10 §2.8) — not awaited, so the sound never holds up the
-      // status screen.
-      SoundCues.instance.playReportSent();
+      // No sound: Reported is the one stage a resident does not hear
+      // (v1.12.23). The first recording plays when the incident is verified.
       await _showSuccess(data, agencies, pos);
     } on ApiException catch (e) {
       timing.finish(outcome: 'rejected');

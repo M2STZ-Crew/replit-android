@@ -1,27 +1,26 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The app's sounds.
+/// The app's sounds: the alert recordings (v1.12.9: the recordings chosen for
+/// the pilot), for a push that arrives while the app is open. The push names
+/// its sound in `sound_category` — fire, police, medical, barangay, citizen,
+/// or a stage of an incident the resident reported: verified, on_route,
+/// on_scene, fire_out. With the app closed the phone plays the same recording
+/// itself, from that sound's notification channel
+/// (android/.../res/raw/`sound_<category>.mp3` — keep them the same as
+/// assets/sounds/; test/sound_files_test.dart checks).
 ///
-/// - A short "salamat!" cue when a report submits successfully (Master Context
-///   v10 §2.8). `assets/sounds/report_sent.wav` is a synthesized three-note
-///   placeholder (sa · la · mat); replace that file when the recording
-///   exists. Residents can turn it off in Notification settings.
-/// - The alert sounds (v1.12.9: the recordings chosen for the pilot), for a
-///   push that arrives while the app is open. The push names its sound in
-///   `sound_category` — fire, police, medical, barangay, or citizen. With the
-///   app closed the phone plays the same recording itself, from that sound's
-///   notification channel (android/.../res/raw/`sound_<category>.mp3` — keep
-///   them the same as assets/sounds/).
+/// v1.12.23: sending a report plays nothing. Reported is the one stage with no
+/// sound — the first a resident hears is when the incident is verified — and
+/// the cue that played on sending (v10 §2.8's "salamat!", by then a recording
+/// in the same voice as the stages) went, with its two switches.
 class SoundCues {
   SoundCues._();
 
   static final SoundCues instance = SoundCues._();
 
-  static const String _prefKey = 'sound.report_sent';
   static const String _fireKey = 'sound.fire_alarm';
   static const String _fireVolumeKey = 'sound.fire_alarm_volume';
-  static const String _asset = 'sounds/report_sent.wav';
   static const Set<String> categories = {
      'fire',
       'police',
@@ -53,31 +52,7 @@ class SoundCues {
     ),
   );
 
-  AudioPlayer? _player;
   AudioPlayer? _firePlayer;
-
-  Future<bool> reportSentEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_prefKey) ?? true;
-  }
-
-  Future<void> setReportSentEnabled(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKey, value);
-  }
-
-  /// Play the "report sent" cue, unless the resident turned it off. Never
-  /// throws: a sound that fails to play must not look like a failed report.
-  Future<void> playReportSent() async {
-    try {
-      if (!await reportSentEnabled()) return;
-      final player = _player ??= AudioPlayer(playerId: 'report_sent');
-      await player.stop();
-      await player.play(AssetSource(_asset), mode: PlayerMode.lowLatency);
-    } catch (_) {
-      // Muted device, no audio focus, missing codec — the report still went.
-    }
-  }
 
   /// Whether alert sounds play in the app (the coordinator's Profile).
   /// With the app closed, the phone's notification channels decide.
