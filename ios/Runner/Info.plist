@@ -27,15 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Replit uses the camera to photograph the incident you are reporting.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Replit lets you attach a photo of the incident from your library.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Replit does not record audio; iOS asks because the camera can.</string>
+	<string>Replit uses the camera to photograph an incident you report and to verify your National ID.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Replit sends your location with a report so responders can find you.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>While you are responding, Replit shares your location so the reporter can see you arrive.</string>
+	<string>Replit uses your location to show you on the map and to send it with a report or a response, so help can find you.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

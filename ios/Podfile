@@ -1,4 +1,4 @@
-# Firebase's iOS SDK needs iOS 15. Matches IPHONEOS_DEPLOYMENT_TARGET in Runner.
+# Firebase's iOS SDK needs iOS 15, as does IPHONEOS_DEPLOYMENT_TARGET in Runner.
 platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
@@ -39,8 +39,5 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-    target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-    end
   end
 end
