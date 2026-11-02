@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
 import '../api/push_service.dart';
-import '../sound/sound_cues.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
@@ -24,7 +23,6 @@ class _NotificationSettingsScreenState
   bool _enabled = true;
   bool _busy = false;
   bool _testing = false;
-  bool _reportSound = true;
 
   @override
   void initState() {
@@ -34,20 +32,7 @@ class _NotificationSettingsScreenState
 
   Future<void> _load() async {
     final enabled = await PushService.instance.isEnabled();
-    final sound = await SoundCues.instance.reportSentEnabled();
-    if (mounted) {
-      setState(() {
-        _enabled = enabled;
-        _reportSound = sound;
-      });
-    }
-  }
-
-  Future<void> _toggleReportSound(bool value) async {
-    setState(() => _reportSound = value);
-    await SoundCues.instance.setReportSentEnabled(value);
-    // Let the resident hear what they just turned on.
-    if (value) SoundCues.instance.playReportSent();
+    if (mounted) setState(() => _enabled = enabled);
   }
 
   Future<void> _toggle(bool value) async {
@@ -98,8 +83,6 @@ class _NotificationSettingsScreenState
               _topBar(),
               const SizedBox(height: 24),
               _toggleCard(),
-              const SizedBox(height: 12),
-              _soundCard(),
               const SizedBox(height: 16),
               _testButton(),
               const SizedBox(height: 20),
@@ -153,44 +136,6 @@ class _NotificationSettingsScreenState
           ),
           const SizedBox(width: 10),
           Switch(value: _enabled, onChanged: _busy ? null : _toggle),
-        ],
-      ),
-    );
-  }
-
-  /// The "salamat!" cue when a report goes through (v10 §2.8).
-  Widget _soundCard() {
-    return Panel(
-      padding: const EdgeInsets.all(18),
-      color: context.pal.glassDim,
-      child: Row(
-        children: [
-          IconWell(
-            tint: context.pal.ok,
-            icon: AppIcons.volumeUp,
-            size: 44,
-            glyph: 22,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'REPORT SENT SOUND',
-                  style: context.type.cardTitle.copyWith(fontSize: 14),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'A short “salamat!” when your report reaches responders.',
-                  style: context.type.meta.copyWith(height: 15 / 11),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Switch(value: _reportSound, onChanged: _toggleReportSound),
         ],
       ),
     );

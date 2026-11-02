@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../sound/sound_cues.dart';
 import 'api_client.dart';
 
 /// A report that could not reach the server, saved on the phone to send later.
@@ -228,7 +227,6 @@ class ReportQueue {
           sent++;
           await _remove(report);
           _delivered.add(report);
-          SoundCues.instance.playReportSent();
         } else if (outcome == _Outcome.refused) {
           await _remove(report);
         }

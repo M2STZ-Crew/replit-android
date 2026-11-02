@@ -5,7 +5,6 @@ import '../app_version.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
 import '../models/verification_state.dart';
-import '../sound/sound_cues.dart';
 import '../theme.dart';
 import '../theme_choice.dart';
 import '../widgets/app_nav_bar.dart';
@@ -24,8 +23,9 @@ import '../widgets/app_icons.dart';
 /// Wired to GET /auth/me (name, email, mobile) and GET /verification/status
 /// (the ring, the badge, and which step to suggest next). Settings are only
 /// the ones that do something: "Barangay alerts" registers or unregisters this
-/// phone for pushes, and "Notification sounds" is the "salamat" cue (v10
-/// §2.8). The frame's "Share location always" and "Language" are left out —
+/// phone for pushes. "Notification sounds" went with the "salamat" cue it
+/// switched (v1.12.23: sending a report plays nothing). The frame's "Share
+/// location always" and "Language" are left out —
 /// there is no background sharing for residents and no second language yet,
 /// and a switch that changes nothing is a lie (§2.7.1). Below the frame: your
 /// reports, the notification inbox (the bell moved here from the SOS screen),
@@ -45,7 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _me;
   VerificationState _verification = VerificationState.empty;
   bool _alerts = true;
-  bool _sounds = true;
   bool _alertsBusy = false;
   bool _testing = false;
   String? _testNote;
@@ -74,13 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     try {
       final alerts = await PushService.instance.isEnabled();
-      final sounds = await SoundCues.instance.reportSentEnabled();
-      if (mounted) {
-        setState(() {
-          _alerts = alerts;
-          _sounds = sounds;
-        });
-      }
+      if (mounted) setState(() => _alerts = alerts);
     } catch (_) {
       // Keep the defaults.
     }
@@ -130,13 +123,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     await PushService.instance.setEnabled(on);
     if (mounted) setState(() => _alertsBusy = false);
-  }
-
-  Future<void> _setSounds(bool on) async {
-    setState(() => _sounds = on);
-    await SoundCues.instance.setReportSentEnabled(on);
-    // Let the resident hear what they just turned on.
-    if (on) SoundCues.instance.playReportSent();
   }
 
   /// The answer goes on the row, not in a banner: the test alert itself
@@ -277,13 +263,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   value: _alerts,
                   busy: _alertsBusy,
                   onChanged: _setAlerts,
-                ),
-                const SizedBox(height: 8),
-                _Toggle(
-                  title: 'Notification sounds',
-                  line: 'A short cue when a report sends',
-                  value: _sounds,
-                  onChanged: _setSounds,
                 ),
                 const SizedBox(height: 8),
                 _Toggle(

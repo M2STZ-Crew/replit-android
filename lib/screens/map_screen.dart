@@ -33,6 +33,10 @@ const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
 /// How far "near you" reaches in the areas sheet: the frame's "Within 1.5 km".
 const double _nearMetres = 1500;
 
+/// How long the map waits on the GPS for its first fix before saying it has
+/// none: as long as the SOS screen waits (`SosLocation.freshLimit`).
+const Duration _fixWait = Duration(seconds: 20);
+
 // The panels over the map are Glass (chips, the place card) or Glass strong
 // (the areas sheet, the offline card): see MapGlass for the rules.
 
@@ -206,6 +210,10 @@ class _MapScreenState extends State<MapScreen> {
   bool _offline = false;
   bool _retrying = false;
 
+  /// A full read of GET /areas has come back. Until one has, an empty list
+  /// means "not known yet", not "nothing active".
+  bool _areasLoaded = false;
+
   final Set<String> _on = {'incidents', 'evac'};
   List<Map<String, dynamic>> _areas = [];
   List<Map<String, dynamic>> _evac = [];
@@ -215,6 +223,13 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _myLoc;
   double? _accuracy;
   String? _street;
+
+  /// The first fix is still being asked for. Until it answers, the areas
+  /// sheet cannot say what is near, so it says it is checking.
+  bool _locating = true;
+
+  /// Why there is no fix, once the GPS has said it cannot give one.
+  String? _locationProblem;
 
   /// Street names for nearby areas, by area id. A null entry means "asked,
   /// no answer" — the geocoder is not asked twice for the same area.
@@ -339,6 +354,7 @@ class _MapScreenState extends State<MapScreen> {
       if (!mounted) return;
       setState(() {
         _areas = areas;
+        _areasLoaded = true;
         _offline = false;
       });
       _lookUpAreaStreets();
@@ -435,23 +451,41 @@ class _MapScreenState extends State<MapScreen> {
 
   // ----------------------------------------------------------- location ---
   /// Best-effort GPS. Never blocks the map; on success optionally recentres.
+  /// While it asks, [_locating] keeps the areas sheet on "checking"; when it
+  /// cannot have a fix, [_locationProblem] says why.
   Future<void> _locateQuietly({required bool recenter}) async {
+    if (mounted && _myLoc == null) {
+      setState(() {
+        _locating = true;
+        _locationProblem = null;
+      });
+    }
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return;
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _noFix('Location is off. Turn it on to see active areas near you.');
+        return;
+      }
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied ||
           perm == LocationPermission.deniedForever) {
+        _noFix(
+          'Location permission is off. Allow it to see active areas near you.',
+        );
         return;
       }
-      final pos = await Geolocator.getCurrentPosition();
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(timeLimit: _fixWait),
+      );
       final here = LatLng(pos.latitude, pos.longitude);
       if (!mounted) return;
       setState(() {
         _myLoc = here;
         _accuracy = pos.accuracy;
+        _locating = false;
+        _locationProblem = null;
       });
       // Also where the live stream starts, now that permission is settled.
       LivePosition.instance.offer(here, accuracy: pos.accuracy);
@@ -460,9 +494,30 @@ class _MapScreenState extends State<MapScreen> {
       _street = await _streetAt(here);
       if (mounted) setState(() {});
       _lookUpAreaStreets();
+    } on PermissionRequestInProgressException {
+      // Another screen is asking this moment (the push set-up does at sign-
+      // in). Ask again once it has its answer, rather than call it refused.
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted && _myLoc == null) {
+          unawaited(_locateQuietly(recenter: recenter));
+        }
+      });
     } catch (_) {
       // ignore — map stays on its current view
+      _noFix(
+        'Could not find your location yet. Move near a window or outdoors.',
+      );
     }
+  }
+
+  /// No fix to measure from: the sheet says why, unless one arrived some
+  /// other way in the meantime (the position stream, [_onMoved]).
+  void _noFix(String why) {
+    if (!mounted || _myLoc != null) return;
+    setState(() {
+      _locating = false;
+      _locationProblem = why;
+    });
   }
 
   /// Where [_street] was looked up, so it is looked up again only after a
@@ -477,6 +532,8 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       _myLoc = here;
       _accuracy = LivePosition.instance.accuracy ?? _accuracy;
+      _locating = false;
+      _locationProblem = null;
     });
     final from = _streetFrom;
     if (from != null && metresBetween(from, here) > 150) {
@@ -543,21 +600,27 @@ class _MapScreenState extends State<MapScreen> {
   static String _formatDistance(double metres) => formatDistance(metres);
 
   /// Areas within 1.5 km, nearest first. With no fix nothing can be measured,
-  /// so the newest two stand in (the list arrives newest first).
-  List<({Map<String, dynamic> area, double? metres})> _nearbyAreas() {
+  /// so nothing is called near. (Before v1.12.23 the newest two stood in, and
+  /// a resident signing in saw two Areas anywhere in the city listed as
+  /// "near you" until the GPS answered.) The map still draws every Area.
+  List<({Map<String, dynamic> area, double metres})> _nearbyAreas() {
+    final me = _myLoc;
+    if (me == null) return const [];
     final measured = [
       for (final a in _areas)
         (
           area: a,
-          metres: _metresTo(
-            (a['centroid_lat'] as num).toDouble(),
-            (a['centroid_lng'] as num).toDouble(),
+          metres: metresBetween(
+            me,
+            LatLng(
+              (a['centroid_lat'] as num).toDouble(),
+              (a['centroid_lng'] as num).toDouble(),
+            ),
           ),
         ),
     ];
-    if (_myLoc == null) return measured.take(2).toList();
-    return (measured.where((e) => e.metres! <= _nearMetres).toList()
-          ..sort((x, y) => x.metres!.compareTo(y.metres!)))
+    return (measured.where((e) => e.metres <= _nearMetres).toList()
+          ..sort((x, y) => x.metres.compareTo(y.metres)))
         .take(2)
         .toList();
   }
@@ -1145,12 +1208,10 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 const SizedBox(width: 6),
               ],
+              // The sheet only ever lists what is within 1.5 km: with no
+              // fix it lists nothing, rather than the city under this name.
               Eyebrow(
-                offline
-                    ? 'Offline'
-                    : _myLoc == null
-                    ? 'Pasay City'
-                    : 'Within 1.5 km',
+                offline ? 'Offline' : 'Within 1.5 km',
                 color: context.pal.muted,
               ),
             ],
@@ -1171,28 +1232,47 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  /// Nothing is named until both answers are in: the server's areas and the
+  /// phone's fix. Until then the sheet says it is checking; without a fix, or
+  /// without the areas, it says which is missing.
   List<Widget> _nearbyRows() {
+    if (_loading || (_myLoc == null && _locating)) {
+      return [
+        _sheetNote('Checking what is happening around you…'),
+        const _CheckingRow(),
+      ];
+    }
+    if (!_areasLoaded) {
+      return [
+        _sheetNote(
+          'Active areas could not be loaded. The map tries again every 15 seconds.',
+        ),
+      ];
+    }
+    if (_myLoc == null) {
+      return [
+        _sheetNote(
+          _locationProblem ??
+              'Could not find your location yet. Move near a window or outdoors.',
+        ),
+      ];
+    }
     final near = _nearbyAreas();
     final shelter = _nearestOpenShelter();
     return [
       if (near.isEmpty)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            _loading
-                ? 'Checking what is happening around you…'
-                : _myLoc == null
-                ? 'Nothing active in Pasay City right now. That is the good outcome.'
-                : 'Nothing active within 1.5 km. That is the good outcome.',
-            style: context.type.bodySm,
-          ),
-        ),
+        _sheetNote('Nothing active within 1.5 km. That is the good outcome.'),
       for (final e in near) _areaRow(e.area, e.metres),
       if (shelter != null) _shelterRow(shelter),
     ];
   }
 
-  Widget _areaRow(Map<String, dynamic> a, double? metres) {
+  Widget _sheetNote(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Text(text, style: context.type.bodySm),
+  );
+
+  Widget _areaRow(Map<String, dynamic> a, double metres) {
     final reported = a['status'] == 'reported';
     final id = a['id'] as String?;
     final street = id == null ? null : _areaStreets[id];
@@ -1203,11 +1283,7 @@ class _MapScreenState extends State<MapScreen> {
       tint: context.pal.accent,
       asset: Art.incident,
       title: (a['designation'] as String?) ?? 'Incident area',
-      subtitle:
-          street ??
-          (metres != null
-              ? '${_formatDistance(metres)} away'
-              : 'In Pasay City'),
+      subtitle: street ?? '${_formatDistance(metres)} away',
       signal: _AreaSignal(
         label: reported ? 'Reported' : 'Live',
         color: reported ? context.pal.warn : context.pal.accentInk,
@@ -1669,6 +1745,57 @@ class _SheetRow extends StatelessWidget {
               if (signal != null) ...[const SizedBox(width: 12), signal!],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A [_SheetRow]'s shape in placeholder bars, while the sheet checks: the
+/// skeleton idiom of the summary card ("Lit's place and skeleton lines, not a
+/// spinner alone"), still, so it reads the same with reduced motion.
+class _CheckingRow extends StatelessWidget {
+  const _CheckingRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    Widget bar(double width) => Container(
+      width: width,
+      height: 10,
+      decoration: BoxDecoration(
+        color: pal.pressed,
+        borderRadius: BorderRadius.circular(5),
+      ),
+    );
+    return ExcludeSemantics(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: pal.glass,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: pal.line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: pal.pressed,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [bar(96), const SizedBox(height: 8), bar(150)],
+              ),
+            ),
+          ],
         ),
       ),
     );

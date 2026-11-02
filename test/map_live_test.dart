@@ -112,7 +112,7 @@ void main() {
   );
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({'sound.report_sent': false});
+    SharedPreferences.setMockInitialValues({});
     GeolocatorPlatform.instance = _HereGeo();
     areaReads = 0;
     served = [area('near', 'Area 1.2')];

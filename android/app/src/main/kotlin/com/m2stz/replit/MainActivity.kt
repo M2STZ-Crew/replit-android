@@ -38,6 +38,16 @@ class MainActivity : FlutterActivity() {
      *
      * Android notification channel sounds are established
      * when the channel is first created.
+     *
+     * v1.12.23: a channel made before this version holds its recording by
+     * resource number, and adding, removing or renaming a file in res/raw
+     * renumbers every file after it alphabetically. Adding the four stage
+     * recordings did exactly that: on a phone that had the app before them,
+     * "alert_medical" now plays sound_fire_out and "alert_police" plays
+     * sound_medical (aapt2 dump of v1.12.17 against v1.12.22). Channels made
+     * from now on name their file instead, which no renumbering moves. Leave
+     * res/raw's list alone unless the channels it would move get new ids
+     * (test/sound_files_test.dart holds the list).
      */
     private fun createNotificationChannels() {
 
@@ -55,10 +65,12 @@ class MainActivity : FlutterActivity() {
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
 
-        // Android raw audio resource URI.
+        // Android raw audio resource URI, by name:
+        // android.resource://com.m2stz.replit/raw/sound_fire.
         fun sound(raw: Int): Uri =
             Uri.parse(
-                "${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/$raw"
+                "${ContentResolver.SCHEME_ANDROID_RESOURCE}://$packageName/" +
+                    "raw/${resources.getResourceEntryName(raw)}"
             )
 
         // Existing agency alert channel configuration.

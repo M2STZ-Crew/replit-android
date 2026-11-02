@@ -6,6 +6,87 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.23 — 2 November 2026 — Incident sounds, and "Active areas near you"
+
+With backend v1.12.19, which needs nothing from this build and changes no push.
+No new setting, no new permission.
+
+### Changes
+
+**Found**
+- **On Scene announces "On route".** `sound_on_scene.mp3` is a byte-for-byte copy
+  of `sound_on_route.mp3`: one ElevenLabs file (its C2PA id appears in both),
+  added as both on 28 October, in assets/sounds and in res/raw. No On Scene
+  recording exists in the repository's history or on the build PC.
+- **Reported was not silent.** Sending a report played `report_sent.wav`, which
+  the same commit had replaced with a 1.7 s recording in the stage clips' voice.
+  The server sends the reporter nothing at that stage; the sound was the app's.
+- **A channel can play another channel's recording.** Each channel stored its
+  sound as a resource number, and adding the four stage recordings renumbered
+  res/raw (`aapt2 dump resources`, v1.12.17 against v1.12.22): 0x7f0d0005 was
+  `sound_medical` and is now `sound_fire_out`; 0x7f0d0006 was `sound_police` and
+  is now `sound_medical`. On a phone that had the app before v1.12.20, Medical
+  alerts play "Fire out" and Police alerts the medical recording. Seen on an
+  Android 15 emulator: upgraded in place from v1.12.17, "alert_medical" still
+  points at 0x7f0d0005 (not heard: the emulator ran without audio).
+- **"Area 50.4" and "Area 50.3" were real, but not near.** They are the only two
+  Areas still active (one report each, open since 29 October). With no GPS fix
+  yet, `_nearbyAreas()` listed the newest two Areas in the city under "Active
+  areas near you", and the map asked for the fix only after the server
+  answered. So every resident saw those two on signing in until the GPS
+  replied, and for good with location off. A server error read as "Nothing
+  active".
+
+**Changed**
+- **Sending a report plays nothing.** `report_sent.wav`, `playReportSent()` and
+  both switches for it are gone (Profile's "Notification sounds", Notification
+  settings' "Report sent sound"). This replaces PRD v14 §4.13.4's "salamat!" cue.
+- **Channels made from now on name their recording**
+  (`android.resource://com.m2stz.replit/raw/sound_fire`), which renumbering cannot
+  move. Channel ids are unchanged. Checked on the emulator: a fresh install
+  names all ten; an upgraded phone gets the four stage channels by name and
+  keeps its older ones by number.
+- **The areas sheet names an Area only once it has measured it.** While the
+  server or the GPS has not answered: "Checking what is happening around you…"
+  over a placeholder row. With location off or refused, it says so and how to
+  fix it; when the server fails, it says that. Otherwise it shows Areas within
+  1.5 km, nearest first, or "Nothing active within 1.5 km". The map still draws
+  every Area. The first fix gives up after 20 s, as the SOS screen does.
+
+**Tests**
+- `test/sound_files_test.dart`: every sound is the same file in assets/sounds and
+  res/raw; res/raw keeps its list (a new file renumbers the channels); no two
+  stages share a recording, except the On Scene copy above, named.
+- `test/map_screen_test.dart`: six new cases for the sheet: GPS pending, server
+  pending, nothing near, location off, location refused, server error.
+
+**Still to do**
+- **The On Scene recording.** Replace both copies of `sound_on_scene.mp3` with it
+  under the same name, and delete the exception in `test/sound_files_test.dart`.
+  Keep the name: renaming or adding a file renumbers res/raw.
+- **Phones that had the app before v1.12.20** keep the swapped Medical and Police
+  sounds until the app is uninstalled and installed again.
+
+---
+
+## v1.12.22 — 31 October 2026 — The National ID camera from Figma
+
+App-only, UI. The backend stays at v1.12.18.
+
+### Changes
+
+- **The National ID photos open the Figma camera** ("20 National ID · ID photo",
+  460:4632, and "20B · Selfie", 464:1209) instead of the phone's own camera app:
+  close button, title, step, guide frame, hint, 76 px shutter and the camera-only
+  note. Figma has no QR frame, so that step is frame 20 with a square guide, and
+  the steps read 1 to 3.
+- The viewfinder is darkened around the guide, so the words stay readable over a
+  live scene. The flash stays off, and the cached file is deleted after capture.
+- The QR photo is taken at 4K, the other two at 1080p. `image_picker` is gone: this
+  screen was its only user.
+
+---
+
 ## v1.12.9 — 15 October 2026 — Turn-by-turn navigation to the fire
 
 App-only. The backend stays at v1.12.6. Implements PRD v12 §4.9 (route

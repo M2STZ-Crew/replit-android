@@ -51,8 +51,7 @@ void main() {
   );
 
   setUp(() {
-    // The "salamat" cue is switched off: the plugin has no platform here.
-    SharedPreferences.setMockInitialValues({'sound.report_sent': false});
+    SharedPreferences.setMockInitialValues({});
     dir = Directory.systemTemp.createTempSync('report_queue_test');
     seen = [];
     mine = [];

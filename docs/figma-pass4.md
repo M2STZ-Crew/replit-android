@@ -112,8 +112,9 @@ without its own code changing.
 | 17 Didit · hand-off | `460:1080` | — | STANDBY | — | — |
 | 18 National ID · verified | `460:1121` | — | STANDBY | — | — |
 | 19 Manual check | `460:4574` | `national_id_screen.dart` · `POST /verification/national-id/manual` | READY | Shared | — |
-| 20 ID photo | `460:4632` | `national_id_screen.dart` (camera only) | READY | Shared | — |
-| 20B Selfie | `464:1209` | `national_id_screen.dart` (camera only) | READY | Shared | — |
+| 20 ID photo | `460:4632` | `id_camera_screen.dart` (camera only) | READY | Step 1 of 3, because PhilSys Check added the QR photo. The scrim around the guide keeps the words readable over a live scene | `national_id_test` |
+| 20B Selfie | `464:1209` | `id_camera_screen.dart` (camera only) | READY | Step 3 of 3, as above | `national_id_test` |
+| QR photo | none | `id_camera_screen.dart` (camera only) | READY | No frame in Figma: frame 20 with a 260 px square guide. Step 2 of 3 | `national_id_test` |
 | 21 In review | `460:4655` | `verification_screen.dart` | READY | Shared | — |
 
 ### Coordinator (06)
