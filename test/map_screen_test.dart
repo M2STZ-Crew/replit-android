@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:replit/widgets/map_marker.dart';
 import 'package:replit/api/api_client.dart';
 import 'package:replit/api/report_queue.dart';
+import 'package:replit/location/live_position.dart';
 import 'package:replit/models/hotline.dart';
 import 'package:replit/screens/map_screen.dart';
 import 'package:replit/theme.dart';
@@ -55,9 +57,38 @@ class _HereGeo extends GeolocatorPlatform {
   );
 }
 
+/// A phone whose GPS has not answered yet.
+class _WaitingGeo extends _HereGeo {
+  @override
+  Future<Position> getCurrentPosition({LocationSettings? locationSettings}) =>
+      Completer<Position>().future;
+}
+
+/// A phone with location switched off.
+class _OffGeo extends _HereGeo {
+  @override
+  Future<bool> isLocationServiceEnabled() async => false;
+}
+
+/// A phone whose owner said no to location.
+class _RefusedGeo extends _HereGeo {
+  @override
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.denied;
+
+  @override
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.denied;
+}
+
 void main() {
   late bool reachable;
   late Directory dir;
+
+  /// What GET /areas answers with, and (when set) what it waits for first.
+  late List<Map<String, dynamic>> served;
+  late int areasStatus;
+  Completer<void>? areasGate;
 
   // One area ~350 m away, one ~5 km away: only the first is "near you".
   final areas = [
@@ -85,7 +116,10 @@ void main() {
     client: MockClient((req) async {
       if (!reachable) throw http.ClientException('no route to host');
       final path = req.url.path;
-      if (path.endsWith('/areas')) return http.Response(jsonEncode(areas), 200);
+      if (path.endsWith('/areas')) {
+        await areasGate?.future;
+        return http.Response(jsonEncode(served), areasStatus);
+      }
       if (path.endsWith('/map/evacuation-sites')) {
         return http.Response(
           jsonEncode([
@@ -108,9 +142,14 @@ void main() {
   );
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({'sound.report_sent': false});
+    SharedPreferences.setMockInitialValues({});
     GeolocatorPlatform.instance = _HereGeo();
+    // A fix an earlier test's map offered must not stand in for this one's.
+    LivePosition.instance.here.value = null;
     reachable = true;
+    served = areas;
+    areasStatus = 200;
+    areasGate = null;
     dir = Directory.systemTemp.createTempSync('map_screen_test');
     ReportQueue.instance.reset();
     ReportQueue.instance.configureForTest(api: api(), dir: dir);
@@ -260,5 +299,111 @@ void main() {
     await tester.tap(find.text('Got it'));
     await tester.pump();
     expect(find.byType(MapCoachMarks), findsNothing);
+  });
+
+  // v1.12.23: signing in showed "Area 50.4" and "Area 50.3" under "Active
+  // areas near you" — the newest two Areas anywhere, standing in until the
+  // GPS answered. The sheet now names an Area only once it has measured it.
+  group('active areas near you, while the sheet cannot know yet', () {
+    final incidentMarkers = find.byWidgetPredicate(
+      (w) => w is MapMarker && w.kind == MapMarkerKind.incident,
+    );
+
+    testWidgets('before the GPS answers: checking, no Area named', (
+      tester,
+    ) async {
+      GeolocatorPlatform.instance = _WaitingGeo();
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+
+      expect(find.text('Checking what is happening around you…'), findsOneWidget);
+      expect(find.text('Area 1.2'), findsNothing);
+      expect(find.text('Area 9.1'), findsNothing);
+      expect(find.text('Evacuation site open'), findsNothing);
+      expect(find.text('WITHIN 1.5 KM'), findsOneWidget);
+      // The records themselves stay on the map.
+      expect(incidentMarkers, findsNWidgets(2));
+    });
+
+    testWidgets('before the server answers: checking, then the Areas', (
+      tester,
+    ) async {
+      areasGate = Completer<void>();
+      await pump(tester);
+      expect(find.text('Checking what is happening around you…'), findsOneWidget);
+      expect(find.text('Area 1.2'), findsNothing);
+
+      areasGate!.complete();
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(tester.takeException(), isNull);
+      expect(find.text('Checking what is happening around you…'), findsNothing);
+      expect(find.text('Area 1.2'), findsOneWidget);
+      expect(find.text('Area 9.1'), findsNothing, reason: 'about 5 km away');
+    });
+
+    testWidgets('nothing within 1.5 km: says so, and the shelter still', (
+      tester,
+    ) async {
+      // Only the Area about 5 km away. (Its marker is off screen once the map
+      // centres on the phone, so the map builds none: nothing to count here.)
+      served = [areas.last];
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+
+      expect(
+        find.text('Nothing active within 1.5 km. That is the good outcome.'),
+        findsOneWidget,
+      );
+      expect(find.text('Area 9.1'), findsNothing);
+      expect(find.text('Evacuation site open'), findsOneWidget);
+    });
+
+    testWidgets('location off: says to turn it on, names no Area', (
+      tester,
+    ) async {
+      GeolocatorPlatform.instance = _OffGeo();
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+
+      expect(
+        find.text('Location is off. Turn it on to see active areas near you.'),
+        findsOneWidget,
+      );
+      expect(find.text('Area 1.2'), findsNothing);
+      expect(find.text('Area 9.1'), findsNothing);
+      expect(incidentMarkers, findsNWidgets(2));
+    });
+
+    testWidgets('location refused: says to allow it, names no Area', (
+      tester,
+    ) async {
+      GeolocatorPlatform.instance = _RefusedGeo();
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+
+      expect(
+        find.text(
+          'Location permission is off. Allow it to see active areas near you.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Area 1.2'), findsNothing);
+    });
+
+    testWidgets('the server failing is not "nothing active"', (tester) async {
+      areasStatus = 500;
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+
+      expect(
+        find.text(
+          'Active areas could not be loaded. The map tries again every 15 seconds.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('That is the good outcome'), findsNothing);
+    });
   });
 }

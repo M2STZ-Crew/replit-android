@@ -23,7 +23,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # The +1 here is only a placeholder: CI passes --build-number=<github run
 # number>, which is what becomes the Android versionCode. That has to rise on
 # every build or Android refuses the install, and a run number always does.
-version: 1.12.22+1
+version: 1.12.23+1
 
 environment:
   sdk: ^3.11.1
@@ -92,8 +92,8 @@ flutter:
   assets:
     - assets/images/
     - assets/design/
-    # Placeholder notification cue (Master Context v10 §2.8) — replace the file
-    # when the final "salamat!" recording is chosen.
+    # The alert and incident-stage recordings an open app plays (SoundCues);
+    # android/app/src/main/res/raw holds the same files for a closed one.
     - assets/sounds/
 
   # The design's one icon family (Material Symbols Rounded, Fill 1), cut down
