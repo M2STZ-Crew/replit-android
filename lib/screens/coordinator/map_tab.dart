@@ -12,6 +12,7 @@ import '../../widgets/map_marker.dart';
 import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/ops_layers.dart';
+import '../../widgets/sheet_grip.dart';
 import '../../widgets/you_are_here.dart';
 import '../responder/responder_status.dart';
 import 'area_decision_screen.dart';
@@ -33,8 +34,16 @@ class MapTab extends StatefulWidget {
   State<MapTab> createState() => _MapTabState();
 }
 
+/// The incidents sheet's sizes, shared by the sheet and its frozen grip.
+const double _sheetMin = 0.16;
+const double _sheetMax = 0.8;
+
 class _MapTabState extends State<MapTab> {
   final MapFollow _follow = MapFollow();
+
+  /// The incidents sheet, so its frozen grip can drag it.
+  final DraggableScrollableController _sheetSize =
+      DraggableScrollableController();
 
   /// The staff layers in the design's chip order: Areas, then what a crew
   /// fights a fire with, then the rest.
@@ -79,6 +88,7 @@ class _MapTabState extends State<MapTab> {
   @override
   void dispose() {
     _follow.dispose();
+    _sheetSize.dispose();
     super.dispose();
   }
 
@@ -146,9 +156,10 @@ class _MapTabState extends State<MapTab> {
               ),
             ),
             DraggableScrollableSheet(
+              controller: _sheetSize,
               initialChildSize: 0.36,
-              minChildSize: 0.16,
-              maxChildSize: 0.8,
+              minChildSize: _sheetMin,
+              maxChildSize: _sheetMax,
               builder: (context, scroll) => _sheet(areas, scroll),
             ),
           ],
@@ -300,47 +311,58 @@ class _MapTabState extends State<MapTab> {
         color: MapGlass.strong(context),
         border: Border(top: BorderSide(color: pal.line)),
       ),
-      child: ListView(
-        controller: scroll,
-        padding: EdgeInsets.fromLTRB(
-          24,
-          10,
-          24,
-          MediaQuery.paddingOf(context).bottom + 24,
-        ),
+      // The grip is frozen above the list: the rows scroll under it.
+      child: Column(
         children: [
-          const Center(child: SheetHandle(margin: EdgeInsets.zero)),
-          const SizedBox(height: 16),
-          SectionHeader(
-            'Live incidents',
-            meta: running == 1 ? '1 running now' : '$running running now',
+          SheetGrip(
+            sheet: _sheetSize,
+            minSize: _sheetMin,
+            maxSize: _sheetMax,
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
           ),
-          const SizedBox(height: 12),
-          if (areas.isEmpty)
-            Text(
-              'Nothing is running. New Areas appear here and on the map.',
-              style: context.type.bodySm,
-            ),
-          for (final a in areas) ...[
-            AreaPlace(
-              area: a,
-              builder: (context, place) => ListRow(
-                leading: const AgencyPlate(),
-                title: place.street == null
-                    ? a.name
-                    : '${a.name} · ${place.street}',
-                subtitle: [
-                  if (place.place != null) place.place!.split(',').first,
-                  if (place.street == null && place.place == null)
-                    placeLine(a, place),
-                  if (a.requested.isNotEmpty) askedFor(a.requested),
-                ].join(' · '),
-                trailing: _Standing(area: a),
-                onTap: () => _open(a),
+          Expanded(
+            child: ListView(
+              controller: scroll,
+              padding: EdgeInsets.fromLTRB(
+                24,
+                0,
+                24,
+                MediaQuery.paddingOf(context).bottom + 24,
               ),
+              children: [
+                SectionHeader(
+                  'Live incidents',
+                  meta: running == 1 ? '1 running now' : '$running running now',
+                ),
+                const SizedBox(height: 12),
+                if (areas.isEmpty)
+                  Text(
+                    'Nothing is running. New Areas appear here and on the map.',
+                    style: context.type.bodySm,
+                  ),
+                for (final a in areas) ...[
+                  AreaPlace(
+                    area: a,
+                    builder: (context, place) => ListRow(
+                      leading: const AgencyPlate(),
+                      title: place.street == null
+                          ? a.name
+                          : '${a.name} · ${place.street}',
+                      subtitle: [
+                        if (place.place != null) place.place!.split(',').first,
+                        if (place.street == null && place.place == null)
+                          placeLine(a, place),
+                        if (a.requested.isNotEmpty) askedFor(a.requested),
+                      ].join(' · '),
+                      trailing: _Standing(area: a),
+                      onTap: () => _open(a),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
             ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ],
       ),
     );

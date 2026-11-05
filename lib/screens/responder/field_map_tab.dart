@@ -13,6 +13,7 @@ import '../../widgets/map_layers.dart';
 import '../../widgets/map_marker.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/ops_layers.dart';
+import '../../widgets/sheet_grip.dart';
 import '../../widgets/you_are_here.dart';
 import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
@@ -38,8 +39,16 @@ class FieldMapTab extends StatefulWidget {
   State<FieldMapTab> createState() => _FieldMapTabState();
 }
 
+/// The "Around you" sheet's sizes, shared by the sheet and its frozen grip.
+const double _sheetMin = 0.16;
+const double _sheetMax = 0.7;
+
 class _FieldMapTabState extends State<FieldMapTab> {
   final MapFollow _follow = MapFollow();
+
+  /// The "Around you" sheet, so its frozen grip can drag it.
+  final DraggableScrollableController _sheetSize =
+      DraggableScrollableController();
   final LivePosition _position = LivePosition.instance;
 
   /// The staff layers in the design's chip order: Areas, then what a crew
@@ -102,6 +111,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
     _position.here.removeListener(_moved);
     _position.release();
     _follow.dispose();
+    _sheetSize.dispose();
     super.dispose();
   }
 
@@ -177,9 +187,10 @@ class _FieldMapTabState extends State<FieldMapTab> {
               ),
             ),
             DraggableScrollableSheet(
+              controller: _sheetSize,
               initialChildSize: 0.34,
-              minChildSize: 0.16,
-              maxChildSize: 0.7,
+              minChildSize: _sheetMin,
+              maxChildSize: _sheetMax,
               builder: (context, scroll) => _sheet(scroll),
             ),
           ],
@@ -345,30 +356,41 @@ class _FieldMapTabState extends State<FieldMapTab> {
         color: MapGlass.strong(context),
         border: Border(top: BorderSide(color: pal.line)),
       ),
-      child: ListView(
-        controller: scroll,
-        padding: EdgeInsets.fromLTRB(
-          24,
-          10,
-          24,
-          MediaQuery.paddingOf(context).bottom + 24,
-        ),
+      // The grip is frozen above the list: the rows scroll under it.
+      child: Column(
         children: [
-          const Center(child: SheetHandle(margin: EdgeInsets.zero)),
-          const SizedBox(height: 16),
-          SectionHeader(
-            'Around you',
-            meta: 'Within ${FieldMapTab.aroundMetres.round()} m',
+          SheetGrip(
+            sheet: _sheetSize,
+            minSize: _sheetMin,
+            maxSize: _sheetMax,
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 16),
           ),
-          const SizedBox(height: 12),
-          if (here == null)
-            Text(
-              'Hydrants, shelters and water near you are listed here once '
-              'the phone knows where you are.',
-              style: context.type.bodySm,
-            )
-          else
-            ..._aroundRows(here, run),
+          Expanded(
+            child: ListView(
+              controller: scroll,
+              padding: EdgeInsets.fromLTRB(
+                24,
+                0,
+                24,
+                MediaQuery.paddingOf(context).bottom + 24,
+              ),
+              children: [
+                SectionHeader(
+                  'Around you',
+                  meta: 'Within ${FieldMapTab.aroundMetres.round()} m',
+                ),
+                const SizedBox(height: 12),
+                if (here == null)
+                  Text(
+                    'Hydrants, shelters and water near you are listed here '
+                    'once the phone knows where you are.',
+                    style: context.type.bodySm,
+                  )
+                else
+                  ..._aroundRows(here, run),
+              ],
+            ),
+          ),
         ],
       ),
     );

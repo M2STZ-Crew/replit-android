@@ -14,6 +14,7 @@ import '../models/responder_unit.dart';
 import '../models/tracking.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/sheet_grip.dart';
 import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/map_marker.dart';
@@ -589,8 +590,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
               minChildSize: peek,
               maxChildSize: _kSheetOpen,
               snap: true,
-              builder: (context, scroll) =>
-                  _sheet(scroll, () => _toggleSheet(peek)),
+              builder: (context, scroll) => _sheet(scroll, peek),
             ),
           ),
           if (_loading)
@@ -787,9 +787,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   }
 
   /// The sheet's content. [scroll] is the draggable sheet's: pulling the list
-  /// down from its top folds the whole sheet, and [onHandle] folds or opens
-  /// it from the grab handle.
-  Widget _sheet(ScrollController scroll, VoidCallback onHandle) {
+  /// down from its top folds the whole sheet. The grab handle is frozen above
+  /// the list: dragging it moves the sheet too, and a tap folds or opens it.
+  Widget _sheet(ScrollController scroll, double peek) {
     final status = _status;
     final at = kResidentRail.indexOf(status);
     final reported = DateTime.tryParse('${_area?['reported_at']}')?.toLocal();
@@ -808,99 +808,104 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
           ),
           child: SafeArea(
             top: false,
-            child: ListView(
-              controller: scroll,
-              padding: const EdgeInsets.fromLTRB(24, 6, 24, 24),
+            child: Column(
               children: [
-                Semantics(
-                  button: true,
-                  label: 'Fold or open the incident details',
-                  onTap: onHandle,
-                  excludeSemantics: true,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onHandle,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Center(
-                        child: SheetHandle(margin: EdgeInsets.zero),
-                      ),
-                    ),
-                  ),
+                SheetGrip(
+                  sheet: _sheetSize,
+                  minSize: peek,
+                  maxSize: _kSheetOpen,
+                  // The sheet snaps open or folded; so does a slow drag on
+                  // its grip.
+                  snapSizes: const [],
+                  onTap: () => _toggleSheet(peek),
+                  semanticsLabel: 'Fold or open the incident details',
+                  padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
                 ),
-                const SizedBox(height: 12),
-                Eyebrow('Status', color: context.pal.muted),
-                const SizedBox(height: 10),
-                // A Wrap, not a Row: at a large font scale the two do not fit
-                // side by side, and a Row squeezed the status to a column one
-                // letter wide. Here the time drops under it instead.
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    Text(
-                      residentWord(status).toUpperCase(),
-                      style: context.type.heading2,
-                    ),
-                    if (reported != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text(
-                          'Reported ${_ago(reported)}',
-                          style: context.type.caption,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _rail(at),
-                ..._verified(),
-                ..._responders(status),
-                const SizedBox(height: 22),
-                Panel(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: ListView(
+                    controller: scroll,
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     children: [
-                      Eyebrow('What happens next', color: context.pal.muted),
-                      const SizedBox(height: 12),
-                      Text(
-                        _next(status),
-                        style: context.type.bodySm.copyWith(
-                          color: context.pal.textSoft,
+                      Eyebrow('Status', color: context.pal.muted),
+                      const SizedBox(height: 10),
+                      // A Wrap, not a Row: at a large font scale the two do not fit
+                      // side by side, and a Row squeezed the status to a column one
+                      // letter wide. Here the time drops under it instead.
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.end,
+                        spacing: 12,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            residentWord(status).toUpperCase(),
+                            style: context.type.heading2,
+                          ),
+                          if (reported != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                'Reported ${_ago(reported)}',
+                                style: context.type.caption,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _rail(at),
+                      ..._verified(),
+                      ..._responders(status),
+                      const SizedBox(height: 22),
+                      Panel(
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Eyebrow(
+                              'What happens next',
+                              color: context.pal.muted,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _next(status),
+                              style: context.type.bodySm.copyWith(
+                                color: context.pal.textSoft,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      _Row(
+                        tint: context.pal.ok,
+                        icon: AppIcons.howToReg,
+                        title: others == 0
+                            ? 'No neighbours have confirmed yet'
+                            : '$others ${others == 1 ? 'neighbour' : 'neighbours'} confirmed',
+                        line: 'Asked within 150 m of the area',
+                      ),
+                      if (_shelter != null) ...[
+                        const SizedBox(height: 10),
+                        _Row(
+                          tint: context.pal.ok,
+                          asset: Art.evac,
+                          title:
+                              (_shelter!['name'] as String?) ??
+                              'Evacuation site',
+                          line: _shelterMetres == null
+                              ? 'Nearest open shelter'
+                              : 'Nearest open shelter · ${_shelterMetres! < 1000 ? '${_shelterMetres!.round()} m' : '${(_shelterMetres! / 1000).toStringAsFixed(1)} km'}',
+                          trailing: 'WAY',
+                          onTap: _showMeTheWay,
+                        ),
+                      ],
+                      if (!residentOver(status) &&
+                          _asked != null &&
+                          _available.isNotEmpty)
+                        ..._moreHelp(),
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                _Row(
-                  tint: context.pal.ok,
-                  icon: AppIcons.howToReg,
-                  title: others == 0
-                      ? 'No neighbours have confirmed yet'
-                      : '$others ${others == 1 ? 'neighbour' : 'neighbours'} confirmed',
-                  line: 'Asked within 150 m of the area',
-                ),
-                if (_shelter != null) ...[
-                  const SizedBox(height: 10),
-                  _Row(
-                    tint: context.pal.ok,
-                    asset: Art.evac,
-                    title: (_shelter!['name'] as String?) ?? 'Evacuation site',
-                    line: _shelterMetres == null
-                        ? 'Nearest open shelter'
-                        : 'Nearest open shelter · ${_shelterMetres! < 1000 ? '${_shelterMetres!.round()} m' : '${(_shelterMetres! / 1000).toStringAsFixed(1)} km'}',
-                    trailing: 'WAY',
-                    onTap: _showMeTheWay,
-                  ),
-                ],
-                if (!residentOver(status) &&
-                    _asked != null &&
-                    _available.isNotEmpty)
-                  ..._moreHelp(),
               ],
             ),
           ),
