@@ -6,6 +6,7 @@ import '../api/push_service.dart';
 import '../api/session.dart';
 import '../models/verification_state.dart';
 import '../privacy/contact_mask.dart';
+import '../updates/app_updates.dart';
 import '../theme.dart';
 import '../theme_choice.dart';
 import '../widgets/app_nav_bar.dart';
@@ -310,6 +311,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   line: 'Emergency reporting for Pasay City',
                   onTap: _about,
                 ),
+                if (AppUpdates.supported) ...[
+                  const SizedBox(height: 8),
+                  _Link(
+                    title: 'Check for updates',
+                    line: AppVersion.label.isEmpty
+                        ? 'Get the newest version of RepLiT'
+                        : 'Version ${AppVersion.label} installed',
+                    onTap: () => showUpdateSheet(context),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 AppButton.danger(
                   'Log out',
