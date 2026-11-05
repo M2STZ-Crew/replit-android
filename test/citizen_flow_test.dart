@@ -229,6 +229,48 @@ void main() {
       });
     }
 
+    testWidgets('Fire is locked in: a tap cannot untick it, and it is sent', (
+      tester,
+    ) async {
+      location.warmUp();
+      http.Request? sent;
+      final api = ApiClient(
+        client: MockClient((req) {
+          sent = req;
+          return Completer<http.Response>().future;
+        }),
+      );
+      await pump(tester, SosReportScreen(photoBytes: kPixel, api: api));
+
+      expect(find.byKey(const ValueKey('agency-locked')), findsOneWidget);
+      final fire = find.bySemanticsLabel('Fire, always included');
+      expect(fire, findsOneWidget);
+      expect(tester.getSemantics(fire), isSemantics(isChecked: true));
+
+      // Tapping it twice leaves it on, and says why.
+      await tester.tap(find.text('FIRE'));
+      await tester.pump();
+      await tester.tap(find.text('FIRE'));
+      await tester.pump();
+      expect(tester.getSemantics(fire), isSemantics(isChecked: true));
+      expect(
+        find.text('Fire is always included. Add any other help you need.'),
+        findsOneWidget,
+      );
+
+      // Medical is still a choice on top of it.
+      await tester.tap(find.text('MEDICAL'));
+      await tester.pump();
+      geo.fresh!.complete(fix(14.5378, 121.0014));
+      await tester.pump();
+      await tester.tap(find.text('SEND REPORT'));
+      await tester.pump();
+      await tester.pump();
+      expect(sent, isNotNull);
+      final body = utf8.decode(sent!.bodyBytes, allowMalformed: true);
+      expect(body, contains('fire_volunteer,medical'));
+    });
+
     testWidgets('waits for a fix still arriving, then sends with it', (
       tester,
     ) async {

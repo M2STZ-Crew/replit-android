@@ -20,6 +20,12 @@ import '../widgets/app_icons.dart';
 /// a resident knows, and the frame's colour and glyph for it.
 typedef _Agency = ({String key, String label, String glyph});
 
+/// Fire is locked on. Every RepLiT report is a fire report, so the Fire
+/// Volunteers are always asked; the other three are added on top of it. The
+/// server holds to the same rule (POST /reports/submit puts fire_volunteer
+/// first whatever the app sends).
+const String _lockedAgency = 'fire_volunteer';
+
 const List<_Agency> _agencies = [
   (key: 'fire_volunteer', label: 'Fire', glyph: Art.agFire),
   (key: 'medical', label: 'Medical', glyph: Art.agMedical),
@@ -106,6 +112,13 @@ class _SosReportScreenState extends State<SosReportScreen> {
     );
   }
 
+  /// A plain note, not an error: the red [_toast] is for what went wrong.
+  void _note(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _retake() async {
     final shot = await Navigator.of(context).push<RetakenPhoto>(
       MaterialPageRoute(
@@ -123,14 +136,11 @@ class _SosReportScreenState extends State<SosReportScreen> {
     // A report can have gone out while this one was being written — one that
     // waited offline, say. One report at a time: go to that one instead.
     if (ReportStatusScreen.redirectIfReporting(context)) return;
-    final agencies = _selected.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toList();
-    if (agencies.isEmpty) {
-      _toast('Choose at least one kind of help.');
-      return;
-    }
+    // Fire first and always; the rest as ticked.
+    final agencies = {
+      _lockedAgency,
+      ..._selected.entries.where((e) => e.value).map((e) => e.key),
+    }.toList();
 
     final timing = ReportTiming.instance;
     timing.mark('send_pressed');
@@ -397,12 +407,13 @@ class _SosReportScreenState extends State<SosReportScreen> {
   }
 
   Widget _agencyCard(_Agency a) {
-    final on = _selected[a.key] ?? false;
+    final locked = a.key == _lockedAgency;
+    final on = locked || (_selected[a.key] ?? false);
     final shape = BorderRadius.circular(AppRadius.card);
     return Semantics(
-      button: true,
+      button: !locked,
       checked: on,
-      label: a.label,
+      label: locked ? '${a.label}, always included' : a.label,
       excludeSemantics: true,
       child: Material(
         color: Colors.transparent,
@@ -411,6 +422,12 @@ class _SosReportScreenState extends State<SosReportScreen> {
           borderRadius: shape,
           onTap: _submitting
               ? null
+              : locked
+              // A tap on the locked card says why it will not untick,
+              // rather than doing nothing.
+              ? () => _note(
+                  'Fire is always included. Add any other help you need.',
+                )
               : () => setState(() => _selected[a.key] = !on),
           child: Container(
             constraints: const BoxConstraints(minHeight: 68),
@@ -454,30 +471,40 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: on
-                          ? context.pal.forAgency(a.key)
-                          : context.pal.muted,
-                      width: 1.5,
+                if (locked)
+                  // A lock where the others have their tick: chosen, and
+                  // not a choice.
+                  Icon(
+                    AppIcons.lock,
+                    key: const ValueKey('agency-locked'),
+                    size: 16,
+                    color: context.pal.forAgency(a.key),
+                  )
+                else
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: on
+                            ? context.pal.forAgency(a.key)
+                            : context.pal.muted,
+                        width: 1.5,
+                      ),
                     ),
+                    alignment: Alignment.center,
+                    child: on
+                        ? Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: context.pal.forAgency(a.key),
+                              shape: BoxShape.circle,
+                            ),
+                          )
+                        : null,
                   ),
-                  alignment: Alignment.center,
-                  child: on
-                      ? Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: context.pal.forAgency(a.key),
-                            shape: BoxShape.circle,
-                          ),
-                        )
-                      : null,
-                ),
               ],
             ),
           ),
