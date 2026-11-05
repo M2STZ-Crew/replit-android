@@ -7,8 +7,10 @@ import '../../api/api_client.dart';
 import '../../models/ph_mobile.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
+import '../../widgets/sheet_grip.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/skeleton.dart';
 
 /// The coordinator's responder accounts (v1.12.4) — where a responder's
 /// account comes from.
@@ -273,10 +275,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
   List<Widget> _roster() {
     if (_loading) {
-      return [
-        const SizedBox(height: 40),
-        Center(child: CircularProgressIndicator(color: context.pal.accent)),
-      ];
+      return const [SizedBox(height: 8), SkeletonRows(rows: 5)];
     }
     if (_error != null) {
       return [
@@ -469,104 +468,98 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Center(child: SheetHandle()),
-              Text('NEW RESPONDER', style: context.type.headline),
-              const SizedBox(height: 18),
-              LabeledField(
-                label: 'First name',
-                builder: (focus) => TextField(
-                  controller: _first,
-                  focusNode: focus,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  onChanged: _onName,
-                  style: context.type.input,
-                  decoration: const InputDecoration(hintText: 'Juan'),
-                ),
+        // The grabber stays put; the form scrolls under it.
+        child: FrozenHandleSheet(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+          handlePadding: const EdgeInsets.only(top: 12, bottom: 16),
+          children: [
+            Text('NEW RESPONDER', style: context.type.headline),
+            const SizedBox(height: 18),
+            LabeledField(
+              label: 'First name',
+              builder: (focus) => TextField(
+                controller: _first,
+                focusNode: focus,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                onChanged: _onName,
+                style: context.type.input,
+                decoration: const InputDecoration(hintText: 'Juan'),
               ),
-              const SizedBox(height: 14),
-              LabeledField(
-                label: 'Surname',
-                builder: (focus) => TextField(
-                  controller: _last,
-                  focusNode: focus,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  onChanged: _onName,
-                  style: context.type.input,
-                  decoration: const InputDecoration(hintText: 'Dela Cruz'),
-                ),
+            ),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: 'Surname',
+              builder: (focus) => TextField(
+                controller: _last,
+                focusNode: focus,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                onChanged: _onName,
+                style: context.type.input,
+                decoration: const InputDecoration(hintText: 'Dela Cruz'),
               ),
-              const SizedBox(height: 14),
-              LabeledField(
-                label: 'Mobile (optional)',
-                builder: (focus) => TextField(
-                  controller: _mobile,
-                  focusNode: focus,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [PhMobileFormatter()],
-                  style: context.type.input,
-                  decoration: const InputDecoration(hintText: kPhMobileHint),
-                ),
+            ),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: 'Mobile (optional)',
+              builder: (focus) => TextField(
+                controller: _mobile,
+                focusNode: focus,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [PhMobileFormatter()],
+                style: context.type.input,
+                decoration: const InputDecoration(hintText: kPhMobileHint),
               ),
-              const SizedBox(height: 18),
-              Panel(
-                radius: AppRadius.card,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      AppIcons.alternateEmail,
-                      size: 18,
-                      color: context.pal.accentInk,
+            ),
+            const SizedBox(height: 18),
+            Panel(
+              radius: AppRadius.card,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Icon(
+                    AppIcons.alternateEmail,
+                    size: 18,
+                    color: context.pal.accentInk,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Eyebrow('Their sign-in', color: context.pal.muted),
+                        const SizedBox(height: 6),
+                        Text(
+                          _preview ??
+                              (_previewing
+                                  ? 'Working it out…'
+                                  : 'Made from the first initial and surname'),
+                          key: const ValueKey('email-preview'),
+                          style: _preview == null
+                              ? context.type.caption
+                              : context.type.rowValue,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Eyebrow('Their sign-in', color: context.pal.muted),
-                          const SizedBox(height: 6),
-                          Text(
-                            _preview ??
-                                (_previewing
-                                    ? 'Working it out…'
-                                    : 'Made from the first initial and surname'),
-                            key: const ValueKey('email-preview'),
-                            style: _preview == null
-                                ? context.type.caption
-                                : context.type.rowValue,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: context.type.caption.copyWith(color: context.pal.live),
-                ),
-              ],
-              const SizedBox(height: 18),
-              AppButton(
-                'Create account',
-                busy: _busy,
-                onPressed: _ready ? _submit : null,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                style: context.type.caption.copyWith(color: context.pal.live),
               ),
             ],
-          ),
+            const SizedBox(height: 18),
+            AppButton(
+              'Create account',
+              busy: _busy,
+              onPressed: _ready ? _submit : null,
+            ),
+          ],
         ),
       ),
     );

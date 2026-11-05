@@ -5,6 +5,7 @@ import '../models/area_view.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'design.dart';
+import 'sheet_grip.dart';
 
 /// The REPLIT (MAIN) 04 components the Coordinator Experience (06) is built
 /// from and the rest of the app had not needed yet: the tab and detail screen
@@ -1096,17 +1097,10 @@ class SheetFrame extends StatelessWidget {
         ),
         border: Border(top: BorderSide(color: context.pal.line)),
       ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(24, 10, 24, 24 + inset),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Center(child: SheetHandle(margin: EdgeInsets.zero)),
-            const SizedBox(height: 16),
-            ...children,
-          ],
-        ),
+      // The grabber stays put; a long sheet scrolls under it.
+      child: FrozenHandleSheet(
+        padding: EdgeInsets.fromLTRB(24, 0, 24, 24 + inset),
+        children: children,
       ),
     );
   }

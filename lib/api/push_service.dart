@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_version.dart';
+import '../i18n/i18n.dart';
+import '../location/location_beacon.dart';
 import '../sound/sound_cues.dart';
 import '../theme.dart';
 import 'api_client.dart';
@@ -108,21 +110,32 @@ class PushService {
     } catch (_) {
       // FCM unconfigured / offline — push simply stays inactive.
     }
+    // The alerts come in the language the resident chose on this phone.
+    try {
+      await _api.setLanguage(LanguageChoice.current.value.code);
+    } catch (_) {
+      // Sent again on the next sign-in.
+    }
+    // Reports while the app is closed, where location is allowed for it.
+    await LocationBeacon.syncClosed(alertsOn: true);
   }
 
   /// Re-send the current GPS so this user stays locatable for nearby-incident
-  /// alerts (called on app resume). Best-effort and silent.
-  Future<void> refreshLocation() async {
+  /// alerts: on app resume, and every few minutes while the app is open
+  /// ([LocationBeacon.startOpen]). The server counts a location only while it
+  /// is fresh. [ask] false never prompts for permission — the timer must not.
+  /// Best-effort and silent.
+  Future<void> refreshLocation({bool ask = true}) async {
     if (!Session.instance.isAuthenticated) return;
     if (!await isEnabled()) return;
-    await _pushLocation();
+    await _pushLocation(ask: ask);
   }
 
-  Future<void> _pushLocation() async {
+  Future<void> _pushLocation({bool ask = true}) async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) return;
       var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
+      if (perm == LocationPermission.denied && ask) {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.denied ||
@@ -131,6 +144,7 @@ class PushService {
       }
       final pos = await Geolocator.getCurrentPosition();
       await _api.updateMyLocation(pos.latitude, pos.longitude);
+      await LocationBeacon.markSent();
     } catch (_) {
       // ignore
     }
@@ -243,6 +257,8 @@ class PushService {
 
   /// On logout: drop this device's token server-side (while still authenticated).
   Future<void> unregister() async {
+    // No alerts wanted (or signing out): nothing to report while closed.
+    await LocationBeacon.cancelClosed();
     final token = _token ?? await _safeToken();
     if (token != null) await _api.unregisterDevice(token);
     _token = null;

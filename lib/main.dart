@@ -12,6 +12,10 @@ import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
+import 'i18n/i18n.dart';
+import 'location/location_beacon.dart';
+import 'privacy/contact_mask.dart';
+import 'security/developer_mode.dart';
 import 'api/session.dart';
 import 'models/active_report.dart';
 import 'screens/phone_verify_screen.dart';
@@ -31,6 +35,9 @@ Future<void> main() async {
   // The ground the app draws on is a choice made inside it, so it has to be
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
+  await ContactMask.load();
+  await LanguageChoice.load();
+  await LocationBeacon.init();
   // "1.11.0 (57)", as App Distribution lists this build.
   await AppVersion.load();
   // A report in progress survives the app being closed: read it now so the
@@ -86,19 +93,33 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _keepLocationFresh();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    LocationBeacon.stopOpen();
     super.dispose();
+  }
+
+  /// While the app is open its location reaches the server every few minutes,
+  /// so the 150 m alert finds the resident where they are now. Closed, that is
+  /// WorkManager's job, where the resident allows it (LocationBeacon).
+  void _keepLocationFresh() {
+    LocationBeacon.startOpen(
+      () => PushService.instance.refreshLocation(ask: false),
+    );
   }
 
   /// Back from the background with a report still out: go to it. Not while
   /// they are part-way through writing a new one, and never twice.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) LocationBeacon.stopOpen();
     if (state != AppLifecycleState.resumed) return;
+    _keepLocationFresh();
+    unawaited(_syncClosedReports());
     if (!Session.instance.isAuthenticated || ReportComposer.active) return;
     final report = ActiveReportStore.mine;
     final nav = PushService.navigatorKey.currentState;
@@ -106,26 +127,42 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
     nav.push(ReportStatusScreen.route(report));
   }
 
+  /// Back from Settings, location may now be allowed "All the time" (or no
+  /// longer): schedule or cancel the closed-app reports to match.
+  Future<void> _syncClosedReports() async {
+    if (!Session.instance.isAuthenticated) return;
+    await LocationBeacon.syncClosed(
+      alertsOn: await PushService.instance.isEnabled(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Both grounds from the hand-off. Which one shows is the switch in
     // Profile, not the phone's setting: rebuilt here so one tap repaints
     // every screen at once.
-    return ValueListenableBuilder<bool>(
-      valueListenable: ThemeChoice.light,
-      builder: (context, light, _) => MaterialApp(
-        title: 'RepLiT',
-        debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(AppPalette.light),
-        darkTheme: buildAppTheme(AppPalette.dark),
-        themeMode: light ? ThemeMode.light : ThemeMode.dark,
-        scaffoldMessengerKey: PushService.messengerKey,
-        navigatorKey: PushService.navigatorKey,
-        // On a tablet the app keeps the column the design was drawn in
-        // rather than stretching it across the room.
-        builder: (context, child) =>
-            ResponsiveFrame(child: child ?? const SizedBox.shrink()),
-        home: const SplashScreen(),
+    // Everything under LanguageScope repaints when the language changes.
+    return LanguageScope(
+      child: ValueListenableBuilder<bool>(
+        valueListenable: ThemeChoice.light,
+        builder: (context, light, _) => MaterialApp(
+          title: 'RepLiT',
+          debugShowCheckedModeBanner: false,
+          theme: buildAppTheme(AppPalette.light),
+          darkTheme: buildAppTheme(AppPalette.dark),
+          themeMode: light ? ThemeMode.light : ThemeMode.dark,
+          scaffoldMessengerKey: PushService.messengerKey,
+          navigatorKey: PushService.navigatorKey,
+          // On a tablet the app keeps the column the design was drawn in
+          // rather than stretching it across the room.
+          //
+          // Over all of it, a release build's block while Android's Developer
+          // options are on (lib/security/developer_mode.dart).
+          builder: (context, child) => DeveloperModeGate(
+            child: ResponsiveFrame(child: child ?? const SizedBox.shrink()),
+          ),
+          home: const SplashScreen(),
+        ),
       ),
     );
   }

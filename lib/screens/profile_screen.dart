@@ -1,10 +1,17 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../api/api_client.dart';
 import '../app_version.dart';
+import '../location/location_beacon.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
 import '../models/verification_state.dart';
+import '../privacy/contact_mask.dart';
+import '../updates/app_updates.dart';
 import '../theme.dart';
 import '../theme_choice.dart';
 import '../widgets/app_nav_bar.dart';
@@ -17,6 +24,8 @@ import 'my_reports_screen.dart';
 import 'notifications_screen.dart';
 import 'verification_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
+import '../i18n/language_switch.dart';
 
 /// "15 Profile" from the REPLIT-OVERHAUL Figma — "Your profile", now a tab.
 ///
@@ -46,6 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   VerificationState _verification = VerificationState.empty;
   bool _alerts = true;
   bool _alertsBusy = false;
+
+  /// Location allowed "All the time" (Android): fire alerts while closed.
+  bool _allTheTime = false;
   bool _testing = false;
   String? _testNote;
   bool _loggingOut = false;
@@ -71,6 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {
       // The ring stays empty rather than guessing.
     }
+    unawaited(_loadClosedAlerts());
     try {
       final alerts = await PushService.instance.isEnabled();
       if (mounted) setState(() => _alerts = alerts);
@@ -84,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (n != null && n.trim().isNotEmpty) return n;
     final email = _email;
     if (email != null && email.contains('@')) return email.split('@').first;
-    return 'RepLiT user';
+    return t('RepLiT user');
   }
 
   String? get _email => (_me?['email'] as String?) ?? Session.instance.email;
@@ -115,6 +128,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (changed == true) _load();
   }
+
+  /// Whether location is allowed "All the time", which is what lets fire
+  /// alerts find the resident while RepLiT is closed (LocationBeacon).
+  Future<void> _loadClosedAlerts() async {
+    if (!_canAskAllTheTime) return;
+    try {
+      final always =
+          await Geolocator.checkPermission() == LocationPermission.always;
+      if (mounted) setState(() => _allTheTime = always);
+    } catch (_) {
+      // Shown as not allowed.
+    }
+  }
+
+  /// Ask for location "All the time": the screen says why first, then the
+  /// phone asks (from Android 11 that is a page in Settings). Afterwards the
+  /// closed-app reports are scheduled, or not, to match.
+  Future<void> _allowAllTheTime() async {
+    if (_allTheTime) {
+      // Already on: Settings is where it is turned off again.
+      await Geolocator.openAppSettings();
+      return;
+    }
+    final go = await showAppDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t('Fire alerts with the app closed')),
+        content: Text(
+          t(
+            'RepLiT tells you about a fire within 150 m of where you are now. '
+            'To know that while the app is closed, it needs your location '
+            '"All the time". It sends it to RepLiT about every 15 minutes, '
+            'and only for these alerts.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(t('Not now')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(t('Allow')),
+          ),
+        ],
+      ),
+    );
+    if (go != true) return;
+    try {
+      var perm = await Geolocator.checkPermission();
+      // While-in-use first; Android asks for "All the time" only after it.
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.whileInUse) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+      }
+    } catch (_) {
+      // The row says where it stands after the reload below.
+    }
+    await _loadClosedAlerts();
+    await LocationBeacon.syncClosed(alertsOn: _alerts);
+  }
+
+  /// Only Android has "All the time" to give here.
+  static bool get _canAskAllTheTime =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<void> _setAlerts(bool on) async {
     setState(() {
@@ -182,18 +265,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(child: SheetHandle()),
-              Text('ABOUT REPLIT', style: context.type.title),
+              Text(t('ABOUT REPLIT'), style: context.type.title),
               SizedBox(height: 14),
               Text(
-                'RepLiT is Barangay 76\'s emergency reporting network for '
-                'Pasay City. Report an incident, see what is happening near '
-                'you and where the shelters are, learn the basics, and reach '
-                'responders fast.',
+                t(
+                  'RepLiT is the emergency reporting network for Pasay City. '
+                  'Report an incident, see what is happening near '
+                  'you and where the shelters are, learn the basics, and reach '
+                  'responders fast.',
+                ),
                 style: context.type.body,
               ),
               SizedBox(height: 14),
               Text(
-                'In a real emergency, hold SOS or call 911.',
+                t('In a real emergency, hold SOS or call 911.'),
                 style: context.type.bodySm,
               ),
             ],
@@ -222,8 +307,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
               children: [
                 ScreenHeader(
-                  eyebrow: 'Account',
-                  title: 'Your profile',
+                  eyebrow: t('Account'),
+                  title: t('Your profile'),
                   showBack: pushed,
                   trailing: const NotificationBell(),
                 ),
@@ -238,16 +323,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Expanded(
                       child: Eyebrow(
-                        'Account details',
+                        t('Account details'),
                         color: context.pal.muted,
                       ),
                     ),
+                    // Shows or hides the email and mobile below.
+                    const ContactMaskToggle(),
                     GestureDetector(
                       onTap: _editProfile,
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 4),
-                        child: Eyebrow('Edit', color: context.pal.accent),
+                        child: Eyebrow(t('Edit'), color: context.pal.accent),
                       ),
                     ),
                   ],
@@ -255,19 +342,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 _details(),
                 const SizedBox(height: 20),
-                Eyebrow('Settings', color: context.pal.muted),
+                Eyebrow(t('Settings'), color: context.pal.muted),
                 const SizedBox(height: 8),
                 _Toggle(
-                  title: 'Barangay alerts',
-                  line: 'Fires reported within 150 m, and news on your reports',
+                  title: t('Barangay alerts'),
+                  line: t(
+                    'Fires reported within 150 m, and news on your reports',
+                  ),
                   value: _alerts,
                   busy: _alertsBusy,
                   onChanged: _setAlerts,
                 ),
+                if (_canAskAllTheTime && _alerts) ...[
+                  const SizedBox(height: 8),
+                  _Link(
+                    title: t('Fire alerts with the app closed'),
+                    line: _allTheTime
+                        ? t(
+                            'On. Fires within 150 m reach you even when RepLiT '
+                            'is closed.',
+                          )
+                        : t(
+                            'Allow location "All the time" so fires within '
+                            '150 m reach you when RepLiT is closed.',
+                          ),
+                    onTap: _allowAllTheTime,
+                  ),
+                ],
                 const SizedBox(height: 8),
                 _Toggle(
-                  title: 'Light mode',
-                  line: 'The pale ground, for daylight',
+                  title: t('Light mode'),
+                  line: t('The pale ground, for daylight'),
                   value: ThemeChoice.light.value,
                   onChanged: (on) async {
                     await ThemeChoice.set(on);
@@ -275,41 +380,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
+                Panel(
+                  radius: AppRadius.card,
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(t('Language'), style: context.type.label),
+                      const SizedBox(height: 5),
+                      Text(
+                        t('Your alerts come in the same language'),
+                        style: context.type.caption,
+                      ),
+                      const SizedBox(height: 10),
+                      LanguageSwitch(api: _api),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
                 _Link(
-                  title: 'Send a test alert',
-                  line: _testNote ?? 'Check this phone receives them',
+                  title: t('Send a test alert'),
+                  line: _testNote ?? t('Check this phone receives them'),
                   busy: _testing,
                   onTap: _testing ? null : _sendTest,
                 ),
                 const SizedBox(height: 20),
-                Eyebrow('More', color: context.pal.muted),
+                Eyebrow(t('More'), color: context.pal.muted),
                 const SizedBox(height: 8),
                 _Link(
-                  title: 'Your reports',
-                  line: 'Everything you have sent, and where it got to',
+                  title: t('Your reports'),
+                  line: t('Everything you have sent, and where it got to'),
                   onTap: () => _push(const MyReportsScreen()),
                 ),
                 const SizedBox(height: 8),
                 _Link(
-                  title: 'Notifications',
-                  line: 'Alerts and updates sent to you',
+                  title: t('Notifications'),
+                  line: t('Alerts and updates sent to you'),
                   onTap: () => _push(const NotificationsScreen()),
                 ),
                 const SizedBox(height: 8),
                 _Link(
-                  title: 'Help center',
-                  line: 'How reporting works, and what happens next',
+                  title: t('Help center'),
+                  line: t('How reporting works, and what happens next'),
                   onTap: () => _push(const HelpCenterScreen()),
                 ),
                 const SizedBox(height: 8),
                 _Link(
-                  title: 'About RepLiT',
-                  line: 'Barangay 76, Pasay City',
+                  title: t('About RepLiT'),
+                  line: t('Emergency reporting for Pasay City'),
                   onTap: _about,
                 ),
+                if (AppUpdates.supported) ...[
+                  const SizedBox(height: 8),
+                  _Link(
+                    title: t('Check for updates'),
+                    line: AppVersion.label.isEmpty
+                        ? t('Get the newest version of RepLiT')
+                        : t('Version {v} installed', {'v': AppVersion.label}),
+                    onTap: () => showUpdateSheet(context),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 AppButton.danger(
-                  'Log out',
+                  t('Log out'),
                   icon: AppIcons.logout,
                   busy: _loggingOut,
                   onPressed: _loggingOut ? null : _logout,
@@ -319,7 +452,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     // The build as App Distribution lists it: "1.11.0 (57)".
                     [
-                      'REPLIT · BARANGAY 76',
+                      t('REPLIT · PASAY CITY'),
                       if (AppVersion.label.isNotEmpty) 'V${AppVersion.label}',
                     ].join(' · '),
                     style: context.type.tag.copyWith(color: context.pal.faint),
@@ -387,20 +520,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final inReview = _verification.isInReview(next);
     final (String title, String line) = switch (next) {
       VerifyChannel.nationalId when inReview => (
-        'Your National ID is being checked',
-        'Its 50% applies once an administrator approves it',
+        t('Your National ID is being checked'),
+        t('Its 50% applies once an administrator approves it'),
       ),
       VerifyChannel.nationalId => (
-        'Add your National ID for +50%',
-        'Responders weigh verified reports more heavily',
+        t('Add your National ID for +50%'),
+        t('Responders weigh verified reports more heavily'),
       ),
       VerifyChannel.email => (
-        'Confirm your email for +10%',
-        'One tap on a link we send you',
+        t('Confirm your email for +10%'),
+        t('One tap on a link we send you'),
       ),
       VerifyChannel.phone => (
-        'Add your mobile number for +40%',
-        'Confirmed with a code by SMS',
+        t('Add your mobile number for +40%'),
+        t('Confirmed with a code by SMS'),
       ),
     };
     return Semantics(
@@ -439,27 +572,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _details() {
+  /// The email and mobile number, masked until the eye above them is tapped.
+  Widget _details() => ValueListenableBuilder<bool>(
+    valueListenable: ContactMask.hidden,
+    builder: (context, hidden, _) => _detailRows(hidden),
+  );
+
+  Widget _detailRows(bool hidden) {
     final emailOk = _verification.isVerified(VerifyChannel.email);
+    final email = _email;
+    final mobile = _mobile;
     return Panel(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
           _DetailRow(
             icon: AppIcons.mail,
-            label: 'Email',
-            value: _email ?? '—',
-            action: emailOk ? 'Verified' : 'Verify',
+            label: t('Email'),
+            value: email == null
+                ? '—'
+                : hidden
+                ? ContactMask.email(email)
+                : email,
+            action: emailOk ? t('Verified') : t('Verify'),
             actionColor: emailOk ? context.pal.ok : context.pal.accent,
             onTap: emailOk ? null : _openVerification,
           ),
           const Divider(),
           _DetailRow(
             icon: AppIcons.smartphone,
-            label: 'Mobile',
-            value: _mobile ?? 'Not added yet',
+            label: t('Mobile'),
+            value: mobile == null
+                ? t('Not added yet')
+                : hidden
+                ? ContactMask.mobile(mobile)
+                : mobile,
             muted: _mobile == null,
-            action: _mobile == null ? 'Add' : null,
+            action: _mobile == null ? t('Add') : null,
             actionColor: context.pal.accent,
             onTap: _mobile == null ? _editProfile : null,
           ),

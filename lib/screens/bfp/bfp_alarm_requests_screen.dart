@@ -12,6 +12,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import '../subadmin/coordinator_nav.dart';
+import '../../widgets/skeleton.dart';
 
 /// BFP's alarm request queue: Fire Volunteer coordinators (and their
 /// responders) ask BFP to raise an Area's alarm; a BFP Coordinator sets the
@@ -272,9 +273,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
 
   Widget _body() {
     if (_loading && _requests.isEmpty) {
-      return Center(
-        child: CircularProgressIndicator(color: context.pal.accent),
-      );
+      return const SkeletonList(rows: 4, trailing: true);
     }
     if (_error != null) {
       return EmptyState(

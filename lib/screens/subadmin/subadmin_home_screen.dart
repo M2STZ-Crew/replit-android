@@ -12,6 +12,7 @@ import 'subadmin_incident_command_screen.dart';
 import 'subadmin_incident_report_screen.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/skeleton.dart';
 
 Color _panel = AppColors.glassDim;
 Color _panelBorder = AppColors.line;
@@ -174,9 +175,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
 
   Widget _body() {
     if (_loading) {
-      return Center(
-        child: CircularProgressIndicator(color: context.pal.accent),
-      );
+      return const SkeletonDetail(rows: 4);
     }
     if (_error != null) {
       return _centered(AppIcons.cloudOff, _error!, retry: true);

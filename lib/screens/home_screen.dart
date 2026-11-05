@@ -13,6 +13,7 @@ import '../widgets/design.dart';
 import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// "07 SOS" from the REPLIT-OVERHAUL Figma — the screen behind the SOS disc.
 ///
@@ -171,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen>
                   _statusPill(),
                   const SizedBox(height: 14),
                   Text(
-                    "YOU'RE COVERED",
+                    t("YOU'RE COVERED"),
                     textAlign: TextAlign.center,
                     style: context.type.heading2,
                   ),
@@ -179,8 +180,10 @@ class _HomeScreenState extends State<HomeScreen>
                   SizedBox(
                     width: 290,
                     child: Text(
-                      'Hold the dial, take one photo, and your location goes '
-                      'to Barangay 76 with it.',
+                      t(
+                        'Hold the SOS button, take one photo, and responders get '
+                        'your exact location with it.',
+                      ),
                       textAlign: TextAlign.center,
                       style: context.type.body,
                     ),
@@ -208,15 +211,15 @@ class _HomeScreenState extends State<HomeScreen>
     final (Color dot, String text, VoidCallback? onTap) = switch (_locationOk) {
       false => (
         context.pal.live,
-        'Location off — tap to turn on',
+        t('Location off — tap to turn on'),
         _fixLocation,
       ),
       _ when offline => (
         context.pal.warn,
-        'No signal — reports will wait',
+        t('No signal — reports will wait'),
         null,
       ),
-      true => (context.pal.ok, 'Connected, location on', null),
+      true => (context.pal.ok, t('Connected, location on'), null),
       null => (context.pal.ok, 'Connected', null),
     };
     final pill = Container(
@@ -257,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _sosDial() {
     return Semantics(
       button: true,
-      label: 'SOS. Press and hold for three seconds to start a report.',
+      label: t('SOS. Press and hold for three seconds to start a report.'),
       child: GestureDetector(
         onTapDown: (_) => _startHold(),
         onTapUp: (_) => _cancelHold(),
@@ -321,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Image.asset(Art.mark, width: 64, height: 64),
                     const SizedBox(height: 10),
-                    Text('SOS', style: context.type.dial),
+                    Text(t('SOS'), style: context.type.dial),
                   ],
                 ),
               ),
@@ -337,10 +340,10 @@ class _HomeScreenState extends State<HomeScreen>
       animation: _hold,
       builder: (context, _) {
         final label = _hold.value == 0
-            ? 'Hold 3 seconds to send'
+            ? t('Hold 3 seconds to send')
             : _hold.value < 1
-            ? 'Keep holding'
-            : 'Release';
+            ? t('Keep holding')
+            : t('Release');
         return Column(
           children: [
             Text(
@@ -384,8 +387,10 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              'Only for real emergencies. Every false alert takes a truck away '
-              'from someone who needs it.',
+              t(
+                'Only for real emergencies. Every false alert takes a truck away '
+                'from someone who needs it.',
+              ),
               style: context.type.detail.copyWith(color: context.pal.textSoft),
             ),
           ),

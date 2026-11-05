@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'app_icons.dart';
+import 'skeleton.dart';
+import '../i18n/i18n.dart';
 
 /// A reported photo, full screen, to be looked at closely before deciding.
 ///
@@ -100,21 +103,31 @@ class _PhotoViewerState extends State<PhotoViewer>
                 child: Center(
                   child: Semantics(
                     image: true,
-                    label: widget.label ?? 'Report photo',
+                    label: widget.label ?? t('Report photo'),
                     child: Image.network(
                       widget.url,
                       fit: BoxFit.contain,
                       loadingBuilder: (context, child, progress) =>
                           progress == null
                           ? child
-                          : const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
+                          // A photo-shaped block while it downloads, dark
+                          // like the viewer around it.
+                          : Theme(
+                              data: buildAppTheme(),
+                              child: Skeleton(
+                                label: t('Loading the photo'),
+                                child: AspectRatio(
+                                  aspectRatio: 3 / 4,
+                                  child: SkeletonBox(
+                                    height: double.infinity,
+                                    radius: 12,
+                                  ),
+                                ),
                               ),
                             ),
-                      errorBuilder: (context, error, stack) => const Center(
+                      errorBuilder: (context, error, stack) => Center(
                         child: Text(
-                          'The photo could not be loaded.',
+                          t('The photo could not be loaded.'),
                           style: TextStyle(color: Colors.white70),
                         ),
                       ),
@@ -131,7 +144,7 @@ class _PhotoViewerState extends State<PhotoViewer>
                 alignment: Alignment.topLeft,
                 child: _RoundButton(
                   icon: AppIcons.close,
-                  label: 'Close photo',
+                  label: t('Close photo'),
                   onTap: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -198,8 +211,8 @@ class _Hint extends StatelessWidget {
         color: Colors.black54,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Text(
-        'Pinch or double-tap to zoom',
+      child: Text(
+        t('Pinch or double-tap to zoom'),
         textAlign: TextAlign.center,
         style: TextStyle(color: Colors.white70, fontSize: 12),
       ),

@@ -9,6 +9,7 @@ import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
 import 'responder_shell.dart';
 import 'responder_status.dart';
+import '../../widgets/skeleton.dart';
 
 /// Duty (REPLIT (MAIN) 07 · R01, R02): what needs this unit now.
 ///
@@ -67,7 +68,7 @@ class DutyTab extends StatelessWidget {
   Widget _body(BuildContext context) {
     if (!feed.loaded) {
       return feed.error == null
-          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
+          ? const SkeletonList(rows: 4, trailing: true)
           : EmptyState(
               icon: AppIcons.cloudOff,
               tone: context.pal.live,

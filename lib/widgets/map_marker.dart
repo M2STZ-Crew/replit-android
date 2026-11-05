@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/i18n.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'motion.dart';
@@ -124,7 +125,7 @@ class MapMarker extends StatelessWidget {
     return Semantics(
       button: onTap != null,
       selected: selected,
-      label: '${kind.noun}, $label',
+      label: '${t(kind.noun)}, $label',
       onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(

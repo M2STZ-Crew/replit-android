@@ -27,6 +27,7 @@ import '../widgets/map_marker.dart';
 import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/you_are_here.dart';
+import '../i18n/i18n.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -549,7 +550,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                       alignment: Alignment.centerRight,
                       child: _MapControl(
                         icon: AppIcons.layers,
-                        label: 'Map layers',
+                        label: t('Map layers'),
                         onTap: _pickLayers,
                       ),
                     ),
@@ -804,7 +805,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               Row(
                 children: [
                   Text(
-                    'Then',
+                    t('Then'),
                     style: context.type.meta.copyWith(color: Colors.white70),
                   ),
                   const SizedBox(width: 8),
@@ -842,7 +843,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           padding: const EdgeInsets.only(bottom: 12),
           child: Semantics(
             button: true,
-            label: 'Re-center',
+            label: t('Re-center'),
             excludeSemantics: true,
             child: Material(
               color: context.pal.surfaceSolid,
@@ -865,7 +866,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                         color: context.pal.info,
                       ),
                       const SizedBox(width: 8),
-                      Text('Re-center', style: context.type.label),
+                      Text(t('Re-center'), style: context.type.label),
                     ],
                   ),
                 ),
@@ -943,28 +944,31 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   // ------------------------------------------------------------- card ---
   /// What to tell them under the numbers, if anything: most urgent first.
   String? get _note {
-    if (_nav.rerouting) return 'Finding a new route from where you are…';
+    if (_nav.rerouting) return t('Finding a new route from where you are…');
     final problem = _nav.problem;
     if (problem != null) return problem;
     final route = _nav.route;
     if (route != null && route.approximate) {
       // Said plainly: this is a straight line, not a route. Someone going to
       // a fire or a shelter needs to know the difference.
-      return 'Direct line shown — live routing was unavailable. Follow main '
-          'roads toward the marker.';
+      return t(
+        'Direct line shown — live routing was unavailable. Follow main '
+        'roads toward the marker.',
+      );
     }
     final fix = _nav.lastFix;
     if (_nav.navigating &&
         fix != null &&
         DateTime.now().difference(fix.time) > const Duration(seconds: 15)) {
-      return 'Waiting for GPS — the position shown may be old.';
+      return t('Waiting for GPS — the position shown may be old.');
     }
     if (_nav.weakSignal) {
-      return 'Weak GPS signal — your position may be off by '
-          '${fix?.accuracy?.round() ?? 0} m.';
+      return t('Weak GPS signal — your position may be off by {m} m.', {
+        'm': fix?.accuracy?.round() ?? 0,
+      });
     }
     if (_nav.offRoute) {
-      return 'You are off the route. We will find you a new one.';
+      return t('You are off the route. We will find you a new one.');
     }
     return null;
   }
@@ -975,7 +979,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final route = _nav.route;
     if (!_toFire || route == null || route.approximate) return null;
     if (_nav.trafficAware) return null;
-    return 'No live traffic data — times are estimates.';
+    return t('No live traffic data — times are estimates.');
   }
 
   /// A safety note: the backup router does not keep a truck off streets
@@ -984,8 +988,10 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final route = _nav.route;
     if (!_toFire || route == null || route.approximate) return null;
     return _nav.provider == 'osrm'
-        ? 'This route is from the backup router, which cannot check street '
-              'width.'
+        ? t(
+            'This route is from the backup router, which cannot check street '
+            'width.',
+          )
         : null;
   }
 
@@ -1008,20 +1014,26 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               Icon(AppIcons.locationOff, color: context.pal.warn),
               const SizedBox(width: 12),
               Expanded(
-                child: Eyebrow('Your location is off', color: context.pal.warn),
+                child: Eyebrow(
+                  t('Your location is off'),
+                  color: context.pal.warn,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            'We cannot see where you are, so there is no route to draw. Turn '
-            'on location and allow RepLiT to use it, then try again. The map '
-            'shows where ${widget.destName} is.',
+            t(
+              'We cannot see where you are, so there is no route to draw. '
+              'Turn on location and allow RepLiT to use it, then try again. '
+              'The map shows where {place} is.',
+              {'place': widget.destName},
+            ),
             style: context.type.bodySm,
           ),
           const SizedBox(height: 16),
           AppButton(
-            'Try again',
+            t('Try again'),
             height: 48,
             onPressed: _refineLocationThenRoute,
           ),
@@ -1045,7 +1057,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Eyebrow(
-                  _toFire ? 'You are at the fire' : 'You have arrived',
+                  _toFire ? t('You are at the fire') : t('You have arrived'),
                   color: _tone,
                 ),
                 const SizedBox(height: 6),
@@ -1087,7 +1099,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Eyebrow(
-                      _toFire ? 'Route to the fire' : 'Route to safety',
+                      _toFire ? t('Route to the fire') : t('Route to safety'),
                       color: _tone,
                     ),
                     const SizedBox(height: 6),
@@ -1104,7 +1116,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           ),
           const SizedBox(height: 14),
           if (_nav.loading && routes.isEmpty)
-            Text('Finding the best route…', style: context.type.meta)
+            Text(t('Finding the best route…'), style: context.type.meta)
           else if (real > 1)
             for (var i = 0; i < routes.length; i++) ...[
               _routeOption(i),
@@ -1122,7 +1134,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           ],
           const SizedBox(height: 16),
           AppButton(
-            'Start',
+            t('Start'),
             height: 48,
             onPressed: routes.isEmpty ? null : _startOrStop,
           ),
@@ -1135,7 +1147,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   Widget _routeOption(int i) {
     final route = _nav.routes[i];
     final chosen = i == _nav.active;
-    final via = route.summary.isEmpty ? '' : ' · via ${route.summary}';
+    final via = route.summary.isEmpty
+        ? ''
+        : t(' · via {road}', {'road': route.summary});
     return Panel(
       key: ValueKey('route-$i'),
       onTap: () => _nav.select(i),
@@ -1146,7 +1160,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       child: Row(
         children: [
           Text(
-            '~${_minutes(route.duration)} min',
+            t('~{n} min', {'n': _minutes(route.duration)}),
             style: context.type.numeral.copyWith(fontSize: 18),
           ),
           const SizedBox(width: 12),
@@ -1258,7 +1272,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     container: true,
                     button: true,
                     toggled: on,
-                    label: on ? 'Voice guidance on' : 'Voice guidance off',
+                    label: on
+                        ? t('Voice guidance on')
+                        : t('Voice guidance off'),
                     onTap: () => _voice.setEnabled(!on),
                     excludeSemantics: true,
                     child: InkResponse(
@@ -1325,8 +1341,8 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         return _MapControl(
           icon: headingUp ? AppIcons.explore : AppIcons.navigation,
           label: headingUp
-              ? 'Heading up — tap for north up'
-              : 'North up — tap for heading up',
+              ? t('Heading up — tap for north up')
+              : t('North up — tap for heading up'),
           onTap: () {
             if (headingUp) {
               _follow.follow();
@@ -1350,20 +1366,20 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   /// Map layers: the water a crew may need on arrival.
   Future<void> _pickLayers() async {
-    const layers = [
-      ('hydrants', 'Hydrants'),
-      ('water', 'Bodies of water'),
-      ('cisterns', 'Underground cisterns'),
+    final layers = [
+      ('hydrants', t('Hydrants')),
+      ('water', t('Bodies of water')),
+      ('cisterns', t('Underground cisterns')),
     ];
     await showFrameSheet<void>(
       context,
       builder: (context) => StatefulBuilder(
         builder: (context, set) => SheetFrame(
           children: [
-            const SheetTitles(
-              eyebrow: 'Map layers',
-              title: 'Water on the way',
-              body: 'Show where a crew can draw water near the route.',
+            SheetTitles(
+              eyebrow: t('Map layers'),
+              title: t('Water on the way'),
+              body: t('Show where a crew can draw water near the route.'),
             ),
             const SizedBox(height: 16),
             for (final (key, label) in layers) ...[
@@ -1414,7 +1430,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       if (mounted) {
         setState(() => _water.remove(key));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not load that layer.')),
+          SnackBar(content: Text(t('Could not load that layer.'))),
         );
       }
     }
@@ -1429,7 +1445,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     try {
       await mark();
       messenger.showSnackBar(
-        const SnackBar(content: Text('You are on scene. Marked arrived.')),
+        SnackBar(content: Text(t('You are on scene. Marked arrived.'))),
       );
       navigator.pop(true);
     } on ApiException catch (e) {
@@ -1439,7 +1455,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         await _refreshDestination();
         if (_areaStatus == 'arrived') {
           messenger.showSnackBar(
-            const SnackBar(content: Text('You are on scene.')),
+            SnackBar(content: Text(t('You are on scene.'))),
           );
           navigator.pop(true);
           return;
@@ -1450,7 +1466,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     } catch (_) {
       if (mounted) setState(() => _arriving = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Could not mark arrived. Check signal.')),
+        SnackBar(content: Text(t('Could not mark arrived. Check signal.'))),
       );
     }
   }
@@ -1507,7 +1523,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Sharing your location',
+                          t('Sharing your location'),
                           style: context.type.detail.copyWith(
                             color: context.pal.label,
                           ),
@@ -1533,11 +1549,10 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         const SizedBox(height: 12),
         Text(
           arrived
-              ? 'You are at the fire$where'
+              ? '${t('You are at the fire')}$where'
               : straight && metres != null
-              ? '${formatDistance(metres)} straight line$where'
-              : '${metres == null ? '—' : formatDistance(metres)}, about '
-                    '${seconds == null ? '—' : _minutes(seconds)} min$where',
+              ? '${t('{distance} straight line', {'distance': formatDistance(metres)})}$where'
+              : '${t('{distance}, about {n} min', {'distance': metres == null ? '—' : formatDistance(metres), 'n': seconds == null ? '—' : _minutes(seconds)})}$where',
           style: context.type.body.copyWith(color: context.pal.textSoft),
         ),
         for (final n in notes) ...[
@@ -1547,25 +1562,25 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         const SizedBox(height: 12),
         if (run?.markArrived != null && !onScene) ...[
           AppButton(
-            'Mark arrived',
+            t('Mark arrived'),
             run: true,
             busy: _arriving,
             onPressed: _arriving ? null : _markArrived,
           ),
           if (_nav.navigating && !arrived)
-            Center(child: TextLink('End navigation', onTap: _startOrStop)),
+            Center(child: TextLink(t('End navigation'), onTap: _startOrStop)),
         ] else if (_nav.navigating && !arrived)
-          AppButton.secondary('End navigation', onPressed: _startOrStop)
+          AppButton.secondary(t('End navigation'), onPressed: _startOrStop)
         else
           AppButton.secondary(
-            'Done',
+            t('Done'),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
       ],
     );
     return DragDownSheet(
       key: const ValueKey('run-panel'),
-      subject: 'the trip details',
+      subject: t('the trip details'),
       header: header,
       body: body,
       frame: (context, content) {
@@ -1613,14 +1628,16 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     final at = _switchedAt;
     if (at != null &&
         DateTime.now().difference(at) < const Duration(seconds: 8)) {
-      final via = _switchedVia == null ? '' : ' via $_switchedVia';
+      final via = _switchedVia == null
+          ? ''
+          : t(' via {road}', {'road': _switchedVia});
       return _RouteChip(
         key: const ValueKey('route-switched'),
         leading: _RouteChip.swatch(pal.accent),
-        title: 'Switched · ${_minutes(remaining)} min$via',
+        title: '${t('Switched · {n} min', {'n': _minutes(remaining)})}$via',
         detail: other == null
-            ? 'Keep to the coral line'
-            : 'The old route is now the grey line',
+            ? t('Keep to the coral line')
+            : t('The old route is now the grey line'),
       );
     }
     if (other != null) {
@@ -1630,15 +1647,19 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           ? '+$minutes min'
           : minutes < 0
           ? '${-minutes} min faster'
-          : 'Same time';
-      final title = via == null ? time : '$time · via $via';
+          : t('Same time');
+      final title = via == null
+          ? time
+          : '$time${t(' · via {road}', {'road': via})}';
       return _RouteChip(
         key: const ValueKey('route-alternative'),
         leading: _RouteChip.swatch(pal.muted),
         title: title,
-        detail: 'Tap the grey line to switch',
+        detail: t('Tap the grey line to switch'),
         onTap: _takeAlternative,
-        semanticsLabel: 'Another route: $title. Switch to it',
+        semanticsLabel: t('Another route: {title}. Switch to it', {
+          'title': title,
+        }),
       );
     }
     if (_nav.lookingForAlternative) {
@@ -1648,15 +1669,15 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           dimension: 16,
           child: CircularProgressIndicator(strokeWidth: 2, color: pal.label),
         ),
-        title: 'Looking for an alternative…',
-        detail: 'The coral line is still your route',
+        title: t('Looking for an alternative…'),
+        detail: t('The coral line is still your route'),
       );
     }
     return _RouteChip(
       key: const ValueKey('route-none'),
       leading: Icon(AppIcons.info, size: 18, color: pal.label),
-      title: 'No other route right now',
-      detail: 'Keep to the coral line',
+      title: t('No other route right now'),
+      detail: t('Keep to the coral line'),
     );
   }
 
@@ -1685,15 +1706,17 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Couldn't load a route", style: context.type.label),
+                Text(t("Couldn't load a route"), style: context.type.label),
                 const SizedBox(height: 4),
                 Text(
-                  'The Area pin and your position are still live. Try again '
-                  'or drive there by sight.',
+                  t(
+                    'The Area pin and your position are still live. Try again '
+                    'or drive there by sight.',
+                  ),
                   style: context.type.detail.copyWith(color: pal.textSoft),
                 ),
                 const SizedBox(height: 8),
-                TextLink('Try again', onTap: () => unawaited(_nav.retry())),
+                TextLink(t('Try again'), onTap: () => unawaited(_nav.retry())),
               ],
             ),
           ),
@@ -1745,7 +1768,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Head to $place',
+                      t('Head to {place}', {'place': place}),
                       key: const ValueKey('maneuver-text'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -1753,7 +1776,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Turn-by-turn returns when a route loads',
+                      t('Turn-by-turn returns when a route loads'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.type.detail.copyWith(
@@ -1787,7 +1810,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Eyebrow('On your way', color: _tone),
+          Eyebrow(t('On your way'), color: _tone),
           const SizedBox(height: 12),
           _metrics(arrival: true),
           if (note != null) ...[
@@ -1802,7 +1825,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 builder: (context, on, _) => Semantics(
                   button: true,
                   toggled: on,
-                  label: on ? 'Voice guidance on' : 'Voice guidance off',
+                  label: on ? t('Voice guidance on') : t('Voice guidance off'),
                   excludeSemantics: true,
                   child: IconWellButton(
                     icon: AppIcons.volumeUp,
@@ -1815,7 +1838,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: AppButton.secondary(
-                  'Stop',
+                  t('Stop'),
                   height: 48,
                   onPressed: _startOrStop,
                 ),
@@ -2016,7 +2039,7 @@ class _GlassBack extends StatelessWidget {
       alignment: Alignment.topLeft,
       child: Semantics(
         button: true,
-        label: 'Back',
+        label: t('Back'),
         excludeSemantics: true,
         child: ClipRRect(
           borderRadius: shape,

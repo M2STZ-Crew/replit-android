@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../app_version.dart';
 import '../../models/coordinator_powers.dart';
 import '../../sound/sound_cues.dart';
 import '../../theme.dart';
+import '../../updates/app_updates.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
@@ -264,6 +266,18 @@ class _ProfileTabState extends State<ProfileTab> {
                     chevron: true,
                     onTap: () => _push(const NotificationsScreen()),
                   ),
+                  if (AppUpdates.supported) ...[
+                    gap,
+                    ListRow(
+                      leading: const IconPlate(AppIcons.download),
+                      title: 'Check for updates',
+                      subtitle: AppVersion.label.isEmpty
+                          ? 'Get the newest version of RepLiT'
+                          : 'Version ${AppVersion.label} installed',
+                      chevron: true,
+                      onTap: () => showUpdateSheet(context),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   AppButton.danger(
                     'Log out',

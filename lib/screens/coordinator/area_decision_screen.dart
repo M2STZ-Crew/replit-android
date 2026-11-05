@@ -15,6 +15,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../directions_screen.dart';
 import 'report_detail_screen.dart';
+import '../../widgets/skeleton.dart';
 
 /// An Area and the decision on it (06 · C04): where it is, how sure the
 /// system is and why, the summary, every report, and the one decision —
@@ -260,13 +261,11 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
                       onBack: () => Navigator.of(context).pop(_changed),
                     ),
                     Expanded(
-                      child: Center(
-                        child: _error == null
-                            ? CircularProgressIndicator(
-                                color: context.pal.accent,
-                              )
-                            : Text(_error!, style: context.type.body),
-                      ),
+                      child: _error == null
+                          ? const SkeletonDetail(media: true)
+                          : Center(
+                              child: Text(_error!, style: context.type.body),
+                            ),
                     ),
                   ],
                 )
@@ -655,10 +654,7 @@ class GoSheetState extends State<GoSheet> {
           SectionHeader('Unit', meta: _last == null ? null : 'Last used first'),
           const SizedBox(height: 8),
           if (units == null)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const SkeletonRows(rows: 2)
           else if (units.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),

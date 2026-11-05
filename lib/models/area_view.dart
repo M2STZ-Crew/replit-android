@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import '../i18n/i18n.dart';
 
 /// One incident Area as the coordinator screens read it, from a GET
 /// /incidents row (IncidentSummary) or GET /incidents/{id} (IncidentDetail).
@@ -79,11 +80,11 @@ DateTime? parseTime(Object? iso) =>
 
 /// "Fire Volunteer", "BFP", "Medical"…
 String agencyWord(String agency) => switch (agency) {
-  'fire_volunteer' => 'Fire Volunteer',
-  'bfp' => 'BFP',
-  'medical' => 'Medical',
-  'police' => 'Police',
-  'barangay' => 'Barangay',
+  'fire_volunteer' => t('Fire Volunteer'),
+  'bfp' => t('BFP'),
+  'medical' => t('Medical'),
+  'police' => t('Police'),
+  'barangay' => t('Barangay'),
   _ => agency,
 };
 

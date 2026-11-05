@@ -5,6 +5,7 @@ import '../api/push_service.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// Notification settings — toggle emergency/neighborhood alerts on or off (which
 /// registers/unregisters this device with the backend) and send a test push.
@@ -62,7 +63,7 @@ class _NotificationSettingsScreenState
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not send a test notification.')),
+          SnackBar(content: Text(t('Could not send a test notification.'))),
         );
       }
     } finally {
@@ -99,7 +100,7 @@ class _NotificationSettingsScreenState
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('Notifications'.toUpperCase(), style: context.type.screenTitle),
+        Text(t('Notifications').toUpperCase(), style: context.type.screenTitle),
       ],
     );
   }
@@ -123,12 +124,12 @@ class _NotificationSettingsScreenState
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'EMERGENCY ALERTS',
+                  t('EMERGENCY ALERTS'),
                   style: context.type.cardTitle.copyWith(fontSize: 14),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Get alerted about incidents reported near you.',
+                  t('Get alerted about incidents reported near you.'),
                   style: context.type.meta.copyWith(height: 15 / 11),
                 ),
               ],
@@ -142,7 +143,7 @@ class _NotificationSettingsScreenState
   }
 
   Widget _testButton() => AppButton.secondary(
-    'Send test notification',
+    t('Send test notification'),
     busy: _testing,
     onPressed: (_enabled && !_testing) ? _sendTest : null,
   );
@@ -159,9 +160,11 @@ class _NotificationSettingsScreenState
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Turning alerts off unregisters this device, so nearby-incident '
-              'notifications stop until you turn it back on. Alerts still '
-              'appear in the inbox.',
+              t(
+                'Turning alerts off unregisters this device, so nearby-incident '
+                'notifications stop until you turn it back on. Alerts still '
+                'appear in the inbox.',
+              ),
               style: context.type.meta.copyWith(height: 16 / 11),
             ),
           ),

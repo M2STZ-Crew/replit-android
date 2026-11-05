@@ -33,6 +33,33 @@ void main() {
 
   const profile = {'id': 'u1', 'role': 'general_user', 'full_name': 'Ana'};
 
+  test('a session the closed-app report already renewed is taken, not '
+      'renewed again', () async {
+    // LocationBeacon's report runs in WorkManager's isolate and may refresh
+    // the session while the app sleeps. Supabase rotates the refresh token on
+    // every use, so the app must not present its old one afterwards: it takes
+    // the pair the other isolate stored and replays with that.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', 'renewed-elsewhere');
+    await prefs.setString('refresh_token', 'rotated-elsewhere');
+    final seen = <String>[];
+    final api = ApiClient(
+      client: MockClient((req) async {
+        seen.add('${req.method} ${req.url.path}');
+        final auth = req.headers['Authorization'];
+        return auth == 'Bearer renewed-elsewhere'
+            ? http.Response(jsonEncode(profile), 200)
+            : http.Response(jsonEncode({'message': 'Unauthorized'}), 401);
+      }),
+    );
+
+    final me = await api.getMe();
+
+    expect(me['full_name'], 'Ana');
+    expect(seen, ['GET /auth/me', 'GET /auth/me'], reason: 'no refresh call');
+    expect(Session.instance.refreshToken, 'rotated-elsewhere');
+  });
+
   test('an expired token is renewed and the request replayed', () async {
     final seen = <String>[];
     final api = ApiClient(

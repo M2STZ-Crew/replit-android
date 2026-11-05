@@ -1,11 +1,14 @@
 # App images
 
-Drop the RepLiT logo here as **`logo.png`** (this exact filename, lowercase).
+`AppLogo` (lib/widgets/app_logo.dart) draws the RepLiT wordmark in the staff
+top bars from this folder:
 
-`AppLogo` (lib/widgets/app_logo.dart) renders `assets/images/logo.png` on every
-screen (top bars, login, register, splash). A transparent-background PNG works
-best on the dark theme. Until the file exists, a "LOGO" placeholder box shows.
+- **`logo.png`** — white letters with the coral signal bars and pin, for the
+  dark ground (the default theme).
+- **`logo-light.png`** — the same artwork with the letters in the light theme's
+  ink (`#17140F`), for the light ground. Regenerate it whenever `logo.png`
+  changes: every neutral (white or grey) pixel becomes the ink at the pixel's
+  brightness as alpha; coloured pixels are kept as they are.
 
-After adding/replacing `logo.png`, run `flutter pub get` and restart the app
-(adding a new file to an already-declared asset folder needs a rebuild, not just
-hot reload).
+Both are transparent PNGs. After replacing either, run `flutter pub get` and
+restart the app (a changed asset needs a rebuild, not just hot reload).

@@ -8,6 +8,7 @@ import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'map_glass.dart';
+import '../i18n/i18n.dart';
 
 /// How every map in the app may be handled: drag, pinch, double-tap, fling,
 /// and turn with two fingers — as in Google Maps. Turning needs a deliberate
@@ -270,7 +271,7 @@ class MapLocationButtons extends StatelessWidget {
               children: [
                 if (turned) ...[
                   _MapButton(
-                    label: 'Point the map north',
+                    label: t('Point the map north'),
                     onTap: () {
                       if (follow.mode == FollowMode.compass) follow.follow();
                       controller.rotate(0);
@@ -289,9 +290,9 @@ class MapLocationButtons extends StatelessWidget {
                 ],
                 _MapButton(
                   label: switch (mode) {
-                    FollowMode.free => 'Show where I am',
-                    FollowMode.follow => 'Turn the map with me',
-                    FollowMode.compass => 'Stop turning the map',
+                    FollowMode.free => t('Show where I am'),
+                    FollowMode.follow => t('Turn the map with me'),
+                    FollowMode.compass => t('Stop turning the map'),
                   },
                   onTap: () {
                     switch (mode) {

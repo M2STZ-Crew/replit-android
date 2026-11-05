@@ -20,18 +20,22 @@ import '../../widgets/design.dart';
 import '../../widgets/map_marker.dart';
 import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
+import '../../widgets/sheet_grip.dart';
 import '../../widgets/you_are_here.dart';
 import '../bfp/bfp_alarm_requests_screen.dart';
 import '../responder/responder_status.dart';
 import '../subadmin/post_incident_report_screen.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
+import '../../widgets/skeleton.dart';
 
 /// A unit within this distance of the Area's centre is on scene.
 const double _onSceneMetres = 100;
 
 /// How much of the screen LIVE's sheet covers when it opens.
 const double _sheetStart = 0.62;
+const double _sheetMin = 0.3;
+const double _sheetMax = 0.94;
 
 /// The LIVE tab (06 · C11): the incident under way.
 ///
@@ -86,11 +90,7 @@ class LiveTab extends StatelessWidget {
                               'the units on their way and on scene. The queue '
                               'has what is waiting on you.',
                         )
-                      : Center(
-                          child: CircularProgressIndicator(
-                            color: context.pal.accent,
-                          ),
-                        ),
+                      : const SkeletonList(rows: 3, trailing: true),
                 ),
               ],
             ),
@@ -164,6 +164,10 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
   ], _load);
   final MapFollow _follow = MapFollow();
   final ResponderTracker _tracker = ResponderTracker.instance;
+
+  /// The details sheet, so its frozen grip can drag it.
+  final DraggableScrollableController _sheetSize =
+      DraggableScrollableController();
   Timer? _poll;
 
   AreaView? _area;
@@ -214,6 +218,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     _poll?.cancel();
     unawaited(_live.dispose());
     _follow.dispose();
+    _sheetSize.dispose();
     super.dispose();
   }
 
@@ -520,9 +525,8 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     final area = _area;
     final centre = area?.centre;
     if (area == null || centre == null) {
-      return Center(
-        child: CircularProgressIndicator(color: context.pal.accent),
-      );
+      // The map's place, then the sheet's, as they will be.
+      return const SkeletonDetail(media: true, rows: 2);
     }
     final units = _units();
     return Stack(
@@ -565,9 +569,10 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
             ),
           ),
         DraggableScrollableSheet(
+          controller: _sheetSize,
           initialChildSize: _sheetStart,
-          minChildSize: 0.3,
-          maxChildSize: 0.94,
+          minChildSize: _sheetMin,
+          maxChildSize: _sheetMax,
           builder: (context, scroll) => _sheet(area, units, scroll),
         ),
       ],
@@ -666,125 +671,142 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
             color: pal.glassStrong,
             border: Border(top: BorderSide(color: pal.line)),
           ),
-          child: ListView(
-            controller: scroll,
-            padding: EdgeInsets.fromLTRB(
-              24,
-              14,
-              24,
-              MediaQuery.paddingOf(context).bottom + 24,
-            ),
+          // The grip is frozen above the list: the rows scroll under it.
+          child: Column(
             children: [
-              const Center(child: SheetHandle(margin: EdgeInsets.zero)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  LifecycleChip(area.status),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      [
-                        area.name,
-                        if (accepted != null) 'accepted ${agoText(accepted)}',
-                      ].join(' · '),
-                      textAlign: TextAlign.right,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.type.caption.copyWith(color: pal.label),
+              SheetGrip(
+                sheet: _sheetSize,
+                minSize: _sheetMin,
+                maxSize: _sheetMax,
+                padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: scroll,
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    0,
+                    24,
+                    MediaQuery.paddingOf(context).bottom + 24,
+                  ),
+                  children: [
+                    Row(
+                      children: [
+                        LifecycleChip(area.status),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            [
+                              area.name,
+                              if (accepted != null)
+                                'accepted ${agoText(accepted)}',
+                            ].join(' · '),
+                            textAlign: TextAlign.right,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.type.caption.copyWith(
+                              color: pal.label,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Semantics(
-                header: true,
-                child: Text(
-                  going == 0
-                      ? 'NOBODY GOING YET'
-                      : going == 1
-                      ? '1 UNIT RESPONDING'
-                      : '$going UNITS RESPONDING',
-                  style: context.type.title,
+                    const SizedBox(height: 12),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        going == 0
+                            ? 'NOBODY GOING YET'
+                            : going == 1
+                            ? '1 UNIT RESPONDING'
+                            : '$going UNITS RESPONDING',
+                        style: context.type.title,
+                      ),
+                    ),
+                    if (routingLabel(
+                          area.raw,
+                          agency: _agency,
+                          orgId: widget.me['primary_org_id'] as String?,
+                        )
+                        case final routed?) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Tag(routed, color: pal.ok, dot: true),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    LifecycleRail(status: area.status),
+                    const SizedBox(height: 12),
+                    for (final u in units) ...[
+                      _unitRow(u, area),
+                      const SizedBox(height: 12),
+                    ],
+                    ListRow(
+                      // Red while a request waits: on BFP to answer, or on BFP
+                      // for the coordinator who asked.
+                      leading: IconPlate(
+                        AppIcons.warning,
+                        tint: _asks.any((r) => r.waiting) ? pal.live : null,
+                      ),
+                      title: 'Alarm level',
+                      subtitle: _alarmLine(area),
+                      trailing: RowValue(alarmWord(area.alarmLevel)),
+                      chevron: _powers.requestsAlarm || _powers.decidesAlarm,
+                      onTap:
+                          _busy ||
+                              !(_powers.requestsAlarm || _powers.decidesAlarm)
+                          ? null
+                          : _alarm,
+                    ),
+                    const SizedBox(height: 12),
+                    ListRow(
+                      leading: const IconPlate(AppIcons.description),
+                      title: 'Area details',
+                      subtitle: 'Where it is, confidence, summary and reports',
+                      chevron: true,
+                      onTap: _details,
+                    ),
+                    const SizedBox(height: 12),
+                    if (_powers.responds)
+                      ..._myActions(area, mine)
+                    else ...[
+                      // Directions only: nothing is recorded, as on a responder's
+                      // Area before they go.
+                      AppButton(
+                        'Route to the fire',
+                        run: true,
+                        icon: AppIcons.directions,
+                        onPressed: _route,
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    if (_powers.marksFireOut)
+                      AppButton.secondary(
+                        'Mark fire out',
+                        busy: _busy,
+                        onPressed: _busy ? null : _fireOut,
+                      ),
+                    if (_powers.rejects &&
+                        (area.status == 'en_route' ||
+                            area.status == 'verified'))
+                      Center(
+                        child: TextLink(
+                          'Reject this Area',
+                          color: pal.live,
+                          onTap: _reject,
+                        ),
+                      ),
+                    if (!_powers.coordinates)
+                      const InlineAlert(
+                        body:
+                            'You follow this Area here, and can get directions to '
+                            'it. Fire Volunteer and BFP coordinators and responders '
+                            'run the response: going, fire out and the report.',
+                      ),
+                  ],
                 ),
               ),
-              if (routingLabel(
-                    area.raw,
-                    agency: _agency,
-                    orgId: widget.me['primary_org_id'] as String?,
-                  )
-                  case final routed?) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Tag(routed, color: pal.ok, dot: true),
-                ),
-              ],
-              const SizedBox(height: 12),
-              LifecycleRail(status: area.status),
-              const SizedBox(height: 12),
-              for (final u in units) ...[
-                _unitRow(u, area),
-                const SizedBox(height: 12),
-              ],
-              ListRow(
-                // Red while a request waits: on BFP to answer, or on BFP
-                // for the coordinator who asked.
-                leading: IconPlate(
-                  AppIcons.warning,
-                  tint: _asks.any((r) => r.waiting) ? pal.live : null,
-                ),
-                title: 'Alarm level',
-                subtitle: _alarmLine(area),
-                trailing: RowValue(alarmWord(area.alarmLevel)),
-                chevron: _powers.requestsAlarm || _powers.decidesAlarm,
-                onTap: _busy || !(_powers.requestsAlarm || _powers.decidesAlarm)
-                    ? null
-                    : _alarm,
-              ),
-              const SizedBox(height: 12),
-              ListRow(
-                leading: const IconPlate(AppIcons.description),
-                title: 'Area details',
-                subtitle: 'Where it is, confidence, summary and reports',
-                chevron: true,
-                onTap: _details,
-              ),
-              const SizedBox(height: 12),
-              if (_powers.responds)
-                ..._myActions(area, mine)
-              else ...[
-                // Directions only: nothing is recorded, as on a responder's
-                // Area before they go.
-                AppButton(
-                  'Route to the fire',
-                  run: true,
-                  icon: AppIcons.directions,
-                  onPressed: _route,
-                ),
-                const SizedBox(height: 10),
-              ],
-              if (_powers.marksFireOut)
-                AppButton.secondary(
-                  'Mark fire out',
-                  busy: _busy,
-                  onPressed: _busy ? null : _fireOut,
-                ),
-              if (_powers.rejects &&
-                  (area.status == 'en_route' || area.status == 'verified'))
-                Center(
-                  child: TextLink(
-                    'Reject this Area',
-                    color: pal.live,
-                    onTap: _reject,
-                  ),
-                ),
-              if (!_powers.coordinates)
-                const InlineAlert(
-                  body:
-                      'You follow this Area here, and can get directions to '
-                      'it. Fire Volunteer and BFP coordinators and responders '
-                      'run the response: going, fire out and the report.',
-                ),
             ],
           ),
         ),

@@ -5,6 +5,7 @@ import '../models/hotline.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
+import '../i18n/i18n.dart';
 
 /// "12 Hotlines" from the REPLIT-OVERHAUL Figma — "Call for help".
 ///
@@ -42,11 +43,19 @@ class _CallScreenState extends State<CallScreen> {
     try {
       final ok = await launchUrl(uri);
       if (!ok && mounted) {
-        _toast('Could not open the dialler for ${hotline.displayNumber}.');
+        _toast(
+          t('Could not open the dialler for {number}.', {
+            'number': hotline.displayNumber,
+          }),
+        );
       }
     } catch (_) {
       if (mounted) {
-        _toast('Could not open the dialler for ${hotline.displayNumber}.');
+        _toast(
+          t('Could not open the dialler for {number}.', {
+            'number': hotline.displayNumber,
+          }),
+        );
       }
     }
   }
@@ -72,8 +81,8 @@ class _CallScreenState extends State<CallScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
               child: ScreenHeader(
-                eyebrow: 'Emergency hotlines',
-                title: 'Call for help',
+                eyebrow: t('Emergency hotlines'),
+                title: t('Call for help'),
                 showBack: widget.guest,
                 trailing: widget.guest
                     ? null
@@ -86,18 +95,20 @@ class _CallScreenState extends State<CallScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
               child: Text(
-                'Tap to dial. These work without data and without signing in.',
+                t(
+                  'Tap to dial. These work without data and without signing in.',
+                ),
                 style: context.type.body,
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 18, 0, 0),
               child: FilterChips(
-                options: [for (final c in HotlineCategory.values) c.label],
-                selected: _filter.label,
+                options: [for (final c in HotlineCategory.values) t(c.label)],
+                selected: t(_filter.label),
                 onSelect: (label) => setState(() {
                   _filter = HotlineCategory.values.firstWhere(
-                    (c) => c.label == label,
+                    (c) => t(c.label) == label,
                   );
                 }),
               ),
@@ -110,13 +121,15 @@ class _CallScreenState extends State<CallScreen> {
                   Flexible(
                     child: Eyebrow(
                       _filter == HotlineCategory.all
-                          ? 'All hotlines'
-                          : '${_filter.label} lines',
+                          ? t('All hotlines')
+                          : t('{category} lines', {
+                              'category': t(_filter.label),
+                            }),
                       color: context.pal.accent,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Eyebrow('${_visible.length} numbers'),
+                  Eyebrow(t('{n} numbers', {'n': _visible.length})),
                 ],
               ),
             ),
@@ -158,7 +171,10 @@ class _HotlineRow extends StatelessWidget {
 
     return Semantics(
       button: true,
-      label: '${hotline.name}, ${hotline.displayNumber}. Tap to dial.',
+      label: t('{name}, {number}. Tap to dial.', {
+        'name': t(hotline.name),
+        'number': hotline.displayNumber,
+      }),
       excludeSemantics: true,
       child: Panel(
         radius: AppRadius.card,
@@ -199,14 +215,14 @@ class _HotlineRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    hotline.name.toUpperCase(),
+                    t(hotline.name).toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.type.cardTitleSm,
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    hotline.summary,
+                    t(hotline.summary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.type.caption.copyWith(
@@ -244,7 +260,9 @@ class _HotlineRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 5),
                     Text(
-                      hotline.featured ? 'Toll-free nationwide' : 'Tap to dial',
+                      hotline.featured
+                          ? t('Toll-free nationwide')
+                          : t('Tap to dial'),
                       maxLines: 1,
                       style: context.type.captionSm,
                     ),

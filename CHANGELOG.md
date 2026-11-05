@@ -6,6 +6,41 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.24 — 5 November 2026 — The 5 November issue list, on the phone
+
+With backend v1.12.20, which must be deployed first (its two migrations and
+`PUT /auth/me/language`). New permission: `ACCESS_BACKGROUND_LOCATION`, asked
+for only from Profile. New dependencies: `image`, `workmanager`, and Firebase
+App Distribution (Gradle). The iPhone build (`ios-unsigned-ipa`) now comes from
+`main`.
+
+### Changes
+
+**UI**
+- **Tagalog mode** at CEFR B1 for residents: a Language switch in onboarding and
+  on Profile, 811 lines translated, alerts in the same language. Staff screens
+  stay in English.
+- **Email and mobile hidden** on Profile until the eye is tapped.
+- **The splash and top-bar logo** show on the light ground; the Android launcher
+  icon is the flame-and-pin mark again; iOS shows "RepLiT".
+- **"Responders" and "Pasay City"** instead of "Barangay 76".
+- **Skeleton loaders** instead of spinners on loading screens.
+- **National ID photos** come back as framed in the box, shown in its shape.
+- **Drawer handles** stay put while the rows scroll.
+- **"Check for updates"** on Profile (Android), through App Distribution.
+
+**Logic**
+- **Fire is locked in** on every report.
+- **Developer options must be off** for a release build to run on Android.
+- **The 150 m alert finds people where they are**: the phone reports its
+  location every 5 minutes while open, and about every 15 while closed for
+  residents who allow "All the time".
+
+**Before it works on phones:** the Firebase App Testers API enabled for the
+project, for "Check for updates".
+
+---
+
 ## v1.12.23 — 2 November 2026 — Incident sounds, and "Active areas near you"
 
 With backend v1.12.19, which needs nothing from this build and changes no push.

@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
+import '../i18n/i18n.dart';
 
 /// Philippine mobile numbers, the way residents type them.
 ///
@@ -38,10 +39,12 @@ String localPhMobile(String? raw) {
 /// What to tell a resident when sending or checking a code fails: the
 /// server's own words, except where they were written for us, not for them.
 String phoneErrorText(ApiException e) => switch (e.code) {
-  'semaphore_not_configured' =>
+  'semaphore_not_configured' => t(
     'We cannot send texts right now. Please try again later.',
-  'external_service_error' =>
+  ),
+  'external_service_error' => t(
     'We could not send the text. Please try again in a minute.',
+  ),
   _ => e.message,
 };
 

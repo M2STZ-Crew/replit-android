@@ -5,6 +5,8 @@ import '../api/notification_router.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/skeleton.dart';
+import '../i18n/i18n.dart';
 
 /// Opens what an Alerts row is about; [NotificationRouter] unless a test
 /// gives its own.
@@ -72,7 +74,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         setState(() {
           _error = e is ApiException
               ? e.message
-              : 'Could not load notifications.';
+              : t('Could not load notifications.');
           _loading = false;
         });
       }
@@ -112,7 +114,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final opened = await (widget.opener ?? _route)(nav, n);
     if (!opened && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('There is nothing to open for this one.')),
+        SnackBar(content: Text(t('There is nothing to open for this one.'))),
       );
     }
   }
@@ -121,45 +123,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   (String, IconData, Color) _meta(String type) => switch (type) {
     // A new fire, for staff (v1.12.6).
     'incident_new' => (
-      'New fire',
+      t('New fire'),
       AppIcons.localFireDepartment,
       context.pal.live,
     ),
     'fire_alert' => (
-      'Fire alert',
+      t('Fire alert'),
       AppIcons.localFireDepartment,
       context.pal.live,
     ),
     'incident_update' => (
-      'Incident update',
+      t('Incident update'),
       AppIcons.campaign,
       context.pal.accent,
     ),
     'responder_dispatch' => (
-      'Dispatched unit',
+      t('Dispatched unit'),
       AppIcons.localShipping,
       context.pal.accent,
     ),
     // Admin routed an incident to this team captain's team (v10 §2.6.2).
     'incident_routed' => (
-      'Routed to your team',
+      t('Routed to your team'),
       AppIcons.altRoute,
       context.pal.ok,
     ),
     'alarm_request' => (
-      'Alarm request',
+      t('Alarm request'),
       AppIcons.notificationsActive,
       context.pal.live,
     ),
-    'alarm_executed' => ('Alarm raised', AppIcons.campaign, context.pal.ok),
+    'alarm_executed' => (t('Alarm raised'), AppIcons.campaign, context.pal.ok),
     // BFP's answer to the coordinator or responder who asked.
     'alarm_request_answered' => (
-      'BFP answered',
+      t('BFP answered'),
       AppIcons.campaign,
       context.pal.accent,
     ),
     'national_id_reviewed' => (
-      'National ID',
+      t('National ID'),
       AppIcons.badge,
       context.pal.accent,
     ),
@@ -193,8 +195,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 18),
               child: ScreenHeader(
-                eyebrow: unread == 0 ? 'Nothing unread' : '$unread unread',
-                title: 'Alerts',
+                eyebrow: unread == 0 ? t('Nothing unread') : '$unread unread',
+                title: t('Alerts'),
                 showBack: !widget.asTab,
                 trailing: unread == 0
                     ? null
@@ -207,7 +209,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             vertical: 12,
                           ),
                           child: Eyebrow(
-                            'Mark all read',
+                            t('Mark all read'),
                             color: context.pal.accent,
                           ),
                         ),
@@ -223,24 +225,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonList(rows: 6);
     }
     if (_error != null) {
       return EmptyState(
         icon: AppIcons.cloudOff,
         tone: context.pal.live,
-        title: 'Could not load alerts',
+        title: t('Could not load alerts'),
         body: _error!,
-        action: AppButton.secondary('Try again', onPressed: _load),
+        action: AppButton.secondary(t('Try again'), onPressed: _load),
       );
     }
     if (_items.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: AppIcons.notifications,
-        title: 'No alerts yet',
-        body:
-            'If something is reported near you, an alert appears here so you '
-            'can confirm or dismiss it.',
+        title: t('No alerts yet'),
+        body: t(
+          'If something is reported near you, an alert appears here so you '
+          'can confirm or dismiss it.',
+        ),
       );
     }
     return RefreshIndicator(

@@ -4,6 +4,8 @@ Every push to `main` builds the Android app on GitHub's servers and sends it to 
 team through **Firebase App Distribution**. Teammates get an email and install from
 their phones. Nobody's laptop is involved.
 
+The iPhone app has its own workflow and installs differently: `docs/ios-sideload.md`.
+
 The workflow is `.github/workflows/android-release.yml`. This page is the one-time
 setup it needs. Until every item below exists, runs stop at the first step and name
 what is missing.

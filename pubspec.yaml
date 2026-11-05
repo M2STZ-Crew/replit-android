@@ -23,7 +23,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # The +1 here is only a placeholder: CI passes --build-number=<github run
 # number>, which is what becomes the Android versionCode. That has to rise on
 # every build or Android refuses the install, and a run number always does.
-version: 1.12.23+1
+version: 1.12.24+1
 
 environment:
   sdk: ^3.11.1
@@ -66,6 +66,8 @@ dependencies:
   # Spoken turn-by-turn directions (PRD v12 §4.9.3): the phone's own
   # text-to-speech, offline.
   flutter_tts: ^4.2.5
+  image: ^4.12.0
+  workmanager: ^0.10.10
 dev_dependencies:
   flutter_test:
     sdk: flutter

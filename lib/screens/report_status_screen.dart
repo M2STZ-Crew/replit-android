@@ -11,6 +11,7 @@ import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'live_update_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// "09 Submitting" from the REPLIT-OVERHAUL Figma — "Getting you help" — and
 /// the screen a resident stays on until the fire is out.
@@ -21,7 +22,7 @@ import '../widgets/app_icons.dart';
 ///
 ///   1. received — the photo and fix are stored (the 201 itself);
 ///   2. matched — clustered into an area, joined or first;
-///   3. notified — Barangay 76 has it, and neighbours within 150 m were asked;
+///   3. notified — responders have it, and neighbours within 150 m were asked;
 ///   4. accepted — a coordinator or agency accepted it and responders are on
 ///      the way, then on scene (v11: one Accept sends everyone);
 ///   5. fire out — and then it says so, plainly, and the report is done.
@@ -143,10 +144,12 @@ class ReportStatusScreen extends StatefulWidget {
     if (report != null) {
       showOverMap(context, report);
       messenger.showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'You already have a report in progress. It stays open until the '
-            'fire is out.',
+            t(
+              'You already have a report in progress. It stays open until the '
+              'fire is out.',
+            ),
           ),
         ),
       );
@@ -155,10 +158,12 @@ class ReportStatusScreen extends StatefulWidget {
     if (ReportQueue.instance.pending.value.isNotEmpty) {
       AppNavBar.switchTo(context, AppTab.map);
       messenger.showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Your report is saved on this phone. It sends itself when the '
-            'signal is back.',
+            t(
+              'Your report is saved on this phone. It sends itself when the '
+              'signal is back.',
+            ),
           ),
         ),
       );
@@ -335,40 +340,46 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
         (_area?['designation'] as String?) ?? widget.designation;
     final reports = _reports;
     final matchLine = reports == null
-        ? 'Grouped with reports within 300 m'
+        ? t('Grouped with reports within 300 m')
         : reports > 1
-        ? 'Within 300 m of an active area'
-        : 'A new area — the first report here';
+        ? t('Within 300 m of an active area')
+        : t('A new area — the first report here');
 
     final (String phase, double fraction) = switch (_stage) {
-      'fire_out' => ('Fire out', 1.0),
+      'fire_out' => (t('Fire out'), 1.0),
       'rejected' => ('Closed', 1.0),
-      'arrived' => ('On scene', 0.9),
-      'en_route' => ('On the way', 0.8),
+      'arrived' => (t('On scene'), 0.9),
+      'en_route' => (t('On the way'), 0.8),
       'verified' => ('Acknowledged', 0.7),
       _ => ('Confirming', 0.6),
     };
 
     final (String eyebrow, Color eyebrowTone) = _fireOut
-        ? ('Report done', context.pal.ok)
+        ? (t('Report done'), context.pal.ok)
         : _refused
-        ? ('Report closed', context.pal.muted)
-        : ('Report sent', context.pal.accentInk);
+        ? (t('Report closed'), context.pal.muted)
+        : (t('Report sent'), context.pal.accentInk);
 
     final heading = _fireOut
-        ? 'FIRE OUT'
+        ? t('FIRE OUT')
         : _refused
-        ? 'NOT CONFIRMED'
-        : 'GETTING YOU HELP';
+        ? t('NOT CONFIRMED')
+        : t('GETTING YOU HELP');
 
     final lead = _fireOut
-        ? 'Responders have put the fire out. Thank you for reporting — your '
-              'report is done.'
+        ? t(
+            'Responders have put the fire out. Thank you for reporting — your '
+            'report is done.',
+          )
         : _refused
-        ? 'A coordinator could not confirm this one. If it is still '
-              'happening, send another report or call a hotline.'
-        : 'You do not need to do anything else. This screen follows your '
-              'report until the fire is out — SOS brings you back here.';
+        ? t(
+            'A coordinator could not confirm this one. If it is still '
+            'happening, send another report or call a hotline.',
+          )
+        : t(
+            'You do not need to do anything else. This screen follows your '
+            'report until the fire is out — SOS brings you back here.',
+          );
 
     return Scaffold(
       backgroundColor: context.pal.background,
@@ -397,10 +408,10 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
             const SizedBox(height: 36),
             Center(child: _ring(fraction, phase)),
             const SizedBox(height: 36),
-            const _StepRow(
+            _StepRow(
               state: _Step.done,
-              title: 'Report received',
-              line: 'Photo and GPS stored',
+              title: t('Report received'),
+              line: t('Photo and GPS stored'),
             ),
             const SizedBox(height: 8),
             _StepRow(
@@ -411,28 +422,28 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
               line: matchLine,
             ),
             const SizedBox(height: 8),
-            const _StepRow(
+            _StepRow(
               state: _Step.done,
-              title: 'Barangay 76 notified',
-              line: 'Neighbours within 150 m were alerted too',
+              title: t('Responders notified'),
+              line: t('Neighbours within 150 m were alerted too'),
             ),
             const SizedBox(height: 8),
             _StepRow(
               state: _refused || _accepted ? _Step.done : _Step.now,
               title: _refused
-                  ? 'Not confirmed'
+                  ? t('Not confirmed')
                   : _accepted
-                  ? 'Accepted'
-                  : 'Waiting to be accepted',
+                  ? t('Accepted')
+                  : t('Waiting to be accepted'),
               line: _refused
-                  ? 'Closed by a coordinator'
+                  ? t('Closed by a coordinator')
                   : _onScene
-                  ? 'Responders reached the scene'
+                  ? t('Responders reached the scene')
                   : _accepted
-                  ? 'Responders are on the way'
+                  ? t('Responders are on the way')
                   : _areaId == null
-                  ? 'Open it from Your reports to follow it'
-                  : 'Now',
+                  ? t('Open it from Your reports to follow it')
+                  : t('Now'),
               refused: _refused,
             ),
             if (!_refused) ...[
@@ -443,12 +454,12 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                     : _onScene
                     ? _Step.now
                     : _Step.later,
-                title: 'Fire out',
+                title: t('Fire out'),
                 line: _fireOut
-                    ? 'Your report is done'
+                    ? t('Your report is done')
                     : _onScene
-                    ? 'Responders are working on it'
-                    : 'Once responders are on scene',
+                    ? t('Responders are working on it')
+                    : t('Once responders are on scene'),
               ),
             ],
           ],
@@ -457,10 +468,10 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               if (_over)
-                AppButton('Done', height: 54, onPressed: _done)
+                AppButton(t('Done'), height: 54, onPressed: _done)
               else ...[
                 if (_areaId != null)
-                  AppButton('Track it live', height: 54, onPressed: _follow),
+                  AppButton(t('Track it live'), height: 54, onPressed: _follow),
                 TextButton(
                   onPressed: _callHotline,
                   style: TextButton.styleFrom(
@@ -468,7 +479,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: Text(
-                    'Something else? Call a hotline',
+                    t('Something else? Call a hotline'),
                     style: context.type.label.copyWith(
                       color: context.pal.label,
                     ),
@@ -483,7 +494,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'ENCRYPTED, SHARED ONLY WITH RESPONDERS',
+                      t('ENCRYPTED, SHARED ONLY WITH RESPONDERS'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 9,

@@ -8,6 +8,8 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'map_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
+import '../i18n/language_switch.dart';
 
 /// Whether the resident has been shown the tour, and the map's coach marks.
 ///
@@ -164,7 +166,7 @@ class _TourBar extends StatelessWidget {
                     icon: const Icon(AppIcons.chevronLeft),
                     color: context.pal.onBackground,
                     iconSize: 26,
-                    tooltip: 'Back',
+                    tooltip: t('Back'),
                   ),
           ),
           Expanded(
@@ -174,7 +176,7 @@ class _TourBar extends StatelessWidget {
                 for (var i = 1; i <= 6; i++) ...[
                   if (i > 1) const SizedBox(width: 4),
                   Semantics(
-                    label: i == step ? 'Step $step of 6' : null,
+                    label: i == step ? t('Step {n} of 6', {'n': step}) : null,
                     child: Container(
                       width: 22,
                       height: 3,
@@ -201,7 +203,7 @@ class _TourBar extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       foregroundColor: context.pal.label,
                     ),
-                    child: Text('Skip', style: context.type.label),
+                    child: Text(t('Skip'), style: context.type.label),
                   ),
           ),
         ],
@@ -312,23 +314,31 @@ class _Welcome extends StatelessWidget {
     return SafeArea(
       child: Column(
         children: [
+          // The language first, before a word of the tour: each option is
+          // written in its own language, so either reader finds theirs.
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
+            child: LanguageSwitch(),
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Flexible(child: _Lit(height: 310)),
+                  const Flexible(child: _Lit(height: 280)),
                   const SizedBox(height: 24),
                   Text(
-                    "Hi, I'm Lit.",
+                    t("Hi, I'm Lit."),
                     textAlign: TextAlign.center,
                     style: context.type.tourHeading,
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "I'm a firefly. I'll show you how to report an emergency "
-                    'here — about a minute.',
+                    t(
+                      "I'm a firefly. I'll show you how to report an emergency "
+                      'here — about a minute.',
+                    ),
                     textAlign: TextAlign.center,
                     style: context.type.bodyLarge,
                   ),
@@ -341,7 +351,7 @@ class _Welcome extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppButton('Show me around', large: true, onPressed: onStart),
+                AppButton(t('Show me around'), large: true, onPressed: onStart),
                 const SizedBox(height: 6),
                 TextButton(
                   onPressed: onSkip,
@@ -349,7 +359,7 @@ class _Welcome extends StatelessWidget {
                     foregroundColor: context.pal.label,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: Text('Skip for now', style: context.type.label),
+                  child: Text(t('Skip for now'), style: context.type.label),
                 ),
               ],
             ),
@@ -400,10 +410,11 @@ class _HoldSosState extends State<_HoldSos>
       step: widget.step,
       onBack: widget.onBack,
       onSkip: widget.onSkip,
-      title: 'Hold SOS for three seconds',
-      body:
-          'A tap sends nothing. Holding is what starts a report, so it '
-          "can't happen by accident in your pocket.",
+      title: t('Hold SOS for three seconds'),
+      body: t(
+        'A tap sends nothing. Holding is what starts a report, so it '
+        "can't happen by accident in your pocket.",
+      ),
       stage: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -422,7 +433,7 @@ class _HoldSosState extends State<_HoldSos>
           ),
         ],
       ),
-      actions: [AppButton('Next', large: true, onPressed: widget.onNext)],
+      actions: [AppButton(t('Next'), large: true, onPressed: widget.onNext)],
     );
   }
 }
@@ -487,7 +498,7 @@ class _HoldDial extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'SOS',
+                  t('SOS'),
                   style: context.type.display.copyWith(
                     color: AppColors.accentText,
                     fontSize: disc * 0.157,
@@ -585,10 +596,10 @@ class _WhoAndPhoto extends StatelessWidget {
   static List<({String label, String art, Color tint})> _agenciesFor(
     AppPalette pal,
   ) => [
-    (label: 'Fire', art: Art.agFire, tint: pal.fire),
-    (label: 'Police', art: Art.agPolice, tint: pal.police),
-    (label: 'Medical', art: Art.agMedical, tint: pal.medical),
-    (label: 'Barangay', art: Art.agBarangay, tint: pal.barangay),
+    (label: t('Fire'), art: Art.agFire, tint: pal.fire),
+    (label: t('Police'), art: Art.agPolice, tint: pal.police),
+    (label: t('Medical'), art: Art.agMedical, tint: pal.medical),
+    (label: t('Barangay'), art: Art.agBarangay, tint: pal.barangay),
   ];
 
   @override
@@ -597,10 +608,11 @@ class _WhoAndPhoto extends StatelessWidget {
       step: step,
       onBack: onBack,
       onSkip: onSkip,
-      title: 'Pick who should come, then take one photo',
-      body:
-          'Fire, police, medical, barangay — one or several. The photo is '
-          'required: it tells the responders what they are driving into.',
+      title: t('Pick who should come, then take one photo'),
+      body: t(
+        'Fire, police, medical, barangay — one or several. The photo is '
+        'required: it tells the responders what they are driving into.',
+      ),
       stage: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -659,12 +671,12 @@ class _WhoAndPhoto extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'One photo of the scene',
+                              t('One photo of the scene'),
                               style: context.type.rowTitleLg,
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              'Required — there is no skip',
+                              t('Required — there is no skip'),
                               style: context.type.caption,
                             ),
                           ],
@@ -678,7 +690,7 @@ class _WhoAndPhoto extends StatelessWidget {
           ),
         ],
       ),
-      actions: [AppButton('Next', large: true, onPressed: onNext)],
+      actions: [AppButton(t('Next'), large: true, onPressed: onNext)],
     );
   }
 }
@@ -704,10 +716,11 @@ class _Areas extends StatelessWidget {
       step: step,
       onBack: onBack,
       onSkip: onSkip,
-      title: 'Reports near each other become one',
-      body:
-          'If a neighbour reports the same fire, RepLiT groups it with yours '
-          'into a single Area — so responders see one incident, not five.',
+      title: t('Reports near each other become one'),
+      body: t(
+        'If a neighbour reports the same fire, RepLiT groups it with yours '
+        'into a single Area — so responders see one incident, not five.',
+      ),
       stage: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -730,12 +743,12 @@ class _Areas extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Area confidence',
+                        t('Area confidence'),
                         style: context.type.rowTitle,
                       ),
                     ),
                     Text(
-                      'Medium',
+                      t('Medium'),
                       style: context.type.labelSm.copyWith(
                         color: context.pal.accent,
                       ),
@@ -766,7 +779,7 @@ class _Areas extends StatelessWidget {
           ),
         ],
       ),
-      actions: [AppButton('Next', large: true, onPressed: onNext)],
+      actions: [AppButton(t('Next'), large: true, onPressed: onNext)],
     );
   }
 }
@@ -792,10 +805,11 @@ class _Nearby extends StatelessWidget {
       step: step,
       onBack: onBack,
       onSkip: onSkip,
-      title: 'You may be asked to confirm',
-      body:
-          'When something is reported within 150 metres of you, RepLiT asks '
-          'one question. Answering makes the report more certain.',
+      title: t('You may be asked to confirm'),
+      body: t(
+        'When something is reported within 150 metres of you, RepLiT asks '
+        'one question. Answering makes the report more certain.',
+      ),
       stage: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -814,10 +828,10 @@ class _Nearby extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Do you see it too?', style: context.type.rowTitleLg),
+                Text(t('Do you see it too?'), style: context.type.rowTitleLg),
                 const SizedBox(height: 3),
                 Text(
-                  'Fire reported 180 m from you',
+                  t('Fire reported 180 m from you'),
                   style: context.type.caption,
                 ),
                 const SizedBox(height: 12),
@@ -825,7 +839,7 @@ class _Nearby extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _GhostButton(
-                        'Yes, report it',
+                        t('Yes, report it'),
                         tone: context.pal.accent,
                       ),
                     ),
@@ -838,7 +852,7 @@ class _Nearby extends StatelessWidget {
           ),
         ],
       ),
-      actions: [AppButton('Next', large: true, onPressed: onNext)],
+      actions: [AppButton(t('Next'), large: true, onPressed: onNext)],
     );
   }
 }
@@ -1067,7 +1081,7 @@ class _PracticeState extends State<_Practice>
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Practice — nothing is sent',
+                            t('Practice — nothing is sent'),
                             style: context.type.label.copyWith(
                               color: context.pal.accent,
                             ),
@@ -1083,9 +1097,10 @@ class _PracticeState extends State<_Practice>
                     onTapCancel: _stop,
                     child: Semantics(
                       button: true,
-                      label:
-                          'Practice SOS dial. Hold for three seconds. '
-                          'Nothing is sent.',
+                      label: t(
+                        'Practice SOS dial. Hold for three seconds. '
+                        'Nothing is sent.',
+                      ),
                       child: AnimatedBuilder(
                         animation: _hold,
                         builder: (context, _) => _HoldDial(
@@ -1100,8 +1115,8 @@ class _PracticeState extends State<_Practice>
                   const SizedBox(height: 18),
                   Text(
                     _done
-                        ? "That's it. Nothing was sent — this was practice."
-                        : 'Keep your finger down until the ring closes.',
+                        ? t("That's it. Nothing was sent — this was practice.")
+                        : t('Keep your finger down until the ring closes.'),
                     textAlign: TextAlign.center,
                     style: context.type.bodyLarge.copyWith(
                       color: context.pal.label,
@@ -1116,7 +1131,11 @@ class _PracticeState extends State<_Practice>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AppButton("I've got it", large: true, onPressed: widget.onNext),
+                AppButton(
+                  t("I've got it"),
+                  large: true,
+                  onPressed: widget.onNext,
+                ),
                 const SizedBox(height: 6),
                 TextButton(
                   onPressed: widget.onNext,
@@ -1124,7 +1143,7 @@ class _PracticeState extends State<_Practice>
                     foregroundColor: context.pal.label,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: Text('Skip practice', style: context.type.label),
+                  child: Text(t('Skip practice'), style: context.type.label),
                 ),
               ],
             ),
@@ -1169,7 +1188,7 @@ class _Ready extends StatelessWidget {
                   const _Lit(height: 134),
                   const SizedBox(height: 16),
                   Text(
-                    "You're ready",
+                    t("You're ready"),
                     textAlign: TextAlign.center,
                     style: context.type.tourHeading,
                   ),
@@ -1193,7 +1212,7 @@ class _Ready extends StatelessWidget {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  point,
+                                  t(point),
                                   style: context.type.rowTitleLg,
                                 ),
                               ),
@@ -1213,13 +1232,15 @@ class _Ready extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Verify your account when you have time',
+                          t('Verify your account when you have time'),
                           style: context.type.rowTitleLg,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'It makes your reports count for more. You never '
-                          'need it to report.',
+                          t(
+                            'It makes your reports count for more. You never '
+                            'need it to report.',
+                          ),
                           style: context.type.bodySm,
                         ),
                       ],
@@ -1232,7 +1253,7 @@ class _Ready extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-            child: AppButton('Open the map', large: true, onPressed: onDone),
+            child: AppButton(t('Open the map'), large: true, onPressed: onDone),
           ),
         ],
       ),

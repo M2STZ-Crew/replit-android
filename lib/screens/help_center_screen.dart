@@ -4,6 +4,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'call_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 class _Faq {
   const _Faq(this.question, this.answer);
@@ -71,7 +72,7 @@ class HelpCenterScreen extends StatelessWidget {
               _topBar(context),
               const SizedBox(height: 20),
               Text(
-                'Frequently asked',
+                t('Frequently asked'),
                 style: TextStyle(
                   color: context.pal.muted,
                   fontSize: 10,
@@ -95,7 +96,16 @@ class HelpCenterScreen extends StatelessWidget {
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('Help Center'.toUpperCase(), style: context.type.screenTitle),
+        // The title takes what the back button leaves and wraps there: at
+        // large text, or in Tagalog, it ran off the screen.
+        Expanded(
+          child: Text(
+            t('Help Center').toUpperCase(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.type.screenTitle,
+          ),
+        ),
       ],
     );
   }
@@ -106,35 +116,40 @@ class HelpCenterScreen extends StatelessWidget {
       child: Panel(
         padding: EdgeInsets.zero,
         color: context.pal.glassDim,
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            iconColor: context.pal.accentInk,
-            collapsedIconColor: context.pal.muted,
-            tilePadding: const EdgeInsets.symmetric(horizontal: 18),
-            childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-            title: Text(
-              faq.question,
-              style: TextStyle(
-                fontSize: 13,
-                height: 18 / 13,
-                fontWeight: FontWeight.w700,
-                color: context.pal.onBackground,
-              ),
-            ),
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  faq.answer,
-                  style: context.type.meta.copyWith(
-                    fontSize: 12,
-                    height: 18 / 12,
-                    color: context.pal.textSoft,
-                  ),
+        // A transparent Material of its own, so the tile's ink is drawn on
+        // the panel and not hidden behind it.
+        child: Material(
+          type: MaterialType.transparency,
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              iconColor: context.pal.accentInk,
+              collapsedIconColor: context.pal.muted,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 18),
+              childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              title: Text(
+                t(faq.question),
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 18 / 13,
+                  fontWeight: FontWeight.w700,
+                  color: context.pal.onBackground,
                 ),
               ),
-            ],
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    t(faq.answer),
+                    style: context.type.meta.copyWith(
+                      fontSize: 12,
+                      height: 18 / 12,
+                      color: context.pal.textSoft,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -149,11 +164,13 @@ class HelpCenterScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Eyebrow('In a real emergency', color: context.pal.accent),
+          Eyebrow(t('In a real emergency'), color: context.pal.accent),
           const SizedBox(height: 10),
           Text(
-            'Hold the SOS button, or dial a hotline directly. Do not wait if '
-            'lives are at risk.',
+            t(
+              'Hold the SOS button, or dial a hotline directly. Do not wait if '
+              'lives are at risk.',
+            ),
             style: context.type.meta.copyWith(
               fontSize: 13,
               height: 19 / 13,
@@ -162,7 +179,7 @@ class HelpCenterScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           AppButton(
-            'View emergency hotlines',
+            t('View emergency hotlines'),
             height: 48,
             icon: AppIcons.call,
             onPressed: () => Navigator.of(

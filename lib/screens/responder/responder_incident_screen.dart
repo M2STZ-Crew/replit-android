@@ -22,6 +22,7 @@ import '../../widgets/staff_shell.dart' show StaffAccount;
 import '../coordinator/area_decision_screen.dart' show openRouteToArea;
 import '../coordinator/report_detail_screen.dart';
 import 'responder_status.dart';
+import '../../widgets/skeleton.dart';
 
 /// One Area, as a responder sees it (REPLIT (MAIN) 07).
 ///
@@ -536,9 +537,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           _header(title: 'Area'),
           Expanded(
             child: _loading
-                ? Center(
-                    child: CircularProgressIndicator(color: context.pal.accent),
-                  )
+                ? const SkeletonDetail(media: true)
                 : EmptyState(
                     icon: AppIcons.cloudOff,
                     tone: context.pal.live,

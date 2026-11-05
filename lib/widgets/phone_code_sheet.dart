@@ -7,6 +7,7 @@ import '../api/api_client.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
 import 'design.dart';
+import '../i18n/i18n.dart';
 
 /// The last step of sign-up: text a code to the number just given, and take
 /// it back, in a sheet over the form.
@@ -161,12 +162,16 @@ class _PhoneCodeSheetState extends State<PhoneCodeSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('ENTER THE CODE', style: context.type.screenTitle),
+            Text(t('ENTER THE CODE'), style: context.type.screenTitle),
             const SizedBox(height: 8),
             Text(
               _sending && _resendIn == 0
-                  ? 'Sending a code to $_shown…'
-                  : 'We sent a 6-digit code to $_shown. It works for 5 minutes.',
+                  ? t('Sending a code to {phone}…', {'phone': _shown})
+                  : t(
+                      'We sent a 6-digit code to {phone}. It works for 5 '
+                      'minutes.',
+                      {'phone': _shown},
+                    ),
               style: context.type.body,
             ),
             const SizedBox(height: 20),
@@ -198,7 +203,7 @@ class _PhoneCodeSheetState extends State<PhoneCodeSheet> {
             ],
             const SizedBox(height: 18),
             AppButton(
-              'Verify',
+              t('Verify'),
               busy: _checking,
               onPressed: busy ? null : _verify,
             ),
@@ -213,8 +218,8 @@ class _PhoneCodeSheetState extends State<PhoneCodeSheet> {
                   onPressed: busy || _resendIn > 0 ? null : _send,
                   child: Text(
                     _resendIn > 0
-                        ? 'Send again in $_resendIn s'
-                        : 'Send the code again',
+                        ? t('Send again in {s} s', {'s': _resendIn})
+                        : t('Send the code again'),
                     style: TextStyle(
                       color: _resendIn > 0
                           ? context.pal.muted
@@ -226,7 +231,7 @@ class _PhoneCodeSheetState extends State<PhoneCodeSheet> {
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
                   child: Text(
-                    'Later',
+                    t('Later'),
                     style: TextStyle(color: context.pal.muted),
                   ),
                 ),

@@ -6,9 +6,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../verification/guide_crop.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
 import '../widgets/map_glass.dart';
+import '../widgets/skeleton.dart';
+import '../i18n/i18n.dart';
 
 /// One photo of the National ID check: what the screen says and the frame it
 /// holds up. The sizes are the design's, on its 402 px wide phone.
@@ -101,7 +104,8 @@ enum IdShot {
 
 /// The National ID camera: "20 National ID · ID photo" and "20B · Selfie".
 ///
-/// Pops with the JPEG, or with nothing when closed. It is an in-app camera so
+/// Pops with the JPEG cut to the guide (see [GuideCrop]) — what the resident
+/// framed, not the whole sensor frame — or with nothing when closed. It is an in-app camera so
 /// that the photo is live: there is no gallery here to reach for, which a
 /// phone's own camera app offers one tap away.
 ///
@@ -141,6 +145,11 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
   bool _capturing = false;
   String? _error;
 
+  /// The viewfinder and the guide on it, as last laid out: what the shutter
+  /// measures the photo against.
+  Size? _viewfinder;
+  Rect? _guide;
+
   @override
   void initState() {
     super.initState();
@@ -171,7 +180,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        _fail('No camera found on this device.');
+        _fail(t('No camera found on this device.'));
         return;
       }
       _lens = cameras.firstWhere(
@@ -180,9 +189,9 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
       );
       await _open();
     } on CameraException catch (e) {
-      _fail(e.description ?? 'Camera permission denied.');
+      _fail(e.description ?? t('Camera permission denied.'));
     } catch (_) {
-      _fail('The camera could not start.');
+      _fail(t('The camera could not start.'));
     }
   }
 
@@ -210,7 +219,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
         });
       }
     } on CameraException catch (e) {
-      _fail(e.description ?? 'Could not start the camera.');
+      _fail(e.description ?? t('Could not start the camera.'));
     }
   }
 
@@ -228,12 +237,25 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     setState(() => _capturing = true);
     try {
       final shot = await c.takePicture();
-      final bytes = await shot.readAsBytes();
+      var bytes = await shot.readAsBytes();
       try {
         // The plugin leaves the file in the cache, and this one is an ID.
         await File(shot.path).delete();
       } on FileSystemException catch (_) {
         // Already gone.
+      }
+      // Keep what was inside the guide. The preview is laid out portrait,
+      // as [_previewLayer] draws it.
+      final preview = c.value.previewSize;
+      final viewfinder = _viewfinder;
+      final guide = _guide;
+      if (preview != null && viewfinder != null && guide != null) {
+        bytes = await GuideCrop.cropToGuide(
+          bytes,
+          screen: viewfinder,
+          guide: guide,
+          preview: Size(preview.height, preview.width),
+        );
       }
       if (mounted) Navigator.of(context).pop<Uint8List>(bytes);
     } catch (_) {
@@ -241,7 +263,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
       setState(() => _capturing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Could not take the photo. Try again.'),
+          content: Text(t('Could not take the photo. Try again.')),
           backgroundColor: context.pal.live,
         ),
       );
@@ -260,6 +282,8 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     final pal = context.pal;
     final shot = widget.shot;
     final guide = shot.guideIn(box.biggest, MediaQuery.paddingOf(context));
+    _viewfinder = box.biggest;
+    _guide = guide.outerRect;
     final live = _error == null;
     return Stack(
       fit: StackFit.expand,
@@ -278,7 +302,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
             left: 51,
             right: 51,
             child: Text(
-              shot.hint,
+              t(shot.hint),
               textAlign: TextAlign.center,
               style: context.type.bodySm.copyWith(color: pal.textSoft),
             ),
@@ -298,7 +322,9 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 41),
                   child: Text(
-                    "Camera only — photos from your gallery aren't accepted.",
+                    t(
+                      "Camera only — photos from your gallery aren't accepted.",
+                    ),
                     textAlign: TextAlign.center,
                     style: context.type.caption.copyWith(color: pal.label),
                   ),
@@ -324,13 +350,13 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  widget.shot.title.toUpperCase(),
+                  t(widget.shot.title).toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.type.headline,
                 ),
                 const SizedBox(height: 8),
-                Eyebrow(widget.shot.step, color: context.pal.label),
+                Eyebrow(t(widget.shot.step), color: context.pal.label),
               ],
             ),
           ),
@@ -351,9 +377,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
         c.value.previewSize == null) {
       return ColoredBox(
         color: context.pal.canvas,
-        child: Center(
-          child: CircularProgressIndicator(color: context.pal.accent),
-        ),
+        child: SkeletonFill(label: t('Starting the camera')),
       );
     }
     final size = c.value.previewSize!;
@@ -373,12 +397,12 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     return EmptyState(
       icon: AppIcons.noPhotography,
       tone: context.pal.live,
-      title: 'Camera unavailable',
+      title: t('Camera unavailable'),
       body:
-          '$_error\n\nA live photo is required: saved pictures are not '
-          'accepted for your National ID.',
+          '$_error\n\n${t('A live photo is required: saved pictures are not '
+          'accepted for your National ID.')}',
       action: AppButton.secondary(
-        'Retry camera',
+        t('Retry camera'),
         onPressed: () {
           setState(() => _error = null);
           _start();
@@ -455,7 +479,7 @@ class _CloseCamera extends StatelessWidget {
     );
     return Semantics(
       button: true,
-      label: 'Close camera',
+      label: t('Close camera'),
       excludeSemantics: true,
       child: ClipRRect(
         borderRadius: shape,
@@ -480,7 +504,7 @@ class _Shutter extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: onTap != null,
-      label: 'Take the photo',
+      label: t('Take the photo'),
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,

@@ -20,6 +20,8 @@ import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/skeleton.dart';
+import '../i18n/i18n.dart';
 
 /// How far from a fire a neighbour is asked about it: the server's
 /// NEIGHBORHOOD_RADIUS_M (app/workers/neighborhood.py; PRD v14 §4.2).
@@ -146,8 +148,10 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
         _sendingAnswer = null;
         _answerError = e is ApiException && e.statusCode != 0
             ? e.message
-            : 'Your answer did not reach RepLiT. Check your signal and try '
-                  'again.';
+            : t(
+                'Your answer did not reach RepLiT. Check your signal and try '
+                'again.',
+              );
       });
     }
   }
@@ -160,7 +164,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
       // Said below.
     }
     messenger.showSnackBar(
-      const SnackBar(content: Text('Could not open the dialer for 911.')),
+      SnackBar(content: Text(t('Could not open the dialer for 911.'))),
     );
   }
 
@@ -182,20 +186,38 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
   }
 
   String get _sentence {
-    final where = _street == null ? 'near you' : 'on $_street';
     final at = DateTime.tryParse('${_area?['reported_at']}')?.toLocal();
-    final when = at == null ? '' : ' ${_ago(at)}';
-    return 'Someone within ${kNeighbourAlertMetres.round()} metres reported '
-        'a fire $where$when.';
+    final metres = kNeighbourAlertMetres.round();
+    final street = _street;
+    if (street == null) {
+      return at == null
+          ? t('Someone within {m} metres reported a fire near you.', {
+              'm': metres,
+            })
+          : t('Someone within {m} metres reported a fire near you {ago}.', {
+              'm': metres,
+              'ago': _ago(at),
+            });
+    }
+    return at == null
+        ? t('Someone within {m} metres reported a fire on {street}.', {
+            'm': metres,
+            'street': street,
+          })
+        : t('Someone within {m} metres reported a fire on {street} {ago}.', {
+            'm': metres,
+            'street': street,
+            'ago': _ago(at),
+          });
   }
 
-  static String _ago(DateTime t) {
-    final m = DateTime.now().difference(t).inMinutes;
-    if (m < 1) return 'just now';
-    if (m == 1) return 'a minute ago';
-    if (m < 60) return '$m minutes ago';
+  static String _ago(DateTime at) {
+    final m = DateTime.now().difference(at).inMinutes;
+    if (m < 1) return t('just now');
+    if (m == 1) return t('a minute ago');
+    if (m < 60) return t('{n} minutes ago', {'n': m});
     final h = m ~/ 60;
-    return h == 1 ? 'an hour ago' : '$h hours ago';
+    return h == 1 ? t('an hour ago') : t('{n} hours ago', {'n': h});
   }
 
   void _yes() {
@@ -224,10 +246,12 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
       if (!mounted) return;
       setState(() => _sending = false);
       messenger.showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Your answer did not reach RepLiT, so you may be asked again. '
-            'Check your connection and try once more.',
+            t(
+              'Your answer did not reach RepLiT, so you may be asked again. '
+              'Check your connection and try once more.',
+            ),
           ),
         ),
       );
@@ -236,7 +260,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     if (!mounted) return;
     Navigator.of(context).pop();
     messenger.showSnackBar(
-      const SnackBar(content: Text("You won't be asked about this one again.")),
+      SnackBar(content: Text(t("You won't be asked about this one again."))),
     );
   }
 
@@ -250,7 +274,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
           content: [
             Align(alignment: Alignment.centerLeft, child: _alertChip()),
             const SizedBox(height: 24),
-            Text('DO YOU SEE IT TOO?', style: context.type.display),
+            Text(t('DO YOU SEE IT TOO?'), style: context.type.display),
             const SizedBox(height: 14),
             Text(_sentence, style: context.type.body),
             const SizedBox(height: 26),
@@ -266,8 +290,10 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Confirming takes you through the same photo step, so '
-                      'your answer becomes a real report — not just a tap.',
+                      t(
+                        'Confirming takes you through the same photo step, so '
+                        'your answer becomes a real report — not just a tap.',
+                      ),
                       style: context.type.caption.copyWith(
                         color: context.pal.label,
                       ),
@@ -289,25 +315,25 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                 error: _answerError,
               ),
               if (_answer == null)
-                TextLink('Need help now? Call 911', onTap: _call911),
+                TextLink(t('Need help now? Call 911'), onTap: _call911),
             ],
           ],
           footer: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppButton('Yes, I can see it', height: 54, onPressed: _yes),
+              AppButton(t('Yes, I can see it'), height: 54, onPressed: _yes),
               const SizedBox(height: 12),
               // Saying they are safe already stopped the alerts.
               if (_answer != null)
                 AppButton.secondary(
-                  'Close',
+                  t('Close'),
                   height: 48,
                   onPressed: () => Navigator.of(context).maybePop(),
                 )
               else
                 AppButton.secondary(
-                  'No, and stop asking about this',
+                  t('No, and stop asking about this'),
                   height: 48,
                   busy: _sending,
                   onPressed: _sending ? null : _no,
@@ -334,7 +360,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
           const LiveDot(size: 7),
           const SizedBox(width: 8),
           Text(
-            'BARANGAY 76 ALERT',
+            t('NEARBY FIRE ALERT'),
             style: context.type.tag.copyWith(color: context.pal.live),
           ),
         ],
@@ -358,7 +384,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
         border: Border.all(color: context.pal.line),
       ),
       child: c == null
-          ? const Center(child: CircularProgressIndicator())
+          ? SkeletonFill(label: t('Loading the map'))
           : Stack(
               children: [
                 FlutterMap(
@@ -443,7 +469,11 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                         borderRadius: BorderRadius.circular(AppRadius.chip),
                       ),
                       child: Text(
-                        '${away < 1000 ? '${away.round()} M' : '${(away / 1000).toStringAsFixed(1)} KM'} FROM YOU',
+                        t('{distance} FROM YOU', {
+                          'distance': away < 1000
+                              ? '${away.round()} M'
+                              : '${(away / 1000).toStringAsFixed(1)} KM',
+                        }),
                         style: context.type.tag.copyWith(
                           color: context.pal.onBackground,
                         ),

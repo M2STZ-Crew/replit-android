@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../i18n/i18n.dart';
 
 /// An incident's lifecycle as a resident sees it — the rail on the Area detail
 /// and Live tracking screens (REPLIT-OVERHAUL frames 06 and 10).
@@ -30,11 +31,11 @@ String residentStatus(String? status) =>
 /// Plain words for residents: "On the way", not the dispatcher's "En route".
 /// Staff screens keep their own terms.
 String residentWord(String status) => switch (status) {
-  'en_route' => 'On the way',
-  'arrived' => 'On scene',
-  'fire_out' => 'Fire out',
-  'rejected' => 'Not confirmed',
-  '' => 'Reported',
+  'en_route' => t('On the way'),
+  'arrived' => t('On scene'),
+  'fire_out' => t('Fire out'),
+  'rejected' => t('Not confirmed'),
+  '' => t('Reported'),
   _ => '${status[0].toUpperCase()}${status.substring(1)}',
 };
 

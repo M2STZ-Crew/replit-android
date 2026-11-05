@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/api/api_client.dart';
 import 'package:replit/app_version.dart';
+import 'package:replit/i18n/i18n.dart';
 import 'package:replit/models/verification_state.dart';
 import 'package:replit/screens/profile_screen.dart';
 import 'package:replit/screens/verification_screen.dart';
@@ -92,9 +93,48 @@ void main() {
         expect(find.text('Barangay alerts'), findsOneWidget);
         // Switches with nothing behind them are not drawn (§2.7.1).
         expect(find.text('Share location always'), findsNothing);
-        expect(find.text('Language'), findsNothing);
       });
     }
+
+    testWidgets('Language switches the whole screen to Tagalog and back', (
+      tester,
+    ) async {
+      addTearDown(LanguageChoice.reset);
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      // Under LanguageScope, as main.dart mounts the app.
+      await tester.pumpWidget(
+        LanguageScope(
+          child: MaterialApp(
+            theme: buildAppTheme(),
+            home: ProfileScreen(api: api()),
+          ),
+        ),
+      );
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      final tagalog = find.text('Tagalog');
+      await tester.scrollUntilVisible(
+        tagalog,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Language'), findsOneWidget);
+
+      await tester.tap(tagalog);
+      await tester.pump();
+      expect(LanguageChoice.current.value, AppLanguage.tl);
+      // The same screen, repainted where it stands.
+      expect(find.text('Wika'), findsOneWidget);
+      expect(find.text('Language'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('English'));
+      await tester.pump();
+      expect(find.text('Language'), findsOneWidget);
+    });
 
     testWidgets('shows the build as App Distribution lists it', (tester) async {
       // What CI stamps on a release: pubspec's name, the run number as build.
@@ -110,7 +150,7 @@ void main() {
       expect(AppVersion.label, '1.11.0 (57)');
 
       await pump(tester, ProfileScreen(api: api()));
-      final footer = find.text('REPLIT · BARANGAY 76 · V1.11.0 (57)');
+      final footer = find.text('REPLIT · PASAY CITY · V1.11.0 (57)');
       await tester.scrollUntilVisible(
         footer,
         200,

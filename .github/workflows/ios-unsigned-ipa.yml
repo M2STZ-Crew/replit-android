@@ -1,0 +1,175 @@
+# Build the iPhone app on GitHub's Macs, unsigned, so nobody needs a MacBook.
+# Each tester signs it on Windows with their own free Apple ID (Sideloadly).
+# One-time setup and the Windows steps: docs/ios-sideload.md
+name: iOS unsigned IPA
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  # "Run workflow" button on the Actions tab, for a rebuild without a code change.
+  workflow_dispatch:
+
+# Same rule as the Android release: the repository is public, nothing here needs
+# to write to it, and there is no pull_request trigger, so a fork can never run
+# with the secrets.
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-unsigned-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The Android release's version, so both apps come from the same toolchain.
+  FLUTTER_VERSION: "3.44.4"
+
+jobs:
+  build:
+    # iOS apps only compile on macOS. macos-latest is macOS 26 with Xcode 26.
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check the secrets and variables are set
+        env:
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          IPA_ZIP_PASSWORD: ${{ secrets.IPA_ZIP_PASSWORD }}
+          REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
+        run: |
+          missing=()
+          for name in MAPBOX_TOKEN IPA_ZIP_PASSWORD; do
+            [ -n "${!name}" ] || missing+=("secret $name")
+          done
+          [ -n "$REPLIT_API_BASE" ] || missing+=("variable REPLIT_API_BASE")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Not set: ${missing[*]}. See docs/ios-sideload.md."
+            exit 1
+          fi
+          # Anyone signed in to GitHub can download the locked app and guess at
+          # it offline, so the password is the only thing keeping it private.
+          if [ ${#IPA_ZIP_PASSWORD} -lt 12 ]; then
+            echo "::error::IPA_ZIP_PASSWORD is shorter than 12 characters. Make a long random one with the command in docs/ios-sideload.md."
+            exit 1
+          fi
+          case "$REPLIT_API_BASE" in
+            https://*) ;;
+            *)
+              echo "::error::REPLIT_API_BASE must start with https:// — iOS blocks plain http."
+              exit 1
+              ;;
+          esac
+
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        run: flutter pub get
+
+      # The Android release's gate too: testers never get a build whose tests fail.
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Write the build configuration from secrets
+        env:
+          MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
+        run: |
+          # No GoogleService-Info.plist: a free Apple ID cannot sign the push
+          # entitlement, so a sideloaded build has no push either way, and
+          # main.dart already runs without Firebase.
+          #
+          # Trailing slashes are dropped: "https://host/" would build
+          # "https://host//auth/login", which the API answers with a 404.
+          jq -n \
+            --arg mapbox "$MAPBOX_TOKEN" \
+            --arg api "${REPLIT_API_BASE%/}" \
+            '{MAPBOX_TOKEN: $mapbox, REPLIT_API_BASE: $api}' \
+            > env.json
+
+      - name: Build the app without signing
+        # Each tester's Sideloadly signs it with their own Apple ID.
+        run: >-
+          flutter build ios --release --no-codesign
+          --dart-define-from-file=env.json
+          --build-number=${{ github.run_number }}
+
+      - name: Check the app and package the IPA
+        env:
+          REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
+        run: |
+          app=build/ios/iphoneos/Runner.app
+
+          # Without --dart-define-from-file the build still succeeds, pointed at an
+          # emulator address. Refuse to ship that.
+          host="${REPLIT_API_BASE#https://}"
+          host="${host%%/*}"
+          if ! grep -a -q -F "$host" "$app/Frameworks/App.framework/App"; then
+            echo "::error::$host is not compiled into the app, so env.json was not applied."
+            exit 1
+          fi
+
+          # iOS closes the app the moment it asks for a permission whose purpose
+          # string is missing, with no message.
+          for key in NSCameraUsageDescription NSLocationWhenInUseUsageDescription; do
+            if ! plutil -extract "$key" raw "$app/Info.plist" >/dev/null; then
+              echo "::error::$key is missing from Info.plist, so iOS would close the app when it asks."
+              exit 1
+            fi
+          done
+
+          # "Replit-1.12.23-57": the version and build number the phone shows.
+          version=$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")
+          name="Replit-$version-${{ github.run_number }}"
+          echo "IPA_NAME=$name" >> "$GITHUB_ENV"
+
+          # An .ipa is only Payload/Runner.app, zipped.
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$app" "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry "$RUNNER_TEMP/$name.ipa" Payload)
+          echo "Built $name.ipa against $host."
+
+      - name: Lock the IPA with the password
+        env:
+          IPA_ZIP_PASSWORD: ${{ secrets.IPA_ZIP_PASSWORD }}
+        run: |
+          # The repository is public, so anyone signed in to GitHub can download a
+          # run's artifacts. AES-256 with the file names hidden too: only people
+          # given the password can install the app and send reports into the live
+          # system. The IPA is compressed already, so 7-Zip only stores it.
+          command -v 7z >/dev/null || brew install p7zip
+          archive="$RUNNER_TEMP/$IPA_NAME.7z"
+          7z a -t7z -mx=0 -mhe=on -p"$IPA_ZIP_PASSWORD" "$archive" "$RUNNER_TEMP/$IPA_NAME.ipa" >/dev/null
+          # Testers open it with the same secret, so prove that works first.
+          7z t -p"$IPA_ZIP_PASSWORD" "$archive" >/dev/null
+          echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          path: ${{ env.ARCHIVE }}
+          # Uploaded as it is, so testers download the .7z itself, not a zip of it.
+          archive: false
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Say how to install it
+        run: |
+          {
+            echo "### $IPA_NAME"
+            echo
+            echo "Download **$IPA_NAME.7z** under *Artifacts* below and open it with the team's IPA password."
+            echo "Install it from Windows with Sideloadly: [docs/ios-sideload.md](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/docs/ios-sideload.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the secret files
+        if: always()
+        run: rm -rf env.json "$RUNNER_TEMP/ipa" "$RUNNER_TEMP"/Replit-*.ipa

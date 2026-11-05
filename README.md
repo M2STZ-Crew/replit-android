@@ -38,7 +38,7 @@ flutter doctor
 ```
 
 Every line under "Android toolchain" must be a checkmark. Ignore complaints
-about Xcode unless you are building for iOS.
+about Xcode: the iPhone app is built on GitHub's Macs (`docs/ios-sideload.md`).
 
 ### 2. Clone the repository
 

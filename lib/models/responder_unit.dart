@@ -37,7 +37,7 @@ const List<ResponderUnit> kResponderUnits = [
   ResponderUnit(
     'barangay',
     'Barangay Personnel',
-    'BARANGAY 76, BARANGAY HALL',
+    'BARANGAY HALL',
     AppIcons.groups,
   ),
 ];

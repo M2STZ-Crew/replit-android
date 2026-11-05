@@ -13,6 +13,7 @@ import 'call_screen.dart';
 import 'register_screen.dart';
 import 'role_gate.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// "02 Sign in" from the REPLIT-OVERHAUL Figma.
 ///
@@ -103,9 +104,11 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError(
         e.statusCode == 401 && e.message == 'Invalid login credentials'
             ? (_byEmail
-                  ? 'Wrong email or password.'
-                  : 'Wrong mobile number or password. Not verified your '
-                        'number yet? Use your email instead.')
+                  ? t('Wrong email or password.')
+                  : t(
+                      'Wrong mobile number or password. Not verified your '
+                      'number yet? Use your email instead.',
+                    ))
             : e.message,
       );
     } on TimeoutException {
@@ -145,13 +148,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = await showAppDialog<String>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: Text('RESET PASSWORD', style: context.type.screenTitle),
+        title: Text(t('RESET PASSWORD'), style: context.type.screenTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Enter your account email and we'll send a reset link.",
+              t("Enter your account email and we'll send a reset link."),
               style: context.type.body,
             ),
             const SizedBox(height: 16),
@@ -160,20 +163,23 @@ class _LoginScreenState extends State<LoginScreen> {
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
               style: context.type.input,
-              decoration: const InputDecoration(hintText: 'you@email.com'),
+              decoration: InputDecoration(hintText: t('you@email.com')),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
+            child: Text(
+              t('CANCEL'),
+              style: TextStyle(color: context.pal.muted),
+            ),
           ),
           TextButton(
             onPressed: () =>
                 Navigator.of(dialogCtx).pop(controller.text.trim()),
             child: Text(
-              'SEND LINK',
+              t('SEND LINK'),
               style: TextStyle(
                 color: context.pal.accent,
                 fontWeight: FontWeight.w800,
@@ -211,15 +217,17 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
           content: [
             const SizedBox(height: 120),
-            Text('WELCOME BACK', style: context.type.display),
+            Text(t('WELCOME BACK'), style: context.type.display),
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
               child: SizedBox(
                 width: 306,
                 child: Text(
-                  'Sign in so responders know who is reporting and '
-                  'where to find you.',
+                  t(
+                    'Sign in so responders know who is reporting and '
+                    'where to find you.',
+                  ),
                   style: context.type.body,
                 ),
               ),
@@ -227,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 42),
             LabeledField(
               key: ValueKey(_byEmail),
-              label: _byEmail ? 'Email address' : 'Mobile number',
+              label: _byEmail ? t('Email address') : t('Mobile number'),
               builder: (focus) => _byEmail
                   ? TextField(
                       controller: _emailCtrl,
@@ -237,9 +245,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       autocorrect: false,
                       autofillHints: const [AutofillHints.email],
                       style: context.type.input,
-                      decoration: const InputDecoration(
-                        hintText: 'you@email.com',
-                      ),
+                      decoration: InputDecoration(hintText: t('you@email.com')),
                     )
                   : TextField(
                       controller: _phoneCtrl,
@@ -256,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 15),
             LabeledField(
-              label: 'Password',
+              label: t('Password'),
               builder: (focus) => TextField(
                 controller: _passwordCtrl,
                 focusNode: focus,
@@ -266,11 +272,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 onSubmitted: (_) => _submit(),
                 style: context.type.input,
                 decoration: InputDecoration(
-                  hintText: 'Your password',
+                  hintText: t('Your password'),
                   suffixIcon: IconButton(
                     iconSize: 18,
                     color: context.pal.muted,
-                    tooltip: _obscure ? 'Show password' : 'Hide password',
+                    tooltip: _obscure ? t('Show password') : t('Hide password'),
                     // The eye offers what a tap does: see it.
                     icon: Icon(
                       _obscure ? AppIcons.visibility : AppIcons.visibilityOff,
@@ -286,15 +292,15 @@ class _LoginScreenState extends State<LoginScreen> {
               runSpacing: 4,
               children: [
                 TextLink(
-                  _byEmail ? 'Use mobile number' : 'Use email instead',
+                  _byEmail ? t('Use mobile number') : t('Use email instead'),
                   onTap: () => setState(() => _byEmail = !_byEmail),
                 ),
-                TextLink('Forgot password?', onTap: _recoverDialog),
+                TextLink(t('Forgot password?'), onTap: _recoverDialog),
               ],
             ),
             const SizedBox(height: 22),
             AppButton(
-              'Sign in',
+              t('Sign in'),
               height: 54,
               busy: _loading,
               onPressed: _loading ? null : _submit,
@@ -304,8 +310,10 @@ class _LoginScreenState extends State<LoginScreen> {
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  'Still signing in. RepLiT can take up to a minute to wake '
-                  'after a quiet spell.',
+                  t(
+                    'Still signing in. RepLiT can take up to a minute to wake '
+                    'after a quiet spell.',
+                  ),
                   style: context.type.caption.copyWith(
                     color: context.pal.label,
                   ),
@@ -314,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
             const SizedBox(height: 10),
             AppButton.secondary(
-              'Emergency hotlines',
+              t('Emergency hotlines'),
               icon: AppIcons.call,
               onPressed: _hotlines,
             ),
@@ -332,8 +340,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Locked out or offline? Hotlines need no account and '
-                      'no internet.',
+                      t(
+                        'Locked out or offline? Hotlines need no account and '
+                        'no internet.',
+                      ),
                       style: context.type.caption.copyWith(
                         color: context.pal.label,
                       ),
@@ -351,9 +361,9 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
             children: [
-              Text('New to the barangay app?', style: context.type.detail),
+              Text(t('New to the barangay app?'), style: context.type.detail),
               TextLink(
-                'Create account',
+                t('Create account'),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
                 ),

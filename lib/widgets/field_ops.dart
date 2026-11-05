@@ -6,6 +6,7 @@ import '../theme.dart';
 import 'app_icons.dart';
 import 'coordinator_kit.dart';
 import 'design.dart';
+import 'sheet_grip.dart';
 
 /// REPLIT (MAIN) 04 · V13 field operations (pass 6): the Choice row, the
 /// on-scene Action tile and its Field actions grid, the neighbourhood Safety
@@ -73,26 +74,12 @@ class _PassSixSheet extends StatelessWidget {
           ),
           border: Border(top: BorderSide(color: context.pal.line)),
         ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(24, 12, 24, 34 + inset),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.pal.lineStrong,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...children,
-            ],
-          ),
+        // The grabber stays put; a long sheet scrolls under it.
+        child: FrozenHandleSheet(
+          padding: EdgeInsets.fromLTRB(24, 0, 24, 34 + inset),
+          handlePadding: const EdgeInsets.only(top: 12, bottom: 16),
+          handleColor: context.pal.lineStrong,
+          children: children,
         ),
       ),
     );

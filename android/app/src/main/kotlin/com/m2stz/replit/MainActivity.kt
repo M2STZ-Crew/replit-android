@@ -4,18 +4,153 @@ package com.m2stz.replit
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ActivityNotFoundException
 import android.content.ContentResolver
+import android.content.Intent
 import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import com.google.firebase.appdistribution.FirebaseAppDistribution
+import com.google.firebase.appdistribution.FirebaseAppDistributionException
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+
+    /** lib/updates/app_updates.dart's channel, kept for its progress calls. */
+    private var updates: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannels()
+    }
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        // lib/security/developer_mode.dart: whether Developer options are on,
+        // and the way to them in Settings.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "replit/device")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "developerOptions" -> result.success(developerOptionsOn())
+                    "openDeveloperOptions" -> result.success(openDeveloperOptions())
+                    else -> result.notImplemented()
+                }
+            }
+        // lib/updates/app_updates.dart: "Check for updates" through Firebase App
+        // Distribution, where CI sends every Android build.
+        updates = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "replit/updates")
+            .also { channel ->
+                channel.setMethodCallHandler { call, result ->
+                    when (call.method) {
+                        "check" -> checkForUpdate(result)
+                        "install" -> installUpdate(result)
+                        else -> result.notImplemented()
+                    }
+                }
+            }
+    }
+
+    /** App Distribution, or null in a build with no Firebase config to start it
+     *  (google-services.json is not in the repository). */
+    private fun appDistribution(): FirebaseAppDistribution? =
+        try {
+            FirebaseAppDistribution.getInstance()
+        } catch (e: IllegalStateException) {
+            null
+        }
+
+    private fun fail(result: MethodChannel.Result, e: Exception) {
+        val code = (e as? FirebaseAppDistributionException)?.errorCode?.name ?: "UNKNOWN"
+        result.error(code, e.message, null)
+    }
+
+    /** A newer release for this tester as a map, or null when this is the
+     *  newest. Signs the tester in first; App Distribution remembers it. */
+    private fun checkForUpdate(result: MethodChannel.Result) {
+        val distribution = appDistribution()
+            ?: return result.error("UNAVAILABLE", "Firebase is not set up in this build.", null)
+        fun check() {
+            distribution.checkForNewRelease()
+                .addOnSuccessListener { release ->
+                    result.success(
+                        release?.let {
+                            mapOf(
+                                "version" to it.displayVersion,
+                                "build" to it.versionCode,
+                                "notes" to it.releaseNotes
+                            )
+                        }
+                    )
+                }
+                .addOnFailureListener { e -> fail(result, e) }
+        }
+        if (distribution.isTesterSignedIn) {
+            check()
+        } else {
+            distribution.signInTester()
+                .addOnSuccessListener { check() }
+                .addOnFailureListener { e -> fail(result, e) }
+        }
+    }
+
+    /** Download the release the last check found and hand it to Android's
+     *  installer, reporting progress to Dart as it downloads. */
+    private fun installUpdate(result: MethodChannel.Result) {
+        val distribution = appDistribution()
+            ?: return result.error("UNAVAILABLE", "Firebase is not set up in this build.", null)
+        var answered = false
+        distribution.updateApp()
+            .addOnProgressListener { progress ->
+                updates?.invokeMethod(
+                    "progress",
+                    mapOf(
+                        "downloaded" to progress.apkBytesDownloaded,
+                        "total" to progress.apkFileTotalBytes,
+                        "status" to progress.updateStatus.name
+                    )
+                )
+            }
+            .addOnSuccessListener {
+                if (!answered) {
+                    answered = true
+                    result.success(true)
+                }
+            }
+            .addOnFailureListener { e ->
+                if (!answered) {
+                    answered = true
+                    fail(result, e)
+                }
+            }
+    }
+
+    /** The "Developer options" switch at the top of that Settings page. */
+    private fun developerOptionsOn(): Boolean =
+        Settings.Global.getInt(
+            contentResolver,
+            Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
+            0
+        ) != 0
+
+    /** Developer options in Settings; Settings itself where a phone has no
+     *  direct way in. False when neither opens. */
+    private fun openDeveloperOptions(): Boolean {
+        for (action in listOf(
+            Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS,
+            Settings.ACTION_SETTINGS
+        )) {
+            try {
+                startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return true
+            } catch (e: ActivityNotFoundException) {
+                // Try the next way in.
+            }
+        }
+        return false
     }
 
     /**

@@ -10,6 +10,7 @@ import '../screens/report_status_screen.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'design.dart';
+import '../i18n/i18n.dart';
 
 /// The five slots of the REPLIT-OVERHAUL tab bar: Map, Hotlines, SOS, Guides,
 /// Profile. SOS is not a tab label but a raised coral disc in the middle slot —
@@ -210,14 +211,14 @@ class AppNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return NavBarShell(
       disc: 'SOS',
-      discLabel: 'SOS — hold to report',
+      discLabel: t('SOS — hold to report'),
       discActive: active == AppTab.sos,
       onDisc: () => _go(context, AppTab.sos),
       items: [
         for (final tab in AppTab.values)
           (
             icon: tab.icon ?? AppIcons.circle,
-            label: tab.label,
+            label: t(tab.label),
             selected: tab == active,
             onTap: () => _go(context, tab),
           ),
@@ -250,7 +251,11 @@ class _NavItem extends StatelessWidget {
     return Semantics(
       button: true,
       selected: on,
-      label: '${item.label}, tab $position of $of',
+      label: t('{tab}, tab {n} of {of}', {
+        'tab': t(item.label),
+        'n': position,
+        'of': of,
+      }),
       // The tap has to be on this node: excluding the children's semantics
       // also drops the InkResponse's tap, and TalkBack's double-tap needs it.
       onTap: item.onTap,

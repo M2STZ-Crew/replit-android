@@ -9,8 +9,10 @@ import '../models/active_report.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/incident_map.dart';
+import '../widgets/skeleton.dart';
 import 'sos_report_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// A photo taken again from the report screen, with the place it names.
 typedef RetakenPhoto = ({List<int> bytes, String? address});
@@ -124,7 +126,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     } on CameraException catch (e) {
       if (mounted) {
         setState(
-          () => _camError = e.description ?? 'Camera permission denied.',
+          () => _camError = e.description ?? t('Camera permission denied.'),
         );
       }
     } catch (_) {
@@ -155,7 +157,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       if (mounted) {
         setState(() {
           _camReady = false;
-          _camError = e.description ?? 'Could not start the camera.';
+          _camError = e.description ?? t('Could not start the camera.');
         });
       }
     }
@@ -219,7 +221,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       if (!mounted) return;
       _goToReport(bytes);
     } catch (_) {
-      _toast('Could not capture the photo. Try again.');
+      _toast(t('Could not capture the photo. Try again.'));
     } finally {
       if (mounted) setState(() => _capturing = false);
     }
@@ -233,7 +235,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       await c.setFlashMode(next);
       if (mounted) setState(() => _torch = !_torch);
     } catch (_) {
-      _toast('Flash is not available on this camera.');
+      _toast(t('Flash is not available on this camera.'));
     }
   }
 
@@ -292,9 +294,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Eyebrow('Step 2 of 3', color: context.pal.accent),
+                            Eyebrow(
+                              t('Step 2 of 3'),
+                              color: context.pal.accent,
+                            ),
                             SizedBox(height: 6),
-                            Text('SHOW THEM', style: context.type.screenTitle),
+                            Text(
+                              t('SHOW THEM'),
+                              style: context.type.screenTitle,
+                            ),
                           ],
                         ),
                       ),
@@ -327,10 +335,13 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         !_camReady ||
         !c.value.isInitialized ||
         c.value.previewSize == null) {
+      // The viewfinder's place while the camera starts; dark on either
+      // ground, as the viewfinder is.
       return ColoredBox(
         color: Colors.black,
-        child: Center(
-          child: CircularProgressIndicator(color: context.pal.accent),
+        child: Theme(
+          data: buildAppTheme(),
+          child: SkeletonFill(label: t('Starting the camera')),
         ),
       );
     }
@@ -353,12 +364,12 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       child: EmptyState(
         icon: AppIcons.noPhotography,
         tone: context.pal.live,
-        title: 'Camera unavailable',
+        title: t('Camera unavailable'),
         body:
-            '$_camError\n\nA live photo of the scene is required to send a '
-            'report — it is what proves where and when this was taken.',
+            '$_camError\n\n${t('A live photo of the scene is required to send '
+            'a report — it is what proves where and when this was taken.')}',
         action: AppButton.secondary(
-          'Retry camera',
+          t('Retry camera'),
           onPressed: () {
             setState(() => _camError = null);
             _initCamera();
@@ -402,10 +413,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     final title =
         _address ??
         (_position != null
-            ? 'Location found'
+            ? t('Location found')
             : problem != null
-            ? 'Location needed'
-            : 'Locating you…');
+            ? t('Location needed')
+            : t('Locating you…'));
     return Panel(
       // A tap retries when the fix failed (location off, permission denied).
       onTap: problem != null ? () => _location.warmUp() : null,
@@ -425,7 +436,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Eyebrow('Geotagged', color: context.pal.accent),
+                Eyebrow(t('Geotagged'), color: context.pal.accent),
                 const SizedBox(height: 6),
                 Text(
                   title,
@@ -518,7 +529,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   Widget _shutter() {
     return Semantics(
       button: true,
-      label: 'Take the photo',
+      label: t('Take the photo'),
       child: GestureDetector(
         onTap: _capture,
         child: Container(

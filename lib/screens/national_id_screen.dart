@@ -8,6 +8,7 @@ import '../widgets/coordinator_kit.dart' show CheckRow;
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
 import 'id_camera_screen.dart';
+import '../i18n/i18n.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -110,7 +111,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Submitted for review. An admin will award +50% once approved.',
+            t('Submitted for review. An admin will award +50% once approved.'),
           ),
           backgroundColor: _safeGreen,
         ),
@@ -149,45 +150,51 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                 glyph: 28,
               ),
               const SizedBox(height: 18),
-              Text('VERIFY YOUR IDENTITY', style: context.type.title),
+              Text(t('VERIFY YOUR IDENTITY'), style: context.type.title),
               const SizedBox(height: 10),
               Text(
-                'Photograph your PhilID card or ePhilID and its QR code, then '
-                'take a matching selfie. All three must be taken now with the '
-                'camera — saved pictures are not accepted. An administrator '
-                "checks the QR code on PSA's PhilSys Check and awards +50%.",
+                t(
+                  'Photograph your PhilID card or ePhilID and its QR code, then '
+                  'take a matching selfie. All three must be taken now with the '
+                  'camera — saved pictures are not accepted. An administrator '
+                  "checks the QR code on PSA's PhilSys Check and awards +50%.",
+                ),
                 style: context.type.body,
               ),
               const SizedBox(height: 26),
               _uploadSlot(
-                label: 'National ID',
-                hint: 'Tap to photograph the side with your picture',
+                shot: IdShot.card,
+                label: t('National ID'),
+                hint: t('Tap to photograph the side with your picture'),
                 icon: AppIcons.badge,
                 bytes: _idBytes,
                 onTap: _pickId,
               ),
               const SizedBox(height: 12),
               _uploadSlot(
-                label: 'QR code',
-                hint: 'On the back of the card. Tap to photograph it.',
+                shot: IdShot.qr,
+                label: t('QR code'),
+                hint: t('On the back of the card. Tap to photograph it.'),
                 icon: AppIcons.photoCamera,
                 bytes: _qrBytes,
                 onTap: _pickQr,
               ),
               const SizedBox(height: 12),
               _uploadSlot(
-                label: 'Selfie',
-                hint: 'Tap to take a selfie',
+                shot: IdShot.selfie,
+                label: t('Selfie'),
+                hint: t('Tap to take a selfie'),
                 icon: AppIcons.face,
                 bytes: _selfieBytes,
                 onTap: _pickSelfie,
               ),
               const SizedBox(height: 14),
               CheckRow(
-                label:
-                    "I agree to an administrator checking my QR code on PSA's "
-                    'PhilSys Check. PSA records the date, my first name and '
-                    'the result.',
+                label: t(
+                  "I agree to an administrator checking my QR code on PSA's "
+                  'PhilSys Check. PSA records the date, my first name and '
+                  'the result.',
+                ),
                 checked: _consent,
                 onTap: () => setState(() => _consent = !_consent),
               ),
@@ -235,12 +242,22 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('National ID'.toUpperCase(), style: context.type.screenTitle),
+        // The title takes what the back button leaves and wraps there: at
+        // large text, or in Tagalog, it ran off the screen.
+        Expanded(
+          child: Text(
+            t('National ID').toUpperCase(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.type.screenTitle,
+          ),
+        ),
       ],
     );
   }
 
   Widget _uploadSlot({
+    required IdShot shot,
     required String label,
     required String hint,
     required IconData icon,
@@ -251,7 +268,9 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 150,
+        // Taken, the photo shows in its frame's own shape, which needs a
+        // little more height than the empty slot's prompt.
+        height: filled ? _filledHeight : 150,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: context.pal.glassDim,
@@ -264,8 +283,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Smaller than the photo: the QR one is a 4K frame.
-                  Image.memory(bytes, fit: BoxFit.cover, cacheWidth: 1000),
+                  Center(child: _framed(shot, bytes)),
                   Positioned(
                     top: 10,
                     right: 10,
@@ -286,7 +304,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                           ),
                           const SizedBox(width: 7),
                           Text(
-                            'TAP TO RETAKE',
+                            t('TAP TO RETAKE'),
                             style: context.type.tag.copyWith(
                               color: context.pal.onBackground,
                             ),
@@ -316,9 +334,41 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     );
   }
 
+  static const double _filledHeight = 196;
+
+  /// The photo in the shape of the guide it was taken in — the card, the
+  /// square, the oval — as large as the slot allows. The camera has already
+  /// cut it to that guide, so nothing more is cropped away here and the tile
+  /// shows what the resident lined up in the box.
+  Widget _framed(IdShot shot, Uint8List bytes) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final ratio = shot.guide.width / shot.guide.height;
+        var height = _filledHeight - 28;
+        var width = height * ratio;
+        final room = box.maxWidth - 28;
+        if (width > room) {
+          width = room;
+          height = width / ratio;
+        }
+        final radius = shot.radius * (width / shot.guide.width);
+        return ClipRRect(
+          key: ValueKey('framed-${shot.name}'),
+          borderRadius: BorderRadius.circular(radius),
+          child: SizedBox(
+            width: width,
+            height: height,
+            // Smaller than the photo: the QR one is a 4K frame.
+            child: Image.memory(bytes, fit: BoxFit.cover, cacheWidth: 1000),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _submitButton() {
     return AppButton(
-      'Submit for review',
+      t('Submit for review'),
       busy: _submitting,
       onPressed: (_ready && !_submitting) ? _submit : null,
     );
@@ -336,9 +386,11 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Your photos are held in private storage, seen only by the '
-              'reviewing administrator, and deleted once the review is '
-              'decided. The +50% applies once it is approved.',
+              t(
+                'Your photos are held in private storage, seen only by the '
+                'reviewing administrator, and deleted once the review is '
+                'decided. The +50% applies once it is approved.',
+              ),
               style: context.type.meta.copyWith(height: 16 / 11),
             ),
           ),

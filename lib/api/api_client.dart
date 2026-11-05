@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_config.dart';
 import 'phone_gate.dart';
 import 'session.dart';
+import '../i18n/i18n.dart';
 
 class ApiException implements Exception {
   ApiException(this.statusCode, this.message, {this.code, this.details});
@@ -32,7 +34,7 @@ class ApiException implements Exception {
 /// the login screen rather than offering a button that will fail again.
 class SessionExpiredException extends ApiException {
   SessionExpiredException()
-    : super(401, 'Your session has ended. Please sign in again.');
+    : super(401, t('Your session has ended. Please sign in again.'));
 }
 
 class ApiClient {
@@ -149,7 +151,7 @@ class ApiClient {
     );
     final body = _decode(resp);
     return (body['message'] as String?) ??
-        'If that email is registered, a reset link has been sent.';
+        t('If that email is registered, a reset link has been sent.');
   }
 
   /// The caller's in-app notification inbox (newest first): GET /notifications.
@@ -159,7 +161,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load notifications.');
+      throw ApiException(resp.statusCode, t('Failed to load notifications.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -207,7 +209,7 @@ class ApiClient {
       },
     );
     final body = _decode(resp);
-    return (body['message'] as String?) ?? 'Test notification sent.';
+    return (body['message'] as String?) ?? t('Test notification sent.');
   }
 
   /// Submit an incident report (multipart): photo + device GPS + agencies + notes.
@@ -282,7 +284,10 @@ class ApiClient {
       },
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load evacuation sites.');
+      throw ApiException(
+        resp.statusCode,
+        t('Failed to load evacuation sites.'),
+      );
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -301,7 +306,7 @@ class ApiClient {
       },
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load incident areas.');
+      throw ApiException(resp.statusCode, t('Failed to load incident areas.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -359,7 +364,7 @@ class ApiClient {
       },
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load your reports.');
+      throw ApiException(resp.statusCode, t('Failed to load your reports.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -391,10 +396,10 @@ class ApiClient {
         body: jsonEncode({'area_id': areaId, 'response': response}),
       );
     } catch (_) {
-      throw ApiException(0, 'Could not reach the server.');
+      throw ApiException(0, t('Could not reach the server.'));
     }
     if (resp.statusCode >= 500) {
-      throw ApiException(resp.statusCode, 'Your answer was not recorded.');
+      throw ApiException(resp.statusCode, t('Your answer was not recorded.'));
     }
     // A refusal says why ("This fire is over"); the screen shows it.
     _decode(resp);
@@ -456,6 +461,22 @@ class ApiClient {
     }
   }
 
+  /// The language the resident reads RepLiT in, so the alerts they get come
+  /// in it too: PUT /auth/me/language ('en' or 'tl').
+  Future<void> setLanguage(String code) async {
+    final resp = await _client.put(
+      Uri.parse('${ApiConfig.baseUrl}/auth/me/language'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+      },
+      body: jsonEncode({'language': code}),
+    );
+    if (resp.statusCode >= 400) {
+      throw ApiException(resp.statusCode, t('Could not save the language.'));
+    }
+  }
+
   /// Revoke the current session server-side: POST /auth/logout (best-effort).
   Future<void> logout() async {
     try {
@@ -486,7 +507,7 @@ class ApiClient {
       },
     );
     final body = _decode(resp);
-    return (body['message'] as String?) ?? 'Verification email sent.';
+    return (body['message'] as String?) ?? t('Verification email sent.');
   }
 
   /// Phone OTP step 1: POST /verification/phone/request.
@@ -603,7 +624,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load incidents.');
+      throw ApiException(resp.statusCode, t('Failed to load incidents.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -651,7 +672,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load responders.');
+      throw ApiException(resp.statusCode, t('Failed to load responders.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -668,7 +689,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load equipment.');
+      throw ApiException(resp.statusCode, t('Failed to load equipment.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -680,7 +701,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load fire codes.');
+      throw ApiException(resp.statusCode, t('Failed to load fire codes.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -743,7 +764,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load alarm requests.');
+      throw ApiException(resp.statusCode, t('Failed to load alarm requests.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -808,7 +829,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load dispatches.');
+      throw ApiException(resp.statusCode, t('Failed to load dispatches.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -822,7 +843,7 @@ class ApiClient {
     if (resp.statusCode >= 400) {
       throw ApiException(
         resp.statusCode,
-        'Failed to load responder locations.',
+        t('Failed to load responder locations.'),
       );
     }
     return jsonDecode(resp.body) as List<dynamic>;
@@ -862,7 +883,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load reports.');
+      throw ApiException(resp.statusCode, t('Failed to load reports.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -1034,7 +1055,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load pending reports.');
+      throw ApiException(resp.statusCode, t('Failed to load pending reports.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -1048,7 +1069,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load your team.');
+      throw ApiException(resp.statusCode, t('Failed to load your team.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -1063,7 +1084,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, 'Failed to load your responders.');
+      throw ApiException(resp.statusCode, t('Failed to load your responders.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }
@@ -1206,6 +1227,11 @@ class ApiClient {
   }
 
   Future<bool> _doRefresh() async {
+    // The closed-app location report (LocationBeacon) runs in its own isolate
+    // and may have refreshed — and so rotated — the session since this one
+    // last read it. Presenting the retired refresh token would end the
+    // session, so take the stored pair first when it is newer.
+    if (await _adoptNewerStoredSession()) return true;
     final token = Session.instance.refreshToken;
     if (token == null || token.isEmpty) return false;
     try {
@@ -1217,6 +1243,25 @@ class ApiClient {
       if (resp.statusCode >= 400) return false;
       _storeSession(jsonDecode(resp.body) as Map<String, dynamic>);
       await Session.instance.persist();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// True when storage holds a different refresh token from this isolate's,
+  /// now adopted along with its access token.
+  Future<bool> _adoptNewerStoredSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final stored = prefs.getString('refresh_token');
+      final access = prefs.getString('access_token');
+      if (stored == null || stored.isEmpty) return false;
+      if (access == null || access.isEmpty) return false;
+      if (stored == Session.instance.refreshToken) return false;
+      if (access == Session.instance.accessToken) return false;
+      await Session.instance.restore();
       return true;
     } catch (_) {
       return false;
