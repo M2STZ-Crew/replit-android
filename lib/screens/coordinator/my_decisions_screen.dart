@@ -7,6 +7,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
+import '../../widgets/skeleton.dart';
 
 /// The kinds of decision a coordinator makes, as the audit log names them.
 enum Decision {
@@ -158,7 +159,7 @@ class _MyDecisionsScreenState extends State<MyDecisionsScreen> {
     final entries = _entries;
     if (entries == null) {
       return _error == null
-          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
+          ? const SkeletonList(rows: 6)
           : EmptyState(
               title: 'Decisions unavailable',
               body: _error!,

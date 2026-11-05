@@ -9,6 +9,7 @@ import '../models/active_report.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/incident_map.dart';
+import '../widgets/skeleton.dart';
 import 'sos_report_screen.dart';
 import '../widgets/app_icons.dart';
 
@@ -327,10 +328,13 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         !_camReady ||
         !c.value.isInitialized ||
         c.value.previewSize == null) {
+      // The viewfinder's place while the camera starts; dark on either
+      // ground, as the viewfinder is.
       return ColoredBox(
         color: Colors.black,
-        child: Center(
-          child: CircularProgressIndicator(color: context.pal.accent),
+        child: Theme(
+          data: buildAppTheme(),
+          child: const SkeletonFill(label: 'Starting the camera'),
         ),
       );
     }

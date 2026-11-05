@@ -8,6 +8,7 @@ import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/skeleton.dart';
 
 /// Opens a link outside the app — the phone's browser, which saves the PDF to
 /// Downloads. A parameter so tests need no browser.
@@ -179,10 +180,7 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
 
   List<Widget> _list() {
     if (_loading) {
-      return [
-        const SizedBox(height: 40),
-        Center(child: CircularProgressIndicator(color: context.pal.accent)),
-      ];
+      return const [SizedBox(height: 8), SkeletonRows(rows: 4)];
     }
     if (_error != null) {
       return [

@@ -17,6 +17,7 @@ import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import 'live_update_screen.dart';
 import '../widgets/you_are_here.dart';
+import '../widgets/skeleton.dart';
 
 /// Reports join an area only from within this distance of its centre
 /// (clustering, Master Context §3.4) — the circle on the map extract.
@@ -234,12 +235,15 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
             ),
             const SizedBox(height: 20),
             if (_area == null)
-              Padding(
-                padding: const EdgeInsets.only(top: 40),
-                child: _error == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : Text(_error!, style: context.type.body),
-              )
+              _error == null
+                  ? const SkeletonDetail(
+                      scrollable: false,
+                      padding: EdgeInsets.only(top: 16),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.only(top: 40),
+                      child: Text(_error!, style: context.type.body),
+                    )
             else
               ..._details(),
           ],

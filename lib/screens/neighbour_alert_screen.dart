@@ -20,6 +20,7 @@ import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/skeleton.dart';
 
 /// How far from a fire a neighbour is asked about it: the server's
 /// NEIGHBORHOOD_RADIUS_M (app/workers/neighborhood.py; PRD v14 §4.2).
@@ -358,7 +359,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
         border: Border.all(color: context.pal.line),
       ),
       child: c == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonFill(label: 'Loading the map')
           : Stack(
               children: [
                 FlutterMap(

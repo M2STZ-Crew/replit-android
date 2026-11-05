@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme.dart';
 import 'app_icons.dart';
+import 'skeleton.dart';
 
 /// A reported photo, full screen, to be looked at closely before deciding.
 ///
@@ -107,9 +109,19 @@ class _PhotoViewerState extends State<PhotoViewer>
                       loadingBuilder: (context, child, progress) =>
                           progress == null
                           ? child
-                          : const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
+                          // A photo-shaped block while it downloads, dark
+                          // like the viewer around it.
+                          : Theme(
+                              data: buildAppTheme(),
+                              child: const Skeleton(
+                                label: 'Loading the photo',
+                                child: AspectRatio(
+                                  aspectRatio: 3 / 4,
+                                  child: SkeletonBox(
+                                    height: double.infinity,
+                                    radius: 12,
+                                  ),
+                                ),
                               ),
                             ),
                       errorBuilder: (context, error, stack) => const Center(

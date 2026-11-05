@@ -27,6 +27,7 @@ import '../responder/responder_status.dart';
 import '../subadmin/post_incident_report_screen.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
+import '../../widgets/skeleton.dart';
 
 /// A unit within this distance of the Area's centre is on scene.
 const double _onSceneMetres = 100;
@@ -89,11 +90,7 @@ class LiveTab extends StatelessWidget {
                               'the units on their way and on scene. The queue '
                               'has what is waiting on you.',
                         )
-                      : Center(
-                          child: CircularProgressIndicator(
-                            color: context.pal.accent,
-                          ),
-                        ),
+                      : const SkeletonList(rows: 3, trailing: true),
                 ),
               ],
             ),
@@ -528,9 +525,8 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     final area = _area;
     final centre = area?.centre;
     if (area == null || centre == null) {
-      return Center(
-        child: CircularProgressIndicator(color: context.pal.accent),
-      );
+      // The map's place, then the sheet's, as they will be.
+      return const SkeletonDetail(media: true, rows: 2);
     }
     final units = _units();
     return Stack(

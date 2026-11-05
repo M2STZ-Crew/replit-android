@@ -10,6 +10,7 @@ import '../../widgets/design.dart';
 import '../../widgets/sheet_grip.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/skeleton.dart';
 
 /// The coordinator's responder accounts (v1.12.4) — where a responder's
 /// account comes from.
@@ -274,10 +275,7 @@ class _TeamScreenState extends State<TeamScreen> {
 
   List<Widget> _roster() {
     if (_loading) {
-      return [
-        const SizedBox(height: 40),
-        Center(child: CircularProgressIndicator(color: context.pal.accent)),
-      ];
+      return const [SizedBox(height: 8), SkeletonRows(rows: 5)];
     }
     if (_error != null) {
       return [

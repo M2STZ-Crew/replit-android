@@ -9,6 +9,7 @@ import '../widgets/design.dart';
 import 'live_update_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/skeleton.dart';
 
 /// What each agency a report asked for is called on its card, and its glyph.
 const Map<String, ({String word, String glyph})> _agencies = {
@@ -94,7 +95,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     showAppDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 40),
+          child: SkeletonRows(rows: 1),
+        ),
+      ),
     );
     final areaId = r['area_id'] as String? ?? await _findAreaId(lat, lng);
     if (!mounted) return;
@@ -196,7 +202,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonList(rows: 5, trailing: true);
     }
     if (_error != null && _reports == null) {
       return EmptyState(

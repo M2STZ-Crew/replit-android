@@ -13,6 +13,7 @@ import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
 import 'coordinator_shell.dart';
 import 'overlap_screen.dart';
+import '../../widgets/skeleton.dart';
 
 /// Which part of the queue is showing.
 enum QueueSegment { decide, active, file }
@@ -150,7 +151,7 @@ class _QueueTabState extends State<QueueTab> {
   Widget _body() {
     if (!_feed.loaded) {
       return _feed.error == null
-          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
+          ? const SkeletonList(rows: 5, trailing: true)
           : EmptyState(
               title: 'Queue unavailable',
               body: _feed.error!,

@@ -21,6 +21,7 @@ import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/skeleton.dart';
 
 Color _sheet = AppColors.surfaceSolid;
 Color _panel = AppColors.glassDim;
@@ -580,7 +581,7 @@ class _SubAdminIncidentCommandScreenState
       page: StaffPage.incidents,
       title: (_incident?['designation'] as String?) ?? 'Incident',
       body: _loading
-          ? Center(child: CircularProgressIndicator(color: context.pal.accent))
+          ? const SkeletonDetail(media: true)
           : Column(
               children: [
                 SizedBox(height: 260, child: _mapHeader()),

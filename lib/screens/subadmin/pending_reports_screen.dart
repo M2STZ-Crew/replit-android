@@ -6,6 +6,7 @@ import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/skeleton.dart';
 
 /// The "pending report" tray (Master Context v10 §10.2): incidents whose fire
 /// is out and for which this captain's team has not filed its Post-Incident
@@ -138,9 +139,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return Center(
-        child: CircularProgressIndicator(color: context.pal.accent),
-      );
+      return const SkeletonList(rows: 5, trailing: true);
     }
     if (_error != null) {
       return Center(

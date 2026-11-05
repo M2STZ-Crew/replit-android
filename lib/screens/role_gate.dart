@@ -17,6 +17,7 @@ import 'phone_verify_screen.dart';
 import 'responder/responder_shell.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/skeleton.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
 /// role from GET /auth/me: response_team → the responder console; a
@@ -151,7 +152,14 @@ class _RoleGateState extends State<RoleGate> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: context.pal.accent),
+            // Where the home screen's rows will be, while the account loads.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 300),
+                child: const SkeletonRows(rows: 3),
+              ),
+            ),
             if (_slow) ...[
               const SizedBox(height: 18),
               Semantics(

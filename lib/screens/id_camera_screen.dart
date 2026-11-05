@@ -10,6 +10,7 @@ import '../verification/guide_crop.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
 import '../widgets/map_glass.dart';
+import '../widgets/skeleton.dart';
 
 /// One photo of the National ID check: what the screen says and the frame it
 /// holds up. The sizes are the design's, on its 402 px wide phone.
@@ -373,9 +374,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
         c.value.previewSize == null) {
       return ColoredBox(
         color: context.pal.canvas,
-        child: Center(
-          child: CircularProgressIndicator(color: context.pal.accent),
-        ),
+        child: const SkeletonFill(label: 'Starting the camera'),
       );
     }
     final size = c.value.previewSize!;
