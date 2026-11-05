@@ -5,21 +5,21 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentResolver
+import android.content.Intent
 import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import com.google.firebase.appdistribution.FirebaseAppDistribution
-import com.google.firebase.appdistribution.FirebaseAppDistributionException
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
+import java.io.IOException
+import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
-
-    /** lib/updates/app_updates.dart's channel, kept for its progress calls. */
-    private var updates: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,92 +46,78 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
-        // lib/updates/app_updates.dart: "Check for updates" through Firebase App
-        // Distribution, where CI sends every Android build.
-        updates = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "replit/updates")
-            .also { channel ->
-                channel.setMethodCallHandler { call, result ->
-                    when (call.method) {
-                        "check" -> checkForUpdate(result)
-                        "install" -> installUpdate(result)
-                        else -> result.notImplemented()
-                    }
+        // lib/updates/app_updates.dart: "Check for updates". Dart downloads the
+        // newest APK from the repository's GitHub releases into cache/updates;
+        // this checks it against the release's SHA-256 and hands it to
+        // Android's installer.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "replit/updates")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "updatesDir" -> result.success(updatesDir().absolutePath)
+                    "install" -> installUpdate(
+                        call.argument<String>("path"),
+                        call.argument<String>("sha256"),
+                        result
+                    )
+                    else -> result.notImplemented()
                 }
             }
     }
 
-    /** App Distribution, or null in a build with no Firebase config to start it
-     *  (google-services.json is not in the repository). */
-    private fun appDistribution(): FirebaseAppDistribution? =
-        try {
-            FirebaseAppDistribution.getInstance()
-        } catch (e: IllegalStateException) {
-            null
+    /** Where a downloaded update waits: cache/updates, the one folder the
+     *  updates FileProvider shares (res/xml/update_paths.xml). */
+    private fun updatesDir(): File = File(cacheDir, "updates").apply { mkdirs() }
+
+    /** Check the downloaded APK against the release's SHA-256, off the main
+     *  thread, then open Android's installer on it. The first time, Android
+     *  also asks to allow installs from RepLiT, then carries on. */
+    private fun installUpdate(path: String?, sha256: String?, result: MethodChannel.Result) {
+        val dir = updatesDir().canonicalFile
+        val apk = path?.let { File(it).canonicalFile }
+        if (apk == null || apk.parentFile != dir || !apk.isFile || sha256.isNullOrBlank()) {
+            return result.error("DOWNLOAD_FAILURE", "No downloaded update to install.", null)
         }
-
-    private fun fail(result: MethodChannel.Result, e: Exception) {
-        val code = (e as? FirebaseAppDistributionException)?.errorCode?.name ?: "UNKNOWN"
-        result.error(code, e.message, null)
-    }
-
-    /** A newer release for this tester as a map, or null when this is the
-     *  newest. Signs the tester in first; App Distribution remembers it. */
-    private fun checkForUpdate(result: MethodChannel.Result) {
-        val distribution = appDistribution()
-            ?: return result.error("UNAVAILABLE", "Firebase is not set up in this build.", null)
-        fun check() {
-            distribution.checkForNewRelease()
-                .addOnSuccessListener { release ->
-                    result.success(
-                        release?.let {
-                            mapOf(
-                                "version" to it.displayVersion,
-                                "build" to it.versionCode,
-                                "notes" to it.releaseNotes
+        Thread {
+            val matches = try {
+                sha256.equals(sha256Of(apk), ignoreCase = true)
+            } catch (e: IOException) {
+                false
+            }
+            runOnUiThread {
+                if (!matches) {
+                    apk.delete()
+                    result.error("CORRUPT", "The download does not match the release.", null)
+                    return@runOnUiThread
+                }
+                try {
+                    val uri = FileProvider.getUriForFile(this, "$packageName.updates", apk)
+                    startActivity(
+                        Intent(Intent.ACTION_VIEW)
+                            .setDataAndType(uri, "application/vnd.android.package-archive")
+                            .addFlags(
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                    Intent.FLAG_ACTIVITY_NEW_TASK
                             )
-                        }
                     )
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.error("INSTALLATION_FAILURE", e.message, null)
                 }
-                .addOnFailureListener { e -> fail(result, e) }
-        }
-        if (distribution.isTesterSignedIn) {
-            check()
-        } else {
-            distribution.signInTester()
-                .addOnSuccessListener { check() }
-                .addOnFailureListener { e -> fail(result, e) }
-        }
+            }
+        }.start()
     }
 
-    /** Download the release the last check found and hand it to Android's
-     *  installer, reporting progress to Dart as it downloads. */
-    private fun installUpdate(result: MethodChannel.Result) {
-        val distribution = appDistribution()
-            ?: return result.error("UNAVAILABLE", "Firebase is not set up in this build.", null)
-        var answered = false
-        distribution.updateApp()
-            .addOnProgressListener { progress ->
-                updates?.invokeMethod(
-                    "progress",
-                    mapOf(
-                        "downloaded" to progress.apkBytesDownloaded,
-                        "total" to progress.apkFileTotalBytes,
-                        "status" to progress.updateStatus.name
-                    )
-                )
+    private fun sha256Of(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(1 shl 16)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                digest.update(buffer, 0, read)
             }
-            .addOnSuccessListener {
-                if (!answered) {
-                    answered = true
-                    result.success(true)
-                }
-            }
-            .addOnFailureListener { e ->
-                if (!answered) {
-                    answered = true
-                    fail(result, e)
-                }
-            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     /** The "Developer options" switch at the top of that Settings page. */

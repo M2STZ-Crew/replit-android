@@ -6,6 +6,47 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.26 — 6 November 2026 — The app opens again, updates for anyone, the Figma splash
+
+With backend v1.12.20; nothing new needed from it. New permission:
+`REQUEST_INSTALL_PACKAGES`, for "Check for updates". The Firebase App
+Distribution SDK is gone; testers still get every build through App
+Distribution. **The APK is public** from this version: every build is also a
+GitHub release (docs/ci-release.md).
+
+### Changes
+
+**Found**
+- **1.12.24 and 1.12.25 closed on every Android phone a few seconds after
+  opening.** The App Distribution SDK added in 1.12.24 (16.0.0-beta21) depends
+  on `firebase-common` 23.0.0, which Gradle chose over the 22.1.0 in
+  FlutterFire's BoM (34.15.0). 23.0.0 no longer has
+  `FirebaseOptions.getRecaptchaSiteKey()`, which `firebase_core` 4.11.0 calls
+  as Firebase starts, so the app died with a `NoSuchMethodError` on a
+  background thread. It was not the Developer options check. Builds made
+  without `google-services.json` never start Firebase, which is why no local
+  build showed it.
+
+**Logic**
+- **The App Distribution SDK is removed**, which puts `firebase-common` back
+  on 22.1.0.
+- **"Check for updates" works for anyone (Android).** Every main build is also
+  published as a GitHub release (`android-v<version>-<build>`) with a
+  `latest.json` beside the APK: version, build, size, SHA-256, notes. The app
+  reads the newest one's `latest.json` (a plain download, not GitHub's
+  rate-limited API), downloads the APK with progress, and Android checks the
+  SHA-256 before opening its installer, which asks once to allow installs
+  from RepLiT. No tester invitation, no email to the team. iPhones still have
+  no button.
+
+**UI**
+- **The splash** is built from the Figma archive's LOGO section: the
+  flame-and-pin mark at 100×140 with its glow, the "REPLIT" wordmark made for
+  each ground (black on light, white on dark) instead of a tinted copy, and
+  "Connecting to RepLiT".
+
+---
+
 ## v1.12.25 — 5 November 2026 — Developer options: a warning, like GCash
 
 With backend v1.12.20; nothing new needed from it. No new setting, permission

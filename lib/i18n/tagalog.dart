@@ -682,7 +682,7 @@ const Map<String, String> kTagalog = {
   'Photo of the scene. Tap to take it again.':
       'Litrato ng lugar. I-tap para kunan ulit.',
   'Retake': 'Kunan ulit',
-  'CONNECTING TO RESPONDERS': 'KUMOKONEKTA SA MGA RESPONDER',
+  'Connecting to RepLiT': 'Kumokonekta sa RepLiT',
   'EMERGENCY RESPONSE NETWORK': 'NETWORK PARA SA EMERGENCY',
   'VERIFY YOUR ACCOUNT': 'I-VERIFY ANG ACCOUNT MO',
   'Verification never blocks a report. It tells responders how much weight to give what you send.':
@@ -723,22 +723,18 @@ const Map<String, String> kTagalog = {
       'Dahil dito, puwedeng gawing peke ng ibang app ang lokasyon mo, pero kailangan ng bawat report ang totoo mong lokasyon. I-off ang mga ito sa Settings ng phone mo, saka buksan ulit ang RepLiT.',
   'Exit': 'Lumabas',
   'In an emergency, call 911': 'Kung may emergency, tumawag sa 911',
-  'Sign-in was cancelled. Updates come through Firebase App Distribution: sign in with the Google account your RepLiT invitation was sent to.':
-      'Na-cancel ang sign-in. Dumarating ang mga update sa Firebase App Distribution: mag-sign in gamit ang Google account kung saan ipinadala ang imbitasyon mo sa RepLiT.',
-  'Couldn\'t sign you in to App Distribution. Check your connection and try again.':
-      'Hindi ka ma-sign in sa App Distribution. Tingnan ang connection mo at subukan ulit.',
   'No connection. Check your internet and try again.':
       'Walang connection. Tingnan ang internet mo at subukan ulit.',
-  'Updates aren\'t switched on for RepLiT yet. Please tell the RepLiT team.':
-      'Hindi pa naka-on ang mga update para sa RepLiT. Pakisabi sa RepLiT team.',
-  'This build can\'t check for updates. Install the newest one from your App Distribution email.':
-      'Hindi makatingin ng update ang build na ito. I-install ang pinakabago mula sa email ng App Distribution mo.',
-  'The install was cancelled. Tap "Download and install" to try again.':
-      'Na-cancel ang pag-install. I-tap ang "I-download at i-install" para subukan ulit.',
-  'The update couldn\'t be installed. Try again, or install it from your App Distribution email.':
-      'Hindi na-install ang update. Subukan ulit, o i-install ito mula sa email ng App Distribution mo.',
-  'The update was interrupted. Try again.':
-      'Naantala ang update. Subukan ulit.',
+  'The download didn\'t finish. Check your connection and try again.':
+      'Hindi natapos ang download. Tingnan ang connection mo at subukan ulit.',
+  'The download was damaged on the way. Try again.':
+      'Nasira ang download habang dumarating. Subukan ulit.',
+  'The newest release can\'t be read. Please tell the RepLiT team.':
+      'Hindi mabasa ang pinakabagong release. Pakisabi sa RepLiT team.',
+  'This build can\'t install updates. Ask the RepLiT team for the newest one.':
+      'Hindi makapag-install ng update ang build na ito. Hingin sa RepLiT team ang pinakabago.',
+  'Android couldn\'t open the installer. Try again in a little while.':
+      'Hindi mabuksan ng Android ang installer. Subukan ulit maya-maya.',
   'You already have the newest version.':
       'Nasa iyo na ang pinakabagong bersiyon.',
   'Couldn\'t check for updates. Try again in a little while.':
@@ -748,10 +744,13 @@ const Map<String, String> kTagalog = {
   'Looking for a newer version…': 'Naghahanap ng mas bagong bersiyon…',
   'You have the latest version.': 'Nasa iyo na ang pinakabagong bersiyon.',
   'Version {v} is ready.': 'Handa na ang bersiyon {v}.',
+  'Download: {size}. Wi-Fi is best.':
+      'Laki ng download: {size}. Mas mabuti kung naka-Wi-Fi.',
   'Download and install': 'I-download at i-install',
+  'Downloading…': 'Dina-download…',
   'Downloading… {n}%': 'Dina-download… {n}%',
-  'Android will ask you to confirm the install.':
-      'Hihingin ng Android na kumpirmahin mo ang pag-install.',
+  'Android will ask you to confirm the install. The first time, it also asks you to allow installs from RepLiT.':
+      'Hihingin ng Android na kumpirmahin mo ang pag-install. Sa unang beses, hihingin din nitong payagan ang pag-install mula sa RepLiT.',
   'Downloaded. Finish the install in the window Android opened.':
       'Na-download na. Tapusin ang pag-install sa window na binuksan ng Android.',
   'SOS — hold to report': 'SOS — pindutin nang matagal para mag-report',

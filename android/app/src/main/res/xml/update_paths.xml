@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the updates FileProvider may share with Android's installer: the
+     folder "Check for updates" downloads into (MainActivity.updatesDir). -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

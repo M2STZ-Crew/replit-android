@@ -10,9 +10,12 @@ import 'login_screen.dart';
 import 'role_gate.dart';
 import '../i18n/i18n.dart';
 
-/// "01 Splash" from the REPLIT-OVERHAUL Figma: the mark in its glow, the
-/// plain wordmark, a short coral loader, and the locality at the foot. This
-/// and the SOS button are the only two places the design allows glow (§2.7).
+/// "01 Splash": the flame-and-pin mark and the "REPLIT" wordmark from the
+/// Figma archive's LOGO section (01 — Existing Design Archive), a short coral
+/// loader, "Connecting to RepLiT", and the locality at the foot. The wordmark
+/// has a version for each ground, so light mode gets the black one rather
+/// than a tinted copy. This and the SOS button are the only two places the
+/// design allows glow (§2.7).
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -63,8 +66,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final pal = context.pal;
     return Scaffold(
-      backgroundColor: context.pal.background,
+      backgroundColor: pal.background,
       body: SafeArea(
         // Padded, and every line below wraps: at the larger system font
         // scales people actually use, an unpadded single-line footer runs
@@ -82,24 +86,23 @@ class _SplashScreenState extends State<SplashScreen>
                 // 64px off the bottom; 3:2 flex keeps that on any height.
                 const Spacer(flex: 3),
                 _markInGlow(),
-                // 125px from the mark in the frame, less the glow's 39px margin.
-                const SizedBox(height: 86),
-                // The type is drawn white for the dark ground; tinting it with
-                // the ground's ink keeps it readable on the light one too.
+                const SizedBox(height: 36),
                 Image.asset(
-                  Art.wordmarkType,
-                  width: 118,
-                  height: 21,
-                  color: context.pal.onBackground,
+                  pal.isLight ? Art.wordmarkOnLight : Art.wordmarkOnDark,
+                  width: 128,
+                  height: 23,
+                  semanticLabel: 'RepLiT',
                 ),
-                const SizedBox(height: 52),
+                const SizedBox(height: 48),
                 _loaderBar(),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
+                // Sentence case, so the name keeps its own capitals.
                 Text(
-                  t('CONNECTING TO RESPONDERS'),
+                  t('Connecting to RepLiT'),
                   textAlign: TextAlign.center,
-                  style: context.type.eyebrow.copyWith(
-                    color: context.pal.muted,
+                  style: context.type.detail.copyWith(
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 const Spacer(flex: 2),
@@ -125,36 +128,46 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  /// The 112px mark inside its 190px glow ("Mark glow (permitted §2.7)"),
-  /// breathing slowly while the session restores.
+  /// The mark at the Figma's 100×140, with its glow ("Mark glow (permitted
+  /// §2.7)") breathing behind it while the session restores. The glow spills
+  /// past the mark without pushing the wordmark down, centred a little below
+  /// the middle, on the round of the flame rather than its tip.
   Widget _markInGlow() {
+    const width = 100.0;
+    const height = 140.0;
+    const glow = 230.0;
     return SizedBox(
-      width: 190,
-      height: 190,
+      width: width,
+      height: height,
       child: AnimatedBuilder(
         animation: _breathe,
         builder: (context, child) => Stack(
+          clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            Container(
-              width: 190,
-              height: 190,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    context.pal.accent.withValues(
-                      alpha: 0.16 + _breathe.value * 0.06,
-                    ),
-                    context.pal.accent.withValues(alpha: 0),
-                  ],
+            Positioned(
+              left: (width - glow) / 2,
+              top: (height - glow) / 2 + 12,
+              width: glow,
+              height: glow,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      context.pal.accent.withValues(
+                        alpha: 0.16 + _breathe.value * 0.06,
+                      ),
+                      context.pal.accent.withValues(alpha: 0),
+                    ],
+                  ),
                 ),
               ),
             ),
             Transform.scale(scale: 1 + _breathe.value * 0.04, child: child),
           ],
         ),
-        child: Image.asset(Art.mark, width: 112, height: 112),
+        child: Image.asset(Art.logoMark, width: width, height: height),
       ),
     );
   }

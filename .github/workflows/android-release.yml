@@ -11,8 +11,9 @@ on:
   # "Run workflow" button on the Actions tab, for a rebuild without a code change.
   workflow_dispatch:
 
-# The repository is public: nothing here needs to write to it, and there is
-# deliberately no pull_request trigger, so a fork can never run with the secrets.
+# The repository is public, and there is deliberately no pull_request trigger,
+# so a fork can never run with the secrets. Read-only by default; the job
+# below may write only to make the release "Check for updates" reads.
 permissions:
   contents: read
 
@@ -34,6 +35,11 @@ jobs:
   build-and-distribute:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # One write to the repository: the GitHub release "Check for updates"
+    # reads, made by the last step. Still no pull_request trigger, so only a
+    # push to main (or the Run workflow button) can run it.
+    permissions:
+      contents: write
     steps:
       - name: Check the secrets and variables are set
         env:
@@ -189,6 +195,43 @@ jobs:
             --app "$FIREBASE_APP_ID" \
             --groups "$FIREBASE_TESTER_GROUPS" \
             --release-notes-file "$RUNNER_TEMP/release-notes.txt"
+
+      # "Check for updates" in the app (lib/updates/app_updates.dart) reads the
+      # newest release's latest.json and downloads the APK beside it, so people
+      # without a Firebase tester invitation get updates too. The APK holds no
+      # secret: the Mapbox token is a public pk. token, and the Firebase config
+      # is made to ship inside apps. A re-run keeps its run number, so it
+      # replaces the files on its own release rather than failing.
+      - name: Publish on GitHub Releases, for "Check for updates"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -nE 's/^version: *([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' pubspec.yaml)
+          build="${{ github.run_number }}"
+          tag="android-v$version-$build"
+          apk="RepLiT-$version-$build.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/$apk"
+          size=$(stat -c %s "$RUNNER_TEMP/$apk")
+          sha256=$(sha256sum "$RUNNER_TEMP/$apk" | cut -d ' ' -f 1)
+          jq -n \
+            --arg version "$version" --argjson build "$build" \
+            --arg tag "$tag" --arg apk "$apk" \
+            --argjson size "$size" --arg sha256 "$sha256" \
+            --rawfile notes "$RUNNER_TEMP/release-notes.txt" \
+            '{version: $version, build: $build, tag: $tag, apk: $apk, size: $size, sha256: $sha256, notes: $notes}' \
+            > "$RUNNER_TEMP/latest.json"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$tag" "$RUNNER_TEMP/$apk" "$RUNNER_TEMP/latest.json" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" "$RUNNER_TEMP/$apk" "$RUNNER_TEMP/latest.json" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "RepLiT $version ($build)" \
+              --notes-file "$RUNNER_TEMP/release-notes.txt" \
+              --latest
+          fi
+          echo "Published $apk ($size bytes) on release $tag."
 
       - name: Remove the secret files
         if: always()

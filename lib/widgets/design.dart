@@ -25,8 +25,17 @@ class Art {
   /// canvas. Still used by [AppLogo].
   static const String wordmark = '$_d/wordmark.png';
 
-  /// The overhaul's plain "REPLIT" type, tightly cropped (353×63 at 3x).
-  static const String wordmarkType = '$_d/wordmark-type.png';
+  /// The flame-and-pin mark from the Figma archive's LOGO section (01 —
+  /// Existing Design Archive), 410×576: four times its 100×140 on the splash.
+  static const String logoMark = '$_d/logo-mark.png';
+
+  /// The "REPLIT" wordmark from the same section, white for the dark ground
+  /// ("REPLIT WORD (FOR DARK MODE)", 700×125).
+  static const String wordmarkOnDark = '$_d/wordmark-on-dark.png';
+
+  /// The same wordmark in black, for the light ground ("REPLIT WORD (FOR
+  /// LIGHT MODE)", 700×127).
+  static const String wordmarkOnLight = '$_d/wordmark-on-light.png';
   static const String avatar = '$_d/avatar.png';
 
   // White agency glyphs from the REPLIT-OVERHAUL report frame, drawn on the

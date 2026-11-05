@@ -52,10 +52,7 @@ flutter {
 }
 
 dependencies {
-    // Profile's "Check for updates" (lib/updates/app_updates.dart): Firebase App
-    // Distribution, the channel CI already sends every Android build to. The
-    // full SDK - it downloads and installs a release - is meant only for builds
-    // that are not on Google Play, which is every RepLiT build. Beta; its
-    // minSdk is 24, Flutter's own default.
-    implementation("com.google.firebase:firebase-appdistribution:16.0.0-beta21")
+    // FileProvider, which hands a downloaded update to Android's installer
+    // (MainActivity.installUpdate, lib/updates/app_updates.dart).
+    implementation("androidx.core:core-ktx:1.16.0")
 }
