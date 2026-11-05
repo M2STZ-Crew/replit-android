@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:replit/i18n/i18n.dart';
 import 'package:replit/screens/onboarding_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/map_coach_marks.dart';
@@ -15,8 +17,9 @@ void main() {
     WidgetTester tester,
     Widget child, {
     double scale = 1,
+    Size size = const Size(402, 874),
   }) async {
-    tester.view.physicalSize = const Size(402, 874);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -42,6 +45,40 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 50));
+  }
+
+  // "Laktawan" broke as "Laktawa / n" in a 44 px slot: a wrap, which no
+  // overflow check catches. Every glyph must sit on one line.
+  for (final (size, scale) in const [
+    (Size(320, 640), 1.0),
+    (Size(320, 640), 1.3),
+    (Size(320, 640), 1.5),
+    (Size(402, 874), 1.5),
+  ]) {
+    testWidgets('Skip stays on one line in Tagalog, '
+        '${size.width.round()} px at ${scale}x', (tester) async {
+      LanguageChoice.current.value = AppLanguage.tl;
+      addTearDown(LanguageChoice.reset);
+      await pump(
+        tester,
+        OnboardingScreen(onFinish: () {}),
+        scale: scale,
+        size: size,
+      );
+      await next(tester, t('Show me around'));
+
+      final skip = find.text('Laktawan');
+      expect(skip, findsOneWidget);
+      final text = tester.renderObject<RenderParagraph>(skip);
+      final lines = text
+          .getBoxesForSelection(
+            const TextSelection(baseOffset: 0, extentOffset: 8),
+          )
+          .map((box) => box.top.round())
+          .toSet();
+      expect(lines, hasLength(1), reason: 'Laktawan wrapped');
+      expect(tester.takeException(), isNull);
+    });
   }
 
   for (final scale in <double>[1.0, 1.5]) {
