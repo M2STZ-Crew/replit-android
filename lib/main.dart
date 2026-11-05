@@ -12,6 +12,7 @@ import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
+import 'privacy/contact_mask.dart';
 import 'api/session.dart';
 import 'models/active_report.dart';
 import 'screens/phone_verify_screen.dart';
@@ -31,6 +32,7 @@ Future<void> main() async {
   // The ground the app draws on is a choice made inside it, so it has to be
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
+  await ContactMask.load();
   // "1.11.0 (57)", as App Distribution lists this build.
   await AppVersion.load();
   // A report in progress survives the app being closed: read it now so the

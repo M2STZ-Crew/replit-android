@@ -5,6 +5,7 @@ import '../app_version.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
 import '../models/verification_state.dart';
+import '../privacy/contact_mask.dart';
 import '../theme.dart';
 import '../theme_choice.dart';
 import '../widgets/app_nav_bar.dart';
@@ -242,6 +243,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: context.pal.muted,
                       ),
                     ),
+                    // Shows or hides the email and mobile below.
+                    const ContactMaskToggle(),
                     GestureDetector(
                       onTap: _editProfile,
                       behavior: HitTestBehavior.opaque,
@@ -439,8 +442,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _details() {
+  /// The email and mobile number, masked until the eye above them is tapped.
+  Widget _details() => ValueListenableBuilder<bool>(
+    valueListenable: ContactMask.hidden,
+    builder: (context, hidden, _) => _detailRows(hidden),
+  );
+
+  Widget _detailRows(bool hidden) {
     final emailOk = _verification.isVerified(VerifyChannel.email);
+    final email = _email;
+    final mobile = _mobile;
     return Panel(
       padding: EdgeInsets.zero,
       child: Column(
@@ -448,7 +459,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _DetailRow(
             icon: AppIcons.mail,
             label: 'Email',
-            value: _email ?? '—',
+            value: email == null
+                ? '—'
+                : hidden
+                ? ContactMask.email(email)
+                : email,
             action: emailOk ? 'Verified' : 'Verify',
             actionColor: emailOk ? context.pal.ok : context.pal.accent,
             onTap: emailOk ? null : _openVerification,
@@ -457,7 +472,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _DetailRow(
             icon: AppIcons.smartphone,
             label: 'Mobile',
-            value: _mobile ?? 'Not added yet',
+            value: mobile == null
+                ? 'Not added yet'
+                : hidden
+                ? ContactMask.mobile(mobile)
+                : mobile,
             muted: _mobile == null,
             action: _mobile == null ? 'Add' : null,
             actionColor: context.pal.accent,
