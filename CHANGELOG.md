@@ -6,6 +6,36 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.27 — 6 November 2026 — Open the installer again, a smaller logo, "New to the app?"
+
+With backend v1.12.20; nothing new needed from it. No new setting, permission
+or dependency.
+
+### Changes
+
+**Logic**
+- **"Open the installer again"** on the update sheet. Closing Android's install
+  dialog, or tapping Cancel, no longer means a second download: a finished
+  download waits in the app's cache while it is the newest release, so the next
+  "Check for updates" offers **Install** at once, and it is cleared once that
+  version is installed. Downloads go to a `.part` file, renamed when whole.
+
+**UI**
+- **The flame-and-pin mark a fifth smaller, and sized from the screen**: 80×112
+  on RepLiT's splash on a 402-wide phone (64×90 at 320, at most 100×140 on a
+  tablet), the wordmark and glow in proportion. Android 12+'s own launch
+  screen shows it about a fifth smaller too (an inset of the launcher mark).
+- **The iPhone's launch screen** had no logo: Flutter's 1×1 placeholder on
+  white, a white flash in Dark Mode. It now shows the mark at a fifth of the
+  screen's width (at most 100 pt), on #EEEDEA, or #131313 in Dark Mode.
+- **Sign-in:** "New to the app? CREATE ACCOUNT" (Tagalog "Bago ka sa app?
+  GUMAWA NG ACCOUNT") in place of "New to the barangay app?".
+- **Tagalog tour:** "Laktawan" (Skip) stays on one line; Back and Skip share
+  the bar's two sides equally, so the progress stays centred. The first tour
+  screen scrolls instead of overflowing on a small phone at a large text size.
+
+---
+
 ## v1.12.26 — 6 November 2026 — The app opens again, updates for anyone, the Figma splash
 
 With backend v1.12.20; nothing new needed from it. New permission:
