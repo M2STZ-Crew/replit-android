@@ -154,57 +154,78 @@ class _TourBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      // Back and Skip share the width either side of the progress equally, so
+      // the progress stays centred and a longer Skip ("Laktawan") has room
+      // to stay on one line.
       child: Row(
         children: [
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: onBack == null
-                ? null
-                : IconButton(
-                    onPressed: onBack,
-                    icon: const Icon(AppIcons.chevronLeft),
-                    color: context.pal.onBackground,
-                    iconSize: 26,
-                    tooltip: t('Back'),
-                  ),
-          ),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 1; i <= 6; i++) ...[
-                  if (i > 1) const SizedBox(width: 4),
-                  Semantics(
-                    label: i == step ? t('Step {n} of 6', {'n': step}) : null,
-                    child: Container(
-                      width: 22,
-                      height: 3,
-                      decoration: BoxDecoration(
-                        color: i <= step
-                            ? context.pal.accent
-                            : context.pal.lineStrong,
-                        borderRadius: BorderRadius.circular(2),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: onBack == null
+                    ? null
+                    : IconButton(
+                        onPressed: onBack,
+                        icon: const Icon(AppIcons.chevronLeft),
+                        color: context.pal.onBackground,
+                        iconSize: 26,
+                        tooltip: t('Back'),
                       ),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: onSkip == null
-                ? null
-                : TextButton(
-                    onPressed: onSkip,
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      foregroundColor: context.pal.label,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 1; i <= 6; i++) ...[
+                if (i > 1) const SizedBox(width: 4),
+                Semantics(
+                  label: i == step ? t('Step {n} of 6', {'n': step}) : null,
+                  child: Container(
+                    width: 22,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: i <= step
+                          ? context.pal.accent
+                          : context.pal.lineStrong,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    child: Text(t('Skip'), style: context.type.label),
                   ),
+                ),
+              ],
+            ],
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: 44,
+                child: onSkip == null
+                    ? null
+                    : TextButton(
+                        onPressed: onSkip,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          minimumSize: const Size(44, 44),
+                          foregroundColor: context.pal.label,
+                        ),
+                        // One line always: shrinks a little before it would
+                        // ever wrap.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            t('Skip'),
+                            maxLines: 1,
+                            softWrap: false,
+                            style: context.type.label,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
           ),
         ],
       ),
@@ -320,29 +341,37 @@ class _Welcome extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
             child: LanguageSwitch(),
           ),
+          // As on the later steps, the words win the space: Lit takes up to
+          // half of it, and on a small phone at a large text size (Tagalog
+          // runs long) the middle scrolls rather than overflowing.
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Flexible(child: _Lit(height: 280)),
-                  const SizedBox(height: 24),
-                  Text(
-                    t("Hi, I'm Lit."),
-                    textAlign: TextAlign.center,
-                    style: context.type.tourHeading,
+            child: LayoutBuilder(
+              builder: (context, box) => SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: box.maxHeight),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _Lit(height: (box.maxHeight * 0.5).clamp(96.0, 280.0)),
+                      const SizedBox(height: 24),
+                      Text(
+                        t("Hi, I'm Lit."),
+                        textAlign: TextAlign.center,
+                        style: context.type.tourHeading,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        t(
+                          "I'm a firefly. I'll show you how to report an "
+                          'emergency here — about a minute.',
+                        ),
+                        textAlign: TextAlign.center,
+                        style: context.type.bodyLarge,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    t(
-                      "I'm a firefly. I'll show you how to report an emergency "
-                      'here — about a minute.',
-                    ),
-                    textAlign: TextAlign.center,
-                    style: context.type.bodyLarge,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

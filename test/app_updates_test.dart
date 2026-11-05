@@ -95,6 +95,52 @@ void main() {
       expect(find.textContaining('Finish the install'), findsOneWidget);
     });
 
+    testWidgets('after the hand-off, the installer can be opened again', (
+      tester,
+    ) async {
+      var installs = 0;
+      late Completer<void> pending;
+      AppUpdates.checkOverride = () async => const UpdateAvailable(
+        AvailableRelease(version: '1.12.27', build: 51, size: 72 * 1024 * 1024),
+      );
+      AppUpdates.installOverride = (_) {
+        installs++;
+        pending = Completer<void>();
+        return pending.future;
+      };
+      await open(tester);
+      await tester.tap(find.text('DOWNLOAD AND INSTALL'));
+      await tester.pump();
+      pending.complete();
+      await tester.pump();
+      expect(find.textContaining('Finish the install'), findsOneWidget);
+
+      // The install window was closed: the same download opens it again.
+      await tester.tap(find.text('OPEN THE INSTALLER AGAIN'));
+      await tester.pump();
+      expect(find.text('Opening the installer…'), findsOneWidget);
+      expect(installs, 2);
+      pending.complete();
+      await tester.pump();
+      expect(find.textContaining('Finish the install'), findsOneWidget);
+    });
+
+    testWidgets('an update already downloaded installs straight away', (
+      tester,
+    ) async {
+      AppUpdates.checkOverride = () async => const UpdateAvailable(
+        AvailableRelease(version: '1.12.27', build: 51, size: 72 * 1024 * 1024),
+        downloaded: true,
+      );
+      await open(tester);
+      expect(
+        find.text('Version 1.12.27 (51) is downloaded and ready to install.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Wi-Fi'), findsNothing);
+      expect(find.text('INSTALL'), findsOneWidget);
+    });
+
     testWidgets('a failed check explains itself and can be tried again', (
       tester,
     ) async {
@@ -253,6 +299,48 @@ void main() {
       expect((install.arguments as Map)['sha256'], sha);
       expect(progress.first, 0);
       expect(progress.last, 1);
+    });
+
+    test('a whole download waits; installing again fetches nothing', () async {
+      serve(latest: manifest());
+      await AppUpdates.check();
+      await AppUpdates.install((_) {});
+      int apkFetches() => fetched.where((u) => u.path.endsWith('.apk')).length;
+      expect(apkFetches(), 1);
+
+      // The install window was closed; the next check finds the file.
+      final again = await AppUpdates.check();
+      expect((again as UpdateAvailable).downloaded, isTrue);
+      final progress = <double?>[];
+      await AppUpdates.install(progress.add);
+      expect(apkFetches(), 1, reason: 'no second download');
+      expect(calls.where((c) => c.method == 'install'), hasLength(2));
+      expect(progress, [1]);
+    });
+
+    test('once the update is installed, the waiting APK goes', () async {
+      serve(latest: manifest());
+      await AppUpdates.check();
+      await AppUpdates.install((_) {});
+      expect(downloads.listSync(), hasLength(1));
+
+      AppUpdates.installedBuildOverride = 50;
+      expect(await AppUpdates.check(), isA<UpToDate>());
+      expect(downloads.listSync(), isEmpty);
+    });
+
+    test('a part file, a short file or an older APK is cleared', () async {
+      File(
+        '${downloads.path}/RepLiT-1.12.26-50.apk.part',
+      ).writeAsBytesSync([1, 2]);
+      File('${downloads.path}/RepLiT-1.12.26-50.apk').writeAsBytesSync([1, 2]);
+      File(
+        '${downloads.path}/RepLiT-1.12.25-47.apk',
+      ).writeAsBytesSync([1, 2, 3, 4, 5, 6]);
+      serve(latest: manifest());
+      final found = await AppUpdates.check();
+      expect((found as UpdateAvailable).downloaded, isFalse);
+      expect(downloads.listSync(), isEmpty);
     });
 
     test('a download cut short is thrown away, never installed', () async {

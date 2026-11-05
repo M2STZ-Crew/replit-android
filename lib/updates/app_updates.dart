@@ -98,8 +98,12 @@ class UpToDate extends UpdateCheck {
 }
 
 class UpdateAvailable extends UpdateCheck {
-  const UpdateAvailable(this.release);
+  const UpdateAvailable(this.release, {this.downloaded = false});
   final AvailableRelease release;
+
+  /// The APK is already in the app's cache, whole, from an earlier download
+  /// that was not installed: installing needs no second download.
+  final bool downloaded;
 }
 
 class UpdateCheckFailed extends UpdateCheck {
@@ -173,7 +177,6 @@ abstract final class AppUpdates {
   static Future<UpdateCheck> check() async {
     final stand = checkOverride;
     if (stand != null) return stand();
-    unawaited(_clearDownloads());
     final client = _client();
     try {
       final response = await client
@@ -193,10 +196,13 @@ abstract final class AppUpdates {
       if (release == null) return const UpdateCheckFailed('BAD_RELEASE');
       final installed = installedBuildOverride ?? AppVersion.build;
       if (installed != null && release.build <= installed) {
+        // Installed already: an APK still waiting in the cache is not
+        // needed any more.
+        await _clearDownloads();
         return const UpToDate();
       }
       _found = release;
-      return UpdateAvailable(release);
+      return UpdateAvailable(release, downloaded: await _keepOnly(release));
     } on FormatException catch (_) {
       return const UpdateCheckFailed('BAD_RELEASE');
     } on TimeoutException catch (_) {
@@ -210,9 +216,11 @@ abstract final class AppUpdates {
     }
   }
 
-  /// Download the release the last [check] found and hand it to Android's
-  /// installer. [onProgress] hears the share downloaded, 0 to 1, or null
-  /// while the size is not known. Throws [UpdateInstallFailed].
+  /// Hand the release the last [check] found to Android's installer,
+  /// downloading it first unless a whole copy is already waiting — so
+  /// calling this again after the install dialog was closed reopens it at
+  /// once. [onProgress] hears the share downloaded, 0 to 1. Throws
+  /// [UpdateInstallFailed].
   static Future<void> install(ValueChanged<double?> onProgress) async {
     final stand = installOverride;
     if (stand != null) return stand(onProgress);
@@ -221,45 +229,57 @@ abstract final class AppUpdates {
       throw const UpdateInstallFailed('UPDATE_NOT_AVAILABLE');
     }
     final client = _client();
-    File? file;
-    var handedOver = false;
+    File? apk;
+    File? part;
     try {
       final dir = await _downloads();
-      await _clearDownloads();
-      file = File('${dir.path}${Platform.pathSeparator}${release.apk}');
-      final request = http.Request('GET', release.apkUrl)
-        ..headers.addAll(_headers);
-      final response = await client
-          .send(request)
-          .timeout(const Duration(seconds: 30));
-      if (response.statusCode != 200) {
-        throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
-      }
-      onProgress(0);
-      final sink = file.openWrite();
-      var received = 0;
-      try {
-        await for (final chunk in response.stream.timeout(
-          const Duration(seconds: 30),
-        )) {
-          sink.add(chunk);
-          received += chunk.length;
-          onProgress((received / release.size).clamp(0.0, 1.0));
+      apk = File('${dir.path}${Platform.pathSeparator}${release.apk}');
+      if (await _keepOnly(release)) {
+        onProgress(1);
+      } else {
+        // Written beside its final name and renamed once whole, so a file
+        // with the final name is always a complete download.
+        part = File('${apk.path}.part');
+        final request = http.Request('GET', release.apkUrl)
+          ..headers.addAll(_headers);
+        final response = await client
+            .send(request)
+            .timeout(const Duration(seconds: 30));
+        if (response.statusCode != 200) {
+          throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
         }
-      } finally {
-        await sink.close();
+        onProgress(0);
+        final sink = part.openWrite();
+        var received = 0;
+        try {
+          await for (final chunk in response.stream.timeout(
+            const Duration(seconds: 30),
+          )) {
+            sink.add(chunk);
+            received += chunk.length;
+            onProgress((received / release.size).clamp(0.0, 1.0));
+          }
+        } finally {
+          await sink.close();
+        }
+        if (received != release.size) {
+          throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+        }
+        await part.rename(apk.path);
+        part = null;
       }
-      if (received != release.size) {
-        throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
-      }
+      // Kept after the hand-off: if the install dialog is closed, the same
+      // file opens it again.
       await _channel.invokeMethod<bool>('install', {
-        'path': file.path,
+        'path': apk.path,
         'sha256': release.sha256,
       });
-      handedOver = true;
     } on UpdateInstallFailed {
       rethrow;
     } on PlatformException catch (e) {
+      // A copy that does not match the release is no use to anyone; the next
+      // try downloads it afresh. (MainActivity deletes it too.)
+      if (e.code == 'CORRUPT') await _delete(apk);
       throw UpdateInstallFailed(e.code);
     } on MissingPluginException catch (_) {
       throw const UpdateInstallFailed('UNAVAILABLE');
@@ -273,12 +293,35 @@ abstract final class AppUpdates {
       throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
     } finally {
       client.close();
-      // A half-downloaded or refused APK is no use to anyone.
-      if (!handedOver) {
-        try {
-          await file?.delete();
-        } on FileSystemException catch (_) {}
+      // A half-finished download is no use to anyone.
+      await _delete(part);
+    }
+  }
+
+  static Future<void> _delete(File? file) async {
+    try {
+      await file?.delete();
+    } on FileSystemException catch (_) {}
+  }
+
+  /// Clear out every download except a whole copy of [release]'s APK, and
+  /// say whether that copy is there. Never throws.
+  static Future<bool> _keepOnly(AvailableRelease release) async {
+    try {
+      final dir = await _downloads();
+      var whole = false;
+      await for (final entry in dir.list()) {
+        if (entry is! File) continue;
+        final name = entry.uri.pathSegments.last;
+        if (name == release.apk && await entry.length() == release.size) {
+          whole = true;
+        } else {
+          await entry.delete();
+        }
       }
+      return whole;
+    } on Object catch (_) {
+      return false;
     }
   }
 
@@ -351,6 +394,10 @@ class _UpdateSheetState extends State<UpdateSheet> {
   String? _problem;
   double? _progress;
 
+  /// A whole copy of [_release] is waiting in the cache, so installing only
+  /// opens Android's installer.
+  bool _downloaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -368,8 +415,9 @@ class _UpdateSheetState extends State<UpdateSheet> {
       switch (found) {
         case UpToDate():
           _stage = _Stage.upToDate;
-        case UpdateAvailable(:final release):
+        case UpdateAvailable(:final release, :final downloaded):
           _release = release;
+          _downloaded = downloaded;
           _stage = _Stage.available;
         case UpdateCheckFailed(:final code):
           _problem = AppUpdates.explain(code);
@@ -381,16 +429,25 @@ class _UpdateSheetState extends State<UpdateSheet> {
   Future<void> _install() async {
     setState(() {
       _stage = _Stage.installing;
-      _progress = null;
+      _progress = _downloaded ? 1 : null;
     });
     try {
       await AppUpdates.install((p) {
         if (mounted) setState(() => _progress = p);
       });
-      if (mounted) setState(() => _stage = _Stage.installed);
+      // The file stays in the cache after the hand-off, for "Open the
+      // installer again".
+      if (mounted) {
+        setState(() {
+          _downloaded = true;
+          _stage = _Stage.installed;
+        });
+      }
     } on UpdateInstallFailed catch (e) {
       if (!mounted) return;
       setState(() {
+        // Anything but a refused copy is still there to try again with.
+        if (e.code == 'CORRUPT') _downloaded = false;
         _problem = AppUpdates.explain(e.code);
         _stage = _Stage.failed;
       });
@@ -430,9 +487,13 @@ class _UpdateSheetState extends State<UpdateSheet> {
             _Status(
               icon: AppIcons.download,
               tint: pal.accent,
-              text: t('Version {v} is ready.', {'v': release!.label}),
+              text: _downloaded
+                  ? t('Version {v} is downloaded and ready to install.', {
+                      'v': release!.label,
+                    })
+                  : t('Version {v} is ready.', {'v': release!.label}),
             ),
-            if (release.size > 0) ...[
+            if (release.size > 0 && !_downloaded) ...[
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 32),
@@ -455,7 +516,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
             ],
             const SizedBox(height: 20),
             AppButton(
-              t('Download and install'),
+              _downloaded ? t('Install') : t('Download and install'),
               icon: AppIcons.download,
               onPressed: _install,
             ),
@@ -464,7 +525,9 @@ class _UpdateSheetState extends State<UpdateSheet> {
             LinearProgressIndicator(value: _progress, minHeight: 3),
             const SizedBox(height: 12),
             Text(
-              _progress == null
+              _downloaded
+                  ? t('Opening the installer…')
+                  : _progress == null
                   ? t('Downloading…')
                   : t('Downloading… {n}%', {'n': (_progress! * 100).round()}),
               style: context.type.body,
@@ -486,6 +549,14 @@ class _UpdateSheetState extends State<UpdateSheet> {
                 'Downloaded. Finish the install in the window Android '
                 'opened.',
               ),
+            ),
+            const SizedBox(height: 20),
+            // Closed the install window, or tapped Cancel: the same download
+            // opens it again.
+            AppButton.secondary(
+              t('Open the installer again'),
+              icon: AppIcons.openInNew,
+              onPressed: _install,
             ),
           ],
           _Stage.failed => [
