@@ -1,7 +1,12 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../api/api_client.dart';
 import '../app_version.dart';
+import '../location/location_beacon.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
 import '../models/verification_state.dart';
@@ -48,6 +53,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   VerificationState _verification = VerificationState.empty;
   bool _alerts = true;
   bool _alertsBusy = false;
+
+  /// Location allowed "All the time" (Android): fire alerts while closed.
+  bool _allTheTime = false;
   bool _testing = false;
   String? _testNote;
   bool _loggingOut = false;
@@ -73,6 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {
       // The ring stays empty rather than guessing.
     }
+    unawaited(_loadClosedAlerts());
     try {
       final alerts = await PushService.instance.isEnabled();
       if (mounted) setState(() => _alerts = alerts);
@@ -117,6 +126,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (changed == true) _load();
   }
+
+  /// Whether location is allowed "All the time", which is what lets fire
+  /// alerts find the resident while RepLiT is closed (LocationBeacon).
+  Future<void> _loadClosedAlerts() async {
+    if (!_canAskAllTheTime) return;
+    try {
+      final always =
+          await Geolocator.checkPermission() == LocationPermission.always;
+      if (mounted) setState(() => _allTheTime = always);
+    } catch (_) {
+      // Shown as not allowed.
+    }
+  }
+
+  /// Ask for location "All the time": the screen says why first, then the
+  /// phone asks (from Android 11 that is a page in Settings). Afterwards the
+  /// closed-app reports are scheduled, or not, to match.
+  Future<void> _allowAllTheTime() async {
+    if (_allTheTime) {
+      // Already on: Settings is where it is turned off again.
+      await Geolocator.openAppSettings();
+      return;
+    }
+    final go = await showAppDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Fire alerts with the app closed'),
+        content: const Text(
+          'RepLiT tells you about a fire within 150 m of where you are now. '
+          'To know that while the app is closed, it needs your location '
+          '"All the time". It sends it to RepLiT about every 15 minutes, '
+          'and only for these alerts.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Allow'),
+          ),
+        ],
+      ),
+    );
+    if (go != true) return;
+    try {
+      var perm = await Geolocator.checkPermission();
+      // While-in-use first; Android asks for "All the time" only after it.
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.whileInUse) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+      }
+    } catch (_) {
+      // The row says where it stands after the reload below.
+    }
+    await _loadClosedAlerts();
+    await LocationBeacon.syncClosed(alertsOn: _alerts);
+  }
+
+  /// Only Android has "All the time" to give here.
+  static bool get _canAskAllTheTime =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<void> _setAlerts(bool on) async {
     setState(() {
@@ -268,6 +345,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   busy: _alertsBusy,
                   onChanged: _setAlerts,
                 ),
+                if (_canAskAllTheTime && _alerts) ...[
+                  const SizedBox(height: 8),
+                  _Link(
+                    title: 'Fire alerts with the app closed',
+                    line: _allTheTime
+                        ? 'On. Fires within 150 m reach you even when RepLiT '
+                              'is closed.'
+                        : 'Allow location "All the time" so fires within '
+                              '150 m reach you when RepLiT is closed.',
+                    onTap: _allowAllTheTime,
+                  ),
+                ],
                 const SizedBox(height: 8),
                 _Toggle(
                   title: 'Light mode',

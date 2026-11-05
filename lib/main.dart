@@ -12,6 +12,7 @@ import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
+import 'location/location_beacon.dart';
 import 'privacy/contact_mask.dart';
 import 'security/developer_mode.dart';
 import 'api/session.dart';
@@ -34,6 +35,7 @@ Future<void> main() async {
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
   await ContactMask.load();
+  await LocationBeacon.init();
   // "1.11.0 (57)", as App Distribution lists this build.
   await AppVersion.load();
   // A report in progress survives the app being closed: read it now so the
@@ -89,24 +91,47 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _keepLocationFresh();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    LocationBeacon.stopOpen();
     super.dispose();
+  }
+
+  /// While the app is open its location reaches the server every few minutes,
+  /// so the 150 m alert finds the resident where they are now. Closed, that is
+  /// WorkManager's job, where the resident allows it (LocationBeacon).
+  void _keepLocationFresh() {
+    LocationBeacon.startOpen(
+      () => PushService.instance.refreshLocation(ask: false),
+    );
   }
 
   /// Back from the background with a report still out: go to it. Not while
   /// they are part-way through writing a new one, and never twice.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) LocationBeacon.stopOpen();
     if (state != AppLifecycleState.resumed) return;
+    _keepLocationFresh();
+    unawaited(_syncClosedReports());
     if (!Session.instance.isAuthenticated || ReportComposer.active) return;
     final report = ActiveReportStore.mine;
     final nav = PushService.navigatorKey.currentState;
     if (report == null || nav == null || ReportStatusScreen.isShowing) return;
     nav.push(ReportStatusScreen.route(report));
+  }
+
+  /// Back from Settings, location may now be allowed "All the time" (or no
+  /// longer): schedule or cancel the closed-app reports to match.
+  Future<void> _syncClosedReports() async {
+    if (!Session.instance.isAuthenticated) return;
+    await LocationBeacon.syncClosed(
+      alertsOn: await PushService.instance.isEnabled(),
+    );
   }
 
   @override

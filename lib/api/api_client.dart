@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_config.dart';
 import 'phone_gate.dart';
@@ -1206,6 +1207,11 @@ class ApiClient {
   }
 
   Future<bool> _doRefresh() async {
+    // The closed-app location report (LocationBeacon) runs in its own isolate
+    // and may have refreshed — and so rotated — the session since this one
+    // last read it. Presenting the retired refresh token would end the
+    // session, so take the stored pair first when it is newer.
+    if (await _adoptNewerStoredSession()) return true;
     final token = Session.instance.refreshToken;
     if (token == null || token.isEmpty) return false;
     try {
@@ -1217,6 +1223,25 @@ class ApiClient {
       if (resp.statusCode >= 400) return false;
       _storeSession(jsonDecode(resp.body) as Map<String, dynamic>);
       await Session.instance.persist();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// True when storage holds a different refresh token from this isolate's,
+  /// now adopted along with its access token.
+  Future<bool> _adoptNewerStoredSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
+      final stored = prefs.getString('refresh_token');
+      final access = prefs.getString('access_token');
+      if (stored == null || stored.isEmpty) return false;
+      if (access == null || access.isEmpty) return false;
+      if (stored == Session.instance.refreshToken) return false;
+      if (access == Session.instance.accessToken) return false;
+      await Session.instance.restore();
       return true;
     } catch (_) {
       return false;
