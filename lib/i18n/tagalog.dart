@@ -311,7 +311,7 @@ const Map<String, String> kTagalog = {
       'Nagsa-sign in pa. Puwedeng umabot nang isang minuto bago gumising ang RepLiT kapag matagal itong hindi nagamit.',
   'Locked out or offline? Hotlines need no account and no internet.':
       'Hindi maka-sign in o offline? Hindi kailangan ng account o internet sa mga hotline.',
-  'New to the barangay app?': 'Bago ka sa barangay app?',
+  'New to the app?': 'Bago ka sa app?',
   'Create account': 'Gumawa ng account',
   'A saved report was turned down: {why}':
       'Hindi tinanggap ang isang naka-save na report: {why}',

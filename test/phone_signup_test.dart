@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/api/api_client.dart';
 import 'package:replit/api/session.dart';
+import 'package:replit/i18n/i18n.dart';
 import 'package:replit/screens/login_screen.dart';
 import 'package:replit/screens/register_screen.dart';
 import 'package:replit/screens/role_gate.dart';
@@ -191,6 +192,26 @@ void main() {
   });
 
   group('sign in', () {
+    // "New to the barangay app?" named the wrong place; the link reads in
+    // capitals, in either language.
+    testWidgets('the way to sign up: "New to the app? CREATE ACCOUNT"', (
+      tester,
+    ) async {
+      addTearDown(LanguageChoice.reset);
+      await pump(tester, LoginScreen(api: api()));
+      expect(find.text('New to the app?'), findsOneWidget);
+      expect(find.textContaining('barangay'), findsNothing);
+      await tap(tester, find.text('CREATE ACCOUNT'));
+      expect(find.byType(RegisterScreen), findsOneWidget);
+
+      // A fresh screen: the one above still has Register open on top.
+      LanguageChoice.current.value = AppLanguage.tl;
+      await tester.pumpWidget(const SizedBox.shrink());
+      await pump(tester, LoginScreen(api: api()));
+      expect(find.text('Bago ka sa app?'), findsOneWidget);
+      expect(find.text('GUMAWA NG ACCOUNT'), findsOneWidget);
+    });
+
     testWidgets('by mobile number, first', (tester) async {
       await pump(tester, LoginScreen(api: api()));
       expect(find.text('Mobile number'), findsOneWidget);

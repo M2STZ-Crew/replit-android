@@ -361,9 +361,9 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
             children: [
-              Text(t('New to the barangay app?'), style: context.type.detail),
+              Text(t('New to the app?'), style: context.type.detail),
               TextLink(
-                t('Create account'),
+                t('Create account').toUpperCase(),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
                 ),
