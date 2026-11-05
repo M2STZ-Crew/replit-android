@@ -8,6 +8,7 @@ import '../widgets/design.dart';
 import 'national_id_screen.dart';
 import 'phone_verify_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// "16 Verification" from the REPLIT-OVERHAUL Figma — "Verify your account".
 ///
@@ -97,17 +98,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
             children: [
               const Align(alignment: Alignment.centerLeft, child: BackWell()),
               const SizedBox(height: 28),
-              Text('VERIFY YOUR ACCOUNT', style: context.type.heading1),
+              Text(t('VERIFY YOUR ACCOUNT'), style: context.type.heading1),
               const SizedBox(height: 12),
               Text(
-                'Verification never blocks a report. It tells responders how '
-                'much weight to give what you send.',
+                t(
+                  'Verification never blocks a report. It tells responders how '
+                  'much weight to give what you send.',
+                ),
                 style: context.type.body,
               ),
               const SizedBox(height: 24),
               _progress(s),
               const SizedBox(height: 24),
-              Eyebrow('Channels', color: context.pal.muted),
+              Eyebrow(t('Channels'), color: context.pal.muted),
               const SizedBox(height: 10),
               _phone(s),
               const SizedBox(height: 8),
@@ -115,11 +118,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
               const SizedBox(height: 8),
               _emailRow(s),
               const SizedBox(height: 24),
-              Eyebrow('Badges', color: context.pal.muted),
+              Eyebrow(t('Badges'), color: context.pal.muted),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Expanded(child: _Legend('Under 50', context.pal.warn)),
+                  Expanded(child: _Legend(t('Under 50'), context.pal.warn)),
                   SizedBox(width: 8),
                   Expanded(child: _Legend('50 to 89', context.pal.ok)),
                   SizedBox(width: 8),
@@ -130,9 +133,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Documents are held privately, used only to confirm who you '
-                'are, and deleted after review. A National ID is checked by an '
-                "administrator on PSA's PhilSys Check before its 50% applies.",
+                t(
+                  'Documents are held privately, used only to confirm who you '
+                  'are, and deleted after review. A National ID is checked by an '
+                  "administrator on PSA's PhilSys Check before its 50% applies.",
+                ),
                 style: context.type.caption,
               ),
             ],
@@ -200,12 +205,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget _phone(VerificationState s) {
     const c = VerifyChannel.phone;
     if (s.isVerified(c)) {
-      return const _Channel(channel: c, line: 'Verified', done: true);
+      return _Channel(channel: c, line: t('Verified'), done: true);
     }
     if (!kPhoneVerificationOpen) {
       return _Channel(
         channel: c,
-        line: 'Unavailable while we change SMS provider',
+        line: t('Unavailable while we change SMS provider'),
         lineColor: context.pal.warn,
         trailing: Icon(AppIcons.error, size: 16, color: context.pal.warn),
         dimmed: true,
@@ -213,7 +218,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
     return _Channel(
       channel: c,
-      line: 'Confirm it with a code by SMS',
+      line: t('Confirm it with a code by SMS'),
       onTap: _openPhone,
     );
   }
@@ -221,12 +226,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget _nationalId(VerificationState s) {
     const c = VerifyChannel.nationalId;
     if (s.isVerified(c)) {
-      return const _Channel(channel: c, line: 'Verified', done: true);
+      return _Channel(channel: c, line: t('Verified'), done: true);
     }
     if (s.isInReview(c)) {
       return _Channel(
         channel: c,
-        line: 'Submitted — an administrator is checking it',
+        line: t('Submitted — an administrator is checking it'),
         lineColor: context.pal.warn,
         trailing: Icon(AppIcons.schedule, size: 16, color: context.pal.warn),
       );
@@ -234,8 +239,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
     return _Channel(
       channel: c,
       line: s.isRefused(c)
-          ? s.refusalReason(c) ?? 'Not accepted — take the photos again'
-          : 'Camera only — ID, QR code and selfie must be live',
+          ? s.refusalReason(c) ?? t('Not accepted — take the photos again')
+          : t('Camera only — ID, QR code and selfie must be live'),
       lineColor: s.isRefused(c) ? context.pal.live : null,
       onTap: _openNationalId,
     );
@@ -244,13 +249,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget _emailRow(VerificationState s) {
     const c = VerifyChannel.email;
     if (s.isVerified(c)) {
-      return _Channel(channel: c, line: _email ?? 'Verified', done: true);
+      return _Channel(channel: c, line: _email ?? t('Verified'), done: true);
     }
     return _Channel(
       channel: c,
       line: s.status(c) == 'pending'
-          ? 'Link sent — open it on this phone'
-          : 'Tap for a confirmation link',
+          ? t('Link sent — open it on this phone')
+          : t('Tap for a confirmation link'),
       onTap: _openEmail,
     );
   }
@@ -283,7 +288,11 @@ class _Channel extends StatelessWidget {
       opacity: dimmed ? 0.6 : 1,
       child: Semantics(
         button: onTap != null,
-        label: '${channel.label}, plus ${channel.percent} percent. $line',
+        label: t('{channel}, plus {n} percent. {line}', {
+          'channel': t(channel.label),
+          'n': channel.percent,
+          'line': line,
+        }),
         excludeSemantics: true,
         child: Panel(
           radius: AppRadius.card,
@@ -310,7 +319,7 @@ class _Channel extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(channel.label, style: context.type.rowTitleLg),
+                    Text(t(channel.label), style: context.type.rowTitleLg),
                     const SizedBox(height: 5),
                     Text(
                       line,
@@ -433,7 +442,10 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
             Row(
               children: [
                 Expanded(
-                  child: Text('CONFIRM YOUR EMAIL', style: context.type.title),
+                  child: Text(
+                    t('CONFIRM YOUR EMAIL'),
+                    style: context.type.title,
+                  ),
                 ),
                 Text(
                   '+10%',
@@ -446,10 +458,14 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
             const SizedBox(height: 12),
             Text(
               _sent
-                  ? "The link is on its way. Open it on this phone, then come "
-                        'back — your level updates by itself.'
-                  : "We'll email you a secure link. Opening it on this phone "
-                        'confirms the address.',
+                  ? t(
+                      "The link is on its way. Open it on this phone, then come "
+                      'back — your level updates by itself.',
+                    )
+                  : t(
+                      "We'll email you a secure link. Opening it on this phone "
+                      'confirms the address.',
+                    ),
               style: context.type.body,
             ),
             if (_message != null) ...[
@@ -461,7 +477,7 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
             ],
             const SizedBox(height: 20),
             AppButton(
-              _sent ? 'Done' : 'Send the link',
+              _sent ? 'Done' : t('Send the link'),
               busy: _sending,
               onPressed: _sending
                   ? null
@@ -473,7 +489,7 @@ class _EmailVerifySheetState extends State<_EmailVerifySheet> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _sending ? null : _send,
-                child: const Text('Send it again'),
+                child: Text(t('Send it again')),
               ),
             ],
           ],

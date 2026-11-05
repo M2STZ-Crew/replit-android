@@ -207,7 +207,13 @@ void main() {
         }),
       );
       await pump(tester, ProfileScreen(api: api));
-      await tester.ensureVisible(find.text('Send a test alert'));
+      // Below the fold since Profile has its Language panel: scrolled to,
+      // not just made visible, because the list only builds what is near.
+      await tester.scrollUntilVisible(
+        find.text('Send a test alert'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Send a test alert'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));

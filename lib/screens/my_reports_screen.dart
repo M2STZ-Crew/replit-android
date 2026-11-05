@@ -10,6 +10,7 @@ import 'live_update_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/skeleton.dart';
+import '../i18n/i18n.dart';
 
 /// What each agency a report asked for is called on its card, and its glyph.
 const Map<String, ({String word, String glyph})> _agencies = {
@@ -173,10 +174,10 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   /// "This month", else the month's name — with the year once it is not
   /// this one.
   static String _section(DateTime? d) {
-    if (d == null) return 'Earlier';
+    if (d == null) return t('Earlier');
     final now = DateTime.now();
-    if (d.year == now.year && d.month == now.month) return 'This month';
-    final month = _months[d.month - 1];
+    if (d.year == now.year && d.month == now.month) return t('This month');
+    final month = t(_months[d.month - 1]);
     return d.year == now.year ? month : '$month ${d.year}';
   }
 
@@ -188,9 +189,9 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: ScreenHeader(title: 'Your reports'),
+              child: ScreenHeader(title: t('Your reports')),
             ),
             const SizedBox(height: 26),
             Expanded(child: _body()),
@@ -208,9 +209,9 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
       return EmptyState(
         icon: AppIcons.cloudOff,
         tone: context.pal.live,
-        title: 'Could not load your reports',
+        title: t('Could not load your reports'),
         body: _error!,
-        action: AppButton.secondary('Try again', onPressed: _load),
+        action: AppButton.secondary(t('Try again'), onPressed: _load),
       );
     }
 
@@ -243,13 +244,13 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
           Row(
             children: [
               Expanded(
-                child: StatTile(value: '${reports.length}', label: 'Sent'),
+                child: StatTile(value: '${reports.length}', label: t('Sent')),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: StatTile(
                   value: '$active',
-                  label: 'Active',
+                  label: t('Active'),
                   color: active > 0 ? context.pal.live : null,
                 ),
               ),
@@ -257,7 +258,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
               Expanded(
                 child: StatTile(
                   value: '$resolved',
-                  label: 'Resolved',
+                  label: t('Resolved'),
                   color: context.pal.ok,
                 ),
               ),
@@ -265,11 +266,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
           ),
           const SizedBox(height: 30),
           if (reports.isEmpty)
-            const EmptyState(
-              title: 'Nothing sent yet',
-              body:
-                  'Reports you send appear here with what came of them — '
-                  'who was sent, and when it was resolved.',
+            EmptyState(
+              title: t('Nothing sent yet'),
+              body: t(
+                'Reports you send appear here with what came of them — '
+                'who was sent, and when it was resolved.',
+              ),
             )
           else
             for (final MapEntry(key: label, value: group)
@@ -298,9 +300,11 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Other residents never see your name or your photos — '
-                  'only the responders and barangay staff handling the '
-                  'incident do.',
+                  t(
+                    'Other residents never see your name or your photos — '
+                    'only the responders and barangay staff handling the '
+                    'incident do.',
+                  ),
                   style: context.type.caption.copyWith(
                     color: context.pal.muted,
                   ),
@@ -323,14 +327,16 @@ class _ReportCard extends StatelessWidget {
 
   /// "Today at 9:41 AM", else "14 August".
   static String _when(DateTime? d) {
-    if (d == null) return 'Date unknown';
+    if (d == null) return t('Date unknown');
     final now = DateTime.now();
     if (d.year != now.year || d.month != now.month || d.day != now.day) {
-      return '${d.day} ${_months[d.month - 1]}';
+      return '${d.day} ${t(_months[d.month - 1])}';
     }
     final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
     final mm = d.minute.toString().padLeft(2, '0');
-    return 'Today at $h:$mm ${d.hour < 12 ? 'AM' : 'PM'}';
+    return t('Today at {time}', {
+      'time': '$h:$mm ${d.hour < 12 ? 'AM' : 'PM'}',
+    });
   }
 
   @override
@@ -342,17 +348,19 @@ class _ReportCard extends StatelessWidget {
       for (final a in (report['selected_agencies'] as List? ?? const []))
         ?_agencies['$a'],
     ];
-    final words = {for (final a in asked) a.word};
-    final title = words.isEmpty ? 'Report' : '${words.join(' + ')} report';
+    final words = {for (final a in asked) t(a.word)};
+    final title = words.isEmpty
+        ? t('Report')
+        : t('{kind} report', {'kind': words.join(' + ')});
     final designation = report['area_designation'] as String?;
     final band = report['area_confidence_band'] as String?;
     final flagged = report['gps_discrepancy_flag'] == true;
 
     final footer = switch (status) {
       'fire_out' => [?designation, 'fire out'].join(' · '),
-      'rejected' => 'Closed — it could not be confirmed',
-      'merged' => 'Joined to a neighbouring incident',
-      _ when designation == null => 'Waiting to be grouped with others',
+      'rejected' => t('Closed — it could not be confirmed'),
+      'merged' => t('Joined to a neighbouring incident'),
+      _ when designation == null => t('Waiting to be grouped with others'),
       _ => [designation, if (band != null) '$band confidence'].join(' · '),
     };
 
@@ -398,7 +406,14 @@ class _ReportCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Tag(residentWord(status), color: tone, dot: !over),
+                // Shrinks rather than pushing the row off the card when the
+                // word runs long (Tagalog, large text).
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Tag(residentWord(status), color: tone, dot: !over),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 13),
@@ -422,7 +437,7 @@ class _ReportCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  over ? 'DETAILS' : 'TRACK',
+                  over ? t('DETAILS') : t('TRACK'),
                   style: context.type.eyebrow.copyWith(
                     color: over ? context.pal.label : context.pal.accent,
                   ),
@@ -438,8 +453,10 @@ class _ReportCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Being double-checked — the photo and your phone '
-                      'disagreed on where it was taken.',
+                      t(
+                        'Being double-checked — the photo and your phone '
+                        'disagreed on where it was taken.',
+                      ),
                       style: context.type.caption,
                     ),
                   ),

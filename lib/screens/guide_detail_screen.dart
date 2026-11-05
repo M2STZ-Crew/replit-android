@@ -6,6 +6,7 @@ import '../models/hotline.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// "14 Guide detail" from the REPLIT-OVERHAUL Figma: one guide, as numbered
 /// steps, with the right hotline one tap away at the foot.
@@ -31,7 +32,8 @@ class GuideDetailScreen extends StatelessWidget {
   }
 
   String get _kicker =>
-      '${article.category == kCatFire ? 'Fire' : 'Health'} · ${article.readMins} min';
+      '${article.category == kCatFire ? t('Fire') : t('Health')} · '
+      '${t('{n} min', {'n': article.readMins})}';
 
   Future<void> _call(BuildContext context) async {
     final h = _hotline;
@@ -46,7 +48,11 @@ class GuideDetailScreen extends StatelessWidget {
   void _cannotDial(BuildContext context, Hotline h) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Could not open the dialler for ${h.displayNumber}.'),
+        content: Text(
+          t('Could not open the dialler for {number}.', {
+            'number': h.displayNumber,
+          }),
+        ),
         backgroundColor: context.pal.live,
       ),
     );
@@ -70,17 +76,17 @@ class GuideDetailScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
-            Text(article.title.toUpperCase(), style: context.type.heading1),
+            Text(t(article.title).toUpperCase(), style: context.type.heading1),
             const SizedBox(height: 10),
-            Text(article.intro, style: context.type.body),
+            Text(t(article.intro), style: context.type.body),
             const SizedBox(height: 20),
             for (final (i, section) in article.sections.indexed) ...[
               if (i > 0) const SizedBox(height: 18),
-              Eyebrow(section.heading, color: context.pal.muted),
+              Eyebrow(t(section.heading), color: context.pal.muted),
               const SizedBox(height: 10),
               for (final (j, point) in section.points.indexed) ...[
                 if (j > 0) const SizedBox(height: 10),
-                _Step(number: ++n, text: point),
+                _Step(number: ++n, text: t(point)),
               ],
             ],
             const SizedBox(height: 20),
@@ -91,8 +97,10 @@ class GuideDetailScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'General guidance, not medical advice. If someone is in '
-                    'danger, send an SOS or call 911 first.',
+                    t(
+                      'General guidance, not medical advice. If someone is in '
+                      'danger, send an SOS or call 911 first.',
+                    ),
                     style: context.type.caption,
                   ),
                 ),
@@ -101,8 +109,8 @@ class GuideDetailScreen extends StatelessWidget {
           ],
           footer: _CallButton(
             label: hotline.featured
-                ? 'Call ${hotline.displayNumber}'
-                : 'Call BFP · ${hotline.displayNumber}',
+                ? t('Call {number}', {'number': hotline.displayNumber})
+                : t('Call BFP · {number}', {'number': hotline.displayNumber}),
             onTap: () => _call(context),
           ),
         ),

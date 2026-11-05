@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../i18n/i18n.dart';
 
 /// "T8 · Map coach marks": the one pass over the live map that points at the
 /// two things a resident has to recognise — an Area, and where SOS lives.
@@ -37,7 +38,7 @@ class MapCoachMarks extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label: 'A quick tour of the map',
+      label: t('A quick tour of the map'),
       child: CustomMultiChildLayout(
         delegate: _CoachLayout(
           sosLift: sosLift,
@@ -64,12 +65,13 @@ class MapCoachMarks extends StatelessWidget {
             ),
           LayoutId(
             id: _Slot.areaCallout,
-            child: const _Callout(
+            child: _Callout(
               width: 290,
-              title: 'Reports group into Areas',
-              body:
-                  'Three neighbours reporting the same fire show up here as '
-                  'one incident, not three.',
+              title: t('Reports group into Areas'),
+              body: t(
+                'Three neighbours reporting the same fire show up here as '
+                'one incident, not three.',
+              ),
             ),
           ),
           LayoutId(
@@ -78,12 +80,13 @@ class MapCoachMarks extends StatelessWidget {
           ),
           LayoutId(
             id: _Slot.sosCallout,
-            child: const _Callout(
+            child: _Callout(
               width: 300,
-              title: 'SOS lives here',
-              body:
-                  'Hold it for three seconds from any screen. A tap does '
-                  'nothing.',
+              title: t('SOS lives here'),
+              body: t(
+                'Hold it for three seconds from any screen. A tap does '
+                'nothing.',
+              ),
               pointsDown: true,
             ),
           ),
@@ -307,7 +310,7 @@ class _GotIt extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.chip),
             border: Border.all(color: context.pal.line),
           ),
-          child: Text('Got it', style: context.type.rowTitleLg),
+          child: Text(t('Got it'), style: context.type.rowTitleLg),
         ),
       ),
     );

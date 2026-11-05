@@ -6,6 +6,7 @@ import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 const List<String> _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -90,7 +91,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Profile updated.')));
+      ).showSnackBar(SnackBar(content: Text(t('Profile updated.'))));
       Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (mounted) {
@@ -101,9 +102,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not save. Check your connection.'),
-          ),
+          SnackBar(content: Text(t('Could not save. Check your connection.'))),
         );
       }
     } finally {
@@ -123,11 +122,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               _topBar(),
               const SizedBox(height: 24),
-              _label('FULL NAME'),
+              _label(t('FULL NAME')),
               const SizedBox(height: 6),
-              _field(_name, 'Your full name'),
+              _field(_name, t('Your full name')),
               const SizedBox(height: 18),
-              _label('MOBILE NUMBER'),
+              _label(t('MOBILE NUMBER')),
               const SizedBox(height: 6),
               _field(
                 _mobile,
@@ -136,7 +135,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 formatters: const [PhMobileFormatter()],
               ),
               const SizedBox(height: 18),
-              _label('DATE OF BIRTH'),
+              _label(t('DATE OF BIRTH')),
               const SizedBox(height: 6),
               _dobField(),
               const SizedBox(height: 18),
@@ -157,7 +156,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text('Edit Profile'.toUpperCase(), style: context.type.screenTitle),
+        // The title takes what the back button leaves and wraps there: at
+        // large text, or in Tagalog, it ran off the screen.
+        Expanded(
+          child: Text(
+            t('Edit Profile').toUpperCase(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.type.screenTitle,
+          ),
+        ),
       ],
     );
   }
@@ -212,7 +220,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         isExpanded: true,
         value: _gender,
         hint: Text(
-          'Select',
+          t('Select'),
           style: _fieldStyle.copyWith(
             color: context.pal.label.withValues(alpha: 0.45),
           ),
@@ -230,7 +238,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   );
 
   Widget _saveButton() => AppButton(
-    'Save changes',
+    t('Save changes'),
     busy: _saving,
     onPressed: _saving ? null : _save,
   );

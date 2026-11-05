@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_version.dart';
+import '../i18n/i18n.dart';
 import '../location/location_beacon.dart';
 import '../sound/sound_cues.dart';
 import '../theme.dart';
@@ -108,6 +109,12 @@ class PushService {
       await _pushLocation();
     } catch (_) {
       // FCM unconfigured / offline — push simply stays inactive.
+    }
+    // The alerts come in the language the resident chose on this phone.
+    try {
+      await _api.setLanguage(LanguageChoice.current.value.code);
+    } catch (_) {
+      // Sent again on the next sign-in.
     }
     // Reports while the app is closed, where location is allowed for it.
     await LocationBeacon.syncClosed(alertsOn: true);

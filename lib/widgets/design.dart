@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'motion.dart';
+import '../i18n/i18n.dart';
 
 export 'motion.dart';
 export 'scroll_fade.dart';
@@ -538,7 +539,7 @@ class BackWell extends StatelessWidget {
     final shape = BorderRadius.circular(AppRadius.control);
     return Semantics(
       button: true,
-      label: 'Back',
+      label: t('Back'),
       excludeSemantics: true,
       child: Material(
         color: context.pal.glass,

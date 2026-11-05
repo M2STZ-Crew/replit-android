@@ -12,6 +12,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'login_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -160,7 +161,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Your number is verified.'),
+          content: Text(t('Your number is verified.')),
           backgroundColor: _safeGreen,
         ),
       );
@@ -234,7 +235,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Verify your number',
+                  t('Verify your number'),
                   style: TextStyle(
                     color: context.pal.onBackground,
                     fontSize: 26,
@@ -245,12 +246,18 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                 const SizedBox(height: 8),
                 Text(
                   _codeSent
-                      ? 'Enter the code we sent to ${_sentTo ?? 'your phone'}.'
+                      ? t('Enter the code we sent to {to}.', {
+                          'to': _sentTo ?? t('your phone'),
+                        })
                       : widget.gate
-                      ? 'We will send a 6-digit code to your phone by text. '
-                            'You need to do this once before you can use RepLiT.'
-                      : 'We will send a 6-digit code to your phone by text. '
-                            'It adds 40% to your trust level.',
+                      ? t(
+                          'We will send a 6-digit code to your phone by text. '
+                          'You need to do this once before you can use RepLiT.',
+                        )
+                      : t(
+                          'We will send a 6-digit code to your phone by text. '
+                          'It adds 40% to your trust level.',
+                        ),
                   style: TextStyle(
                     color: context.pal.muted,
                     fontSize: 14,
@@ -275,7 +282,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                 ],
                 const SizedBox(height: 20),
                 AppButton(
-                  _codeSent ? 'Verify code' : 'Send code',
+                  _codeSent ? t('Verify code') : t('Send code'),
                   busy: _busy,
                   onPressed: _busy ? null : (_codeSent ? _verify : _sendCode),
                 ),
@@ -286,8 +293,8 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                       onPressed: _busy || _resendIn > 0 ? null : _sendCode,
                       child: Text(
                         _resendIn > 0
-                            ? 'Send again in $_resendIn s'
-                            : 'Send the code again',
+                            ? t('Send again in {s} s', {'s': _resendIn})
+                            : t('Send the code again'),
                         style: TextStyle(
                           color: _resendIn > 0
                               ? context.pal.muted
@@ -307,7 +314,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
                               _info = null;
                             }),
                       child: Text(
-                        'Use a different number',
+                        t('Use a different number'),
                         style: TextStyle(color: context.pal.muted),
                       ),
                     ),
@@ -328,7 +335,16 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
     return Row(
       children: [
         if (!widget.gate) ...[const BackWell(), const SizedBox(width: 16)],
-        Text('Mobile number'.toUpperCase(), style: context.type.screenTitle),
+        // The title takes what the back button leaves and wraps there: at
+        // large text, or in Tagalog, it ran off the screen.
+        Expanded(
+          child: Text(
+            t('Mobile number').toUpperCase(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.type.screenTitle,
+          ),
+        ),
       ],
     );
   }
@@ -373,9 +389,11 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'We use your number to check that you are a real person, and to '
-              'contact you about your reports. We never ask for this code by '
-              'call or chat. Do not share it.',
+              t(
+                'We use your number to check that you are a real person, and to '
+                'contact you about your reports. We never ask for this code by '
+                'call or chat. Do not share it.',
+              ),
               style: context.type.meta.copyWith(
                 height: 16 / 11,
                 color: context.pal.textSoft,

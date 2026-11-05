@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../widgets/map_tiles.dart';
 import 'map_marker.dart';
 import 'you_are_here.dart';
+import '../i18n/i18n.dart';
 
 /// Map centred on an incident with an orange marker, on [MapTiles]' basemap.
 ///
@@ -67,18 +68,18 @@ class _IncidentMapState extends State<IncidentMap> {
                 point: site,
                 width: MapMarker.target,
                 height: MapMarker.target,
-                child: const MapMarker(
+                child: MapMarker(
                   kind: MapMarkerKind.shelter,
-                  label: 'Evacuation site',
+                  label: t('Evacuation site'),
                 ),
               ),
             Marker(
               point: point,
               width: MapMarker.target,
               height: MapMarker.target,
-              child: const MapMarker(
+              child: MapMarker(
                 kind: MapMarkerKind.incident,
-                label: 'the incident',
+                label: t('the incident'),
                 selected: true,
               ),
             ),

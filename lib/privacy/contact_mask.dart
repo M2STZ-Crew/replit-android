@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// Whether the resident's own email and mobile number show in full.
 ///
@@ -93,7 +94,7 @@ class ContactMaskToggle extends StatelessWidget {
         // Its own node: the row it sits in reads as one heading otherwise.
         container: true,
         button: true,
-        label: hidden ? 'Show email and mobile' : 'Hide email and mobile',
+        label: hidden ? t('Show email and mobile') : t('Hide email and mobile'),
         excludeSemantics: true,
         child: InkResponse(
           onTap: ContactMask.toggle,

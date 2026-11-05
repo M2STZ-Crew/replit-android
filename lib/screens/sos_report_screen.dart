@@ -15,6 +15,7 @@ import '../widgets/design.dart';
 import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// One choice in "Who should respond": the agency the server knows, the word
 /// a resident knows, and the frame's colour and glyph for it.
@@ -158,7 +159,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
         timing.finish(outcome: 'no_location');
         _toast(
           _location.problem.value ??
-              'Could not pinpoint your location. Move near a window or outdoors and try again.',
+              t(
+                'Could not pinpoint your location. Move near a window or outdoors and try again.',
+              ),
         );
         return;
       }
@@ -195,7 +198,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
       final at = pos;
       if (at == null) {
         timing.finish(outcome: 'failed');
-        _toast('Could not submit the report. Check your connection.');
+        _toast(t('Could not submit the report. Check your connection.'));
       } else {
         await _saveForLater(at, agencies);
       }
@@ -222,7 +225,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
       );
     } catch (_) {
       timing.finish(outcome: 'failed');
-      _toast('Could not submit the report or save it. Check your connection.');
+      _toast(
+        t('Could not submit the report or save it. Check your connection.'),
+      );
       return;
     }
     timing.finish(outcome: 'queued');
@@ -286,9 +291,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
               ],
             ),
             const SizedBox(height: 28),
-            Text('WHAT ARE WE SENDING?', style: context.type.heading1),
+            Text(t('WHAT ARE WE SENDING?'), style: context.type.heading1),
             const SizedBox(height: 32),
-            Eyebrow('Who should respond', color: context.pal.muted),
+            Eyebrow(t('Who should respond'), color: context.pal.muted),
             const SizedBox(height: 10),
             _agencyGrid(),
             const SizedBox(height: 28),
@@ -296,17 +301,17 @@ class _SosReportScreenState extends State<SosReportScreen> {
               children: [
                 Expanded(
                   child: Eyebrow(
-                    'Photo of the scene',
+                    t('Photo of the scene'),
                     color: context.pal.muted,
                   ),
                 ),
-                Eyebrow('Required', color: context.pal.accent),
+                Eyebrow(t('Required'), color: context.pal.accent),
               ],
             ),
             const SizedBox(height: 10),
             _viewfinder(),
             const SizedBox(height: 24),
-            Eyebrow('Anything else', color: context.pal.muted),
+            Eyebrow(t('Anything else'), color: context.pal.muted),
             const SizedBox(height: 10),
             TextField(
               controller: _notes,
@@ -316,7 +321,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                 color: context.pal.onBackground,
               ),
               decoration: InputDecoration(
-                hintText: 'Optional — what responders should know',
+                hintText: t('Optional — what responders should know'),
                 hintStyle: context.type.bodySm.copyWith(
                   color: context.pal.label.withValues(alpha: 0.45),
                 ),
@@ -333,8 +338,10 @@ class _SosReportScreenState extends State<SosReportScreen> {
             children: [
               if (_waitingForFix) ...[
                 Text(
-                  'Pinpointing your location — your report sends the moment '
-                  'it is found.',
+                  t(
+                    'Pinpointing your location — your report sends the moment '
+                    'it is found.',
+                  ),
                   textAlign: TextAlign.center,
                   style: context.type.caption.copyWith(
                     color: context.pal.accent,
@@ -343,7 +350,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                 const SizedBox(height: 12),
               ],
               AppButton(
-                chosen == 0 ? 'Choose who to call' : 'Send report',
+                chosen == 0 ? t('Choose who to call') : t('Send report'),
                 height: 54,
                 busy: _submitting,
                 onPressed: _submitting || chosen == 0 ? null : _requestHelp,
@@ -378,7 +385,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
           const SizedBox(width: 7),
           Flexible(
             child: Text(
-              fixed ? 'LOCATION LOCKED' : 'FINDING YOUR LOCATION',
+              fixed ? t('LOCATION LOCKED') : t('FINDING YOUR LOCATION'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: context.type.tag.copyWith(color: tone),
@@ -413,7 +420,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
     return Semantics(
       button: !locked,
       checked: on,
-      label: locked ? '${a.label}, always included' : a.label,
+      label: locked
+          ? t('{agency}, always included', {'agency': t(a.label)})
+          : t(a.label),
       excludeSemantics: true,
       child: Material(
         color: Colors.transparent,
@@ -426,7 +435,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
               // A tap on the locked card says why it will not untick,
               // rather than doing nothing.
               ? () => _note(
-                  'Fire is always included. Add any other help you need.',
+                  t('Fire is always included. Add any other help you need.'),
                 )
               : () => setState(() => _selected[a.key] = !on),
           child: Container(
@@ -461,7 +470,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      a.label.toUpperCase(),
+                      t(a.label).toUpperCase(),
                       style: context.type.cardTitleSm.copyWith(
                         color: on
                             ? context.pal.onBackground
@@ -518,11 +527,15 @@ class _SosReportScreenState extends State<SosReportScreen> {
   Widget _viewfinder() {
     final pos = _position;
     final tag = pos == null
-        ? 'Pinpointing your location…'
-        : 'Geotagged, ${_address ?? '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}'}';
+        ? t('Pinpointing your location…')
+        : t('Geotagged, {place}', {
+            'place':
+                _address ??
+                '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
+          });
     return Semantics(
       button: true,
-      label: 'Photo of the scene. Tap to take it again.',
+      label: t('Photo of the scene. Tap to take it again.'),
       child: GestureDetector(
         onTap: _submitting ? null : _retake,
         child: Container(
@@ -577,7 +590,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                         size: 12,
                         color: context.pal.onBackground,
                       ),
-                      text: 'Retake',
+                      text: t('Retake'),
                     ),
                   ],
                 ),

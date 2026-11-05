@@ -18,6 +18,7 @@ import 'camera_capture_screen.dart';
 import 'live_update_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/skeleton.dart';
+import '../i18n/i18n.dart';
 
 /// Reports join an area only from within this distance of its centre
 /// (clustering, Master Context §3.4) — the circle on the map extract.
@@ -180,14 +181,14 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   static String _distance(double m) => formatDistance(m);
 
   static String _meaning(String status) => switch (status) {
-    'reported' => 'Waiting for a responding agency to accept it.',
-    'verified' => 'Acknowledged. A responding organization is checking it.',
-    'declined' => 'No emergency found. Responders checked and closed it.',
-    'en_route' => 'Responders are on the way.',
-    'arrived' => 'Responders are on scene.',
-    'fire_out' => 'Fire out. Responders have finished here.',
-    'rejected' => 'Closed — it could not be confirmed as an incident.',
-    'merged' => 'Joined to a neighbouring area.',
+    'reported' => t('Waiting for a responding agency to accept it.'),
+    'verified' => t('Acknowledged. A responding organization is checking it.'),
+    'declined' => t('No emergency found. Responders checked and closed it.'),
+    'en_route' => t('Responders are on the way.'),
+    'arrived' => t('Responders are on scene.'),
+    'fire_out' => t('Fire out. Responders have finished here.'),
+    'rejected' => t('Closed — it could not be confirmed as an incident.'),
+    'merged' => t('Joined to a neighbouring area.'),
     _ => '',
   };
 
@@ -258,11 +259,11 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     final tone = residentTone(_status, context.pal);
     return [
       Text(
-        (_street ?? 'Incident area').toUpperCase(),
+        (_street ?? t('Incident area')).toUpperCase(),
         style: context.type.heading1,
       ),
       const SizedBox(height: 6),
-      Text(_place ?? 'Pasay City', style: context.type.body),
+      Text(_place ?? t('Pasay City'), style: context.type.body),
       const SizedBox(height: 18),
       Wrap(
         spacing: 8,
@@ -357,10 +358,10 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       _ => 0,
     };
     final spread = _reports < 2
-        ? 'One report — no spread yet'
+        ? t('One report — no spread yet')
         : s <= 0
-        ? 'Spread over 300 m'
-        : 'Spread ${((1 - s) * kClusterRadiusMetres).round()} m';
+        ? t('Spread over 300 m')
+        : t('Spread {m} m', {'m': ((1 - s) * kClusterRadiusMetres).round()});
     return Panel(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -368,7 +369,9 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
         children: [
           Row(
             children: [
-              Expanded(child: Eyebrow('Confidence', color: context.pal.muted)),
+              Expanded(
+                child: Eyebrow(t('Confidence'), color: context.pal.muted),
+              ),
               if (band != null) ...[
                 Eyebrow(band, color: context.pal.accent),
                 const SizedBox(width: 8),
@@ -397,11 +400,11 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
             n,
           ),
           const SizedBox(height: 14),
-          _Score('Spatial agreement', spread, s),
+          _Score(t('Spatial agreement'), spread, s),
           const SizedBox(height: 14),
           _Score(
-            'Source credibility',
-            'Reporters average ${(v * 100).round()}%',
+            t('Source credibility'),
+            t('Reporters average {n}%', {'n': (v * 100).round()}),
             v,
           ),
         ],
@@ -414,10 +417,13 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Eyebrow('Progress', color: context.pal.muted),
+        Eyebrow(t('Progress'), color: context.pal.muted),
         const SizedBox(height: 12),
         Semantics(
-          label: 'Step ${at + 1} of ${kResidentRail.length}',
+          label: t('Step {n} of {of}', {
+            'n': at + 1,
+            'of': kResidentRail.length,
+          }),
           excludeSemantics: true,
           child: Row(
             children: [
@@ -451,7 +457,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     if (_area == null || _over) return const SizedBox.shrink();
     if (_mine == true) {
       return AppButton.secondary(
-        'You reported this — follow it',
+        t('You reported this — follow it'),
         height: 54,
         onPressed: _followMine,
       );
@@ -461,14 +467,17 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       // A report joins an area only from within 300 m. From farther off it
       // would open a new incident where the reporter stands — not this one.
       return Text(
-        "You're ${_distance(away)} away. A report joins this area only from "
-        'within 300 m — if you can see something where you are, use SOS.',
+        t(
+          "You're {distance} away. A report joins this area only from "
+          'within 300 m — if you can see something where you are, use SOS.',
+          {'distance': _distance(away)},
+        ),
         textAlign: TextAlign.center,
         style: context.type.caption.copyWith(color: context.pal.label),
       );
     }
     return AppButton(
-      'I see it too — add my report',
+      t('I see it too — add my report'),
       height: 54,
       onPressed: _addMyReport,
     );

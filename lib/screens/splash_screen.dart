@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import 'login_screen.dart';
 import 'role_gate.dart';
+import '../i18n/i18n.dart';
 
 /// "01 Splash" from the REPLIT-OVERHAUL Figma: the mark in its glow, the
 /// plain wordmark, a short coral loader, and the locality at the foot. This
@@ -95,7 +96,7 @@ class _SplashScreenState extends State<SplashScreen>
                 _loaderBar(),
                 const SizedBox(height: 18),
                 Text(
-                  'CONNECTING TO RESPONDERS',
+                  t('CONNECTING TO RESPONDERS'),
                   textAlign: TextAlign.center,
                   style: context.type.eyebrow.copyWith(
                     color: context.pal.muted,
@@ -103,13 +104,13 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 const Spacer(flex: 2),
                 Text(
-                  'Pasay City',
+                  t('Pasay City'),
                   textAlign: TextAlign.center,
                   style: context.type.labelSm,
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'EMERGENCY RESPONSE NETWORK',
+                  t('EMERGENCY RESPONSE NETWORK'),
                   textAlign: TextAlign.center,
                   style: context.type.eyebrow.copyWith(
                     color: context.pal.muted,

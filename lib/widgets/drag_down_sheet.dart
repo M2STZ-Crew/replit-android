@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/i18n.dart';
+
 /// A sheet over a map that the resident can drag down out of the way.
 ///
 /// Dragged down — or its [header] tapped — it folds away to just the header
@@ -97,8 +99,8 @@ class DragDownSheetState extends State<DragDownSheet>
             Semantics(
               button: true,
               label: _open
-                  ? 'Hide ${widget.subject}'
-                  : 'Show ${widget.subject}',
+                  ? t('Hide {what}', {'what': t(widget.subject)})
+                  : t('Show {what}', {'what': t(widget.subject)}),
               onTap: toggle,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,

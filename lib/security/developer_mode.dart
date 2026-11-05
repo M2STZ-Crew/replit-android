@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
+import '../i18n/i18n.dart';
 
 /// Android's Developer options must be off for RepLiT to run.
 ///
@@ -172,30 +173,36 @@ class DeveloperModeBlock extends StatelessWidget {
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  'TURN OFF DEVELOPER OPTIONS',
+                  t('TURN OFF DEVELOPER OPTIONS'),
                   textAlign: TextAlign.center,
                   style: context.type.title,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "RepLiT can't run while Android's Developer options are on. "
-                  'They let another app change where your phone says it is, '
-                  'and every report needs your real location.',
+                  t(
+                    "RepLiT can't run while Android's Developer options are on. "
+                    'They let another app change where your phone says it is, '
+                    'and every report needs your real location.',
+                  ),
                   textAlign: TextAlign.center,
                   style: context.type.body,
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Open Settings, switch Developer options off, then come '
-                  'back here.',
+                  t(
+                    'Open Settings, switch Developer options off, then come '
+                    'back here.',
+                  ),
                   textAlign: TextAlign.center,
                   style: context.type.bodySm.copyWith(color: pal.textSoft),
                 ),
                 if (stillOn) ...[
                   const SizedBox(height: 14),
                   Text(
-                    'They are still on. Switch off the toggle at the top of '
-                    'Developer options.',
+                    t(
+                      'They are still on. Switch off the toggle at the top of '
+                      'Developer options.',
+                    ),
                     key: const ValueKey('developer-mode-still-on'),
                     textAlign: TextAlign.center,
                     style: context.type.bodySm.copyWith(color: pal.live),
@@ -203,13 +210,13 @@ class DeveloperModeBlock extends StatelessWidget {
                 ],
                 const SizedBox(height: 26),
                 AppButton(
-                  'Open Developer options',
+                  t('Open Developer options'),
                   icon: AppIcons.openInNew,
                   onPressed: () => unawaited(DeveloperMode.openSettings()),
                 ),
                 const SizedBox(height: 10),
                 AppButton.secondary(
-                  "I've turned them off",
+                  t("I've turned them off"),
                   onPressed: onRecheck,
                 ),
                 const SizedBox(height: 22),
@@ -219,7 +226,7 @@ class DeveloperModeBlock extends StatelessWidget {
                         unawaited(launchUrl(Uri(scheme: 'tel', path: '911'))),
                     icon: Icon(AppIcons.call, size: 18, color: pal.live),
                     label: Text(
-                      'In an emergency, call 911',
+                      t('In an emergency, call 911'),
                       style: context.type.rowTitle.copyWith(color: pal.live),
                     ),
                   ),

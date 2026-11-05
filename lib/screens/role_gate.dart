@@ -18,6 +18,7 @@ import 'responder/responder_shell.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/skeleton.dart';
+import '../i18n/i18n.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
 /// role from GET /auth/me: response_team → the responder console; a
@@ -93,7 +94,7 @@ class _RoleGateState extends State<RoleGate> {
       MaterialPageRoute<void>(builder: (_) => const CallScreen(guest: true)),
     ),
     child: Text(
-      'Emergency hotlines',
+      t('Emergency hotlines'),
       style: TextStyle(color: context.pal.accent, fontWeight: FontWeight.w700),
     ),
   );
@@ -127,7 +128,7 @@ class _RoleGateState extends State<RoleGate> {
             TextButton(
               onPressed: _load,
               child: Text(
-                'Retry',
+                t('Retry'),
                 style: TextStyle(
                   color: context.pal.accent,
                   fontWeight: FontWeight.w700,
@@ -137,7 +138,7 @@ class _RoleGateState extends State<RoleGate> {
             TextButton(
               onPressed: _signInAgain,
               child: Text(
-                'Sign in again',
+                t('Sign in again'),
                 style: TextStyle(color: context.pal.muted),
               ),
             ),
@@ -167,8 +168,10 @@ class _RoleGateState extends State<RoleGate> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    'Still connecting. RepLiT can take up to a minute to wake '
-                    'after a quiet spell.',
+                    t(
+                      'Still connecting. RepLiT can take up to a minute to wake '
+                      'after a quiet spell.',
+                    ),
                     textAlign: TextAlign.center,
                     style: context.type.caption.copyWith(
                       color: context.pal.label,

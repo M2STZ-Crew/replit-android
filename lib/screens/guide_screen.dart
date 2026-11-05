@@ -6,6 +6,7 @@ import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'guide_detail_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// "13 Guides" from the REPLIT-OVERHAUL Figma — "Safety guides".
 ///
@@ -48,8 +49,8 @@ class GuideScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 48),
             children: [
               ScreenHeader(
-                eyebrow: 'Knowledge base',
-                title: 'Safety guides',
+                eyebrow: t('Knowledge base'),
+                title: t('Safety guides'),
                 showBack: false,
                 trailing: AvatarWell(
                   onTap: () => AppNavBar.switchTo(context, AppTab.profile),
@@ -57,7 +58,7 @@ class GuideScreen extends StatelessWidget {
               ),
               const SizedBox(height: 22),
               Text(
-                'Short steps to follow while help is on the way.',
+                t('Short steps to follow while help is on the way.'),
                 style: context.type.body,
               ),
               const SizedBox(height: 32),
@@ -69,10 +70,10 @@ class GuideScreen extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Eyebrow('All guides', color: context.pal.accent),
+                    child: Eyebrow(t('All guides'), color: context.pal.accent),
                   ),
                   Eyebrow(
-                    '${kGuideArticles.length} lessons',
+                    t('{n} lessons', {'n': kGuideArticles.length}),
                     color: context.pal.muted,
                   ),
                 ],
@@ -103,7 +104,9 @@ class _FeaturedGuide extends StatelessWidget {
     final steps = article.firstSteps;
     return Semantics(
       button: true,
-      label: 'Start here: ${article.title}. Open the full guide.',
+      label: t('Start here: {title}. Open the full guide.', {
+        'title': t(article.title),
+      }),
       child: Panel(
         padding: const EdgeInsets.all(20),
         border: context.pal.accent.withValues(alpha: 0.45),
@@ -146,14 +149,14 @@ class _FeaturedGuide extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'START HERE · ${article.readMins} MIN READ',
+                        t('START HERE · {n} MIN READ', {'n': article.readMins}),
                         style: context.type.tag.copyWith(
                           color: context.pal.accent,
                         ),
                       ),
                       const SizedBox(height: 5),
                       Text(
-                        article.title.toUpperCase(),
+                        t(article.title).toUpperCase(),
                         style: context.type.headline,
                       ),
                     ],
@@ -179,7 +182,7 @@ class _FeaturedGuide extends StatelessWidget {
                   const SizedBox(width: 11),
                   Expanded(
                     child: Text(
-                      step,
+                      t(step),
                       style: context.type.detail.copyWith(
                         color: context.pal.textSoft,
                       ),
@@ -205,7 +208,10 @@ class _GuideRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: '${article.title}, ${article.readMins} minute read',
+      label: t('{title}, {n} minute read', {
+        'title': t(article.title),
+        'n': article.readMins,
+      }),
       excludeSemantics: true,
       child: Panel(
         radius: AppRadius.control,
@@ -215,7 +221,7 @@ class _GuideRow extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                article.title,
+                t(article.title),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: context.type.rowValue.copyWith(
@@ -225,7 +231,7 @@ class _GuideRow extends StatelessWidget {
             ),
             const SizedBox(width: 14),
             Text(
-              '${article.readMins} MIN',
+              t('{n} MIN', {'n': article.readMins}),
               style: context.type.tag.copyWith(color: context.pal.muted),
             ),
             const SizedBox(width: 14),

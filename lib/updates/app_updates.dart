@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
 import '../widgets/sheet_grip.dart';
+import '../i18n/i18n.dart';
 
 /// A newer build of RepLiT, waiting in Firebase App Distribution.
 class AvailableRelease {
@@ -131,28 +132,34 @@ abstract final class AppUpdates {
 
   /// What a failure means for the person holding the phone.
   static String explain(String code) => switch (code) {
-    'AUTHENTICATION_CANCELED' =>
+    'AUTHENTICATION_CANCELED' => t(
       'Sign-in was cancelled. Updates come through Firebase App '
-          'Distribution: sign in with the Google account your RepLiT '
-          'invitation was sent to.',
-    'AUTHENTICATION_FAILURE' =>
+      'Distribution: sign in with the Google account your RepLiT '
+      'invitation was sent to.',
+    ),
+    'AUTHENTICATION_FAILURE' => t(
       "Couldn't sign you in to App Distribution. Check your connection and "
-          'try again.',
-    'NETWORK_FAILURE' => 'No connection. Check your internet and try again.',
-    'API_DISABLED' =>
+      'try again.',
+    ),
+    'NETWORK_FAILURE' => t('No connection. Check your internet and try again.'),
+    'API_DISABLED' => t(
       "Updates aren't switched on for RepLiT yet. Please tell the RepLiT "
-          'team.',
-    'UNAVAILABLE' || 'NOT_IMPLEMENTED' =>
+      'team.',
+    ),
+    'UNAVAILABLE' || 'NOT_IMPLEMENTED' => t(
       "This build can't check for updates. Install the newest one from your "
-          'App Distribution email.',
-    'INSTALLATION_CANCELED' =>
+      'App Distribution email.',
+    ),
+    'INSTALLATION_CANCELED' => t(
       'The install was cancelled. Tap "Download and install" to try again.',
-    'INSTALLATION_FAILURE' || 'DOWNLOAD_FAILURE' =>
+    ),
+    'INSTALLATION_FAILURE' || 'DOWNLOAD_FAILURE' => t(
       "The update couldn't be installed. Try again, or install it from your "
-          'App Distribution email.',
-    'HOST_ACTIVITY_INTERRUPTED' => 'The update was interrupted. Try again.',
-    'UPDATE_NOT_AVAILABLE' => 'You already have the newest version.',
-    _ => "Couldn't check for updates. Try again in a little while.",
+      'App Distribution email.',
+    ),
+    'HOST_ACTIVITY_INTERRUPTED' => t('The update was interrupted. Try again.'),
+    'UPDATE_NOT_AVAILABLE' => t('You already have the newest version.'),
+    _ => t("Couldn't check for updates. Try again in a little while."),
   };
 }
 
@@ -236,11 +243,11 @@ class _UpdateSheetState extends State<UpdateSheet> {
     final installed = AppVersion.label;
     return FrozenHandleSheet(
       children: [
-        Text('CHECK FOR UPDATES', style: context.type.title),
+        Text(t('CHECK FOR UPDATES'), style: context.type.title),
         if (installed.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(
-            'Installed: version $installed',
+            t('Installed: version {v}', {'v': installed}),
             style: context.type.caption.copyWith(color: pal.label),
           ),
         ],
@@ -249,20 +256,20 @@ class _UpdateSheetState extends State<UpdateSheet> {
           _Stage.checking => [
             const LinearProgressIndicator(minHeight: 3),
             const SizedBox(height: 12),
-            Text('Looking for a newer version…', style: context.type.body),
+            Text(t('Looking for a newer version…'), style: context.type.body),
           ],
           _Stage.upToDate => [
             _Status(
               icon: AppIcons.checkCircle,
               tint: pal.ok,
-              text: 'You have the latest version.',
+              text: t('You have the latest version.'),
             ),
           ],
           _Stage.available => [
             _Status(
               icon: AppIcons.download,
               tint: pal.accent,
-              text: 'Version ${_release!.label} is ready.',
+              text: t('Version {v} is ready.', {'v': _release!.label}),
             ),
             if ((_release!.notes ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -275,7 +282,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
             ],
             const SizedBox(height: 20),
             AppButton(
-              'Download and install',
+              t('Download and install'),
               icon: AppIcons.download,
               onPressed: _install,
             ),
@@ -286,12 +293,12 @@ class _UpdateSheetState extends State<UpdateSheet> {
             Text(
               _progress == null
                   ? 'Downloading…'
-                  : 'Downloading… ${(_progress! * 100).round()}%',
+                  : t('Downloading… {n}%', {'n': (_progress! * 100).round()}),
               style: context.type.body,
             ),
             const SizedBox(height: 6),
             Text(
-              'Android will ask you to confirm the install.',
+              t('Android will ask you to confirm the install.'),
               style: context.type.caption.copyWith(color: pal.label),
             ),
           ],
@@ -299,9 +306,10 @@ class _UpdateSheetState extends State<UpdateSheet> {
             _Status(
               icon: AppIcons.checkCircle,
               tint: pal.ok,
-              text:
-                  'Downloaded. Finish the install in the window Android '
-                  'opened.',
+              text: t(
+                'Downloaded. Finish the install in the window Android '
+                'opened.',
+              ),
             ),
           ],
           _Stage.failed => [
@@ -312,7 +320,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
             ),
             const SizedBox(height: 20),
             AppButton.secondary(
-              'Try again',
+              t('Try again'),
               icon: AppIcons.refresh,
               onPressed: _release != null ? _install : _check,
             ),

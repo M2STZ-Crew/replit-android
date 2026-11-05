@@ -12,6 +12,7 @@ import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
+import 'i18n/i18n.dart';
 import 'location/location_beacon.dart';
 import 'privacy/contact_mask.dart';
 import 'security/developer_mode.dart';
@@ -35,6 +36,7 @@ Future<void> main() async {
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
   await ContactMask.load();
+  await LanguageChoice.load();
   await LocationBeacon.init();
   // "1.11.0 (57)", as App Distribution lists this build.
   await AppVersion.load();
@@ -139,25 +141,28 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
     // Both grounds from the hand-off. Which one shows is the switch in
     // Profile, not the phone's setting: rebuilt here so one tap repaints
     // every screen at once.
-    return ValueListenableBuilder<bool>(
-      valueListenable: ThemeChoice.light,
-      builder: (context, light, _) => MaterialApp(
-        title: 'RepLiT',
-        debugShowCheckedModeBanner: false,
-        theme: buildAppTheme(AppPalette.light),
-        darkTheme: buildAppTheme(AppPalette.dark),
-        themeMode: light ? ThemeMode.light : ThemeMode.dark,
-        scaffoldMessengerKey: PushService.messengerKey,
-        navigatorKey: PushService.navigatorKey,
-        // On a tablet the app keeps the column the design was drawn in
-        // rather than stretching it across the room.
-        //
-        // Over all of it, a release build's block while Android's Developer
-        // options are on (lib/security/developer_mode.dart).
-        builder: (context, child) => DeveloperModeGate(
-          child: ResponsiveFrame(child: child ?? const SizedBox.shrink()),
+    // Everything under LanguageScope repaints when the language changes.
+    return LanguageScope(
+      child: ValueListenableBuilder<bool>(
+        valueListenable: ThemeChoice.light,
+        builder: (context, light, _) => MaterialApp(
+          title: 'RepLiT',
+          debugShowCheckedModeBanner: false,
+          theme: buildAppTheme(AppPalette.light),
+          darkTheme: buildAppTheme(AppPalette.dark),
+          themeMode: light ? ThemeMode.light : ThemeMode.dark,
+          scaffoldMessengerKey: PushService.messengerKey,
+          navigatorKey: PushService.navigatorKey,
+          // On a tablet the app keeps the column the design was drawn in
+          // rather than stretching it across the room.
+          //
+          // Over all of it, a release build's block while Android's Developer
+          // options are on (lib/security/developer_mode.dart).
+          builder: (context, child) => DeveloperModeGate(
+            child: ResponsiveFrame(child: child ?? const SizedBox.shrink()),
+          ),
+          home: const SplashScreen(),
         ),
-        home: const SplashScreen(),
       ),
     );
   }

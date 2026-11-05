@@ -24,6 +24,7 @@ import 'directions_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// How much of the screen the sheet covers when open: the map keeps the top
 /// 44%, where the fire and the trucks are framed.
@@ -350,12 +351,12 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     } else if (snap.isStale(u)) {
       final age = snap.ageOf(u);
       state = age == null
-          ? 'Location lost'
+          ? t('Location lost')
           : 'Location lost · last seen ${_since(age)}';
     } else {
       final d = metresBetween(at, snap.centre);
       state = d <= snap.arrivalRadiusMetres
-          ? 'On scene'
+          ? t('On scene')
           : 'On the way · ${formatDistance(d)} from the fire';
     }
     return org.isEmpty ? state : '$org · $state';
@@ -457,7 +458,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         builder: (_) => DirectionsScreen(
           destLat: (s['latitude'] as num).toDouble(),
           destLng: (s['longitude'] as num).toDouble(),
-          destName: (s['name'] as String?) ?? 'Evacuation site',
+          destName: (s['name'] as String?) ?? t('Evacuation site'),
           originLat: widget.lat,
           originLng: widget.lng,
         ),
@@ -491,7 +492,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not add responders. Check your connection.');
+      if (mounted) {
+        _toast(t('Could not add responders. Check your connection.'));
+      }
     } finally {
       if (mounted) setState(() => _adding = false);
     }
@@ -499,7 +502,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
 
   String _titleFor(String key) {
     for (final u in kResponderUnits) {
-      if (u.key == key) return u.title;
+      if (u.key == key) return t(u.title);
     }
     return key;
   }
@@ -513,28 +516,35 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   }
 
   String _next(String status) => switch (status) {
-    'reported' =>
+    'reported' => t(
       'Responders have your location and photo. A Fire Volunteer coordinator '
-          'confirms it next. Stay somewhere safe — this screen updates as the '
-          'incident moves.',
-    'verified' =>
+      'confirms it next. Stay somewhere safe — this screen updates as the '
+      'incident moves.',
+    ),
+    'verified' => t(
       'Acknowledged. A responding organization has seen it and is checking. '
-          'Stay somewhere safe and keep this screen open — it updates as the '
-          'incident moves.',
-    'declined' =>
+      'Stay somewhere safe and keep this screen open — it updates as the '
+      'incident moves.',
+    ),
+    'declined' => t(
       'No emergency found. Responders checked the place and closed it. If you '
-          'still see a fire, report it again.',
+      'still see a fire, report it again.',
+    ),
     'en_route' =>
       'Responders are on the way. Keep the street clear and stay somewhere '
           'safe.${_units.isEmpty ? '' : ' The map shows where they are.'}',
-    'arrived' => 'Responders are at the fire. Follow their instructions.',
-    'fire_out' =>
+    'arrived' => t('Responders are at the fire. Follow their instructions.'),
+    'fire_out' => t(
       'Resolved. Thank you for reporting — it is how help found '
-          'the place.',
-    'rejected' =>
+      'the place.',
+    ),
+    'rejected' => t(
       'Closed — a coordinator could not confirm it. If it is still happening, '
-          'report again or call a hotline.',
-    'merged' => 'Joined to a neighbouring area — the same responders have it.',
+      'report again or call a hotline.',
+    ),
+    'merged' => t(
+      'Joined to a neighbouring area — the same responders have it.',
+    ),
     _ => '',
   };
 
@@ -646,9 +656,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                 point: s,
                 width: MapMarker.target,
                 height: MapMarker.target,
-                child: const MapMarker(
+                child: MapMarker(
                   kind: MapMarkerKind.shelter,
-                  label: 'Evacuation site',
+                  label: t('Evacuation site'),
                 ),
               ),
             if (centre != null)
@@ -660,7 +670,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                 // the sheet, and it pulses while it is being responded to.
                 child: MapMarker(
                   kind: MapMarkerKind.incident,
-                  label: 'your report',
+                  label: t('your report'),
                   live: const {
                     'reported',
                     'verified',
@@ -719,7 +729,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     final tone = over
         ? residentTone(status, context.pal)
         : context.pal.accentInk;
-    final designation = (_area?['designation'] as String?) ?? 'Your area';
+    final designation = (_area?['designation'] as String?) ?? t('Your area');
     final shape = BorderRadius.circular(AppRadius.card);
     return ClipRRect(
       borderRadius: shape,
@@ -757,7 +767,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                     Text(
                       over
                           ? 'YOUR REPORT IS ${residentWord(status).toUpperCase()}'
-                          : 'YOUR REPORT IS LIVE',
+                          : t('YOUR REPORT IS LIVE'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.type.cardTitleSm,
@@ -776,7 +786,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                over ? residentWord(status).toUpperCase() : 'LIVE',
+                over ? residentWord(status).toUpperCase() : t('LIVE'),
                 style: context.type.tag.copyWith(color: tone),
               ),
             ],
@@ -818,7 +828,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                   // its grip.
                   snapSizes: const [],
                   onTap: () => _toggleSheet(peek),
-                  semanticsLabel: 'Fold or open the incident details',
+                  semanticsLabel: t('Fold or open the incident details'),
                   padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
                 ),
                 Expanded(
@@ -826,7 +836,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                     controller: scroll,
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     children: [
-                      Eyebrow('Status', color: context.pal.muted),
+                      Eyebrow(t('Status'), color: context.pal.muted),
                       const SizedBox(height: 10),
                       // A Wrap, not a Row: at a large font scale the two do not fit
                       // side by side, and a Row squeezed the status to a column one
@@ -862,7 +872,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Eyebrow(
-                              'What happens next',
+                              t('What happens next'),
                               color: context.pal.muted,
                             ),
                             const SizedBox(height: 12),
@@ -880,9 +890,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                         tint: context.pal.ok,
                         icon: AppIcons.howToReg,
                         title: others == 0
-                            ? 'No neighbours have confirmed yet'
+                            ? t('No neighbours have confirmed yet')
                             : '$others ${others == 1 ? 'neighbour' : 'neighbours'} confirmed',
-                        line: 'Asked within 150 m of the area',
+                        line: t('Asked within 150 m of the area'),
                       ),
                       if (_shelter != null) ...[
                         const SizedBox(height: 10),
@@ -891,11 +901,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                           asset: Art.evac,
                           title:
                               (_shelter!['name'] as String?) ??
-                              'Evacuation site',
+                              t('Evacuation site'),
                           line: _shelterMetres == null
-                              ? 'Nearest open shelter'
+                              ? t('Nearest open shelter')
                               : 'Nearest open shelter · ${_shelterMetres! < 1000 ? '${_shelterMetres!.round()} m' : '${(_shelterMetres! / 1000).toStringAsFixed(1)} km'}',
-                          trailing: 'WAY',
+                          trailing: t('WAY'),
                           onTap: _showMeTheWay,
                         ),
                       ],
@@ -977,7 +987,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         icon: AppIcons.verified,
         title: 'Acknowledged by $team',
         line: at == null
-            ? 'Seen and being checked'
+            ? t('Seen and being checked')
             : 'Seen and being checked · ${_ago(at)}',
       ),
     ];
@@ -996,14 +1006,14 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         _Row(
           tint: context.pal.accent,
           icon: AppIcons.fireTruck,
-          title: 'A crew is on the way',
-          line: 'You will see the truck here when it shares its location.',
+          title: t('A crew is on the way'),
+          line: t('You will see the truck here when it shares its location.'),
         ),
       ];
     }
     return [
       const SizedBox(height: 22),
-      Eyebrow('Responders', color: context.pal.muted),
+      Eyebrow(t('Responders'), color: context.pal.muted),
       const SizedBox(height: 10),
       for (final u in units) ...[
         _Row(
@@ -1023,17 +1033,19 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   List<Widget> _moreHelp() {
     return [
       const SizedBox(height: 24),
-      Eyebrow('Need more help?', color: context.pal.accent),
+      Eyebrow(t('Need more help?'), color: context.pal.accent),
       const SizedBox(height: 8),
       Text(
-        'Add another kind of responder. They are told where it is straight '
-        'away — no new photo.',
+        t(
+          'Add another kind of responder. They are told where it is straight '
+          'away — no new photo.',
+        ),
         style: context.type.bodySm,
       ),
       const SizedBox(height: 12),
       for (final u in _available) ...[
         _AgencyToggle(
-          label: u.title,
+          label: t(u.title),
           glyph: _glyphs[u.key],
           icon: u.icon,
           color: context.pal.forAgency(u.key),
@@ -1046,7 +1058,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
       ],
       const SizedBox(height: 6),
       AppButton.secondary(
-        _extra.isEmpty ? 'Choose who to add' : 'Add more help',
+        _extra.isEmpty ? t('Choose who to add') : t('Add more help'),
         height: 48,
         busy: _adding,
         onPressed: _adding || _extra.isEmpty ? null : _addMoreHelp,

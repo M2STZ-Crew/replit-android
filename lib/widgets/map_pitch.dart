@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'map_glass.dart';
+import '../i18n/i18n.dart';
 
 /// UI READY — PRD v14 §4.9.1: Coordinators and Responders drive on Mapbox
 /// Standard with the map tilted into a driver's view, stepped 0° / 30° / 45° /
@@ -83,8 +84,11 @@ class MapPitchButton extends StatelessWidget {
       button: true,
       enabled: enabled,
       label: enabled
-          ? 'Map tilt $pitch degrees. Tap for $next degrees'
-          : 'Map tilt unavailable on the flat map',
+          ? t('Map tilt {n} degrees. Tap for {next} degrees', {
+              'n': pitch,
+              'next': next,
+            })
+          : t('Map tilt unavailable on the flat map'),
       excludeSemantics: true,
       onTap: enabled ? tap : null,
       child: ClipRRect(

@@ -26,6 +26,7 @@ import 'area_detail_screen.dart';
 import '../widgets/you_are_here.dart';
 import 'onboarding_screen.dart' show Tour;
 import '../widgets/app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
@@ -292,7 +293,7 @@ class _MapScreenState extends State<MapScreen> {
     final message = _queue.lastRejection.value;
     if (message == null) return;
     _queue.lastRejection.value = null;
-    _toast('A saved report was turned down: $message');
+    _toast(t('A saved report was turned down: {why}', {'why': message}));
   }
 
   // --------------------------------------------------------------- live ---
@@ -428,7 +429,9 @@ class _MapScreenState extends State<MapScreen> {
     } catch (_) {
       if (!mounted || _gis.containsKey(layer.key)) return;
       setState(() => _on.remove(layer.key));
-      _toast('Could not load ${layer.label.toLowerCase()}.');
+      _toast(
+        t('Could not load {layer}.', {'layer': t(layer.label).toLowerCase()}),
+      );
     }
   }
 
@@ -462,7 +465,7 @@ class _MapScreenState extends State<MapScreen> {
     }
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        _noFix('Location is off. Turn it on to see active areas near you.');
+        _noFix(t('Location is off. Turn it on to see active areas near you.'));
         return;
       }
       var perm = await Geolocator.checkPermission();
@@ -472,7 +475,9 @@ class _MapScreenState extends State<MapScreen> {
       if (perm == LocationPermission.denied ||
           perm == LocationPermission.deniedForever) {
         _noFix(
-          'Location permission is off. Allow it to see active areas near you.',
+          t(
+            'Location permission is off. Allow it to see active areas near you.',
+          ),
         );
         return;
       }
@@ -505,7 +510,7 @@ class _MapScreenState extends State<MapScreen> {
     } catch (_) {
       // ignore — map stays on its current view
       _noFix(
-        'Could not find your location yet. Move near a window or outdoors.',
+        t('Could not find your location yet. Move near a window or outdoors.'),
       );
     }
   }
@@ -650,8 +655,10 @@ class _MapScreenState extends State<MapScreen> {
     } else if (_queue.pending.value.isNotEmpty) {
       _toast(
         _queue.offline.value
-            ? 'Still no signal. It keeps trying every 15 seconds.'
-            : 'The server is not taking it yet. It keeps trying every 15 seconds.',
+            ? t('Still no signal. It keeps trying every 15 seconds.')
+            : t(
+                'The server is not taking it yet. It keeps trying every 15 seconds.',
+              ),
       );
     }
   }
@@ -660,7 +667,7 @@ class _MapScreenState extends State<MapScreen> {
     try {
       await launchUrl(Uri(scheme: 'tel', path: '911'));
     } catch (_) {
-      _toast('Could not open the dialler. Dial 911 directly.');
+      _toast(t('Could not open the dialler. Dial 911 directly.'));
     }
   }
 
@@ -833,7 +840,7 @@ class _MapScreenState extends State<MapScreen> {
             height: MapMarker.target,
             child: MapMarker(
               kind: MapMarkerKind.shelter,
-              label: (s['name'] as String?) ?? 'Evacuation site',
+              label: (s['name'] as String?) ?? t('Evacuation site'),
               // A shelter that is not open still marks the place, dimmed.
               dimmed: s['is_active'] == false,
               badge: s['outside_pasay'] == true
@@ -885,7 +892,7 @@ class _MapScreenState extends State<MapScreen> {
             // live one pulses (04 · Map marker, pass 3).
             child: MapMarker(
               kind: MapMarkerKind.incident,
-              label: (a['designation'] as String?) ?? 'Incident area',
+              label: (a['designation'] as String?) ?? t('Incident area'),
               live: _isLive(a['status'] as String?),
               onTap: () => _openArea(a),
             ),
@@ -929,10 +936,10 @@ class _MapScreenState extends State<MapScreen> {
   Widget _localityPill() {
     final offline = _isOffline;
     final line = !offline
-        ? 'WATCHING PASAY'
+        ? t('WATCHING PASAY')
         : _queue.pending.value.isNotEmpty
-        ? 'NO SIGNAL — QUEUED'
-        : 'NO SIGNAL';
+        ? t('NO SIGNAL — QUEUED')
+        : t('NO SIGNAL');
     return _Glass(
       radius: AppRadius.card,
       height: 48,
@@ -958,7 +965,7 @@ class _MapScreenState extends State<MapScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'RESPONDERS',
+                  t('RESPONDERS'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.type.cardTitleSm,
@@ -993,7 +1000,7 @@ class _MapScreenState extends State<MapScreen> {
         itemBuilder: (_, i) {
           final layer = _layers[i];
           return MapLayerChip(
-            label: layer.label,
+            label: t(layer.label),
             tone: layer.colour(context.pal),
             on: _on.contains(layer.key),
             onTap: () => _toggle(layer),
@@ -1007,13 +1014,13 @@ class _MapScreenState extends State<MapScreen> {
   /// it brings the map back to you — the frame has no separate recentre button.
   Widget _locationCard() {
     final title = _myLoc == null
-        ? 'LOCATING YOU'
-        : (_street ?? "You're here").toUpperCase();
+        ? t('LOCATING YOU')
+        : (_street ?? t("You're here")).toUpperCase();
     final caption = _myLoc == null
-        ? 'Showing Pasay City until a fix arrives'
+        ? t('Showing Pasay City until a fix arrives')
         : _accuracy == null
-        ? 'Location on'
-        : 'GPS accurate to ${_accuracy!.round()} m';
+        ? t('Location on')
+        : t('GPS accurate to {m} m', {'m': _accuracy!.round()});
     return Semantics(
       button: true,
       label: '$title. $caption. Tap to center the map on you.',
@@ -1099,14 +1106,18 @@ class _MapScreenState extends State<MapScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '$n REPORT${n == 1 ? '' : 'S'} WAITING',
+                      n == 1
+                          ? t('1 REPORT WAITING')
+                          : t('{n} REPORTS WAITING', {'n': n}),
                       style: context.type.cardTitle,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _queue.offline.value
-                          ? 'Retrying every 15 seconds'
-                          : 'Waiting on the server — retrying every 15 seconds',
+                          ? t('Retrying every 15 seconds')
+                          : t(
+                              'Waiting on the server — retrying every 15 seconds',
+                            ),
                       style: context.type.caption,
                     ),
                   ],
@@ -1118,8 +1129,10 @@ class _MapScreenState extends State<MapScreen> {
           const Divider(),
           const SizedBox(height: 14),
           Text(
-            'Your report and photo are saved on this phone. They send '
-            'themselves the second you get signal.',
+            t(
+              'Your report and photo are saved on this phone. They send '
+              'themselves the second you get signal.',
+            ),
             style: context.type.detail.copyWith(color: context.pal.label),
           ),
           const SizedBox(height: 14),
@@ -1127,7 +1140,7 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               Expanded(
                 child: _QueueAction(
-                  label: 'Try now',
+                  label: t('Try now'),
                   busy: _retrying,
                   onTap: _retrying ? null : _retryNow,
                 ),
@@ -1135,7 +1148,7 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: _QueueAction(
-                  label: 'Call 911',
+                  label: t('Call 911'),
                   icon: AppIcons.call,
                   onTap: _call911,
                 ),
@@ -1194,7 +1207,9 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               Expanded(
                 child: Eyebrow(
-                  offline ? 'Saved on this phone' : 'Active areas near you',
+                  offline
+                      ? t('Saved on this phone')
+                      : t('Active areas near you'),
                   color: context.pal.accent,
                 ),
               ),
@@ -1203,7 +1218,7 @@ class _MapScreenState extends State<MapScreen> {
               // what the server has, this second.
               if (!offline && _live.live.value) ...[
                 Semantics(
-                  label: 'Live',
+                  label: t('Live'),
                   child: LiveDot(size: 6, color: context.pal.ok),
                 ),
                 const SizedBox(width: 6),
@@ -1211,7 +1226,7 @@ class _MapScreenState extends State<MapScreen> {
               // The sheet only ever lists what is within 1.5 km: with no
               // fix it lists nothing, rather than the city under this name.
               Eyebrow(
-                offline ? 'Offline' : 'Within 1.5 km',
+                offline ? 'Offline' : t('Within 1.5 km'),
                 color: context.pal.muted,
               ),
             ],
@@ -1238,14 +1253,16 @@ class _MapScreenState extends State<MapScreen> {
   List<Widget> _nearbyRows() {
     if (_loading || (_myLoc == null && _locating)) {
       return [
-        _sheetNote('Checking what is happening around you…'),
+        _sheetNote(t('Checking what is happening around you…')),
         const _CheckingRow(),
       ];
     }
     if (!_areasLoaded) {
       return [
         _sheetNote(
-          'Active areas could not be loaded. The map tries again every 15 seconds.',
+          t(
+            'Active areas could not be loaded. The map tries again every 15 seconds.',
+          ),
         ),
       ];
     }
@@ -1253,7 +1270,9 @@ class _MapScreenState extends State<MapScreen> {
       return [
         _sheetNote(
           _locationProblem ??
-              'Could not find your location yet. Move near a window or outdoors.',
+              t(
+                'Could not find your location yet. Move near a window or outdoors.',
+              ),
         ),
       ];
     }
@@ -1261,7 +1280,9 @@ class _MapScreenState extends State<MapScreen> {
     final shelter = _nearestOpenShelter();
     return [
       if (near.isEmpty)
-        _sheetNote('Nothing active within 1.5 km. That is the good outcome.'),
+        _sheetNote(
+          t('Nothing active within 1.5 km. That is the good outcome.'),
+        ),
       for (final e in near) _areaRow(e.area, e.metres),
       if (shelter != null) _shelterRow(shelter),
     ];
@@ -1282,10 +1303,11 @@ class _MapScreenState extends State<MapScreen> {
     return _SheetRow(
       tint: context.pal.accent,
       asset: Art.incident,
-      title: (a['designation'] as String?) ?? 'Incident area',
-      subtitle: street ?? '${_formatDistance(metres)} away',
+      title: (a['designation'] as String?) ?? t('Incident area'),
+      subtitle:
+          street ?? t('{distance} away', {'distance': _formatDistance(metres)}),
       signal: _AreaSignal(
-        label: reported ? 'Reported' : 'Live',
+        label: reported ? t('Reported') : t('Live'),
         color: reported ? context.pal.warn : context.pal.accentInk,
         reports: reports,
         band: a['confidence_band'] as String?,
@@ -1296,16 +1318,16 @@ class _MapScreenState extends State<MapScreen> {
 
   Widget _shelterRow(Map<String, dynamic> s) {
     final capacity = (s['capacity'] as num?)?.toInt();
-    final name = (s['name'] as String?) ?? 'Evacuation site';
+    final name = (s['name'] as String?) ?? t('Evacuation site');
     return _SheetRow(
       tint: context.pal.ok,
       asset: Art.evac,
-      title: 'Evacuation site open',
+      title: t('Evacuation site open'),
       subtitle: s['outside_pasay'] == true ? '$name · ${s['city']}' : name,
       signal: capacity == null
           ? null
           : Text(
-              'SPACE FOR $capacity',
+              t('SPACE FOR {n}', {'n': capacity}),
               style: context.type.tag.copyWith(color: context.pal.muted),
             ),
       onTap: () => _showEvacSheet(s),
@@ -1320,34 +1342,37 @@ class _MapScreenState extends State<MapScreen> {
         _SheetRow(
           tint: context.pal.live,
           asset: Art.incident,
-          title: '${_agencyWord(r.agencies)} report',
-          subtitle:
-              'Queued at ${TimeOfDay.fromDateTime(r.queuedAt).format(context)}',
+          title: t('{kind} report', {'kind': _agencyWord(r.agencies)}),
+          subtitle: t('Queued at {time}', {
+            'time': TimeOfDay.fromDateTime(r.queuedAt).format(context),
+          }),
           edge: context.pal.accent.withValues(alpha: 0.45),
           signal: Text(
-            'QUEUED',
+            t('QUEUED'),
             style: context.type.tag.copyWith(color: context.pal.accent),
           ),
         ),
       _SheetRow(
         tint: context.pal.accent,
         icon: AppIcons.layers,
-        title: saved == null ? 'Map layers not saved yet' : 'Map layers cached',
+        title: saved == null
+            ? t('Map layers not saved yet')
+            : t('Map layers cached'),
         subtitle: saved == null
-            ? 'They save the next time the map has signal'
-            : 'Downloaded ${_ago(saved)}',
+            ? t('They save the next time the map has signal')
+            : t('Downloaded {ago}', {'ago': _ago(saved)}),
         signal: saved == null
             ? null
             : Text(
-                'READY',
+                t('READY'),
                 style: context.type.tag.copyWith(color: context.pal.ok),
               ),
       ),
       _SheetRow(
         tint: context.pal.ok,
         icon: AppIcons.call,
-        title: 'All ${kHotlines.length} hotlines',
-        subtitle: 'Dial without data',
+        title: t('All {n} hotlines', {'n': kHotlines.length}),
+        subtitle: t('Dial without data'),
         onTap: () => AppNavBar.switchTo(context, AppTab.hotlines),
       ),
     ];
@@ -1355,22 +1380,14 @@ class _MapScreenState extends State<MapScreen> {
 
   static String _agencyWord(List<String> agencies) =>
       switch (agencies.isEmpty ? '' : agencies.first) {
-        'fire_volunteer' || 'bfp' => 'Fire',
-        'medical' => 'Medical',
-        'police' => 'Police',
-        'barangay' => 'Barangay',
-        _ => 'Emergency',
+        'fire_volunteer' || 'bfp' => t('Fire'),
+        'medical' => t('Medical'),
+        'police' => t('Police'),
+        'barangay' => t('Barangay'),
+        _ => t('Emergency'),
       };
 
-  static String _ago(DateTime t) {
-    final d = DateTime.now().difference(t);
-    if (d.inMinutes < 1) return 'just now';
-    if (d.inMinutes < 60) return '${d.inMinutes} min ago';
-    if (d.inHours < 24) {
-      return '${d.inHours} ${d.inHours == 1 ? 'hour' : 'hours'} ago';
-    }
-    return '${d.inDays} ${d.inDays == 1 ? 'day' : 'days'} ago';
-  }
+  static String _ago(DateTime at) => tAgo(at);
 
   // ----------------------------------------------------------- sheets ---
   /// An incident opens its own screen ("06 Area detail"); the reference
@@ -1398,19 +1415,23 @@ class _MapScreenState extends State<MapScreen> {
     _detailSheet(
       accent: context.pal.ok,
       asset: Art.evac,
-      tag: s['outside_pasay'] == true ? 'SHELTER · OUTSIDE PASAY' : 'SHELTER',
-      title: (s['name'] as String?) ?? 'Evacuation site',
+      tag: s['outside_pasay'] == true
+          ? t('SHELTER · OUTSIDE PASAY')
+          : t('SHELTER'),
+      title: (s['name'] as String?) ?? t('Evacuation site'),
       rows: [
         _DetailRow(
-          'Open',
-          s['is_active'] == false ? 'Not at the moment' : 'Yes',
+          t('Open'),
+          s['is_active'] == false ? t('Not at the moment') : t('Yes'),
         ),
-        if (s['city'] != null) _DetailRow('City', s['city'] as String),
-        if (s['address'] != null) _DetailRow('Address', s['address'] as String),
-        if (capacity != null) _DetailRow('Capacity', '$capacity people'),
-        if (metres != null) _DetailRow('Distance', _formatDistance(metres)),
+        if (s['city'] != null) _DetailRow(t('City'), s['city'] as String),
+        if (s['address'] != null)
+          _DetailRow(t('Address'), s['address'] as String),
+        if (capacity != null)
+          _DetailRow(t('Capacity'), t('{n} people', {'n': capacity})),
+        if (metres != null) _DetailRow(t('Distance'), _formatDistance(metres)),
         if (s['contact_info'] != null)
-          _DetailRow('Contact', s['contact_info'] as String),
+          _DetailRow(t('Contact'), s['contact_info'] as String),
       ],
     );
   }
@@ -1437,48 +1458,48 @@ class _MapScreenState extends State<MapScreen> {
       case 'risk':
         title = (r['name'] as String?) ?? 'Brgy. ${r['barangay']}';
         rows
-          ..add(_DetailRow('Risk level', _pretty(r['risk_level'])))
-          ..add(_DetailRow('Barangay', '${r['barangay']}'));
+          ..add(_DetailRow(t('Risk level'), _pretty(r['risk_level'])))
+          ..add(_DetailRow(t('Barangay'), '${r['barangay']}'));
         if (r['description'] != null) {
-          rows.add(_DetailRow('Notes', r['description'] as String));
+          rows.add(_DetailRow(t('Notes'), r['description'] as String));
         }
       case 'hydrants':
-        title = (r['code'] as String?) ?? 'Fire hydrant';
-        rows.add(_DetailRow('Status', _pretty(r['effective_status'])));
+        title = (r['code'] as String?) ?? t('Fire hydrant');
+        rows.add(_DetailRow(t('Status'), _pretty(r['effective_status'])));
         if (r['address'] != null) {
-          rows.add(_DetailRow('Address', r['address'] as String));
+          rows.add(_DetailRow(t('Address'), r['address'] as String));
         }
       case 'water':
-        title = (r['name'] as String?) ?? 'Body of water';
+        title = (r['name'] as String?) ?? t('Body of water');
         if (r['water_type'] != null) {
-          rows.add(_DetailRow('Type', r['water_type'] as String));
+          rows.add(_DetailRow(t('Type'), r['water_type'] as String));
         }
         rows.add(
           _DetailRow(
-            'Access',
-            r['is_accessible'] == true ? 'Accessible' : 'Restricted',
+            t('Access'),
+            r['is_accessible'] == true ? t('Accessible') : t('Restricted'),
           ),
         );
       default:
         title =
             (r['name'] as String?) ??
             (r['code'] as String?) ??
-            'Underground cistern';
-        rows.add(_DetailRow('Status', _pretty(r['status'])));
+            t('Underground cistern');
+        rows.add(_DetailRow(t('Status'), _pretty(r['status'])));
         final litres = (r['capacity_liters'] as num?)?.toInt();
-        if (litres != null) rows.add(_DetailRow('Capacity', '$litres L'));
+        if (litres != null) rows.add(_DetailRow(t('Capacity'), '$litres L'));
         if (r['address'] != null) {
-          rows.add(_DetailRow('Address', r['address'] as String));
+          rows.add(_DetailRow(t('Address'), r['address'] as String));
         }
     }
     if (metres != null) {
-      rows.add(_DetailRow('Distance', _formatDistance(metres)));
+      rows.add(_DetailRow(t('Distance'), _formatDistance(metres)));
     }
     _detailSheet(
       accent: layer.colour(context.pal),
       icon: layer.icon,
       asset: layer.asset,
-      tag: layer.tag,
+      tag: t(layer.tag),
       title: title,
       rows: rows,
     );
@@ -1825,9 +1846,11 @@ class _AreaSignal extends StatelessWidget {
       _ => 0,
     };
     return Semantics(
-      label:
-          '$label, $reports ${reports == 1 ? 'report' : 'reports'}, '
-          '${band ?? 'unknown'} confidence',
+      label: t('{area}, {n} reports, {band} confidence', {
+        'area': label,
+        'n': reports,
+        'band': t(band ?? 'unknown'),
+      }),
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1839,7 +1862,7 @@ class _AreaSignal extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '$reports ${reports == 1 ? 'REPORT' : 'REPORTS'}',
+            reports == 1 ? t('1 REPORT') : t('{n} REPORTS', {'n': reports}),
             style: context.type.tag.copyWith(color: context.pal.muted),
           ),
           const SizedBox(height: 6),
@@ -1910,10 +1933,17 @@ class _QueueAction extends StatelessWidget {
                       Icon(icon, size: 14, color: context.pal.textSoft),
                       const SizedBox(width: 8),
                     ],
-                    Text(
-                      label.toUpperCase(),
-                      style: context.type.eyebrow.copyWith(
-                        color: context.pal.textSoft,
+                    // Scales down rather than running past the button
+                    // when the label is long (Tagalog, large text).
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          label.toUpperCase(),
+                          style: context.type.eyebrow.copyWith(
+                            color: context.pal.textSoft,
+                          ),
+                        ),
                       ),
                     ),
                   ],
