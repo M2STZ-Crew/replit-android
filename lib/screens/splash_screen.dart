@@ -83,7 +83,14 @@ class _SplashScreenState extends State<SplashScreen>
                 _markInGlow(),
                 // 125px from the mark in the frame, less the glow's 39px margin.
                 const SizedBox(height: 86),
-                Image.asset(Art.wordmarkType, width: 118, height: 21),
+                // The type is drawn white for the dark ground; tinting it with
+                // the ground's ink keeps it readable on the light one too.
+                Image.asset(
+                  Art.wordmarkType,
+                  width: 118,
+                  height: 21,
+                  color: context.pal.onBackground,
+                ),
                 const SizedBox(height: 52),
                 _loaderBar(),
                 const SizedBox(height: 18),
