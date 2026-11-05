@@ -66,6 +66,7 @@ dependencies:
   # Spoken turn-by-turn directions (PRD v12 §4.9.3): the phone's own
   # text-to-speech, offline.
   flutter_tts: ^4.2.5
+  image: ^4.12.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

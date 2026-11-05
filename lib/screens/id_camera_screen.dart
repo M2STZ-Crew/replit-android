@@ -6,6 +6,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../verification/guide_crop.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
 import '../widgets/map_glass.dart';
@@ -101,7 +102,8 @@ enum IdShot {
 
 /// The National ID camera: "20 National ID · ID photo" and "20B · Selfie".
 ///
-/// Pops with the JPEG, or with nothing when closed. It is an in-app camera so
+/// Pops with the JPEG cut to the guide (see [GuideCrop]) — what the resident
+/// framed, not the whole sensor frame — or with nothing when closed. It is an in-app camera so
 /// that the photo is live: there is no gallery here to reach for, which a
 /// phone's own camera app offers one tap away.
 ///
@@ -140,6 +142,11 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
   bool _ready = false;
   bool _capturing = false;
   String? _error;
+
+  /// The viewfinder and the guide on it, as last laid out: what the shutter
+  /// measures the photo against.
+  Size? _viewfinder;
+  Rect? _guide;
 
   @override
   void initState() {
@@ -228,12 +235,25 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     setState(() => _capturing = true);
     try {
       final shot = await c.takePicture();
-      final bytes = await shot.readAsBytes();
+      var bytes = await shot.readAsBytes();
       try {
         // The plugin leaves the file in the cache, and this one is an ID.
         await File(shot.path).delete();
       } on FileSystemException catch (_) {
         // Already gone.
+      }
+      // Keep what was inside the guide. The preview is laid out portrait,
+      // as [_previewLayer] draws it.
+      final preview = c.value.previewSize;
+      final viewfinder = _viewfinder;
+      final guide = _guide;
+      if (preview != null && viewfinder != null && guide != null) {
+        bytes = await GuideCrop.cropToGuide(
+          bytes,
+          screen: viewfinder,
+          guide: guide,
+          preview: Size(preview.height, preview.width),
+        );
       }
       if (mounted) Navigator.of(context).pop<Uint8List>(bytes);
     } catch (_) {
@@ -260,6 +280,8 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     final pal = context.pal;
     final shot = widget.shot;
     final guide = shot.guideIn(box.biggest, MediaQuery.paddingOf(context));
+    _viewfinder = box.biggest;
+    _guide = guide.outerRect;
     final live = _error == null;
     return Stack(
       fit: StackFit.expand,

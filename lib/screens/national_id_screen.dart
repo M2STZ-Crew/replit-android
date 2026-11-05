@@ -160,6 +160,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               ),
               const SizedBox(height: 26),
               _uploadSlot(
+                shot: IdShot.card,
                 label: 'National ID',
                 hint: 'Tap to photograph the side with your picture',
                 icon: AppIcons.badge,
@@ -168,6 +169,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               ),
               const SizedBox(height: 12),
               _uploadSlot(
+                shot: IdShot.qr,
                 label: 'QR code',
                 hint: 'On the back of the card. Tap to photograph it.',
                 icon: AppIcons.photoCamera,
@@ -176,6 +178,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
               ),
               const SizedBox(height: 12),
               _uploadSlot(
+                shot: IdShot.selfie,
                 label: 'Selfie',
                 hint: 'Tap to take a selfie',
                 icon: AppIcons.face,
@@ -241,6 +244,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   }
 
   Widget _uploadSlot({
+    required IdShot shot,
     required String label,
     required String hint,
     required IconData icon,
@@ -251,7 +255,9 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 150,
+        // Taken, the photo shows in its frame's own shape, which needs a
+        // little more height than the empty slot's prompt.
+        height: filled ? _filledHeight : 150,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: context.pal.glassDim,
@@ -264,8 +270,7 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
             ? Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Smaller than the photo: the QR one is a 4K frame.
-                  Image.memory(bytes, fit: BoxFit.cover, cacheWidth: 1000),
+                  Center(child: _framed(shot, bytes)),
                   Positioned(
                     top: 10,
                     right: 10,
@@ -313,6 +318,38 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
                 ],
               ),
       ),
+    );
+  }
+
+  static const double _filledHeight = 196;
+
+  /// The photo in the shape of the guide it was taken in — the card, the
+  /// square, the oval — as large as the slot allows. The camera has already
+  /// cut it to that guide, so nothing more is cropped away here and the tile
+  /// shows what the resident lined up in the box.
+  Widget _framed(IdShot shot, Uint8List bytes) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final ratio = shot.guide.width / shot.guide.height;
+        var height = _filledHeight - 28;
+        var width = height * ratio;
+        final room = box.maxWidth - 28;
+        if (width > room) {
+          width = room;
+          height = width / ratio;
+        }
+        final radius = shot.radius * (width / shot.guide.width);
+        return ClipRRect(
+          key: ValueKey('framed-${shot.name}'),
+          borderRadius: BorderRadius.circular(radius),
+          child: SizedBox(
+            width: width,
+            height: height,
+            // Smaller than the photo: the QR one is a 4K frame.
+            child: Image.memory(bytes, fit: BoxFit.cover, cacheWidth: 1000),
+          ),
+        );
+      },
     );
   }
 
