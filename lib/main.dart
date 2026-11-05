@@ -13,6 +13,7 @@ import 'widgets/responsive_frame.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
 import 'privacy/contact_mask.dart';
+import 'security/developer_mode.dart';
 import 'api/session.dart';
 import 'models/active_report.dart';
 import 'screens/phone_verify_screen.dart';
@@ -125,8 +126,12 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
         navigatorKey: PushService.navigatorKey,
         // On a tablet the app keeps the column the design was drawn in
         // rather than stretching it across the room.
-        builder: (context, child) =>
-            ResponsiveFrame(child: child ?? const SizedBox.shrink()),
+        //
+        // Over all of it, a release build's block while Android's Developer
+        // options are on (lib/security/developer_mode.dart).
+        builder: (context, child) => DeveloperModeGate(
+          child: ResponsiveFrame(child: child ?? const SizedBox.shrink()),
+        ),
         home: const SplashScreen(),
       ),
     );
