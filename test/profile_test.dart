@@ -110,7 +110,7 @@ void main() {
       expect(AppVersion.label, '1.11.0 (57)');
 
       await pump(tester, ProfileScreen(api: api()));
-      final footer = find.text('REPLIT · BARANGAY 76 · V1.11.0 (57)');
+      final footer = find.text('REPLIT · PASAY CITY · V1.11.0 (57)');
       await tester.scrollUntilVisible(
         footer,
         200,

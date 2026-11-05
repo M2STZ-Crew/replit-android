@@ -513,7 +513,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
 
   String _next(String status) => switch (status) {
     'reported' =>
-      'Barangay 76 has your location and photo. A Fire Volunteer coordinator '
+      'Responders have your location and photo. A Fire Volunteer coordinator '
           'confirms it next. Stay somewhere safe — this screen updates as the '
           'incident moves.',
     'verified' =>

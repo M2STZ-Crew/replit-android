@@ -185,8 +185,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text('ABOUT REPLIT', style: context.type.title),
               SizedBox(height: 14),
               Text(
-                'RepLiT is Barangay 76\'s emergency reporting network for '
-                'Pasay City. Report an incident, see what is happening near '
+                'RepLiT is the emergency reporting network for Pasay City. '
+                'Report an incident, see what is happening near '
                 'you and where the shelters are, learn the basics, and reach '
                 'responders fast.',
                 style: context.type.body,
@@ -304,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 _Link(
                   title: 'About RepLiT',
-                  line: 'Barangay 76, Pasay City',
+                  line: 'Emergency reporting for Pasay City',
                   onTap: _about,
                 ),
                 const SizedBox(height: 24),
@@ -319,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     // The build as App Distribution lists it: "1.11.0 (57)".
                     [
-                      'REPLIT · BARANGAY 76',
+                      'REPLIT · PASAY CITY',
                       if (AppVersion.label.isNotEmpty) 'V${AppVersion.label}',
                     ].join(' · '),
                     style: context.type.tag.copyWith(color: context.pal.faint),

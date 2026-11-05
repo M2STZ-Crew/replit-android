@@ -345,7 +345,7 @@ void main() {
       testWidgets('asks, with the distance, at ${scale}x', (tester) async {
         await open(tester, scale: scale);
         expect(tester.takeException(), isNull);
-        expect(find.text('BARANGAY 76 ALERT'), findsOneWidget);
+        expect(find.text('NEARBY FIRE ALERT'), findsOneWidget);
         expect(find.text('DO YOU SEE IT TOO?'), findsOneWidget);
         expect(find.textContaining('reported a fire'), findsOneWidget);
         expect(find.textContaining('2 minutes ago'), findsOneWidget);

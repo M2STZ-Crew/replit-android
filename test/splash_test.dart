@@ -32,8 +32,8 @@ void main() {
       final parts = <String, Finder>{
         'the mark': art(Art.mark),
         'the wordmark': art(Art.wordmarkType),
-        'the status line': find.text('CONNECTING TO BARANGAY 76'),
-        'the locality': find.text('Barangay 76, Pasay City'),
+        'the status line': find.text('CONNECTING TO RESPONDERS'),
+        'the locality': find.text('Pasay City'),
       };
       for (final MapEntry(key: what, value: finder) in parts.entries) {
         expect(finder, findsOneWidget, reason: what);

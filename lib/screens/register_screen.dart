@@ -251,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Expanded(
               child: Text(
                 'I agree that my location and reports may be shared with '
-                'Barangay 76 and responding agencies during an emergency.',
+                'responders and their agencies during an emergency.',
                 style: context.type.caption.copyWith(color: context.pal.label),
               ),
             ),

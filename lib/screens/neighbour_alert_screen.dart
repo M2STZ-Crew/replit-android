@@ -334,7 +334,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
           const LiveDot(size: 7),
           const SizedBox(width: 8),
           Text(
-            'BARANGAY 76 ALERT',
+            'NEARBY FIRE ALERT',
             style: context.type.tag.copyWith(color: context.pal.live),
           ),
         ],

@@ -21,7 +21,7 @@ import '../widgets/app_icons.dart';
 ///
 ///   1. received — the photo and fix are stored (the 201 itself);
 ///   2. matched — clustered into an area, joined or first;
-///   3. notified — Barangay 76 has it, and neighbours within 150 m were asked;
+///   3. notified — responders have it, and neighbours within 150 m were asked;
 ///   4. accepted — a coordinator or agency accepted it and responders are on
 ///      the way, then on scene (v11: one Accept sends everyone);
 ///   5. fire out — and then it says so, plainly, and the report is done.
@@ -413,7 +413,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
             const SizedBox(height: 8),
             const _StepRow(
               state: _Step.done,
-              title: 'Barangay 76 notified',
+              title: 'Responders notified',
               line: 'Neighbours within 150 m were alerted too',
             ),
             const SizedBox(height: 8),

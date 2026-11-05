@@ -958,7 +958,7 @@ class _MapScreenState extends State<MapScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'BARANGAY 76',
+                  'RESPONDERS',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: context.type.cardTitleSm,

@@ -179,8 +179,8 @@ class _HomeScreenState extends State<HomeScreen>
                   SizedBox(
                     width: 290,
                     child: Text(
-                      'Hold the dial, take one photo, and your location goes '
-                      'to Barangay 76 with it.',
+                      'Hold the SOS button, take one photo, and responders get '
+                      'your exact location with it.',
                       textAlign: TextAlign.center,
                       style: context.type.body,
                     ),

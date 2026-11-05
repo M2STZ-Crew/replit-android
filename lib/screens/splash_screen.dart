@@ -95,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
                 _loaderBar(),
                 const SizedBox(height: 18),
                 Text(
-                  'CONNECTING TO BARANGAY 76',
+                  'CONNECTING TO RESPONDERS',
                   textAlign: TextAlign.center,
                   style: context.type.eyebrow.copyWith(
                     color: context.pal.muted,
@@ -103,7 +103,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 const Spacer(flex: 2),
                 Text(
-                  'Barangay 76, Pasay City',
+                  'Pasay City',
                   textAlign: TextAlign.center,
                   style: context.type.labelSm,
                 ),
