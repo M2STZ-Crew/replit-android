@@ -682,7 +682,7 @@ const Map<String, String> kTagalog = {
   'Photo of the scene. Tap to take it again.':
       'Litrato ng lugar. I-tap para kunan ulit.',
   'Retake': 'Kunan ulit',
-  'CONNECTING TO RESPONDERS': 'KUMOKONEKTA SA MGA RESPONDER',
+  'Connecting to RepLiT': 'Kumokonekta sa RepLiT',
   'EMERGENCY RESPONSE NETWORK': 'NETWORK PARA SA EMERGENCY',
   'VERIFY YOUR ACCOUNT': 'I-VERIFY ANG ACCOUNT MO',
   'Verification never blocks a report. It tells responders how much weight to give what you send.':

@@ -11,7 +11,8 @@ import 'package:replit/widgets/design.dart';
 
 /// The logos are drawn white for the dark ground. On the light ground the
 /// splash showed that white wordmark on a pale screen — the "dark mode logo in
-/// light mode" of the 5 November issue list. Each logo now follows the ground.
+/// light mode" of the 5 November issue list. Each logo now follows the ground:
+/// the splash with the Figma LOGO section's wordmark made for it.
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -24,7 +25,7 @@ void main() {
   for (final pal in const [AppPalette.dark, AppPalette.light]) {
     final ground = pal.isLight ? 'light' : 'dark';
 
-    testWidgets('the splash wordmark is drawn in the $ground ground\'s ink', (
+    testWidgets('the splash draws the wordmark made for the $ground ground', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -32,11 +33,11 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 50));
 
-      final wordmark = imageOf(tester, Art.wordmarkType);
-      expect(wordmark.color, pal.onBackground);
-      // srcIn keeps the letters' shape (and the flame cut out of the R) and
-      // replaces only their colour.
-      expect(wordmark.colorBlendMode ?? BlendMode.srcIn, BlendMode.srcIn);
+      final asset = pal.isLight ? Art.wordmarkOnLight : Art.wordmarkOnDark;
+      final wordmark = imageOf(tester, asset);
+      // Drawn as exported, not tinted: the Figma file has both versions.
+      expect(wordmark.color, isNull);
+      expect(File(asset).existsSync(), isTrue, reason: '$asset is missing');
 
       await tester.pump(const Duration(seconds: 2));
       await tester.pump();
