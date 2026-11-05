@@ -6,6 +6,31 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.25 — 5 November 2026 — Developer options: a warning, like GCash
+
+With backend v1.12.20; nothing new needed from it. No new setting, permission
+or dependency.
+
+### Changes
+
+**Logic**
+- **Developer options open to a warning, not a block screen.** With Developer
+  options on, a release build on Android opens with the app dimmed under a
+  warning, the way GCash does it: what was found, a reference code (Ref 02 for
+  Developer options, Ref 03 when USB debugging is on too), **Exit**, which
+  closes RepLiT and takes it out of Recents, and "In an emergency, call 911".
+  The app can't be used until they are off. Switching them off in Settings
+  and coming back clears the warning in place.
+- **USB debugging on its own doesn't count.** It lives inside Developer
+  options, and the Android emulator reports it on with Developer options off;
+  counting it would leave nothing to switch off.
+
+Checked with a release build on an Android 15 emulator: off opens to sign-in;
+on shows the warning (Ref 03); Exit closes the app; switching them off while
+away clears the warning on the way back, and on again brings it back.
+
+---
+
 ## v1.12.24 — 5 November 2026 — The 5 November issue list, on the phone
 
 With backend v1.12.20, which must be deployed first (its two migrations and
