@@ -4,9 +4,7 @@ package com.m2stz.replit
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.content.ActivityNotFoundException
 import android.content.ContentResolver
-import android.content.Intent
 import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
@@ -30,13 +28,21 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        // lib/security/developer_mode.dart: whether Developer options are on,
-        // and the way to them in Settings.
+        // lib/security/developer_mode.dart: whether Developer options and USB
+        // debugging are on, and Exit on the warning.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "replit/device")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "developerOptions" -> result.success(developerOptionsOn())
-                    "openDeveloperOptions" -> result.success(openDeveloperOptions())
+                    "deviceSettings" -> result.success(
+                        mapOf(
+                            "developerOptions" to developerOptionsOn(),
+                            "usbDebugging" to usbDebuggingOn()
+                        )
+                    )
+                    "exit" -> {
+                        result.success(null)
+                        finishAndRemoveTask()
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -136,22 +142,13 @@ class MainActivity : FlutterActivity() {
             0
         ) != 0
 
-    /** Developer options in Settings; Settings itself where a phone has no
-     *  direct way in. False when neither opens. */
-    private fun openDeveloperOptions(): Boolean {
-        for (action in listOf(
-            Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS,
-            Settings.ACTION_SETTINGS
-        )) {
-            try {
-                startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                return true
-            } catch (e: ActivityNotFoundException) {
-                // Try the next way in.
-            }
-        }
-        return false
-    }
+    /** "USB debugging", inside Developer options. */
+    private fun usbDebuggingOn(): Boolean =
+        Settings.Global.getInt(
+            contentResolver,
+            Settings.Global.ADB_ENABLED,
+            0
+        ) != 0
 
     /**
      * RepLiT Android Notification Channels

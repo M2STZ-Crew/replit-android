@@ -714,15 +714,14 @@ const Map<String, String> kTagalog = {
       'Magpapadala kami ng ligtas na link sa email mo. Kapag binuksan mo ito sa phone na ito, makukumpirma ang email.',
   'Send the link': 'Ipadala ang link',
   'Send it again': 'Ipadala ulit',
-  'TURN OFF DEVELOPER OPTIONS': 'I-OFF ANG DEVELOPER OPTIONS',
-  'RepLiT can\'t run while Android\'s Developer options are on. They let another app change where your phone says it is, and every report needs your real location.':
-      'Hindi gagana ang RepLiT habang naka-on ang Developer options ng Android. Hinahayaan nitong baguhin ng ibang app ang lokasyon ng phone mo, at kailangan ng bawat report ang totoong lokasyon mo.',
-  'Open Settings, switch Developer options off, then come back here.':
-      'Buksan ang Settings, i-off ang Developer options, saka bumalik dito.',
-  'They are still on. Switch off the toggle at the top of Developer options.':
-      'Naka-on pa rin. I-off ang switch sa itaas ng Developer options.',
-  'Open Developer options': 'Buksan ang Developer options',
-  'I\'ve turned them off': 'Na-off ko na',
+  'Developer options are on': 'Naka-on ang Developer options',
+  'Our system found settings on this phone that are not secure: Developer options are on.':
+      'May nakita ang system namin na settings sa phone na ito na hindi ligtas: naka-on ang Developer options.',
+  'Our system found settings on this phone that are not secure: Developer options and USB debugging are on.':
+      'May nakita ang system namin na settings sa phone na ito na hindi ligtas: naka-on ang Developer options at USB debugging.',
+  'They let other apps fake your location, and every report needs your real one. Turn them off in your phone\'s Settings, then open RepLiT again.':
+      'Dahil dito, puwedeng gawing peke ng ibang app ang lokasyon mo, pero kailangan ng bawat report ang totoo mong lokasyon. I-off ang mga ito sa Settings ng phone mo, saka buksan ulit ang RepLiT.',
+  'Exit': 'Lumabas',
   'In an emergency, call 911': 'Kung may emergency, tumawag sa 911',
   'Sign-in was cancelled. Updates come through Firebase App Distribution: sign in with the Google account your RepLiT invitation was sent to.':
       'Na-cancel ang sign-in. Dumarating ang mga update sa Firebase App Distribution: mag-sign in gamit ang Google account kung saan ipinadala ang imbitasyon mo sa RepLiT.',
