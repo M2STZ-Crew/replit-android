@@ -59,4 +59,36 @@ void main() {
       });
     }
   }
+
+  // The follow-up to 1.12.26: the mark a fifth smaller (80×112 on the
+  // design's 402-wide phone), and following the screen from there.
+  for (final (screen, mark) in const [
+    (Size(402, 874), Size(80, 112)),
+    (Size(320, 640), Size(64, 89.6)),
+    (Size(360, 780), Size(71.64, 100.3)),
+    (Size(834, 1194), Size(100, 140)),
+  ]) {
+    testWidgets('the mark is ${mark.width}×${mark.height} on $screen', (
+      tester,
+    ) async {
+      tester.view.physicalSize = screen;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(theme: buildAppTheme(), home: const SplashScreen()),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      final drawn = tester.getSize(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Image && (w.image as AssetImage).assetName == Art.logoMark,
+        ),
+      );
+      expect(drawn.width, moreOrLessEquals(mark.width, epsilon: 0.1));
+      expect(drawn.height, moreOrLessEquals(mark.height, epsilon: 0.1));
+      expect(tester.takeException(), isNull);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+    });
+  }
 }

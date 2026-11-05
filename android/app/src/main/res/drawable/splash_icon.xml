@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The mark on Android 12+'s own launch screen (values-v31, values-night-v31):
+     the launcher foreground with 10% clear on every side, so it shows about a
+     fifth smaller than the full-size foreground did. Android sizes this screen
+     in dp, so it is the same size on every phone. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_foreground"
+    android:inset="10%" />

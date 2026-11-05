@@ -64,9 +64,20 @@ class _SplashScreenState extends State<SplashScreen>
     ).pushReplacement(MaterialPageRoute(builder: (_) => next));
   }
 
+  /// How big the logo is drawn on this screen: 1 on the design's 402-wide
+  /// phone, following the narrower side of the screen from there, within
+  /// 0.8 (a 320-wide phone) and 1.25 (tablets).
+  static double logoScale(Size screen) =>
+      (screen.shortestSide / 402).clamp(0.8, 1.25);
+
+  /// The flame-and-pin mark at scale 1: the Figma's 100×140, a fifth
+  /// smaller (the follow-up to the 5 November list).
+  static const Size markSize = Size(80, 112);
+
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
+    final scale = logoScale(MediaQuery.sizeOf(context));
     return Scaffold(
       backgroundColor: pal.background,
       body: SafeArea(
@@ -85,12 +96,12 @@ class _SplashScreenState extends State<SplashScreen>
                 // The frame puts the mark's centre at ~40% and the locality
                 // 64px off the bottom; 3:2 flex keeps that on any height.
                 const Spacer(flex: 3),
-                _markInGlow(),
-                const SizedBox(height: 36),
+                _markInGlow(scale),
+                SizedBox(height: 32 * scale),
                 Image.asset(
                   pal.isLight ? Art.wordmarkOnLight : Art.wordmarkOnDark,
-                  width: 128,
-                  height: 23,
+                  width: 128 * scale,
+                  height: 23 * scale,
                   semanticLabel: 'RepLiT',
                 ),
                 const SizedBox(height: 48),
@@ -128,14 +139,14 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  /// The mark at the Figma's 100×140, with its glow ("Mark glow (permitted
-  /// §2.7)") breathing behind it while the session restores. The glow spills
-  /// past the mark without pushing the wordmark down, centred a little below
-  /// the middle, on the round of the flame rather than its tip.
-  Widget _markInGlow() {
-    const width = 100.0;
-    const height = 140.0;
-    const glow = 230.0;
+  /// The mark at [markSize] times [scale], with its glow ("Mark glow
+  /// (permitted §2.7)") breathing behind it while the session restores. The
+  /// glow spills past the mark without pushing the wordmark down, centred a
+  /// little below the middle, on the round of the flame rather than its tip.
+  Widget _markInGlow(double scale) {
+    final width = markSize.width * scale;
+    final height = markSize.height * scale;
+    final glow = 184 * scale;
     return SizedBox(
       width: width,
       height: height,
@@ -147,7 +158,7 @@ class _SplashScreenState extends State<SplashScreen>
           children: [
             Positioned(
               left: (width - glow) / 2,
-              top: (height - glow) / 2 + 12,
+              top: (height - glow) / 2 + 10 * scale,
               width: glow,
               height: glow,
               child: DecoratedBox(
