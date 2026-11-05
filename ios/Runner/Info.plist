@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>RepLiT uses the camera to photograph an incident you report and to verify your National ID.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>RepLiT uses your location to show you on the map and to send it with a report or a response, so help can find you.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
