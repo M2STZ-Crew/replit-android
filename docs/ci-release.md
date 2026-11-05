@@ -21,10 +21,15 @@ what is missing.
 5. **Refuses to distribute** unless the APK is signed with the team's key *and* has the
    Render address compiled in
 6. Uploads it to Firebase App Distribution, which emails the tester group
-7. Deletes the secret files from the build machine
+7. Publishes it as a **GitHub release** (`android-v<version>-<build>`), with a
+   `latest.json` beside it: what the app's **Check for updates** reads
+8. Deletes the secret files from the build machine
 
-The APK is **not** attached to the GitHub run. The repository is public, so an
-attachment would let anyone install the app and send reports into the live system.
+**The APK is public** from v1.12.26: every build is a GitHub release, so people
+without a tester invitation can install and update RepLiT, and anyone who installs
+it can send reports into the live system. It holds no secret: the Mapbox token is a
+public `pk.` token, and the Firebase config is made to ship inside apps. Testers still
+get every build through App Distribution as before.
 
 ---
 

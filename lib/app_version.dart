@@ -12,10 +12,15 @@ abstract final class AppVersion {
   /// Empty until [load] has run, and where the platform cannot say (tests).
   static String label = '';
 
+  /// The build number on its own — what "Check for updates" compares — or
+  /// null until [load] has run.
+  static int? build;
+
   /// Read once, before the first frame.
   static Future<void> load() async {
     try {
       final info = await PackageInfo.fromPlatform();
+      build = int.tryParse(info.buildNumber);
       label = info.buildNumber.isEmpty
           ? info.version
           : '${info.version} (${info.buildNumber})';

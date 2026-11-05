@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 import '../app_version.dart';
 import '../theme.dart';
@@ -11,20 +14,78 @@ import '../widgets/design.dart';
 import '../widgets/sheet_grip.dart';
 import '../i18n/i18n.dart';
 
-/// A newer build of RepLiT, waiting in Firebase App Distribution.
+/// A newer build of RepLiT, published on the repository's GitHub releases.
 class AvailableRelease {
   const AvailableRelease({
     required this.version,
     required this.build,
+    this.tag = '',
+    this.apk = '',
+    this.size = 0,
+    this.sha256 = '',
     this.notes,
   });
 
   final String version;
   final int build;
+
+  /// The release's tag ("android-v1.12.26-48") and the APK's file name in it
+  /// ("RepLiT-1.12.26-48.apk").
+  final String tag;
+  final String apk;
+
+  /// The APK's size in bytes and its SHA-256, as CI measured them.
+  final int size;
+  final String sha256;
   final String? notes;
 
-  /// "1.12.24 (91)", the way App Distribution and Profile write a build.
+  /// "1.12.24 (91)", the way Profile writes a build.
   String get label => '$version ($build)';
+
+  /// "72 MB".
+  String get sizeLabel => '${(size / (1024 * 1024)).ceil()} MB';
+
+  /// Where the APK downloads from, in the same releases as the manifest.
+  Uri get apkUrl => Uri.parse(
+    '${AppUpdates.releases}/download/${Uri.encodeComponent(tag)}/'
+    '${Uri.encodeComponent(apk)}',
+  );
+
+  /// A release from its `latest.json`, or null when the file is not one this
+  /// app can install: a part missing, or a name that is not a plain file name.
+  static AvailableRelease? fromManifest(Object? json) {
+    if (json is! Map) return null;
+    final version = json['version'];
+    final build = json['build'];
+    final tag = json['tag'];
+    final apk = json['apk'];
+    final size = json['size'];
+    final sha256 = json['sha256'];
+    final notes = json['notes'];
+    final plain = RegExp(r'^[A-Za-z0-9._-]+$');
+    if (version is! String ||
+        build is! int ||
+        tag is! String ||
+        !plain.hasMatch(tag) ||
+        apk is! String ||
+        !plain.hasMatch(apk) ||
+        !apk.endsWith('.apk') ||
+        size is! int ||
+        size <= 0 ||
+        sha256 is! String ||
+        !RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(sha256)) {
+      return null;
+    }
+    return AvailableRelease(
+      version: version,
+      build: build,
+      tag: tag,
+      apk: apk,
+      size: size,
+      sha256: sha256.toLowerCase(),
+      notes: notes is String ? notes.trim() : null,
+    );
+  }
 }
 
 /// What a check found.
@@ -44,31 +105,43 @@ class UpdateAvailable extends UpdateCheck {
 class UpdateCheckFailed extends UpdateCheck {
   const UpdateCheckFailed(this.code);
 
-  /// App Distribution's status name ("NETWORK_FAILURE"), or "UNAVAILABLE"
-  /// when this build has no Firebase to ask.
+  /// Why, as one of the codes [AppUpdates.explain] knows.
   final String code;
 }
 
-/// An install that did not go through, with App Distribution's status.
+/// An install that did not go through, and why.
 class UpdateInstallFailed implements Exception {
   const UpdateInstallFailed(this.code);
   final String code;
 }
 
-/// "Check for updates" (the 5 November issue list, 2.4), Android only.
+/// "Check for updates", Android only (the 5 November issue list, 2.4, and
+/// issue 3 after it): for anyone, with no Firebase tester invitation.
 ///
-/// Every Android build CI makes goes to Firebase App Distribution, and its
-/// testers are RepLiT's users. This asks App Distribution — through its
-/// Android SDK, behind the `replit/updates` channel in MainActivity — whether
-/// a newer build is waiting for the signed-in tester, and installs it in the
-/// app: the APK downloads, and Android's own installer asks to confirm. The
-/// first check asks the tester to sign in with the Google account their
-/// invitation went to; App Distribution remembers it after that.
+/// Every Android build CI makes is also published on the repository's GitHub
+/// releases, with a `latest.json` beside the APK (version, build number, size,
+/// SHA-256, notes). This reads the newest one's `latest.json` — a plain file
+/// download, not GitHub's rate-limited API, so phones sharing a carrier's
+/// address do not use up each other's checks — and compares its build number
+/// with this one's. Installing downloads the APK into the app's cache;
+/// MainActivity checks it against the SHA-256 and opens Android's installer,
+/// which asks the first time to allow installs from RepLiT.
 ///
 /// iPhones are sideloaded (docs/ios-sideload.md), and nothing installed that
 /// way can update itself, so the row is not drawn there.
 abstract final class AppUpdates {
   static const MethodChannel _channel = MethodChannel('replit/updates');
+
+  /// The releases CI publishes to.
+  static const String releases = String.fromEnvironment(
+    'UPDATES_RELEASES',
+    defaultValue: 'https://github.com/M2STZ-Crew/replit-android/releases',
+  );
+
+  static const Map<String, String> _headers = {
+    'User-Agent': 'RepLiT-Android',
+    'Accept': 'application/json, application/octet-stream',
+  };
 
   /// Whether this phone can check: Android.
   static bool get supported =>
@@ -85,79 +158,166 @@ abstract final class AppUpdates {
   static Future<void> Function(ValueChanged<double?> onProgress)?
   installOverride;
 
-  /// Ask App Distribution for a newer build. Never throws.
+  /// For tests: the HTTP client, and this build's number.
+  @visibleForTesting
+  static http.Client Function()? clientOverride;
+  @visibleForTesting
+  static int? installedBuildOverride;
+
+  /// What the last [check] found, for [install].
+  static AvailableRelease? _found;
+
+  static http.Client _client() => clientOverride?.call() ?? http.Client();
+
+  /// Look for a newer release. Never throws.
   static Future<UpdateCheck> check() async {
     final stand = checkOverride;
     if (stand != null) return stand();
+    unawaited(_clearDownloads());
+    final client = _client();
     try {
-      final found = await _channel.invokeMapMethod<String, Object?>('check');
-      if (found == null) return const UpToDate();
-      return UpdateAvailable(
-        AvailableRelease(
-          version: '${found['version'] ?? ''}',
-          build: (found['build'] as num?)?.toInt() ?? 0,
-          notes: (found['notes'] as String?)?.trim(),
-        ),
+      final response = await client
+          .get(
+            Uri.parse('$releases/latest/download/latest.json'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 20));
+      // No release published yet: what is installed is the newest there is.
+      if (response.statusCode == 404) return const UpToDate();
+      if (response.statusCode != 200) {
+        return UpdateCheckFailed('HTTP_${response.statusCode}');
+      }
+      final release = AvailableRelease.fromManifest(
+        jsonDecode(utf8.decode(response.bodyBytes)),
       );
-    } on PlatformException catch (e) {
-      return UpdateCheckFailed(e.code);
-    } on MissingPluginException catch (_) {
-      return const UpdateCheckFailed('UNAVAILABLE');
+      if (release == null) return const UpdateCheckFailed('BAD_RELEASE');
+      final installed = installedBuildOverride ?? AppVersion.build;
+      if (installed != null && release.build <= installed) {
+        return const UpToDate();
+      }
+      _found = release;
+      return UpdateAvailable(release);
+    } on FormatException catch (_) {
+      return const UpdateCheckFailed('BAD_RELEASE');
+    } on TimeoutException catch (_) {
+      return const UpdateCheckFailed('NETWORK_FAILURE');
+    } on SocketException catch (_) {
+      return const UpdateCheckFailed('NETWORK_FAILURE');
+    } on http.ClientException catch (_) {
+      return const UpdateCheckFailed('NETWORK_FAILURE');
+    } finally {
+      client.close();
     }
   }
 
-  /// Download the build the last [check] found and hand it to Android's
+  /// Download the release the last [check] found and hand it to Android's
   /// installer. [onProgress] hears the share downloaded, 0 to 1, or null
-  /// while the size is not known yet. Throws [UpdateInstallFailed].
+  /// while the size is not known. Throws [UpdateInstallFailed].
   static Future<void> install(ValueChanged<double?> onProgress) async {
     final stand = installOverride;
     if (stand != null) return stand(onProgress);
-    _channel.setMethodCallHandler((call) async {
-      if (call.method != 'progress') return;
-      final args = (call.arguments as Map?) ?? const {};
-      final total = (args['total'] as num?)?.toDouble() ?? 0;
-      final done = (args['downloaded'] as num?)?.toDouble() ?? 0;
-      onProgress(total > 0 ? (done / total).clamp(0.0, 1.0) : null);
-    });
+    final release = _found;
+    if (release == null) {
+      throw const UpdateInstallFailed('UPDATE_NOT_AVAILABLE');
+    }
+    final client = _client();
+    File? file;
+    var handedOver = false;
     try {
-      await _channel.invokeMethod<bool>('install');
+      final dir = await _downloads();
+      await _clearDownloads();
+      file = File('${dir.path}${Platform.pathSeparator}${release.apk}');
+      final request = http.Request('GET', release.apkUrl)
+        ..headers.addAll(_headers);
+      final response = await client
+          .send(request)
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode != 200) {
+        throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+      }
+      onProgress(0);
+      final sink = file.openWrite();
+      var received = 0;
+      try {
+        await for (final chunk in response.stream.timeout(
+          const Duration(seconds: 30),
+        )) {
+          sink.add(chunk);
+          received += chunk.length;
+          onProgress((received / release.size).clamp(0.0, 1.0));
+        }
+      } finally {
+        await sink.close();
+      }
+      if (received != release.size) {
+        throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+      }
+      await _channel.invokeMethod<bool>('install', {
+        'path': file.path,
+        'sha256': release.sha256,
+      });
+      handedOver = true;
+    } on UpdateInstallFailed {
+      rethrow;
     } on PlatformException catch (e) {
       throw UpdateInstallFailed(e.code);
     } on MissingPluginException catch (_) {
       throw const UpdateInstallFailed('UNAVAILABLE');
+    } on TimeoutException catch (_) {
+      throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+    } on SocketException catch (_) {
+      throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+    } on http.ClientException catch (_) {
+      throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+    } on FileSystemException catch (_) {
+      throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
     } finally {
-      _channel.setMethodCallHandler(null);
+      client.close();
+      // A half-downloaded or refused APK is no use to anyone.
+      if (!handedOver) {
+        try {
+          await file?.delete();
+        } on FileSystemException catch (_) {}
+      }
+    }
+  }
+
+  /// cache/updates, the one folder MainActivity's installer hand-off reads.
+  static Future<Directory> _downloads() async {
+    final path = await _channel.invokeMethod<String>('updatesDir');
+    if (path == null) throw const UpdateInstallFailed('UNAVAILABLE');
+    return Directory(path);
+  }
+
+  /// One update waits at a time; an APK from an earlier install goes.
+  static Future<void> _clearDownloads() async {
+    try {
+      final dir = await _downloads();
+      await for (final old in dir.list()) {
+        if (old is File) await old.delete();
+      }
+    } on Object catch (_) {
+      // Nothing to clear, or no platform to ask (tests): fine either way.
     }
   }
 
   /// What a failure means for the person holding the phone.
   static String explain(String code) => switch (code) {
-    'AUTHENTICATION_CANCELED' => t(
-      'Sign-in was cancelled. Updates come through Firebase App '
-      'Distribution: sign in with the Google account your RepLiT '
-      'invitation was sent to.',
-    ),
-    'AUTHENTICATION_FAILURE' => t(
-      "Couldn't sign you in to App Distribution. Check your connection and "
-      'try again.',
-    ),
     'NETWORK_FAILURE' => t('No connection. Check your internet and try again.'),
-    'API_DISABLED' => t(
-      "Updates aren't switched on for RepLiT yet. Please tell the RepLiT "
-      'team.',
+    'DOWNLOAD_FAILURE' => t(
+      "The download didn't finish. Check your connection and try again.",
+    ),
+    'CORRUPT' => t('The download was damaged on the way. Try again.'),
+    'BAD_RELEASE' => t(
+      "The newest release can't be read. Please tell the RepLiT team.",
     ),
     'UNAVAILABLE' || 'NOT_IMPLEMENTED' => t(
-      "This build can't check for updates. Install the newest one from your "
-      'App Distribution email.',
+      "This build can't install updates. Ask the RepLiT team for the "
+      'newest one.',
     ),
-    'INSTALLATION_CANCELED' => t(
-      'The install was cancelled. Tap "Download and install" to try again.',
+    'INSTALLATION_FAILURE' => t(
+      "Android couldn't open the installer. Try again in a little while.",
     ),
-    'INSTALLATION_FAILURE' || 'DOWNLOAD_FAILURE' => t(
-      "The update couldn't be installed. Try again, or install it from your "
-      'App Distribution email.',
-    ),
-    'HOST_ACTIVITY_INTERRUPTED' => t('The update was interrupted. Try again.'),
     'UPDATE_NOT_AVAILABLE' => t('You already have the newest version.'),
     _ => t("Couldn't check for updates. Try again in a little while."),
   };
@@ -241,6 +401,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
   Widget build(BuildContext context) {
     final pal = context.pal;
     final installed = AppVersion.label;
+    final release = _release;
     return FrozenHandleSheet(
       children: [
         Text(t('CHECK FOR UPDATES'), style: context.type.title),
@@ -269,12 +430,24 @@ class _UpdateSheetState extends State<UpdateSheet> {
             _Status(
               icon: AppIcons.download,
               tint: pal.accent,
-              text: t('Version {v} is ready.', {'v': _release!.label}),
+              text: t('Version {v} is ready.', {'v': release!.label}),
             ),
-            if ((_release!.notes ?? '').isNotEmpty) ...[
+            if (release.size > 0) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 32),
+                child: Text(
+                  t('Download: {size}. Wi-Fi is best.', {
+                    'size': release.sizeLabel,
+                  }),
+                  style: context.type.caption.copyWith(color: pal.label),
+                ),
+              ),
+            ],
+            if ((release.notes ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                _release!.notes!,
+                release.notes!,
                 maxLines: 8,
                 overflow: TextOverflow.ellipsis,
                 style: context.type.bodySm.copyWith(color: pal.textSoft),
@@ -292,13 +465,16 @@ class _UpdateSheetState extends State<UpdateSheet> {
             const SizedBox(height: 12),
             Text(
               _progress == null
-                  ? 'Downloading…'
+                  ? t('Downloading…')
                   : t('Downloading… {n}%', {'n': (_progress! * 100).round()}),
               style: context.type.body,
             ),
             const SizedBox(height: 6),
             Text(
-              t('Android will ask you to confirm the install.'),
+              t(
+                'Android will ask you to confirm the install. The first '
+                'time, it also asks you to allow installs from RepLiT.',
+              ),
               style: context.type.caption.copyWith(color: pal.label),
             ),
           ],
