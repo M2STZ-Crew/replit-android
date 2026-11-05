@@ -753,6 +753,11 @@ const Map<String, String> kTagalog = {
       'Hihingin ng Android na kumpirmahin mo ang pag-install. Sa unang beses, hihingin din nitong payagan ang pag-install mula sa RepLiT.',
   'Downloaded. Finish the install in the window Android opened.':
       'Na-download na. Tapusin ang pag-install sa window na binuksan ng Android.',
+  'Version {v} is downloaded and ready to install.':
+      'Na-download na ang bersiyon {v} at handa nang i-install.',
+  'Install': 'I-install',
+  'Opening the installer…': 'Binubuksan ang installer…',
+  'Open the installer again': 'Buksan ulit ang installer',
   'SOS — hold to report': 'SOS — pindutin nang matagal para mag-report',
   '{tab}, tab {n} of {of}': '{tab}, tab {n} sa {of}',
   'Hide {what}': 'Itago ang {what}',
