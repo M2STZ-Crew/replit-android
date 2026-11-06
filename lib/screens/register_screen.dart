@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../models/phone_numbers.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
@@ -13,17 +14,18 @@ import 'role_gate.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 
-/// "03 Sign up" from the REPLIT-OVERHAUL Figma, with the mobile number back.
+/// "03 Sign up" from the REPLIT-OVERHAUL Figma.
 ///
-/// Full name, mobile number, email, password. The number is how a resident
-/// signs in from then on, and proving it is theirs is part of signing up: the
-/// moment the account exists, a code is texted to it and a sheet over this
-/// form takes it back ([showPhoneCodeSheet]). Birthday and gender stay in Edit
-/// Profile. The password field keeps a show/hide eye the frame does not draw:
-/// with the confirm field gone, it is the only way to check what you typed.
-///
-/// Closing the sheet without the code is allowed — the account is made by
-/// then — and RoleGate shows the full verification screen instead.
+/// Full name, email, mobile number, password. Email first (WHAT'S NEXT, 2.2):
+/// it is how everyone signs in while mobile numbers wait for an SMS provider,
+/// and until then the mobile field is greyed out, "Coming soon". With
+/// [PhoneNumbers.open] the number is asked for again, and proving it is theirs
+/// is part of signing up: the moment the account exists, a code is texted to
+/// it and a sheet over this form takes it back ([showPhoneCodeSheet]); closing
+/// the sheet is allowed, and RoleGate asks again. Birthday and gender stay in
+/// Edit Profile. The password field keeps a show/hide eye the frame does not
+/// draw: with the confirm field gone, it is the only way to check what you
+/// typed.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key, this.api});
 
@@ -60,7 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = _password.text;
 
     if (name.isEmpty) return _error(t('Please enter your full name.'));
-    if (!looksLikePhMobile(mobile)) {
+    if (PhoneNumbers.open && !looksLikePhMobile(mobile)) {
       return _error(t('Enter your mobile number, like 0917 123 4567.'));
     }
     if (!email.contains('@') || !email.contains('.')) {
@@ -79,15 +81,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: email,
         password: password,
         fullName: name,
-        mobile: mobile,
+        mobile: PhoneNumbers.open ? mobile : null,
       );
       await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
       if (!mounted) return;
       setState(() => _loading = false);
       // Verified or not, the account exists now; RoleGate decides what next.
-      await showPhoneCodeSheet(context, phone: mobile, api: _api);
-      if (!mounted) return;
+      if (PhoneNumbers.open) {
+        await showPhoneCodeSheet(context, phone: mobile, api: _api);
+        if (!mounted) return;
+      }
       await Navigator.of(
         context,
       ).pushReplacement(MaterialPageRoute(builder: (_) => const RoleGate()));
@@ -121,10 +125,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Text(t('CREATE YOUR ACCOUNT'), style: context.type.display),
             const SizedBox(height: 8),
             Text(
-              t(
-                'We will text a code to your mobile number to check it is '
-                'yours. You sign in with it from then on.',
-              ),
+              PhoneNumbers.open
+                  ? t(
+                      'We will text a code to your mobile number to check it '
+                      'is yours. You sign in with it from then on.',
+                    )
+                  : t(
+                      'You sign in with your email. Signing in with a mobile '
+                      'number is coming soon.',
+                    ),
               style: context.type.body,
             ),
             const SizedBox(height: 46),
@@ -142,20 +151,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 14),
             LabeledField(
-              label: t('Mobile number'),
-              builder: (focus) => TextField(
-                controller: _mobile,
-                focusNode: focus,
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.telephoneNumber],
-                inputFormatters: const [PhMobileFormatter()],
-                style: context.type.input,
-                decoration: const InputDecoration(hintText: kPhMobileHint),
-              ),
-            ),
-            const SizedBox(height: 14),
-            LabeledField(
               label: t('Email address'),
               builder: (focus) => TextField(
                 controller: _email,
@@ -166,6 +161,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 autofillHints: const [AutofillHints.email],
                 style: context.type.input,
                 decoration: InputDecoration(hintText: t('you@email.com')),
+              ),
+            ),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: t('Mobile number'),
+              builder: (focus) => TextField(
+                controller: _mobile,
+                focusNode: focus,
+                // Greyed out until SMS is settled ([PhoneNumbers]).
+                enabled: PhoneNumbers.open,
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.telephoneNumber],
+                inputFormatters: const [PhMobileFormatter()],
+                style: context.type.input,
+                decoration: InputDecoration(
+                  hintText: kPhMobileHint,
+                  suffixIcon: PhoneNumbers.open
+                      ? null
+                      : const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: Align(
+                            widthFactor: 1,
+                            heightFactor: 1,
+                            child: ComingSoon(),
+                          ),
+                        ),
+                ),
               ),
             ),
             const SizedBox(height: 14),
@@ -203,7 +226,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _Weight('+40%', 'Mobile')),
+                Expanded(
+                  child: _Weight('+40%', 'Mobile', soon: !PhoneNumbers.open),
+                ),
                 SizedBox(width: 8),
                 Expanded(child: _Weight('+50%', t('National ID'))),
                 SizedBox(width: 8),
@@ -269,13 +294,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
 /// One verification weight: "+40%" over "MOBILE".
 class _Weight extends StatelessWidget {
-  const _Weight(this.value, this.label);
+  const _Weight(this.value, this.label, {this.soon = false});
 
   final String value;
   final String label;
 
+  /// Not open yet: drawn faint ([PhoneNumbers]).
+  final bool soon;
+
   @override
   Widget build(BuildContext context) {
+    return Opacity(opacity: soon ? 0.45 : 1, child: _panel(context));
+  }
+
+  Widget _panel(BuildContext context) {
     return Panel(
       radius: AppRadius.chip,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

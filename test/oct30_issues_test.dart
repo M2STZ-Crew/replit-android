@@ -114,8 +114,6 @@ void main() {
     );
 
     Future<void> fill(WidgetTester tester) async {
-      await tester.tap(find.text('Use email instead'));
-      await tester.pump();
       await tester.enterText(find.byType(TextField).at(0), 'me@example.com');
       await tester.enterText(find.byType(TextField).at(1), 'not-a-real-one');
       await tester.ensureVisible(find.text('SIGN IN'));

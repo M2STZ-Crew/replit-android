@@ -304,6 +304,8 @@ const Map<String, String> kTagalog = {
   'Show password': 'Ipakita ang password',
   'Hide password': 'Itago ang password',
   'Use mobile number': 'Gamitin ang mobile number',
+  'You sign in with your email. Signing in with a mobile number is coming soon.':
+      'Email mo ang gamit sa pag-sign in. Malapit nang magamit ang mobile number sa pag-sign in.',
   'Use email instead': 'Email na lang ang gamitin',
   'Forgot password?': 'Nakalimutan ang password?',
   'Sign in': 'Mag-sign in',
@@ -694,8 +696,7 @@ const Map<String, String> kTagalog = {
   'Documents are held privately, used only to confirm who you are, and deleted after review. A National ID is checked by an administrator on PSA\'s PhilSys Check before its 50% applies.':
       'Pribadong itinatago ang mga dokumento, ginagamit lang para kumpirmahin kung sino ka, at binubura pagkatapos suriin. Sinusuri ng isang administrator ang National ID sa PhilSys Check ng PSA bago makuha ang 50% nito.',
   'Verified': 'Verified',
-  'Unavailable while we change SMS provider':
-      'Hindi pa magagamit habang nagpapalit kami ng SMS provider',
+  'Coming soon': 'Malapit na',
   'Confirm it with a code by SMS': 'Kumpirmahin gamit ang code sa SMS',
   'Submitted — an administrator is checking it':
       'Naipadala na — sinusuri ito ng isang administrator',
