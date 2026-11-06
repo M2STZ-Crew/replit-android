@@ -477,6 +477,25 @@ class ApiClient {
     }
   }
 
+  /// A new password, given the current one: POST /auth/me/password
+  /// (WHAT'S NEXT, 1.2). Every other phone and browser is signed out; this
+  /// session stays. A wrong current password is a 400 `wrong_password` (never
+  /// a 401, which would read as an expired session), the same password again
+  /// `same_password`, and a new one outside 8–128 characters a 422.
+  Future<void> changePassword({
+    required String current,
+    required String next,
+  }) async {
+    final resp = await _authed(
+      () => _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/me/password'),
+        headers: _jsonAuth,
+        body: jsonEncode({'current_password': current, 'new_password': next}),
+      ),
+    );
+    _decode(resp);
+  }
+
   /// Revoke the current session server-side: POST /auth/logout (best-effort).
   Future<void> logout() async {
     try {

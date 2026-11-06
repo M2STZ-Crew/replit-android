@@ -578,6 +578,34 @@ const Map<String, String> kTagalog = {
   'Emergency reporting for Pasay City':
       'Emergency reporting para sa Pasay City',
   'Check for updates': 'Tingnan kung may update',
+  // WHAT'S NEXT, 1.1: the banner when a newer release is out.
+  "There's a new update!": 'May bagong update!',
+  'RepLiT {version} is ready to install.':
+      'Handa nang i-install ang RepLiT {version}.',
+  'UPDATE': 'I-UPDATE',
+  // WHAT'S NEXT, 1.2: Change password, for residents and staff.
+  'Change password': 'Palitan ang password',
+  'CHANGE PASSWORD': 'PALITAN ANG PASSWORD',
+  'Signs you out of your other phones': 'Masa-sign out ka sa iba mong phone',
+  'Changing it signs you out of RepLiT on your other phones and browsers. This phone stays signed in.':
+      'Kapag pinalitan ito, masa-sign out ka sa RepLiT sa iba mong phone at browser. Mananatiling naka-sign in ang phone na ito.',
+  'Current password': 'Kasalukuyang password',
+  'New password': 'Bagong password',
+  'New password again': 'Bagong password ulit',
+  'Show passwords': 'Ipakita ang mga password',
+  'Enter your current password.': 'Ilagay ang kasalukuyang password mo.',
+  'Use 8 to 128 characters for the new password.':
+      'Gumamit ng 8 hanggang 128 na character para sa bagong password.',
+  'The two new passwords are not the same.':
+      'Hindi magkapareho ang dalawang bagong password.',
+  'The new password is the same as the current one.':
+      'Pareho ang bagong password sa kasalukuyan.',
+  'That is not your current password.':
+      'Hindi iyan ang kasalukuyang password mo.',
+  'The password could not be changed. Try again.':
+      'Hindi mapalitan ang password. Subukan ulit.',
+  'Password changed. Other phones and browsers are signed out; this one stays signed in.':
+      'Napalitan na ang password. Na-sign out na ang ibang phone at browser; naka-sign in pa rin ang phone na ito.',
   'Get the newest version of RepLiT':
       'Kunin ang pinakabagong bersiyon ng RepLiT',
   'Version {v} installed': 'Naka-install ang bersiyon {v}',

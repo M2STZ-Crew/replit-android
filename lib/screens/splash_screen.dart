@@ -8,6 +8,7 @@ import '../api/push_service.dart';
 import '../api/session.dart';
 import '../i18n/i18n.dart';
 import '../theme.dart';
+import '../updates/update_nudge.dart';
 import '../widgets/launch_mark.dart';
 import 'call_screen.dart';
 import 'login_screen.dart';
@@ -75,6 +76,8 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    // "There's a new update!" waits for the screen after this one.
+    UpdateNudge.hold = true;
     _trigger = Timer(SplashScreen.triggerFor, () {
       if (!mounted) return;
       setState(() => _loading = true);
@@ -85,6 +88,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
+    UpdateNudge.hold = false;
     _trigger?.cancel();
     _slowTimer?.cancel();
     _loader.dispose();
@@ -152,6 +156,9 @@ class _SplashScreenState extends State<SplashScreen>
     } else {
       unawaited(navigator.pushReplacement(route));
     }
+    // Past the splash: a newer release? (At most every six hours.)
+    UpdateNudge.hold = false;
+    unawaited(UpdateNudge.maybeCheck());
   }
 
   @override

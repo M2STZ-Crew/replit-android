@@ -8,6 +8,7 @@ import '../../updates/app_updates.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import '../../widgets/staff_account_section.dart';
 import '../../widgets/staff_shell.dart';
 import '../bfp/bfp_alarm_requests_screen.dart';
 import '../notifications_screen.dart';
@@ -217,6 +218,8 @@ class _ProfileTabState extends State<ProfileTab> {
                     subtitle: 'Heading-up while moving, compass when still',
                     trailing: RowValue('Hybrid', color: pal.onBackground),
                   ),
+                  const SizedBox(height: 16),
+                  StaffAccountSection(api: widget.feed.api),
                   const SizedBox(height: 16),
                   const SectionHeader('More'),
                   const SizedBox(height: 12),

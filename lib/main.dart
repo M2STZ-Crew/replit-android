@@ -11,6 +11,7 @@ import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
 import 'widgets/launch_mark.dart';
+import 'updates/update_nudge.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
 import 'i18n/i18n.dart';
@@ -124,6 +125,8 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
     if (state != AppLifecycleState.resumed) return;
     _keepLocationFresh();
     unawaited(_syncClosedReports());
+    // Back to the front: a newer release? (At most every six hours.)
+    unawaited(UpdateNudge.maybeCheck());
     if (!Session.instance.isAuthenticated || ReportComposer.active) return;
     final report = ActiveReportStore.mine;
     final nav = PushService.navigatorKey.currentState;
