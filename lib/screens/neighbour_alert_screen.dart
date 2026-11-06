@@ -274,6 +274,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
           content: [
             Align(alignment: Alignment.centerLeft, child: _alertChip()),
             const SizedBox(height: 24),
+            ..._whereLine(),
             Text(t('DO YOU SEE IT TOO?'), style: context.type.display),
             const SizedBox(height: 14),
             Text(_sentence, style: context.type.body),
@@ -345,6 +346,34 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     );
   }
 
+  /// "AREA 1.2 · 200 M FROM YOU" over the title, in the accent ink, as the
+  /// Figma's nearby alert (10, 10B) has it on both grounds. It was a dark
+  /// chip on the map, which the light ground left dark on dark.
+  List<Widget> _whereLine() {
+    final away = _metresAway;
+    final area = (_area?['designation'] as String?)?.trim();
+    final parts = [
+      if (area != null && area.isNotEmpty) area.toUpperCase(),
+      if (away != null)
+        t('{distance} FROM YOU', {
+          'distance': away < 1000
+              ? '${away.round()} M'
+              : '${(away / 1000).toStringAsFixed(1)} KM',
+        }),
+    ];
+    if (parts.isEmpty) return const [];
+    return [
+      Text(
+        parts.join(' · '),
+        style: context.type.tag.copyWith(
+          color: context.pal.accentInk,
+          letterSpacing: 0.8,
+        ),
+      ),
+      const SizedBox(height: 8),
+    ];
+  }
+
   Widget _alertChip() {
     return Container(
       constraints: const BoxConstraints(minHeight: 28),
@@ -372,7 +401,6 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
   Widget _proximityMap() {
     final c = _centre;
     final me = _me;
-    final away = _metresAway;
     // Shorter with "Are you safe?" below it, so "Yes" and "No" stay on a
     // phone's screen. The 150 m circle still fits.
     return Container(
@@ -449,37 +477,11 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                       alignment: Alignment.bottomRight,
                       padding: const EdgeInsets.all(8),
                     ),
-                    // The distance chip holds the bottom-left corner.
                     MapTiles.attribution(
                       alignment: AttributionAlignment.bottomRight,
                     ),
                   ],
                 ),
-                if (away != null)
-                  Positioned(
-                    left: 15,
-                    bottom: 17,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xEB131313),
-                        borderRadius: BorderRadius.circular(AppRadius.chip),
-                      ),
-                      child: Text(
-                        t('{distance} FROM YOU', {
-                          'distance': away < 1000
-                              ? '${away.round()} M'
-                              : '${(away / 1000).toStringAsFixed(1)} KM',
-                        }),
-                        style: context.type.tag.copyWith(
-                          color: context.pal.onBackground,
-                        ),
-                      ),
-                    ),
-                  ),
               ],
             ),
     );

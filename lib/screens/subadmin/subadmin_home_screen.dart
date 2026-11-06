@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
 import '../../theme.dart';
+import '../../theme_choice.dart';
 import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
 import '../../widgets/staff_shell.dart';
@@ -14,13 +15,13 @@ import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
 
-Color _panel = AppColors.glassDim;
-Color _panelBorder = AppColors.line;
-Color _grey = AppColors.muted;
-Color _green = AppColors.ok;
-Color _orange = AppColors.accent;
-Color _red = AppColors.live;
-Color _label = AppColors.label;
+Color get _panel => ThemeChoice.palette.glassDim;
+Color get _panelBorder => ThemeChoice.palette.line;
+Color get _grey => ThemeChoice.palette.muted;
+Color get _green => ThemeChoice.palette.ok;
+Color get _orange => ThemeChoice.palette.accent;
+Color get _red => ThemeChoice.palette.live;
+Color get _label => ThemeChoice.palette.label;
 
 Color _areaColor(String s) {
   switch (s) {

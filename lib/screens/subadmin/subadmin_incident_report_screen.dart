@@ -4,6 +4,7 @@ import 'package:geocoding/geocoding.dart' as geo;
 import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
 import '../../theme.dart';
+import '../../theme_choice.dart';
 import '../../widgets/incident_map.dart';
 import '../../widgets/photo_viewer.dart';
 import '../../widgets/placeholder_box.dart';
@@ -16,11 +17,12 @@ import 'subadmin_incident_command_screen.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/motion.dart';
 
-Color _panel = AppColors.glassDim;
-Color _panelBorder = AppColors.line;
-Color _value = AppColors.muted;
-Color _label = AppColors.label;
-Color _red = AppColors.live;
+Color get _ink => ThemeChoice.palette.onBackground;
+Color get _panel => ThemeChoice.palette.glassDim;
+Color get _panelBorder => ThemeChoice.palette.line;
+Color get _value => ThemeChoice.palette.muted;
+Color get _label => ThemeChoice.palette.label;
+Color get _red => ThemeChoice.palette.live;
 
 /// A coordinator reviewing an incident: one citizen report (photo — tap to
 /// zoom — reporter, time, coordinates, address, verifier), a map, the road
@@ -211,14 +213,14 @@ class _SubAdminIncidentReportScreenState
         final ctrl = TextEditingController();
         return AlertDialog(
           backgroundColor: context.pal.surface,
-          title: const Text(
+          title: Text(
             'Reject incident',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+            style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
           ),
           content: TextField(
             controller: ctrl,
             autofocus: true,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: _ink),
             decoration: InputDecoration(
               hintText: 'Reason (e.g. false report)',
               hintStyle: TextStyle(color: context.pal.darkText),
@@ -316,9 +318,9 @@ class _SubAdminIncidentReportScreenState
       context: context,
       builder: (dctx) => AlertDialog(
         backgroundColor: context.pal.surface,
-        title: const Text(
+        title: Text(
           'Fire out?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
         ),
         content: Text(
           'Mark this incident resolved and stop the response.',
@@ -673,15 +675,15 @@ class _SubAdminIncidentReportScreenState
         height: 56,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFF262626),
+          color: context.pal.raised,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(color: context.pal.line),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: _ink,
             fontSize: 16,
             fontWeight: FontWeight.w900,
             height: 1.50,

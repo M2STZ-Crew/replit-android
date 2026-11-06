@@ -12,6 +12,7 @@ import '../../location/responder_tracker.dart';
 import '../../models/fleet_unit.dart';
 import '../../navigation/routing_service.dart';
 import '../../theme.dart';
+import '../../theme_choice.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
@@ -23,14 +24,15 @@ import '../../widgets/you_are_here.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
 
-Color _sheet = AppColors.surfaceSolid;
-Color _panel = AppColors.glassDim;
-Color _panelBorder = AppColors.line;
-Color _rowBg = AppColors.glassDim;
-Color _orangeTint = AppColors.accentTint;
-Color _muted = AppColors.muted;
-Color _crewGrey = AppColors.muted;
-Color _red = AppColors.live;
+Color get _ink => ThemeChoice.palette.onBackground;
+Color get _sheet => ThemeChoice.palette.surfaceSolid;
+Color get _panel => ThemeChoice.palette.glassDim;
+Color get _panelBorder => ThemeChoice.palette.line;
+Color get _rowBg => ThemeChoice.palette.glassDim;
+Color get _orangeTint => ThemeChoice.palette.accentTint;
+Color get _muted => ThemeChoice.palette.muted;
+Color get _crewGrey => ThemeChoice.palette.muted;
+Color get _red => ThemeChoice.palette.live;
 
 /// A coordinator's command screen for a live (on the way / on scene) incident:
 /// live map + responder GPS, address + route ETA and the road route to the
@@ -281,10 +283,10 @@ class _SubAdminIncidentCommandScreenState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Request alarm escalation',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: _ink,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -298,10 +300,7 @@ class _SubAdminIncidentCommandScreenState
               for (final (value, label) in levels)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    label,
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                  title: Text(label, style: TextStyle(color: _ink)),
                   trailing: Icon(AppIcons.chevronRight, color: _muted),
                   onTap: () => Navigator.of(context).pop(value),
                 ),
@@ -376,9 +375,9 @@ class _SubAdminIncidentCommandScreenState
         final ctrl = TextEditingController();
         return AlertDialog(
           backgroundColor: context.pal.surface,
-          title: const Text(
+          title: Text(
             'Reject incident',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+            style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -391,7 +390,7 @@ class _SubAdminIncidentCommandScreenState
               TextField(
                 controller: ctrl,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: _ink),
                 decoration: InputDecoration(
                   hintText: 'Reason (e.g. verified by mistake)',
                   hintStyle: TextStyle(color: context.pal.darkText),
@@ -506,9 +505,9 @@ class _SubAdminIncidentCommandScreenState
       context: context,
       builder: (dctx) => AlertDialog(
         backgroundColor: context.pal.surface,
-        title: const Text(
+        title: Text(
           'Fire out?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
         ),
         content: Text(
           'Mark this incident resolved and stop the response.',
@@ -720,9 +719,9 @@ class _SubAdminIncidentCommandScreenState
                   const SizedBox(height: 12),
                 ],
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Escalate alarm',
-                style: TextStyle(color: Colors.white, fontSize: 16),
+                style: TextStyle(color: _ink, fontSize: 16),
               ),
               const SizedBox(height: 4),
               Text(
@@ -813,11 +812,7 @@ class _SubAdminIncidentCommandScreenState
                 const SizedBox(height: 5),
                 Text(
                   _address ?? 'Locating incident…',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    height: 1.2,
-                  ),
+                  style: TextStyle(color: _ink, fontSize: 16, height: 1.2),
                 ),
                 if (verifierLine(_incident) case final verifier?) ...[
                   const SizedBox(height: 4),
@@ -856,10 +851,7 @@ class _SubAdminIncidentCommandScreenState
                       ),
                       TextSpan(
                         text: _etaText == null ? ' —' : ' $_etaText',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(color: _ink, fontSize: 16),
                       ),
                     ],
                   ),
@@ -955,8 +947,8 @@ class _SubAdminIncidentCommandScreenState
                   children: [
                     Text(
                       vehicleName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: _ink,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1015,7 +1007,7 @@ class _SubAdminIncidentCommandScreenState
                 : ((driver['responder_name'] as String?) ?? 'Responder'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 15),
+            style: TextStyle(color: _ink, fontSize: 15),
           ),
           const SizedBox(height: 2),
           Text(
@@ -1081,7 +1073,7 @@ class _SubAdminIncidentCommandScreenState
                 ),
                 child: Text(
                   _initial((shown[i]['responder_name'] as String?) ?? '?'),
-                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                  style: TextStyle(color: _ink, fontSize: 10),
                 ),
               ),
             ),
@@ -1132,8 +1124,8 @@ class _SubAdminIncidentCommandScreenState
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: _ink,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),

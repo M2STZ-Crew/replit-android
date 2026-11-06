@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
@@ -341,14 +342,18 @@ void main() {
       }),
     );
 
-    Future<void> open(WidgetTester tester, {double scale = 1}) async {
+    Future<void> open(
+      WidgetTester tester, {
+      double scale = 1,
+      AppPalette pal = AppPalette.dark,
+    }) async {
       tester.view.physicalSize = const Size(402, 874);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
       geo.fresh = Completer<Position>()..complete(fix(14.5378, 121.0014));
       await tester.pumpWidget(
         MaterialApp(
-          theme: buildAppTheme(),
+          theme: buildAppTheme(pal),
           home: Builder(
             builder: (context) => MediaQuery(
               data: MediaQuery.of(
@@ -393,11 +398,43 @@ void main() {
         expect(find.textContaining('2 minutes ago'), findsOneWidget);
         // ~177 m between the fix and the area's centre.
         expect(
-          find.textContaining(RegExp(r'^1\d\d M FROM YOU$')),
+          find.textContaining(RegExp(r'^AREA 1\.2 · 1\d\d M FROM YOU$')),
           findsOneWidget,
         );
         expect(find.text('YES, I CAN SEE IT'), findsOneWidget);
         expect(find.text('NO, AND STOP ASKING ABOUT THIS'), findsOneWidget);
+      });
+    }
+
+    // The 6 November list: "200 M FROM YOU" was a dark chip on the map, and
+    // on the light ground it read dark on dark. The Figma's nearby alert (10,
+    // 10B) has it over the title in the accent ink, on both grounds.
+    for (final pal in [AppPalette.dark, AppPalette.light]) {
+      testWidgets('the distance reads over the title on the '
+          '${pal.isLight ? 'light' : 'dark'} ground', (tester) async {
+        await open(tester, pal: pal);
+        final line = find.textContaining(RegExp(r'M FROM YOU$'));
+        expect(line, findsOneWidget);
+        expect(
+          tester.getTopLeft(line).dy,
+          lessThan(tester.getTopLeft(find.text('DO YOU SEE IT TOO?')).dy),
+        );
+        final ink = tester.widget<Text>(line).style!.color!;
+        expect(ink, pal.accentInk);
+        // Large-text contrast at the least, against the ground it sits on.
+        double lum(Color c) => c.computeLuminance();
+        final a = lum(ink), b = lum(pal.background);
+        final ratio =
+            (a > b ? a + 0.05 : b + 0.05) / (a > b ? b + 0.05 : a + 0.05);
+        expect(ratio, greaterThan(4.5));
+        // Nothing left on the map itself.
+        expect(
+          find.descendant(
+            of: find.byType(FlutterMap),
+            matching: find.textContaining('FROM YOU'),
+          ),
+          findsNothing,
+        );
       });
     }
 

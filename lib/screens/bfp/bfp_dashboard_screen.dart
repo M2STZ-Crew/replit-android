@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../api/api_client.dart';
 import '../../theme.dart';
+import '../../theme_choice.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/design.dart';
 import '../../widgets/ops_layers.dart';
@@ -17,12 +18,13 @@ import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
 
-Color _panel = AppColors.glassDim;
-Color _panelBorder = AppColors.line;
-Color _red = AppColors.live;
-Color _orange = AppColors.accent;
-Color _green = AppColors.ok;
-Color _grey = AppColors.muted;
+Color get _ink => ThemeChoice.palette.onBackground;
+Color get _panel => ThemeChoice.palette.glassDim;
+Color get _panelBorder => ThemeChoice.palette.line;
+Color get _red => ThemeChoice.palette.live;
+Color get _orange => ThemeChoice.palette.accent;
+Color get _green => ThemeChoice.palette.ok;
+Color get _grey => ThemeChoice.palette.muted;
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
 /// BFP team captain's dashboard — live counters, the layered map, and the
@@ -274,10 +276,10 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Alarm Requests',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: _ink,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -343,10 +345,10 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Live Map',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: _ink,
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
@@ -536,8 +538,8 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                   Expanded(
                     child: Text(
                       (inc['designation'] as String?) ?? 'Incident',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: _ink,
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                       ),
