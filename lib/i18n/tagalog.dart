@@ -653,6 +653,7 @@ const Map<String, String> kTagalog = {
       'NAKA-ENCRYPT, SA MGA RESPONDER LANG IBINABAHAGI',
   'Retry': 'Subukan ulit',
   'Sign in again': 'Mag-sign in ulit',
+  'Could not load your account.': 'Hindi ma-load ang account mo.',
   'Still connecting. RepLiT can take up to a minute to wake after a quiet spell.':
       'Kumokonekta pa. Puwedeng umabot nang isang minuto bago gumising ang RepLiT kapag matagal itong hindi nagamit.',
   'Could not pinpoint your location. Move near a window or outdoors and try again.':

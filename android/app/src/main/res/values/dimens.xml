@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The flame-and-pin mark on the launch screens, for screens under 340 dp wide: the size
+     the app's splash draws it at on such a screen (lib/widgets/launch_mark.dart),
+     so it doesn't jump when the app takes over. Made by a script from one rule:
+     80 dp wide on a 402 dp screen, within 64 and 100, in the image's 410:576. -->
+<resources>
+    <dimen name="launch_mark_width">64dp</dimen>
+    <dimen name="launch_mark_height">89.91dp</dimen>
+    <!-- Android 12+ (drawable/splash_icon.xml) scales the icon to a
+         288 dp box, so there the size is the clear space around it. -->
+    <fraction name="launch_mark_inset_x">38.89%</fraction>
+    <fraction name="launch_mark_inset_y">34.39%</fraction>
+</resources>

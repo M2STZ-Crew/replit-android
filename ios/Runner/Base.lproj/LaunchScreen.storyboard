@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
   The iPhone's first screen, before Flutter draws RepLiT's splash: the
-  flame-and-pin mark from the Figma archive's LOGO section, centred. It is a
-  fifth of the screen's width and never more than 100 pt, the same rule as the
-  splash that follows (80 pt on a 402 pt phone, 64 pt on a 320 pt one). The
-  ground is the LaunchBackground colour: #EEEDEA, or #131313 in Dark Mode.
+  flame-and-pin mark from the Figma archive's LOGO section, in the middle of
+  the screen. 80 pt wide on a 402 pt phone and following the screen's width
+  from there, within 64 and 100 pt: the rule the splash that follows uses
+  (lib/widgets/launch_mark.dart), so the mark doesn't move when it takes over.
+  The ground is the LaunchBackground colour: #EEEDEA, or #131313 in Dark Mode.
 -->
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <dependencies>
@@ -27,6 +28,7 @@
                             <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleAspectFit" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
                                 <constraints>
                                     <constraint firstAttribute="width" relation="lessThanOrEqual" constant="100" id="Lw1-aP-Mx3"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="64" id="Lw1-aP-Mn5"/>
                                     <constraint firstAttribute="width" secondItem="YRO-k0-Ey4" secondAttribute="height" multiplier="410:576" id="Lw1-aP-Ar4"/>
                                 </constraints>
                             </imageView>
@@ -35,7 +37,7 @@
                         <constraints>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
                             <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.2" priority="750" id="Lw1-aP-Wd2"/>
+                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="width" secondItem="Ze5-6b-2t3" secondAttribute="width" multiplier="0.199005" priority="750" id="Lw1-aP-Wd2"/>
                         </constraints>
                     </view>
                 </viewController>

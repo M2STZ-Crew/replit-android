@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'theme.dart';
@@ -30,15 +33,33 @@ abstract final class ThemeChoice {
     } catch (_) {
       // No stored choice, or no storage: the dark ground stands.
     }
+    unawaited(_tellLaunchScreen(light.value));
   }
 
   static Future<void> set(bool value) async {
     light.value = value;
+    unawaited(_tellLaunchScreen(value));
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_key, value);
     } catch (_) {
       // The change still applies to this session.
+    }
+  }
+
+  static const MethodChannel _device = MethodChannel('replit/device');
+
+  /// Android draws its launch screen before the app runs, in the phone's
+  /// light or dark rather than this choice. Android 13+ can keep the app's
+  /// own: tell it, so the next launch screen has the app's ground
+  /// (MainActivity, "launchGround"). iPhones and older Androids follow the
+  /// phone.
+  static Future<void> _tellLaunchScreen(bool light) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await _device.invokeMethod<bool>('launchGround', {'light': light});
+    } catch (_) {
+      // An older build of the Android side, or a test: the phone's ground.
     }
   }
 

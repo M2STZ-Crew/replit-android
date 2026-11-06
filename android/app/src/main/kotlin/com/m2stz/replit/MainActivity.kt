@@ -23,6 +23,13 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+ would slide the app's first frame up under its
+            // fading launch screen. That frame is the app's splash, with the
+            // same mark in the same place on the same ground
+            // (lib/screens/splash_screen.dart), so the launch screen just goes.
+            splashScreen.setOnExitAnimationListener { view -> view.remove() }
+        }
         createNotificationChannels()
     }
 
@@ -42,6 +49,23 @@ class MainActivity : FlutterActivity() {
                     "exit" -> {
                         result.success(null)
                         finishAndRemoveTask()
+                    }
+                    // lib/theme_choice.dart: the app's ground is its own switch,
+                    // but Android draws the launch screen before the app runs,
+                    // in the phone's light or dark. From Android 13 it keeps a
+                    // launch screen theme for the app, used from the next
+                    // launch on, so the launch screen has the app's ground and
+                    // the hand-off to the splash doesn't flash.
+                    "launchGround" -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val light = call.argument<Boolean>("light") == true
+                            splashScreen.setSplashScreenTheme(
+                                if (light) R.style.SplashOnLight else R.style.SplashOnDark
+                            )
+                            result.success(true)
+                        } else {
+                            result.success(false)
+                        }
                     }
                     else -> result.notImplemented()
                 }

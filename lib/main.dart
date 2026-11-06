@@ -10,6 +10,7 @@ import 'app_version.dart';
 import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
+import 'widgets/launch_mark.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
 import 'i18n/i18n.dart';
@@ -35,6 +36,9 @@ Future<void> main() async {
   // The ground the app draws on is a choice made inside it, so it has to be
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
+  // The splash's mark is decoded before its first frame, so the phone's
+  // launch screen hands over to it without the mark blinking.
+  await LaunchMark.precache();
   await ContactMask.load();
   await LanguageChoice.load();
   await LocationBeacon.init();

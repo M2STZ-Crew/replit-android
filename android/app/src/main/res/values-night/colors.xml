@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The app's dark ground, behind the launch screen in Dark Mode. -->
+    <color name="launch_ground">#131313</color>
+</resources>

@@ -1,189 +1,289 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
-import '../theme.dart';
-import '../widgets/design.dart';
-import 'login_screen.dart';
-import 'role_gate.dart';
 import '../i18n/i18n.dart';
+import '../theme.dart';
+import '../widgets/launch_mark.dart';
+import 'call_screen.dart';
+import 'login_screen.dart';
+import 'onboarding_screen.dart';
+import 'role_gate.dart';
 
-/// "01 Splash": the flame-and-pin mark and the "REPLIT" wordmark from the
-/// Figma archive's LOGO section (01 — Existing Design Archive), a short coral
-/// loader, "Connecting to RepLiT", and the locality at the foot. The wordmark
-/// has a version for each ground, so light mode gets the black one rather
-/// than a tinted copy. This and the SOS button are the only two places the
-/// design allows glow (§2.7).
+/// "01 Splash" (the Figma archive's 01 — Existing Design Archive), in two
+/// states.
+///
+/// The trigger: the flame-and-pin mark alone in the middle of the screen,
+/// where and as big as the phone's own launch screen drew it ([LaunchMark]),
+/// so the hand-off from the phone to the app doesn't show. Then loading: the
+/// same, with the coral loader and "Connecting to RepLiT" near the foot, until
+/// the next screen is ready. No wordmark, glow or footer: the reference has
+/// none.
+///
+/// For someone signed in, ready means their home: the splash loads the
+/// account (GET /auth/me) and hands it to [RoleGate], so opening the app never
+/// shows a skeleton. A slow or failed load is answered here, at the foot, with
+/// the same words and ways out RoleGate gives after signing in.
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.api});
+
+  /// The client the account is loaded with (tests give their own).
+  final ApiClient? api;
+
+  /// How long the trigger shows before the loader comes in.
+  static const Duration triggerFor = Duration(milliseconds: 600);
+
+  /// The least the splash shows in all, so the loader is read rather than
+  /// flashed: trigger, then at least 0.8 s of loading.
+  static const Duration shownAtLeast = Duration(milliseconds: 1400);
+
+  /// From the foot of the screen to the foot of the status line: the
+  /// reference's 58 on its 874-high phone. Never closer than 24 above a home
+  /// indicator or navigation bar.
+  static double footGap(EdgeInsets viewPadding) =>
+      math.max(58, viewPadding.bottom + 24);
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-// Two controllers — the breathing halo and the loader — so the plural mixin.
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late final AnimationController _breathe = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 3400),
-  )..repeat(reverse: true);
-
+    with SingleTickerProviderStateMixin {
   late final AnimationController _loader = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1300),
-  )..repeat();
+  );
+
+  late final ApiClient _api = widget.api ?? ApiClient();
+  final Stopwatch _shown = Stopwatch()..start();
+  Timer? _trigger;
+  Timer? _slowTimer;
+
+  /// Past the trigger: the loader and the status line are showing.
+  bool _loading = false;
+
+  /// The account is taking a while: say why, and offer the hotlines.
+  bool _slow = false;
+
+  /// The account didn't load: say so, and offer a way on.
+  bool _failed = false;
 
   @override
   void initState() {
     super.initState();
+    _trigger = Timer(SplashScreen.triggerFor, () {
+      if (!mounted) return;
+      setState(() => _loading = true);
+      _loader.repeat();
+    });
     _boot();
   }
 
   @override
   void dispose() {
-    _breathe.dispose();
+    _trigger?.cancel();
+    _slowTimer?.cancel();
     _loader.dispose();
     super.dispose();
   }
 
   Future<void> _boot() async {
     await Session.instance.restore();
-    if (Session.instance.isAuthenticated) {
-      unawaited(PushService.instance.syncForUser());
-    }
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (!mounted) return;
-    final Widget next = Session.instance.isAuthenticated
-        ? const RoleGate()
-        : const LoginScreen();
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => next));
+    if (!Session.instance.isAuthenticated) return _go(const LoginScreen());
+    unawaited(PushService.instance.syncForUser());
+    await _loadAccount();
   }
 
-  /// How big the logo is drawn on this screen: 1 on the design's 402-wide
-  /// phone, following the narrower side of the screen from there, within
-  /// 0.8 (a 320-wide phone) and 1.25 (tablets).
-  static double logoScale(Size screen) =>
-      (screen.shortestSide / 402).clamp(0.8, 1.25);
+  Future<void> _loadAccount() async {
+    _slowTimer?.cancel();
+    _slowTimer = Timer(ApiClient.slowAfter, () {
+      if (mounted) setState(() => _slow = true);
+    });
+    Widget? next;
+    try {
+      final me = await _api.getMe().timeout(ApiClient.signInTimeout);
+      // A resident's home is the tour the first time, the map after: read
+      // which now, so the first frame after the splash is the right one.
+      await Tour.seen();
+      next = RoleGate(initialMe: me);
+    } on SessionExpiredException {
+      // The stored session was too old to renew and the client has cleared
+      // it: sign in, rather than an error whose Retry re-sends a dead token.
+      await Session.instance.clear();
+      next = const LoginScreen();
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    } finally {
+      _slowTimer?.cancel();
+    }
+    if (next != null) await _go(next);
+  }
 
-  /// The flame-and-pin mark at scale 1: the Figma's 100×140, a fifth
-  /// smaller (the follow-up to the 5 November list).
-  static const Size markSize = Size(80, 112);
+  Future<void> _retry() async {
+    setState(() {
+      _failed = false;
+      _slow = false;
+    });
+    await _loadAccount();
+  }
+
+  /// Drop whatever is stored and start again at the login screen, so nobody
+  /// is cornered here by an account that won't load.
+  Future<void> _signInAgain() async {
+    await Session.instance.clear();
+    await _go(const LoginScreen());
+  }
+
+  Future<void> _go(Widget next) async {
+    final wait = SplashScreen.shownAtLeast - _shown.elapsed;
+    if (wait > Duration.zero) await Future<void>.delayed(wait);
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    final splash = ModalRoute.of(context);
+    final route = MaterialPageRoute<void>(builder: (_) => next);
+    if (splash != null && !splash.isCurrent) {
+      // The hotlines are open over the splash: put the next screen under
+      // them, so Back from the hotlines lands there, and leave the call be.
+      navigator.replace(oldRoute: splash, newRoute: route);
+    } else {
+      unawaited(navigator.pushReplacement(route));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
-    final scale = logoScale(MediaQuery.sizeOf(context));
     return Scaffold(
       backgroundColor: pal.background,
-      body: SafeArea(
-        // Padded, and every line below wraps: at the larger system font
-        // scales people actually use, an unpadded single-line footer runs
-        // off both edges of the screen.
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          // Full width on purpose: a Scaffold body is laid out with loose
-          // constraints, so a Column of fixed-width children shrinks to its
-          // widest one and lands against the left edge instead of the middle.
-          child: SizedBox(
-            width: double.infinity,
-            child: Column(
-              children: [
-                // The frame puts the mark's centre at ~40% and the locality
-                // 64px off the bottom; 3:2 flex keeps that on any height.
-                const Spacer(flex: 3),
-                _markInGlow(scale),
-                SizedBox(height: 32 * scale),
-                Image.asset(
-                  pal.isLight ? Art.wordmarkOnLight : Art.wordmarkOnDark,
-                  width: 128 * scale,
-                  height: 23 * scale,
-                  semanticLabel: 'RepLiT',
-                ),
-                const SizedBox(height: 48),
-                _loaderBar(),
-                const SizedBox(height: 16),
-                // Sentence case, so the name keeps its own capitals.
-                Text(
-                  t('Connecting to RepLiT'),
-                  textAlign: TextAlign.center,
-                  style: context.type.detail.copyWith(
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.2,
+      body: LayoutBuilder(
+        builder: (context, box) {
+          final view = box.biggest;
+          final mark = LaunchMark.sizeFor(view.shortestSide);
+          final centre = LaunchMark.centreIn(context, view);
+          return Stack(
+            children: [
+              Positioned(
+                left: centre.dx - mark.width / 2,
+                top: centre.dy - mark.height / 2,
+                width: mark.width,
+                height: mark.height,
+                child: LaunchMark.image(context, semanticLabel: 'RepLiT'),
+              ),
+              if (_loading || _failed)
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: SplashScreen.footGap(
+                    MediaQuery.viewPaddingOf(context),
+                  ),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 240),
+                    builder: (context, shown, child) =>
+                        Opacity(opacity: shown, child: child),
+                    child: _failed ? _failure() : _status(),
                   ),
                 ),
-                const Spacer(flex: 2),
-                Text(
-                  t('Pasay City'),
-                  textAlign: TextAlign.center,
-                  style: context.type.labelSm,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  t('EMERGENCY RESPONSE NETWORK'),
-                  textAlign: TextAlign.center,
-                  style: context.type.eyebrow.copyWith(
-                    color: context.pal.muted,
-                  ),
-                ),
-                const SizedBox(height: 40),
-              ],
-            ),
-          ),
-        ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  /// The mark at [markSize] times [scale], with its glow ("Mark glow
-  /// (permitted §2.7)") breathing behind it while the session restores. The
-  /// glow spills past the mark without pushing the wordmark down, centred a
-  /// little below the middle, on the round of the flame rather than its tip.
-  Widget _markInGlow(double scale) {
-    final width = markSize.width * scale;
-    final height = markSize.height * scale;
-    final glow = 184 * scale;
-    return SizedBox(
-      width: width,
-      height: height,
-      child: AnimatedBuilder(
-        animation: _breathe,
-        builder: (context, child) => Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
+  /// The loader and "Connecting to RepLiT"; when it is slow, why, and the
+  /// hotlines.
+  Widget _status() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _loaderBar(),
+        const SizedBox(height: 18),
+        // Sentence case, so the name keeps its own capitals.
+        Text(
+          t('Connecting to RepLiT'),
+          textAlign: TextAlign.center,
+          style: context.type.detail.copyWith(
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.2,
+          ),
+        ),
+        if (_slow) ...[
+          const SizedBox(height: 10),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              t(
+                'Still connecting. RepLiT can take up to a minute to wake '
+                'after a quiet spell.',
+              ),
+              textAlign: TextAlign.center,
+              style: context.type.caption.copyWith(color: context.pal.label),
+            ),
+          ),
+          _hotlinesLink(),
+        ],
+      ],
+    );
+  }
+
+  /// The account didn't load: try again, sign in again, or call for help.
+  Widget _failure() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          liveRegion: true,
+          child: Text(
+            t('Could not load your account.'),
+            textAlign: TextAlign.center,
+            style: context.type.detail.copyWith(color: context.pal.muted),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          alignment: WrapAlignment.center,
           children: [
-            Positioned(
-              left: (width - glow) / 2,
-              top: (height - glow) / 2 + 10 * scale,
-              width: glow,
-              height: glow,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      context.pal.accent.withValues(
-                        alpha: 0.16 + _breathe.value * 0.06,
-                      ),
-                      context.pal.accent.withValues(alpha: 0),
-                    ],
-                  ),
+            TextButton(
+              onPressed: _retry,
+              child: Text(
+                t('Retry'),
+                style: TextStyle(
+                  color: context.pal.accent,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            Transform.scale(scale: 1 + _breathe.value * 0.04, child: child),
+            TextButton(
+              onPressed: _signInAgain,
+              child: Text(
+                t('Sign in again'),
+                style: TextStyle(color: context.pal.muted),
+              ),
+            ),
           ],
         ),
-        child: Image.asset(Art.logoMark, width: width, height: height),
-      ),
+        _hotlinesLink(),
+      ],
     );
   }
 
-  /// A 34px coral segment running along a 106px track — the design's loader.
+  /// No account needed, and maybe no signal: the hotlines need neither.
+  Widget _hotlinesLink() => TextButton(
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const CallScreen(guest: true)),
+    ),
+    child: Text(
+      t('Emergency hotlines'),
+      style: TextStyle(color: context.pal.accent, fontWeight: FontWeight.w700),
+    ),
+  );
+
+  /// A 34px coral segment running along a 106px track: the design's loader.
   Widget _loaderBar() {
     const track = 106.0;
     const fill = 34.0;
@@ -205,7 +305,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: context.pal.accent,
-                    borderRadius: BorderRadius.all(Radius.circular(2)),
+                    borderRadius: const BorderRadius.all(Radius.circular(2)),
                   ),
                 ),
               ),
