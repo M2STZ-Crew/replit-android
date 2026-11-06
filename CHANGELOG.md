@@ -6,6 +6,70 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.28 — 7 November 2026 — Email first, change password, Tagalog for staff, the two-state splash
+
+With backend v1.12.21, which has to be deployed first (its migration
+`20261106090000_staff_personal_email.sql` before it), and with
+`REQUIRE_CITIZEN_PHONE_VERIFICATION=false` on Render: this app asks residents
+for no mobile number. No new permission or dependency.
+
+### Changes
+
+**Logic**
+- **"There's a new update!"** (WHAT'S NEXT, 1.1). On Android the app looks for
+  a newer release by itself, once past the splash and when it comes back to
+  the front, at most every six hours, and says so in a banner like an alert's.
+  UPDATE opens Check for updates; closing it keeps it away until a release
+  newer than that one. iPhones are sideloaded and look for nothing.
+- **Change password** (1.2) on Profile for residents and staff: the current
+  password, the new one twice. Other phones and browsers are signed out; this
+  one stays signed in.
+- **Email first** (2.2). Signing in and signing up take an email; the mobile
+  number shows greyed out, "Coming soon", on sign in, on sign up and in
+  Verification, and sign up texts no code. One switch turns it back on
+  (`PhoneNumbers.open`, `lib/models/phone_numbers.dart`).
+- **The app follows the account's language** (1.3): a choice made in the Admin
+  console or on another phone reaches this one at start and at sign-in. A
+  choice made here that the account does not have yet stands, and is sent at
+  the next sign-in.
+- **Staff accounts** (the 6 November list). Making a responder asks for their
+  own email instead of a mobile number, beside the sign-in address now made
+  agency first (`jdelacruz.firres@replit.com`); the link to set the password
+  goes there, so there is nothing to hand over. A staff Profile whose sign-in
+  is at @replit.com has a Personal email row, where password links go.
+
+**UI**
+- **The splash in two states** (2.1), as the Figma's 01 Splash: the
+  flame-and-pin mark alone in the middle of the screen, then the coral loader
+  and "Connecting to RepLiT" at the foot. No wordmark, glow or footer. The
+  phone's own launch screen hands over to it without a seam: the same image at
+  the same size and place on Android (12+ and 11 and older) and on the iPhone,
+  Android 13+ on the app's own ground, the mark decoded before the first frame,
+  and Android's slide-and-fade exit off.
+- **Opening the app signed in shows no skeleton**: the splash stays until the
+  account is loaded, and answers a slow or failed load itself. The skeleton
+  remains only right after signing in, under the new mark.
+- **Staff screens in Tagalog** (1.3): every line on the coordinator and
+  responder screens and the older staff screens, 749 lines of B1 Tagalog.
+  Language, Light mode and Change password are on the staff Profile.
+- **Light mode for coordinators and responders**, and the older staff screens
+  follow it instead of keeping dark colours.
+- **"200 M FROM YOU"** on the nearby alert reads over the title in the accent
+  ink, as the Figma has it, on both grounds; it was dark on dark in light mode.
+- **"Are you safe?"** on the nearby alert comes in Tagalog too.
+
+### Verified
+
+- `flutter analyze`; `flutter test` (682 passed).
+- On the Pixel 6 emulator (Android 15, a debug build): the launch screen and
+  the splash measured frame by frame, the mark the same size and place to a
+  pixel, no dim frame at the hand-off, the dark ground on a phone in light mode
+  from the second launch on.
+- Not run: a release build on a phone, an iPhone, Android 11 or older, a
+  password change or a staff account against the live server.
+
+---
+
 ## v1.12.27 — 6 November 2026 — Open the installer again, a smaller logo, "New to the app?"
 
 With backend v1.12.20; nothing new needed from it. No new setting, permission
