@@ -6,6 +6,7 @@ import '../theme.dart';
 import 'app_icons.dart';
 import 'design.dart';
 import 'sheet_grip.dart';
+import '../i18n/i18n.dart';
 
 /// The REPLIT (MAIN) 04 components the Coordinator Experience (06) is built
 /// from and the rest of the app had not needed yet: the tab and detail screen
@@ -623,10 +624,12 @@ class ConfidenceMeter extends StatelessWidget {
       _ => 0,
     };
     final spread = reports < 2
-        ? 'One report, no spread yet'
+        ? t('One report, no spread yet')
         : s <= 0
-        ? 'Spread over 300 m'
-        : 'Spread ${((1 - s) * kAreaRadiusMetres).round()} m';
+        ? t('Spread over 300 m')
+        : t('Spread {value} m', {
+            'value': ((1 - s) * kAreaRadiusMetres).round(),
+          });
     final value = context.type.rowValue.copyWith(color: pal.onBackground);
     Widget row(String label, String figure) => Padding(
       padding: const EdgeInsets.only(top: 6),
@@ -653,7 +656,7 @@ class ConfidenceMeter extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Confidence',
+                t('Confidence'),
                 style: context.type.label.copyWith(color: pal.textSoft),
               ),
             ),
@@ -684,15 +687,15 @@ class ConfidenceMeter extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         row(
-          'Corroboration (×0.4)',
+          t('Corroboration (×0.4)'),
           reports >= 10
-              ? '$reports reports, full weight'
-              : '$reports of 10 reports',
+              ? t('{reports} reports, full weight', {'reports': reports})
+              : t('{reports} of 10 reports', {'reports': reports}),
         ),
-        row('Spatial agreement (×0.3)', spread),
+        row(t('Spatial agreement (×0.3)'), spread),
         row(
-          'Source credibility (×0.3)',
-          'Reporters average ${(v * 100).round()}%',
+          t('Source credibility (×0.3)'),
+          t('Reporters average {value}%', {'value': (v * 100).round()}),
         ),
       ],
     );
@@ -732,15 +735,19 @@ class LifecycleRail extends StatelessWidget {
     final pal = context.pal;
     final at = indexOf(status);
     return Semantics(
-      label: 'Progress: ${steps[at]}, step ${at + 1} of ${steps.length}',
+      label: t('Progress: {value}, step {value2} of {count}', {
+        'value': t(steps[at]),
+        'value2': at + 1,
+        'count': steps.length,
+      }),
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Expanded(child: Eyebrow('Progress', color: pal.label)),
-              Text(steps[at].toUpperCase(), style: context.type.subtitle),
+              Expanded(child: Eyebrow(t('Progress'), color: pal.label)),
+              Text(t(steps[at]).toUpperCase(), style: context.type.subtitle),
             ],
           ),
           const SizedBox(height: 8),
@@ -766,7 +773,7 @@ class LifecycleRail extends StatelessWidget {
               for (var i = 0; i < steps.length; i++)
                 Expanded(
                   child: Text(
-                    steps[i],
+                    t(steps[i]),
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.fade,
@@ -824,7 +831,7 @@ class SummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Eyebrow('Summary', color: pal.accentInk)),
+              Expanded(child: Eyebrow(t('Summary'), color: pal.accentInk)),
               if (meta != null)
                 Text(
                   meta!,
@@ -837,8 +844,10 @@ class SummaryCard extends StatelessWidget {
             ready
                 ? text!.trim()
                 : writing
-                ? 'Lit is writing the summary. The reports below are the full '
-                      'record until it is ready.'
+                ? t(
+                    'Lit is writing the summary. The reports below are the full '
+                    'record until it is ready.',
+                  )
                 : empty,
             style: context.type.body.copyWith(
               color: ready ? pal.textSoft : pal.label,
@@ -1205,7 +1214,7 @@ class AreaPlace extends StatelessWidget {
 String placeLine(AreaView area, PlaceName place) {
   final c = area.centre;
   return place.line ??
-      (c == null ? 'Location unknown' : degrees(c.latitude, c.longitude));
+      (c == null ? t('Location unknown') : degrees(c.latitude, c.longitude));
 }
 
 /// One box of a multi-select list (Checkbox): a 22px box and its label, the
@@ -1368,8 +1377,8 @@ class ProgressStep extends StatelessWidget {
     final pal = context.pal;
     final word = switch (state) {
       ProgressState.done => 'done',
-      ProgressState.current => 'under way',
-      ProgressState.pending => 'not under way',
+      ProgressState.current => t('under way'),
+      ProgressState.pending => t('not under way'),
     };
     return Semantics(
       label: '$title, $word${detail == null ? '' : '. $detail'}',
@@ -1472,10 +1481,11 @@ class CapabilitiesScreen extends StatelessWidget {
           children: [
             DetailHeader(
               eyebrow: eyebrow,
-              title: 'What you can do',
-              subtitle:
-                  'The server enforces these rules. This screen only mirrors '
-                  'them.',
+              title: t('What you can do'),
+              subtitle: t(
+                'The server enforces these rules. This screen only mirrors '
+                'them.',
+              ),
             ),
             Expanded(
               child: ScrollFade(
@@ -1487,11 +1497,11 @@ class CapabilitiesScreen extends StatelessWidget {
                     kScrollFadeEndPadding,
                   ),
                   children: [
-                    const SectionHeader('You can'),
+                    SectionHeader(t('You can')),
                     const SizedBox(height: 12),
                     for (final c in can) row(c, allowed: true),
                     const SizedBox(height: 8),
-                    const SectionHeader("You can't"),
+                    SectionHeader(t("You can't")),
                     const SizedBox(height: 12),
                     for (final c in cannot) row(c, allowed: false),
                   ],

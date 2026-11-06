@@ -12,6 +12,7 @@ import '../../widgets/staff_account_section.dart';
 import '../../widgets/staff_shell.dart';
 import 'responder_feed.dart';
 import 'responder_status.dart';
+import '../../i18n/i18n.dart';
 
 /// Profile (REPLIT (MAIN) 07 · R13): who you are and which unit, the sounds
 /// and voice of a run, and what you can do.
@@ -65,27 +66,32 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
     final agency = widget.feed.agency;
     final fire = isFireCrew(agency);
     return CapabilitiesScreen(
-      eyebrow: 'Responder · ${agencyLabel(agency)}',
+      eyebrow: t('Responder · {agencyLabel}', {
+        'agencyLabel': agencyLabel(agency),
+      }),
       can: [
-        ('Go to an Area', 'I am going — verifies it if it is still Reported'),
-        ('Verify an Area', 'Without going, while it is still Reported'),
-        ('Choose your route', 'Up to three, all passable by a truck'),
-        ('Mark arrived', 'Or arrive on your own when you reach the Area'),
         (
-          'Share your position on a run',
-          'Every 5 seconds, from going to fire out',
+          t('Go to an Area'),
+          t('I am going — verifies it if it is still Reported'),
+        ),
+        (t('Verify an Area'), t('Without going, while it is still Reported')),
+        (t('Choose your route'), t('Up to three, all passable by a truck')),
+        (t('Mark arrived'), t('Or arrive on your own when you reach the Area')),
+        (
+          t('Share your position on a run'),
+          t('Every 5 seconds, from going to fire out'),
         ),
         if (fire)
-          ('Call for water or help', 'A code to command and every unit'),
+          (t('Call for water or help'), t('A code to command and every unit')),
         if (mayRequestAlarm(agency))
-          ('Ask BFP to raise the alarm', 'BFP sets the level'),
+          (t('Ask BFP to raise the alarm'), t('BFP sets the level')),
       ],
-      cannot: const [
-        ('Reject an Area', 'Coordinators only'),
-        ('Mark fire out', 'The Captain on scene'),
+      cannot: [
+        (t('Reject an Area'), t('Coordinators only')),
+        (t('Mark fire out'), t('The Captain on scene')),
         (
-          'File the post-incident report',
-          'The Captain files for the whole team',
+          t('File the post-incident report'),
+          t('The Captain files for the whole team'),
         ),
       ],
     );
@@ -95,7 +101,7 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
   Widget build(BuildContext context) {
     final pal = context.pal;
     final name =
-        (_me['full_name'] as String?) ?? (_me['email'] as String?) ?? 'You';
+        (_me['full_name'] as String?) ?? (_me['email'] as String?) ?? t('You');
     final agency = agencyLabel(widget.feed.agency);
     const gap = SizedBox(height: 8);
     return SafeArea(
@@ -103,7 +109,7 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const TabHeader(eyebrow: 'Account', title: 'Profile'),
+          TabHeader(eyebrow: t('Account'), title: t('Profile')),
           Expanded(
             child: ScrollFade(
               child: ListView(
@@ -117,16 +123,20 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
                   ListRow(
                     leading: AgencyPlate(agency: widget.feed.agency ?? ''),
                     title: name,
-                    subtitle: 'Responder — $agency, ${widget.feed.unit}',
+                    subtitle: t('Responder — {agency}, {unit}', {
+                      'agency': agency,
+                      'unit': widget.feed.unit,
+                    }),
                   ),
                   const SizedBox(height: 16),
-                  const SectionHeader('Settings'),
+                  SectionHeader(t('Settings')),
                   const SizedBox(height: 12),
                   ListRow(
                     leading: const IconPlate(AppIcons.volumeUp),
-                    title: 'Incident sounds',
-                    subtitle:
-                        'A longer alert when an Area asks for your agency',
+                    title: t('Incident sounds'),
+                    subtitle: t(
+                      'A longer alert when an Area asks for your agency',
+                    ),
                     trailing: Switch(
                       value: _alarmOn ?? true,
                       onChanged: _alarmOn == null ? null : _setAlarm,
@@ -140,8 +150,8 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
                     valueListenable: _voice.enabled,
                     builder: (context, on, _) => ListRow(
                       leading: const IconPlate(AppIcons.recordVoiceOver),
-                      title: 'Voice directions',
-                      subtitle: 'Spoken turn-by-turn on runs',
+                      title: t('Voice directions'),
+                      subtitle: t('Spoken turn-by-turn on runs'),
                       trailing: Switch(
                         value: on,
                         onChanged: (v) => _voice.setEnabled(v),
@@ -152,19 +162,19 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.explore),
-                    title: 'Map rotation',
-                    subtitle: 'Heading-up while moving, compass when still',
-                    trailing: RowValue('Hybrid', color: pal.onBackground),
+                    title: t('Map rotation'),
+                    subtitle: t('Heading-up while moving, compass when still'),
+                    trailing: RowValue(t('Hybrid'), color: pal.onBackground),
                   ),
                   const SizedBox(height: 16),
                   StaffAccountSection(api: widget.feed.api, me: _me),
                   const SizedBox(height: 16),
-                  const SectionHeader('More'),
+                  SectionHeader(t('More')),
                   const SizedBox(height: 12),
                   ListRow(
                     leading: const IconPlate(AppIcons.info),
-                    title: 'What you can do',
-                    subtitle: 'Your actions as a Responder',
+                    title: t('What you can do'),
+                    subtitle: t('Your actions as a Responder'),
                     chevron: true,
                     onTap: () => _push(_capabilities()),
                   ),
@@ -172,17 +182,19 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
                     gap,
                     ListRow(
                       leading: const IconPlate(AppIcons.download),
-                      title: 'Check for updates',
+                      title: t('Check for updates'),
                       subtitle: AppVersion.label.isEmpty
-                          ? 'Get the newest version of RepLiT'
-                          : 'Version ${AppVersion.label} installed',
+                          ? t('Get the newest version of RepLiT')
+                          : t('Version {label} installed', {
+                              'label': AppVersion.label,
+                            }),
                       chevron: true,
                       onTap: () => showUpdateSheet(context),
                     ),
                   ],
                   const SizedBox(height: 24),
                   AppButton.danger(
-                    'Log out',
+                    t('Log out'),
                     icon: AppIcons.logout,
                     onPressed: () => staffSignOut(
                       Navigator.of(context),

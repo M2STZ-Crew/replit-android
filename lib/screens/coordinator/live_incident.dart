@@ -28,6 +28,7 @@ import '../subadmin/post_incident_report_screen.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// A unit within this distance of the Area's centre is on scene.
 const double _onSceneMetres = 100;
@@ -79,16 +80,17 @@ class LiveTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const TabHeader(eyebrow: 'Live', title: 'Nothing under way'),
+                TabHeader(eyebrow: t('Live'), title: t('Nothing under way')),
                 Expanded(
                   child: feed.loaded
-                      ? const EmptyState(
+                      ? EmptyState(
                           icon: AppIcons.localFireDepartment,
-                          title: 'No incident is live',
-                          body:
-                              'An Area shows here once it is accepted, with '
-                              'the units on their way and on scene. The queue '
-                              'has what is waiting on you.',
+                          title: t('No incident is live'),
+                          body: t(
+                            'An Area shows here once it is accepted, with '
+                            'the units on their way and on scene. The queue '
+                            'has what is waiting on you.',
+                          ),
                         )
                       : const SkeletonList(rows: 3, trailing: true),
                 ),
@@ -286,7 +288,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not do that. Check your connection.');
+      if (mounted) _toast(t('Could not do that. Check your connection.'));
     } finally {
       await _load();
       if (mounted) setState(() => _busy = false);
@@ -304,11 +306,11 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     await _act(() async {
       await _api.selfDispatch(widget.areaId, vehicleName: choice.unit);
       if (choice.unit != null) await GoSheet.remember(choice.unit!);
-    }, 'You are responding. Your location is shared while you go.');
+    }, t('You are responding. Your location is shared while you go.'));
   }
 
   void _arrived() =>
-      _act(() => _api.markArrived(widget.areaId), 'Marked on scene.');
+      _act(() => _api.markArrived(widget.areaId), t('Marked on scene.'));
 
   Future<void> _route() async {
     final area = _area;
@@ -333,24 +335,37 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
       builder: (context) => SheetFrame(
         children: [
           SheetTitles(
-            eyebrow: 'Confirm · can\'t be undone',
-            title: 'Mark ${area.name} fire out?',
-            body:
-                '${units.isEmpty ? 'Everyone responding' : andList(units)} '
-                '${units.length == 1 ? 'stands' : 'stand'} down and '
-                '${units.length == 1 ? 'stops' : 'stop'} sharing location. '
-                'The Area moves to To file until you submit its '
-                'post-incident report.',
+            eyebrow: t('Confirm · can\'t be undone'),
+            title: t('Mark {name} fire out?', {'name': area.name}),
+            body: units.isEmpty
+                ? t(
+                    'Everyone responding stands down and stops sharing '
+                    'location. The Area moves to To file until you submit its '
+                    'post-incident report.',
+                  )
+                : units.length == 1
+                ? t(
+                    '{unit} stands down and stops sharing location. The Area '
+                    'moves to To file until you submit its post-incident '
+                    'report.',
+                    {'unit': units.single},
+                  )
+                : t(
+                    '{units} stand down and stop sharing location. The Area '
+                    'moves to To file until you submit its post-incident '
+                    'report.',
+                    {'units': andList(units)},
+                  ),
           ),
           const SizedBox(height: 16),
           AppButton(
-            'Yes, mark fire out',
+            t('Yes, mark fire out'),
             run: true,
             onPressed: () => Navigator.of(context).pop(true),
           ),
           const SizedBox(height: 10),
           AppButton.secondary(
-            'Not yet, keep it live',
+            t('Not yet, keep it live'),
             onPressed: () => Navigator.of(context).pop(false),
           ),
         ],
@@ -372,7 +387,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not mark fire out. Check your connection.');
+      if (mounted) _toast(t('Could not mark fire out. Check your connection.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -404,7 +419,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
       if (waiting == null) return;
       await _act(
         () => _api.cancelAlarmRequest(waiting.id),
-        'Request taken back. BFP no longer sees it.',
+        t('Request taken back. BFP no longer sees it.'),
       );
       return;
     }
@@ -414,7 +429,9 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         alarmLevel: level,
         justification: ask.why,
       ),
-      'Asked BFP for ${alarmWord(level)}. You are told when they answer.',
+      t('Asked BFP for {alarmWord}. You are told when they answer.', {
+        'alarmWord': alarmWord(level),
+      }),
     );
   }
 
@@ -423,23 +440,29 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     if (_powers.decidesAlarm) {
       final n = _asks.where((r) => r.waiting).length;
       return switch (n) {
-        0 => 'Set by BFP · nothing waiting on you',
-        1 => '1 request waiting on you',
-        _ => '$n requests waiting on you',
+        0 => t('Set by BFP · nothing waiting on you'),
+        1 => t('1 request waiting on you'),
+        _ => t('{n} requests waiting on you', {'n': n}),
       };
     }
-    if (!_powers.requestsAlarm) return 'Set by BFP';
+    if (!_powers.requestsAlarm) return t('Set by BFP');
     final ask = _myAsk;
     final at = ask?.answeredAt;
     final when = at == null ? '' : ' ${agoText(at)}';
     return switch (ask?.status) {
-      'pending' => 'You asked for ${alarmWord(ask!.level)} · waiting for BFP',
-      'approved' when ask!.level == area.alarmLevel =>
-        'BFP set ${alarmWord(ask.level)}$when, as you asked',
-      'rejected' =>
-        'BFP declined ${alarmWord(ask!.level)}$when'
-            '${ask.notes == null ? '' : ': ${ask.notes}'}',
-      _ => 'Set by BFP · ask them to raise it',
+      'pending' => t('You asked for {alarmWord} · waiting for BFP', {
+        'alarmWord': alarmWord(ask!.level),
+      }),
+      'approved' when ask!.level == area.alarmLevel => t(
+        'BFP set {alarmWord}{when}, as you asked',
+        {'alarmWord': alarmWord(ask.level), 'when': when},
+      ),
+      'rejected' => t('BFP declined {alarmWord}{when}{value}', {
+        'alarmWord': alarmWord(ask!.level),
+        'when': when,
+        'value': ask.notes == null ? '' : ': ${ask.notes}',
+      }),
+      _ => t('Set by BFP · ask them to raise it'),
     };
   }
 
@@ -464,7 +487,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     if (reason == null || !mounted) return;
     await _act(
       () => _api.rejectIncident(widget.areaId, reason),
-      '${area.name} rejected. It has left the live feed.',
+      t('{name} rejected. It has left the live feed.', {'name': area.name}),
     );
   }
 
@@ -487,7 +510,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
       if (d['status'] != 'active') continue;
       final vehicle = (d['vehicle_name'] as String?)?.trim();
       final name = vehicle == null || vehicle.isEmpty
-          ? ((d['responder_name'] as String?)?.trim() ?? 'Responder')
+          ? ((d['responder_name'] as String?)?.trim() ?? t('Responder'))
           : vehicle;
       groups.putIfAbsent(name, () => []).add(d);
     }
@@ -699,7 +722,9 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                             [
                               area.name,
                               if (accepted != null)
-                                'accepted ${agoText(accepted)}',
+                                t('accepted {agoText}', {
+                                  'agoText': agoText(accepted),
+                                }),
                             ].join(' · '),
                             textAlign: TextAlign.right,
                             maxLines: 1,
@@ -716,10 +741,10 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                       header: true,
                       child: Text(
                         going == 0
-                            ? 'NOBODY GOING YET'
+                            ? t('NOBODY GOING YET')
                             : going == 1
-                            ? '1 UNIT RESPONDING'
-                            : '$going UNITS RESPONDING',
+                            ? t('1 UNIT RESPONDING')
+                            : t('{going} UNITS RESPONDING', {'going': going}),
                         style: context.type.title,
                       ),
                     ),
@@ -749,7 +774,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                         AppIcons.warning,
                         tint: _asks.any((r) => r.waiting) ? pal.live : null,
                       ),
-                      title: 'Alarm level',
+                      title: t('Alarm level'),
                       subtitle: _alarmLine(area),
                       trailing: RowValue(alarmWord(area.alarmLevel)),
                       chevron: _powers.requestsAlarm || _powers.decidesAlarm,
@@ -762,8 +787,10 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                     const SizedBox(height: 12),
                     ListRow(
                       leading: const IconPlate(AppIcons.description),
-                      title: 'Area details',
-                      subtitle: 'Where it is, confidence, summary and reports',
+                      title: t('Area details'),
+                      subtitle: t(
+                        'Where it is, confidence, summary and reports',
+                      ),
                       chevron: true,
                       onTap: _details,
                     ),
@@ -774,7 +801,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                       // Directions only: nothing is recorded, as on a responder's
                       // Area before they go.
                       AppButton(
-                        'Route to the fire',
+                        t('Route to the fire'),
                         run: true,
                         icon: AppIcons.directions,
                         onPressed: _route,
@@ -783,7 +810,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                     ],
                     if (_powers.marksFireOut)
                       AppButton.secondary(
-                        'Mark fire out',
+                        t('Mark fire out'),
                         busy: _busy,
                         onPressed: _busy ? null : _fireOut,
                       ),
@@ -792,17 +819,18 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                             area.status == 'verified'))
                       Center(
                         child: TextLink(
-                          'Reject this Area',
+                          t('Reject this Area'),
                           color: pal.live,
                           onTap: _reject,
                         ),
                       ),
                     if (!_powers.coordinates)
-                      const InlineAlert(
-                        body:
-                            'You follow this Area here, and can get directions to '
-                            'it. Fire Volunteer and BFP coordinators and responders '
-                            'run the response: going, fire out and the report.',
+                      InlineAlert(
+                        body: t(
+                          'You follow this Area here, and can get directions to '
+                          'it. Fire Volunteer and BFP coordinators and responders '
+                          'run the response: going, fire out and the report.',
+                        ),
                       ),
                   ],
                 ),
@@ -818,7 +846,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     if (mine == null) {
       return [
         AppButton(
-          'I am going',
+          t('I am going'),
           run: true,
           busy: _busy,
           onPressed: _busy ? null : _go,
@@ -829,7 +857,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     return [
       if (area.status != 'arrived') ...[
         AppButton(
-          'Mark arrived',
+          t('Mark arrived'),
           run: true,
           busy: _busy,
           onPressed: _busy ? null : _arrived,
@@ -837,7 +865,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         const SizedBox(height: 10),
       ],
       AppButton.secondary(
-        'Route to the fire',
+        t('Route to the fire'),
         icon: AppIcons.directions,
         onPressed: _route,
       ),
@@ -861,15 +889,20 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     final String subtitle;
     if (onScene) {
       subtitle = away == null
-          ? 'The Area is marked on scene'
-          : 'Within ${_onSceneMetres.round()} m of the fire';
+          ? t('The Area is marked on scene')
+          : t('Within {_onSceneMetres} m of the fire', {
+              '_onSceneMetres': _onSceneMetres.round(),
+            });
     } else if (away == null) {
-      subtitle = 'No location yet';
+      subtitle = t('No location yet');
     } else {
       subtitle = [
-        '${formatDistance(away)} away',
-        if (stale) 'last seen ${agoText(fixAt)}' else if (moving) 'moving',
-        if (!stale) 'updates every 5 s',
+        t('{formatDistance} away', {'formatDistance': formatDistance(away)}),
+        if (stale)
+          t('last seen {agoText}', {'agoText': agoText(fixAt)})
+        else if (moving)
+          'moving',
+        if (!stale) t('updates every 5 s'),
       ].join(' · ');
     }
     final tone = onScene ? pal.ok : (away == null ? pal.label : pal.info);
@@ -878,9 +911,11 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         AppIcons.fireTruck,
         tint: away == null && !onScene ? null : tone,
       ),
-      title: crew > 1 ? '${u.name} · $crew crew' : u.name,
+      title: crew > 1
+          ? t('{name} · {crew} crew', {'name': u.name, 'crew': crew})
+          : u.name,
       subtitle: subtitle,
-      trailing: RowValue(onScene ? 'On scene' : 'En route', color: tone),
+      trailing: RowValue(onScene ? t('On scene') : t('En route'), color: tone),
     );
   }
 }

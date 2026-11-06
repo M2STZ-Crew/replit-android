@@ -16,6 +16,7 @@ import 'post_incident_report_screen.dart';
 import 'subadmin_incident_command_screen.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/motion.dart';
+import '../../i18n/i18n.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _panel => ThemeChoice.palette.glassDim;
@@ -201,7 +202,7 @@ class _SubAdminIncidentReportScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _toast('Action failed. Check your connection.');
+        _toast(t('Action failed. Check your connection.'));
       }
     }
   }
@@ -214,7 +215,7 @@ class _SubAdminIncidentReportScreenState
         return AlertDialog(
           backgroundColor: context.pal.surface,
           title: Text(
-            'Reject incident',
+            t('Reject incident'),
             style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
           ),
           content: TextField(
@@ -222,19 +223,22 @@ class _SubAdminIncidentReportScreenState
             autofocus: true,
             style: TextStyle(color: _ink),
             decoration: InputDecoration(
-              hintText: 'Reason (e.g. false report)',
+              hintText: t('Reason (e.g. false report)'),
               hintStyle: TextStyle(color: context.pal.darkText),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(),
-              child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
+              child: Text(
+                t('CANCEL'),
+                style: TextStyle(color: context.pal.muted),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(ctrl.text.trim()),
               child: Text(
-                'REJECT',
+                t('REJECT'),
                 style: TextStyle(color: _red, fontWeight: FontWeight.w800),
               ),
             ),
@@ -245,7 +249,7 @@ class _SubAdminIncidentReportScreenState
     if (reason == null || reason.isEmpty) return;
     _run(
       () => _api.rejectIncident(widget.areaId, reason),
-      'Incident rejected.',
+      t('Incident rejected.'),
     );
   }
 
@@ -254,11 +258,11 @@ class _SubAdminIncidentReportScreenState
     setState(() => _busy = true);
     try {
       await _api.verifyIncident(widget.areaId);
-      if (mounted) _toast('Verified. Respond if you are going.');
+      if (mounted) _toast(t('Verified. Respond if you are going.'));
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not verify. Check your connection.');
+      if (mounted) _toast(t('Could not verify. Check your connection.'));
     } finally {
       await _loadDetail();
       if (mounted) setState(() => _busy = false);
@@ -273,7 +277,7 @@ class _SubAdminIncidentReportScreenState
     try {
       await _api.selfDispatch(widget.areaId);
       if (!mounted) return;
-      _toast('You are responding. Your location is shared while you go.');
+      _toast(t('You are responding. Your location is shared while you go.'));
       await navigator.pushReplacement(
         MaterialPageRoute(
           builder: (_) => SubAdminIncidentCommandScreen(
@@ -292,7 +296,7 @@ class _SubAdminIncidentReportScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _toast('Could not respond. Check your connection.');
+        _toast(t('Could not respond. Check your connection.'));
       }
     }
   }
@@ -319,22 +323,25 @@ class _SubAdminIncidentReportScreenState
       builder: (dctx) => AlertDialog(
         backgroundColor: context.pal.surface,
         title: Text(
-          'Fire out?',
+          t('Fire out?'),
           style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
         ),
         content: Text(
-          'Mark this incident resolved and stop the response.',
+          t('Mark this incident resolved and stop the response.'),
           style: TextStyle(color: context.pal.muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(false),
-            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
+            child: Text(
+              t('CANCEL'),
+              style: TextStyle(color: context.pal.muted),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(true),
             child: Text(
-              'FIRE OUT',
+              t('FIRE OUT'),
               style: TextStyle(
                 color: context.pal.accent,
                 fontWeight: FontWeight.w800,
@@ -360,7 +367,7 @@ class _SubAdminIncidentReportScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _toast('Could not resolve. Check your connection.');
+        _toast(t('Could not resolve. Check your connection.'));
       }
     }
   }
@@ -376,7 +383,7 @@ class _SubAdminIncidentReportScreenState
       child: StaffScaffold(
         me: widget.me,
         page: StaffPage.incidents,
-        title: 'Citizen report',
+        title: t('Citizen report'),
         body: ScrollFade(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
@@ -404,12 +411,15 @@ class _SubAdminIncidentReportScreenState
           _photo(r['photo_url'] as String?),
           const SizedBox(height: 20),
           ..._fields([
-            [desc?.isNotEmpty == true ? desc! : '---', 'DESCRIPTION'],
-            [reporter?.isNotEmpty == true ? reporter! : '---', 'REPORTED BY'],
-            [_reportedStr(r['created_at'] as String?), 'REPORTED'],
-            [_coordStr(_lat, _lng), 'COORDINATES'],
-            [_address ?? '---', 'ADDRESS'],
-            [_verifiedByName ?? '---', 'VERIFIED BY'],
+            [desc?.isNotEmpty == true ? desc! : '---', t('DESCRIPTION')],
+            [
+              reporter?.isNotEmpty == true ? reporter! : '---',
+              t('REPORTED BY'),
+            ],
+            [_reportedStr(r['created_at'] as String?), t('REPORTED')],
+            [_coordStr(_lat, _lng), t('COORDINATES')],
+            [_address ?? '---', t('ADDRESS')],
+            [_verifiedByName ?? '---', t('VERIFIED BY')],
           ]),
           const SizedBox(height: 20),
           _map(),
@@ -419,7 +429,7 @@ class _SubAdminIncidentReportScreenState
             OutlinedButton.icon(
               onPressed: _route,
               icon: const Icon(AppIcons.directions),
-              label: const Text('ROUTE TO THE FIRE'),
+              label: Text(t('ROUTE TO THE FIRE')),
             ),
           ],
           const SizedBox(height: 24),
@@ -431,10 +441,10 @@ class _SubAdminIncidentReportScreenState
 
   Widget _photo(String? url) {
     final image = url == null
-        ? const PlaceholderBox(
+        ? PlaceholderBox(
             width: double.infinity,
             height: double.infinity,
-            label: 'NO PHOTO',
+            label: t('NO PHOTO'),
             icon: AppIcons.photo,
             radius: 14,
           )
@@ -458,10 +468,10 @@ class _SubAdminIncidentReportScreenState
                       ),
                     ),
                   ),
-            errorBuilder: (context, error, stack) => const PlaceholderBox(
+            errorBuilder: (context, error, stack) => PlaceholderBox(
               width: double.infinity,
               height: double.infinity,
-              label: 'PHOTO UNAVAILABLE',
+              label: t('PHOTO UNAVAILABLE'),
               icon: AppIcons.brokenImage,
               radius: 14,
             ),
@@ -476,7 +486,11 @@ class _SubAdminIncidentReportScreenState
               // Tap to look closely: full screen, pinch or double-tap to zoom.
               onTap: url == null
                   ? null
-                  : () => openPhoto(context, url, label: 'Reported fire photo'),
+                  : () => openPhoto(
+                      context,
+                      url,
+                      label: t('Reported fire photo'),
+                    ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
@@ -534,10 +548,10 @@ class _SubAdminIncidentReportScreenState
     final lat = _lat;
     final lng = _lng;
     if (lat == null || lng == null) {
-      return const PlaceholderBox(
+      return PlaceholderBox(
         width: double.infinity,
         height: 170,
-        label: 'NO LOCATION',
+        label: t('NO LOCATION'),
         icon: AppIcons.locationOff,
         radius: 14,
       );
@@ -557,22 +571,26 @@ class _SubAdminIncidentReportScreenState
     final s = _status;
     if (s == 'post_incident_report') {
       return _infoBanner(
-        'Fire out. The Post-Incident Report is still owed — file it from '
-        'Pending reports in the menu.',
+        t(
+          'Fire out. The Post-Incident Report is still owed — file it from '
+          'Pending reports in the menu.',
+        ),
       );
     }
     if (kAfterFireOut.contains(s)) {
       return _infoBanner(
         s == 'closed'
-            ? 'Closed — Post-Incident Report filed.'
-            : 'This incident has been resolved.',
+            ? t('Closed — Post-Incident Report filed.')
+            : t('This incident has been resolved.'),
       );
     }
     if (s == 'rejected') {
       return _infoBanner(
         (_rejectionReason?.isNotEmpty == true)
-            ? 'Rejected: ${_rejectionReason!}'
-            : 'This incident was rejected.',
+            ? t('Rejected: {_rejectionReason}', {
+                '_rejectionReason': _rejectionReason!,
+              })
+            : t('This incident was rejected.'),
       );
     }
 
@@ -586,9 +604,9 @@ class _SubAdminIncidentReportScreenState
       children.add(
         Row(
           children: [
-            Expanded(child: _gradientButton('VERIFY', _verify)),
+            Expanded(child: _gradientButton(t('VERIFY'), _verify)),
             const SizedBox(width: 16),
-            Expanded(child: _darkButton('REJECT', _reject)),
+            Expanded(child: _darkButton(t('REJECT'), _reject)),
           ],
         ),
       );
@@ -596,22 +614,24 @@ class _SubAdminIncidentReportScreenState
       if (_responding) {
         children.add(
           _infoBanner(
-            'You are responding. Open the incident from the map for the live '
-            'response.',
+            t(
+              'You are responding. Open the incident from the map for the live '
+              'response.',
+            ),
           ),
         );
       } else {
-        children.add(_gradientButton("RESPOND — I'M GOING", _respond));
+        children.add(_gradientButton(t("RESPOND — I'M GOING"), _respond));
       }
       children.add(const SizedBox(height: 12));
-      final resolve = _darkButton('FIRE OUT', _fireOut);
+      final resolve = _darkButton(t('FIRE OUT'), _fireOut);
       if (canReject) {
         children.add(
           Row(
             children: [
               Expanded(child: resolve),
               const SizedBox(width: 16),
-              Expanded(child: _darkButton('REJECT', _reject)),
+              Expanded(child: _darkButton(t('REJECT'), _reject)),
             ],
           ),
         );
@@ -619,7 +639,7 @@ class _SubAdminIncidentReportScreenState
         children.add(resolve);
       }
     } else {
-      children.add(_infoBanner('No actions available for this incident.'));
+      children.add(_infoBanner(t('No actions available for this incident.')));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

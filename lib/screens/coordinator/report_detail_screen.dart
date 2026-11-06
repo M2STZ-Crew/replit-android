@@ -7,6 +7,7 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../../widgets/photo_viewer.dart';
+import '../../i18n/i18n.dart';
 
 /// One report in an Area, as staff see it: the photo (staff-only), who sent
 /// it and how verified they are, when, what they asked for, what they wrote,
@@ -45,11 +46,12 @@ class ReportDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DetailHeader(
-              eyebrow: 'Report $number',
-              title: name == null || name.isEmpty ? 'Resident' : name,
-              subtitle:
-                  '$pct% verified'
-                  '${at == null ? '' : ' · ${whenText(at)}'}',
+              eyebrow: t('Report {number}', {'number': number}),
+              title: name == null || name.isEmpty ? t('Resident') : name,
+              subtitle: t('{pct}% verified{value}', {
+                'pct': pct,
+                'value': at == null ? '' : ' · ${whenText(at)}',
+              }),
             ),
             Expanded(
               child: ScrollFade(
@@ -64,7 +66,7 @@ class ReportDetailScreen extends StatelessWidget {
                     if (photo != null) ...[
                       GestureDetector(
                         onTap: () =>
-                            openPhoto(context, photo, label: 'Report photo'),
+                            openPhoto(context, photo, label: t('Report photo')),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(AppRadius.card),
                           child: AspectRatio(
@@ -86,14 +88,16 @@ class ReportDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    const SectionHeader('What they sent'),
+                    SectionHeader(t('What they sent')),
                     const SizedBox(height: 12),
                     ListRow(
                       leading: const IconPlate(AppIcons.description),
                       title: notes == null || notes.isEmpty
-                          ? 'No description'
+                          ? t('No description')
                           : notes,
-                      subtitle: asked.isEmpty ? null : 'Asked for $asked',
+                      subtitle: asked.isEmpty
+                          ? null
+                          : t('Asked for {asked}', {'asked': asked}),
                     ),
                     const SizedBox(height: 8),
                     if (lat != null && lng != null)
@@ -103,7 +107,7 @@ class ReportDetailScreen extends StatelessWidget {
                         future: PlaceNames.of(lat, lng),
                         builder: (context, snap) => ListRow(
                           leading: const IconPlate(AppIcons.locationOn),
-                          title: 'Where the phone was',
+                          title: t('Where the phone was'),
                           subtitle: [
                             ?snap.data?.line,
                             degrees(lat, lng),
@@ -112,18 +116,20 @@ class ReportDetailScreen extends StatelessWidget {
                       ),
                     const SizedBox(height: 16),
                     if (r['gps_discrepancy_flag'] == true)
-                      const InlineAlert(
+                      InlineAlert(
                         tone: AlertTone.warning,
-                        title: 'The photo and the phone disagree',
-                        body:
-                            'The location in the photo is far from where the '
-                            'phone said it was. Weigh this report with care.',
+                        title: t('The photo and the phone disagree'),
+                        body: t(
+                          'The location in the photo is far from where the '
+                          'phone said it was. Weigh this report with care.',
+                        ),
                       )
                     else if (r['has_exif'] != true && photo != null)
-                      const InlineAlert(
-                        body:
-                            'The photo carries no location of its own, so only '
-                            'the phone says where it was taken.',
+                      InlineAlert(
+                        body: t(
+                          'The photo carries no location of its own, so only '
+                          'the phone says where it was taken.',
+                        ),
                       ),
                   ],
                 ),

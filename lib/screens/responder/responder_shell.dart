@@ -11,6 +11,7 @@ import 'field_map_tab.dart';
 import 'responder_feed.dart';
 import 'responder_profile_tab.dart';
 import 'run_tab.dart';
+import '../../i18n/i18n.dart';
 
 /// The responder's five destinations (REPLIT (MAIN) 07 · Responder): Duty,
 /// Map, the raised RUN disc, Alerts, Profile.
@@ -120,17 +121,17 @@ class ResponderShellState extends State<ResponderShell> {
           ],
         ),
         bottomNavigationBar: NavBarShell(
-          disc: 'RUN',
-          discLabel: 'Run — the Area you are going to',
+          disc: t('RUN'),
+          discLabel: t('Run — the Area you are going to'),
           discActive: _tab == ResponderTab.run,
           onDisc: () => show(ResponderTab.run),
           items: [
-            for (final t in ResponderTab.values)
+            for (final tab in ResponderTab.values)
               (
-                icon: t.icon,
-                label: t.label,
-                selected: t == _tab,
-                onTap: () => show(t),
+                icon: tab.icon,
+                label: t(tab.label),
+                selected: tab == _tab,
+                onTap: () => show(tab),
               ),
           ],
         ),

@@ -635,7 +635,8 @@ const Map<String, String> kTagalog = {
   'Add one, so a forgotten password can be reset':
       'Magdagdag nito, para ma-reset ang password kapag nakalimutan',
   '{email} · confirmed': '{email} · kumpirmado',
-  '{email} · open the link we sent': '{email} · buksan ang link na ipinadala namin',
+  '{email} · open the link we sent':
+      '{email} · buksan ang link na ipinadala namin',
   'Your sign-in at @replit.com has no mailbox. If you forget your password, the reset link comes to this email.':
       'Walang mailbox ang @replit.com na sign-in mo. Kapag nakalimutan mo ang password mo, sa email na ito ipapadala ang reset link.',
   'Get the newest version of RepLiT':
@@ -1162,4 +1163,979 @@ const Map<String, String> kTagalog = {
   'RISK AREA': 'MAPANGANIB NA LUGAR',
   'BODY OF WATER': 'PINAGKUKUNAN NG TUBIG',
   'UNDERGROUND CISTERN': 'CISTERN SA ILALIM NG LUPA',
+
+  // WHAT'S NEXT, 1.3: the coordinator and responder screens, and the
+  // older staff screens behind the menu. Staff terms stay in English as
+  // the crews say them: Area, Coordinator, Responder, BFP, fire out, the
+  // fire codes and the alarm levels.
+  'Could not load the alarm requests. Check your signal.':
+      'Hindi ma-load ang mga alarm request. Tingnan ang signal mo.',
+  '{areaName} · now at {alarmWord}': '{areaName} · nasa {alarmWord} ngayon',
+  'Set {alarmWord}?': 'Itakda sa {alarmWord}?',
+  'Every organization on {areaName} sees the new level at once, and {askedBy} is told.':
+      'Makikita agad ng bawat organisasyon sa {areaName} ang bagong antas, at sasabihan si {askedBy}.',
+  'Set {alarmWord}': 'Itakda sa {alarmWord}',
+  'Cancel': 'Kanselahin',
+  '{areaName} is now at {alarmWord}.': 'Nasa {alarmWord} na ang {areaName}.',
+  'Declined. {askedBy} is told {areaName} stays as it is.':
+      'Tinanggihan. Sasabihan si {askedBy} na mananatili ang {areaName} sa dati.',
+  'Could not send that. Check your signal.':
+      'Hindi naipadala iyan. Tingnan ang signal mo.',
+  'Could not open the Area. Check your signal.':
+      'Hindi mabuksan ang Area. Tingnan ang signal mo.',
+  'Alarm requests': 'Mga alarm request',
+  'Fire Volunteer coordinators ask. Only BFP sets the alarm level.':
+      'Humihiling ang mga Fire Volunteer coordinator. BFP lang ang nagtatakda ng antas ng alarma.',
+  'Waiting': 'Naghihintay',
+  'Answered': 'Nasagot',
+  'Requests unavailable': 'Hindi available ang mga request',
+  'Nothing answered yet': 'Wala pang nasagot',
+  'Nothing waiting': 'Walang naghihintay',
+  'Requests move here once BFP sets the level or declines, or the coordinator takes one back.':
+      'Lumilipat dito ang mga request kapag itinakda ng BFP ang antas o tumanggi ito, o binawi ng coordinator.',
+  "A request lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise an Area's alarm.":
+      'Dumarating dito ang request, kasama ang fire alert, kapag hiniling ng isang Fire Volunteer coordinator sa BFP na itaas ang alarma ng isang Area.',
+  '{word} · now at {alarmWord}': '{word} · nasa {alarmWord} ngayon',
+  'Asked by {who}': 'Hiniling ni {who}',
+  '{areaName} is already at {alarmWord}. Setting this would not raise it: decline it instead.':
+      'Nasa {alarmWord} na ang {areaName}. Hindi ito tataas kapag itinakda ito: tanggihan na lang.',
+  'Decline': 'Tanggihan',
+  'Open {areaName}': 'Buksan ang {areaName}',
+  ' by {answeredBy}': ' ni {answeredBy}',
+  'Set{by}{when}.{notes}': 'Itinakda{by}{when}.{notes}',
+  'Declined{by}{when}.{notes}': 'Tinanggihan{by}{when}.{notes}',
+  'Taken back{when}.{notes}': 'Binawi{when}.{notes}',
+  '{areaName} · {alarmWord} asked': '{areaName} · hiniling ang {alarmWord}',
+  'Decline this request?': 'Tanggihan ang request na ito?',
+  '{areaName} stays at {alarmWord}. {askedBy} is told, with your reason.':
+      'Mananatili sa {alarmWord} ang {areaName}. Sasabihan si {askedBy}, kasama ang dahilan mo.',
+  'Reason (optional)': 'Dahilan (opsyonal)',
+  'Contained at 1st alarm': 'Napigilan sa 1st alarm',
+  'Keep it waiting': 'Hayaang naghihintay',
+  'Could not load {label}.': 'Hindi ma-load ang {label}.',
+  'Dashboard': 'Dashboard',
+  'Active Incidents': 'Mga aktibong insidente',
+  'In progress now': 'Kasalukuyang nangyayari',
+  'Units Deployed': 'Mga unit na naka-deploy',
+  'On the way or on site': 'Papunta o nasa lugar na',
+  'Alarm Requests': 'Mga alarm request',
+  '{_pendingAlarms} pending • review & execute':
+      '{_pendingAlarms} naghihintay • suriin at isagawa',
+  'No pending requests': 'Walang naghihintay na request',
+  'Live Map': 'Live map',
+  'Real-time incidents across Pasay City':
+      'Mga insidente ngayon sa buong Pasay City',
+  'Updating live': 'Live na nag-a-update',
+  '{value} reports • {value2} responding':
+      '{value} report • {value2} rumeresponde',
+  'Alarm: {alarm}': 'Alarma: {alarm}',
+  'Open incident': 'Buksan ang insidente',
+  'Could not load this Area. Check your signal.':
+      'Hindi ma-load ang Area na ito. Tingnan ang signal mo.',
+  'You are responding. Your location is shared while you go.':
+      'Rumeresponde ka. Ibinabahagi ang lokasyon mo habang papunta ka.',
+  'Accepted. Every agency asked for sees it acknowledged.':
+      'Tinanggap. Makikita ng bawat ahensiyang hiningan na na-acknowledge ito.',
+  'Could not accept. Check your connection.':
+      'Hindi matanggap. Tingnan ang connection mo.',
+  '{name} rejected. It has left the live feed.':
+      'Tinanggihan ang {name}. Wala na ito sa live feed.',
+  'Could not reject. Check your connection.':
+      'Hindi matanggihan. Tingnan ang connection mo.',
+  'Area': 'Area',
+  '1 report': '1 report',
+  '{bandWord} confidence': '{bandWord} na katiyakan',
+  'The summary and the post-incident reports are for the teams that responded.':
+      'Para sa mga team na rumesponde ang summary at ang mga post-incident report.',
+  'No summary yet. The reports below are the full record.':
+      'Wala pang summary. Nasa ibaba ang buong record: ang mga report.',
+  'Reports': 'Mga report',
+  '{n} · photos are staff-only': '{n} · para sa staff lang ang mga litrato',
+  '{name} was merged': 'Pinagsama ang {name}',
+  '{name} was rejected': 'Tinanggihan ang {name}',
+  'Its reports joined a neighbouring Area. It has left the live feed.':
+      'Napunta sa katabing Area ang mga report nito. Wala na ito sa live feed.',
+  'Reason: {value}. It has left the live feed for everyone.':
+      'Dahilan: {value}. Wala na ito sa live feed para sa lahat.',
+  'none given': 'walang ibinigay',
+  'Resident · {pct}% verified': 'Residente · {pct}% verified',
+  'asked {asked}': 'hiningan ang {asked}',
+  'Accept': 'Tanggapin',
+  'Reject this area': 'Tanggihan ang Area na ito',
+  'I am going': 'Papunta na ako',
+  'Open live': 'Buksan ang live',
+  'Accept {name}?': 'Tanggapin ang {name}?',
+  'Accepting acknowledges it for {value}. Every agency the reporter asked for{value2} sees it as acknowledged.':
+      'Kapag tinanggap, na-acknowledge ito para sa {value}. Makikita ng bawat ahensiyang hiningan ng nag-report{value2} na na-acknowledge ito.',
+  'your organization': 'organisasyon mo',
+  'Go to {name}?': 'Pumunta sa {name}?',
+  'It is verified already. Going puts it on the way for the reporter and shares your location until you arrive.':
+      'Verified na ito. Kapag pumunta ka, makikita ng nag-report na papunta na kayo, at ibabahagi ang lokasyon mo hanggang makarating ka.',
+  'Accepting verifies the Area. Every agency the reporter asked for{value} sees it as verified.':
+      'Kapag tinanggap, magiging verified ang Area. Makikita ng bawat ahensiyang hiningan ng nag-report{value} na verified ito.',
+  'I am going too': 'Pupunta rin ako',
+  'Dispatch a unit with this Accept':
+      'Mag-dispatch ng unit kasabay ng pagtanggap na ito',
+  'Last used first': 'Huling ginamit, una',
+  "No unit is available in your team's register. You can still go; the report records the truck afterwards.":
+      'Walang available na unit sa listahan ng team mo. Puwede ka pa ring pumunta; itatala ng report ang trak pagkatapos.',
+  '{u} · last used': '{u} · huling ginamit',
+  'Accept and go': 'Tanggapin at pumunta',
+  'by 1 person': 'ng 1 tao',
+  'by {people} people': 'ng {people} tao',
+  '{name}, reported {value}{who}. {bandWord} confidence.':
+      '{name}, na-report {value}{who}. {bandWord} na katiyakan.',
+  'A rejected Area leaves the live feed for everyone and cannot be reopened or versioned.':
+      'Mawawala sa live feed para sa lahat ang tinanggihang Area, at hindi na ito mabubuksan o mababago.',
+  "Confirm · can't be undone": 'Kumpirmahin · hindi na maibabalik',
+  'Reject {name}?': 'Tanggihan ang {name}?',
+  'Only Fire Volunteer and BFP coordinators can reject. Admins cannot.':
+      'Fire Volunteer at BFP coordinator lang ang puwedeng tumanggi. Hindi puwede ang mga Admin.',
+  'Why': 'Bakit',
+  'Reject {name}': 'Tanggihan ang {name}',
+  'Keep it': 'Huwag tanggihan',
+  'Could not load the fire codes.': 'Hindi ma-load ang mga fire code.',
+  '{code_number} recorded at {clockText}. Every code press is kept in the audit log.':
+      'Naitala ang {code_number} nang {clockText}. Itinatago sa audit log ang bawat pagpindot ng code.',
+  'Could not record it. Check signal.':
+      'Hindi ito naitala. Tingnan ang signal.',
+  'No live incident': 'Walang live na insidente',
+  'Fire codes': 'Mga fire code',
+  'Pressing a code records an event on this incident. It does not change the Area status.':
+      'Kapag pinindot ang isang code, may maitatalang pangyayari sa insidenteng ito. Hindi nito binabago ang status ng Area.',
+  'Codes unavailable': 'Hindi available ang mga code',
+  'Fire codes are pressed by Fire Volunteer and BFP Coordinators. You can see each one here.':
+      'Ang mga Fire Volunteer at BFP Coordinator ang pumipindot ng mga fire code. Makikita mo rito ang bawat isa.',
+  'Codes are pressed on a live incident. When an Area is under way, LIVE shows it and its codes work here.':
+      'Sa live na insidente pinipindot ang mga code. Kapag may Area na nagaganap, ipinapakita ito sa LIVE at gumagana rito ang mga code nito.',
+  'All codes': 'Lahat ng code',
+  '1 code': '1 code',
+  '{count} codes': '{count} code',
+  'Code': 'Code',
+  'Could not load the queue. Check your signal.':
+      'Hindi ma-load ang queue. Tingnan ang signal mo.',
+  'Live — the incident under way': 'Live — ang nagaganap na insidente',
+  'Nothing under way': 'Walang nagaganap',
+  'No incident is live': 'Walang live na insidente',
+  'An Area shows here once it is accepted, with the units on their way and on scene. The queue has what is waiting on you.':
+      'Lumalabas dito ang Area kapag natanggap na, kasama ang mga unit na papunta at nasa lugar. Nasa queue ang mga naghihintay sa iyo.',
+  'Could not do that. Check your connection.':
+      'Hindi iyan magawa. Tingnan ang connection mo.',
+  'Marked on scene.': 'Minarkahang nasa lugar.',
+  'Mark {name} fire out?': 'Markahan ang {name} na fire out?',
+  'Everyone responding': 'Lahat ng rumeresponde',
+  'Yes, mark fire out': 'Oo, markahang fire out',
+  'Not yet, keep it live': 'Hindi pa, panatilihing live',
+  'Could not mark fire out. Check your connection.':
+      'Hindi mamarkahang fire out. Tingnan ang connection mo.',
+  'Request taken back. BFP no longer sees it.':
+      'Binawi ang request. Hindi na ito nakikita ng BFP.',
+  'Asked BFP for {alarmWord}. You are told when they answer.':
+      'Hiniling sa BFP ang {alarmWord}. Sasabihan ka kapag sumagot sila.',
+  'Set by BFP · nothing waiting on you':
+      'Itinakda ng BFP · walang naghihintay sa iyo',
+  '1 request waiting on you': '1 request ang naghihintay sa iyo',
+  '{n} requests waiting on you': '{n} request ang naghihintay sa iyo',
+  'Set by BFP': 'Itinakda ng BFP',
+  'You asked for {alarmWord} · waiting for BFP':
+      'Hiniling mo ang {alarmWord} · hinihintay ang BFP',
+  'BFP set {alarmWord}{when}, as you asked':
+      'Itinakda ng BFP ang {alarmWord}{when}, gaya ng hiniling mo',
+  'BFP declined {alarmWord}{when}{value}':
+      'Tinanggihan ng BFP ang {alarmWord}{when}{value}',
+  'Set by BFP · ask them to raise it':
+      'Itinakda ng BFP · hilingin sa kanilang itaas ito',
+  'Responder': 'Responder',
+  'accepted {agoText}': 'tinanggap {agoText}',
+  'NOBODY GOING YET': 'WALA PANG PUMUPUNTA',
+  '1 UNIT RESPONDING': '1 UNIT ANG RUMERESPONDE',
+  '{going} UNITS RESPONDING': '{going} UNIT ANG RUMERESPONDE',
+  'Alarm level': 'Antas ng alarma',
+  'Area details': 'Mga detalye ng Area',
+  'Where it is, confidence, summary and reports':
+      'Kung nasaan ito, katiyakan, summary at mga report',
+  'Mark fire out': 'Markahang fire out',
+  'Reject this Area': 'Tanggihan ang Area na ito',
+  'You follow this Area here, and can get directions to it. Fire Volunteer and BFP coordinators and responders run the response: going, fire out and the report.':
+      'Dito mo sinusundan ang Area na ito, at makakakuha ka ng direksiyon papunta rito. Ang mga Fire Volunteer at BFP coordinator at responder ang nagpapatakbo ng pagresponde: pagpunta, fire out at ang report.',
+  'The Area is marked on scene': 'Minarkahang nasa lugar ang Area',
+  'Within {_onSceneMetres} m of the fire':
+      'Nasa loob ng {_onSceneMetres} m mula sa sunog',
+  'No location yet': 'Wala pang lokasyon',
+  '{formatDistance} away': '{formatDistance} ang layo',
+  'last seen {agoText}': 'huling nakita {agoText}',
+  'updates every 5 s': 'nag-a-update kada 5 s',
+  '{name} · {crew} crew': '{name} · {crew} crew',
+  'En route': 'Papunta',
+  'Areas': 'Mga Area',
+  'Fire stations': 'Mga fire station',
+  'Monitoring Pasay · {value}': 'Binabantayan ang Pasay · {value}',
+  'nothing on the ground': 'walang nasa lugar',
+  '{live} on the ground': '{live} ang nasa lugar',
+  'Live incidents': 'Mga live na insidente',
+  '1 running now': '1 ang nagaganap ngayon',
+  '{running} running now': '{running} ang nagaganap ngayon',
+  'Nothing is running. New Areas appear here and on the map.':
+      'Walang nagaganap. Lumalabas dito at sa mapa ang mga bagong Area.',
+  '{reports} reports': '{reports} report',
+  'An Area': 'Isang Area',
+  'Area {d}': 'Area {d}',
+  '{area} · Fire out, report filed': '{area} · Fire out, na-file ang report',
+  'Merged into {area}': 'Pinagsama sa {area}',
+  '{_area} · Merged into {area}': '{_area} · Pinagsama sa {area}',
+  'Could not load your decisions.': 'Hindi ma-load ang mga desisyon mo.',
+  'My decisions': 'Mga desisyon ko',
+  'Decisions unavailable': 'Hindi available ang mga desisyon',
+  'Recent': 'Kamakailan',
+  '{count} shown': '{count} ang ipinapakita',
+  'Nothing here yet. Each accept, reject, merge and fire out you make is listed as it happens.':
+      'Wala pang laman dito. Nakalista rito ang bawat pagtanggap, pagtanggi, pagsasama at fire out na gagawin mo, habang nangyayari.',
+  'Every decision is kept in the audit log with your role and agency at the time. It cannot be edited.':
+      'Itinatago sa audit log ang bawat desisyon, kasama ang role at ahensiya mo noong panahong iyon. Hindi ito mae-edit.',
+  '{_name} merged into {_name2}.': 'Pinagsama ang {_name} sa {_name2}.',
+  'Kept as two Areas.': 'Pinanatiling dalawang Area.',
+  'Could not decide. Check your signal.':
+      'Hindi makapagpasya. Tingnan ang signal mo.',
+  'Merge into {a}': 'Isama sa {a}',
+  'Keep them separate': 'Panatilihing hiwalay',
+  'Overlap': 'Overlap',
+  'Overlap · {metres} m apart': 'Overlap · {metres} m ang layo',
+  'Merge these Areas?': 'Pagsamahin ang mga Area na ito?',
+  '{b} has grown into {a}.': 'Lumaki ang {b} hanggang sa {a}.',
+  '{b} has grown to within {metres} m of {a}.':
+      'Lumaki ang {b} hanggang {metres} m na lang mula sa {a}.',
+  'Merging folds {b} into {a}. The smaller Area becomes "merged" and records what it joined. It cannot be split again.':
+      'Kapag pinagsama, maisasama ang {b} sa {a}. Magiging "merged" ang mas maliit na Area at itatala kung saan ito sumama. Hindi na ito mapaghihiwalay ulit.',
+  'The decision window has closed': 'Sarado na ang oras ng pagpapasya',
+  'Decide within {_clock}': 'Magpasya sa loob ng {_clock}',
+  'They stay as two Areas.': 'Mananatili silang dalawang Area.',
+  'If nobody decides, they stay as two Areas.':
+      'Kung walang magpapasya, mananatili silang dalawang Area.',
+  'Alert volume': 'Lakas ng alerto',
+  "How loud the alarm rings in the app, on top of your phone's notification volume. At 0% it stays quiet here only; the notification still shows.":
+      'Kung gaano kalakas tumunog ang alarma sa app, dagdag sa notification volume ng phone mo. Sa 0%, tahimik lang ito rito; lalabas pa rin ang notification.',
+  'Save': 'I-save',
+  'Play it': 'Patugtugin',
+  'You': 'Ikaw',
+  'Coordinator · {value}': 'Coordinator · {value}',
+  'You can accept and reject': 'Puwede kang tumanggap at tumanggi',
+  'You can accept': 'Puwede kang tumanggap',
+  'Any agency can accept. Only Fire Volunteer and BFP can reject.':
+      'Puwedeng tumanggap ang kahit anong ahensiya. Fire Volunteer at BFP lang ang puwedeng tumanggi.',
+  'Accepting acknowledges the Areas that ask for {asked}. Only Fire Volunteer and BFP can reject.':
+      'Kapag tinanggap, na-acknowledge ang mga Area na humihingi ng {asked}. Fire Volunteer at BFP lang ang puwedeng tumanggi.',
+  'Fire alert sound': 'Tunog ng fire alert',
+  "Rings in the app when a new Area asks for {asked}. With the app closed, Android's {asked2} alerts channel rings it.":
+      'Tumutunog sa app kapag may bagong Area na humihingi ng {asked}. Kapag sarado ang app, ang {asked2} alerts channel ng Android ang nagpapatunog nito.',
+  'In the app only. At 0% it is quiet here.':
+      'Sa app lang. Sa 0%, tahimik ito rito.',
+  'Map rotation': 'Pag-ikot ng mapa',
+  'Heading-up while moving, compass when still':
+      'Sumusunod sa direksiyon habang gumagalaw, compass kapag nakatigil',
+  'Hybrid': 'Hybrid',
+  'Every accept, reject, merge and fire out you made':
+      'Bawat pagtanggap, pagtanggi, pagsasama at fire out na ginawa mo',
+  "Make and manage your responders' accounts":
+      'Gumawa at mamahala ng mga account ng responder mo',
+  'AI summaries': 'Mga AI summary',
+  'What each fire your teams filed for came to':
+      'Ang kinalabasan ng bawat sunog na pinag-file-an ng mga team mo',
+  'Fire Volunteer asks to raise the alarm':
+      'Mga hiling ng Fire Volunteer na itaas ang alarma',
+  'Every notification sent to you': 'Bawat notification na ipinadala sa iyo',
+  'Version {label} installed': 'Naka-install ang version {label}',
+  'Coordinator · {responderAgencyLabel}':
+      'Coordinator · {responderAgencyLabel}',
+  'Accept an Area': 'Tumanggap ng Area',
+  'Acknowledges it for your organization when it asks for your agency':
+      'Na-acknowledge ito para sa organisasyon mo kapag humihingi ito ng ahensiya mo',
+  'Merge or keep separate': 'Pagsamahin o panatilihing hiwalay',
+  'When two Areas overlap': 'Kapag nag-overlap ang dalawang Area',
+  'Follow an Area on LIVE and the map':
+      'Sundan ang isang Area sa LIVE at sa mapa',
+  'Its units and its alarm level':
+      'Ang mga unit nito at ang antas ng alarma nito',
+  'Route to an Area': 'Kumuha ng ruta papunta sa Area',
+  'Directions, once it has been accepted': 'Direksiyon, kapag natanggap na ito',
+  "Make your responders' accounts": 'Gumawa ng mga account ng responder mo',
+  'Under Profile, Responders': 'Sa Profile, Responders',
+  'Reject an Area': 'Tumanggi sa isang Area',
+  'Fire Volunteer and BFP coordinators':
+      'Mga Fire Volunteer at BFP coordinator',
+  'Respond or mark fire out': 'Rumesponde o markahang fire out',
+  'Fire Volunteer and BFP': 'Fire Volunteer at BFP',
+  'Press fire codes': 'Pumindot ng mga fire code',
+  'File the post-incident report': 'Mag-file ng post-incident report',
+  'The responding fire team': 'Ang rumerespondeng fire team',
+  'Change the alarm level': 'Baguhin ang antas ng alarma',
+  'BFP coordinators only': 'Mga BFP coordinator lang',
+  'Verifies it — and puts you on the way, on your unit, if you are going too':
+      'Ginagawa itong verified — at papunta ka na, sakay ng unit mo, kung pupunta ka rin',
+  'Fire Volunteer and BFP coordinators only':
+      'Mga Fire Volunteer at BFP coordinator lang',
+  'Your units stand down and stop sharing location':
+      'Titigil ang mga unit mo at hindi na magbabahagi ng lokasyon',
+  'Recorded as events on the incident':
+      'Itinatala bilang mga pangyayari sa insidente',
+  'Once per Area for your team, no draft':
+      'Isang beses kada Area para sa team mo, walang draft',
+  'Raise the alarm level': 'Itaas ang antas ng alarma',
+  'From the alarm requests Fire Volunteer sends':
+      'Mula sa mga alarm request na ipinapadala ng Fire Volunteer',
+  'Ask BFP to raise the alarm': 'Hilingin sa BFP na itaas ang alarma',
+  'From the alarm level on LIVE': 'Mula sa antas ng alarma sa LIVE',
+  'Edit a filed report': 'Mag-edit ng na-file na report',
+  'A post-incident report saves once':
+      'Isang beses lang nase-save ang post-incident report',
+  'Reopen a rejected Area': 'Buksan ulit ang tinanggihang Area',
+  'It has left the live feed for good': 'Tuluyan na itong nawala sa live feed',
+  'Queue': 'Queue',
+  'To decide': 'Pagpapasyahan',
+  'To file': 'Ifa-file',
+  'Queue unavailable': 'Hindi available ang queue',
+  '1 area': '1 Area',
+  '{n} areas': '{n} Area',
+  'Nothing to decide': 'Walang pagpapasyahan',
+  'A new Area that asks for {_askedWord} lands here first.':
+      'Dito unang dumarating ang bagong Area na humihingi ng {_askedWord}.',
+  'Waiting on you': 'Naghihintay sa iyo',
+  'Decide': 'Magpasya',
+  'Any responding agency can accept. Only a Fire Volunteer or BFP coordinator can reject.':
+      'Puwedeng tumanggap ang kahit anong rumerespondeng ahensiya. Fire Volunteer o BFP coordinator lang ang puwedeng tumanggi.',
+  'These Areas asked for {_askedWord}. Accepting acknowledges them for {_team}. Only a Fire Volunteer or BFP Coordinator can reject.':
+      'Humingi ng {_askedWord} ang mga Area na ito. Kapag tinanggap, na-acknowledge ang mga ito para sa {_team}. Fire Volunteer o BFP Coordinator lang ang puwedeng tumanggi.',
+  '{areaName} asks for {alarmWord}': 'Humihingi ang {areaName} ng {alarmWord}',
+  '{count} alarm requests waiting': '{count} alarm request ang naghihintay',
+  '{who}. Only BFP sets the alarm level.':
+      '{who}. BFP lang ang nagtatakda ng antas ng alarma.',
+  'Newest: {areaName} asks for {alarmWord} · {who}.':
+      'Pinakabago: humihingi ang {areaName} ng {alarmWord} · {who}.',
+  'Answer': 'Sagutin',
+  'Answer them': 'Sagutin ang mga ito',
+  '{a} and {b} overlap': 'Nag-o-overlap ang {a} at {b}',
+  '{value}. Merge them into one incident or keep them separate.':
+      '{value}. Pagsamahin sila sa iisang insidente o panatilihing hiwalay.',
+  'They are close': "Malapit sila sa isa't isa",
+  'They are {metres} m apart': "{metres} m ang layo nila sa isa't isa",
+  'Review': 'Suriin',
+  'An Area you or another agency accepts shows here until the fire is out.':
+      'Lumalabas dito ang Area na tinanggap mo o ng ibang ahensiya, hanggang mag-fire out.',
+  'On the ground': 'Nasa lugar',
+  'Accepted, nobody going yet': 'Tinanggap, wala pang pumupunta',
+  'Only staff see who accepted. The public map shows status, confidence and report count — never who is responding.':
+      'Staff lang ang nakakakita kung sino ang tumanggap. Ang pampublikong mapa ay nagpapakita ng status, katiyakan at bilang ng report — hindi kailanman kung sino ang rumeresponde.',
+  'Accepted {clockText}': 'Tinanggap {clockText}',
+  'Arrived {clockText}{value}': 'Dumating {clockText}{value}',
+  '1 responding': '1 ang rumeresponde',
+  '{going} responding': '{going} ang rumeresponde',
+  'Nothing to file': 'Walang ifa-file',
+  'When a fire your team went to is out, its report waits here.':
+      'Kapag patay na ang sunog na pinuntahan ng team mo, dito maghihintay ang report nito.',
+  'Reports to file': 'Mga report na ifa-file',
+  'File report': 'Mag-file ng report',
+  'An Area closes only after its post-incident report is filed. There is no draft — the form saves once, when it is complete.':
+      'Nagsasara lang ang Area kapag na-file na ang post-incident report nito. Walang draft — isang beses lang nase-save ang form, kapag kumpleto na.',
+  'Fire out {whenText} · {value}': 'Fire out {whenText} · {value}',
+  'waiting {hours} h': 'naghihintay nang {hours} h',
+  'ready to file': 'handa nang i-file',
+  'Area {s}': 'Area {s}',
+  'Report {number}': 'Report {number}',
+  'Resident': 'Residente',
+  '{pct}% verified{value}': '{pct}% verified{value}',
+  'What they sent': 'Ang ipinadala nila',
+  'No description': 'Walang paglalarawan',
+  'Asked for {asked}': 'Humingi ng {asked}',
+  'Where the phone was': 'Kung nasaan ang phone',
+  'The photo and the phone disagree':
+      'Hindi magkatugma ang litrato at ang phone',
+  'The location in the photo is far from where the phone said it was. Weigh this report with care.':
+      'Malayo ang lokasyon sa litrato sa sinabi ng phone na kinaroroonan nito. Timbangin nang mabuti ang report na ito.',
+  'The photo carries no location of its own, so only the phone says where it was taken.':
+      'Walang sariling lokasyon ang litrato, kaya ang phone lang ang nagsasabi kung saan ito kinunan.',
+  'Duty': 'Duty',
+  'Could not reach command': 'Hindi maabot ang command',
+  'Your run': 'Ang run mo',
+  'Open run': 'Buksan ang run',
+  'Needs a unit': 'Kailangan ng unit',
+  '1 Area': '1 Area',
+  '{count} Areas': '{count} Area',
+  'Pasay now': 'Pasay ngayon',
+  'Location sharing is on': 'Naka-on ang pagbabahagi ng lokasyon',
+  'Command sees where you are while you are on {value}. It stops when the Captain marks fire out.':
+      'Nakikita ng command kung nasaan ka habang nasa {value} ka. Titigil ito kapag minarkahan ng Captain na fire out.',
+  'your run': 'run mo',
+  'Location sharing is off': 'Naka-off ang pagbabahagi ng lokasyon',
+  'It starts when you tap I am going and stops when the Captain marks fire out.':
+      'Magsisimula ito kapag pinindot mo ang Papunta na ako, at titigil kapag minarkahan ng Captain na fire out.',
+  'No Area needs {unit}': 'Walang Area na nangangailangan ng {unit}',
+  'When an Area asks for {agencyLabel} it arrives here with an alert sound. You can leave this screen.':
+      'Kapag may Area na humingi ng {agencyLabel}, darating ito rito nang may alert sound. Puwede mong iwan ang screen na ito.',
+  'Live now': 'Live ngayon',
+  'To verify': 'Ive-verify',
+  'Units out': 'Mga unit na nasa labas',
+  'Standby': 'Standby',
+  'Place': 'Lugar',
+  'Around you': 'Sa paligid mo',
+  'Within {aroundMetres} m': 'Sa loob ng {aroundMetres} m',
+  'Hydrants, shelters and water near you are listed here once the phone knows where you are.':
+      'Nakalista rito ang mga hydrant, evacuation center at tubig na malapit sa iyo kapag alam na ng phone kung nasaan ka.',
+  'Nothing from the layers that are on is within {aroundMetres} m. Turn on Water or Cisterns for more.':
+      'Walang nasa loob ng {aroundMetres} m mula sa mga naka-on na layer. I-on ang Water o Cisterns para sa iba pa.',
+  '{formatDistance} from {name}': '{formatDistance} mula sa {name}',
+  'Could not reach command. Check your signal.':
+      'Hindi maabot ang command. Tingnan ang signal mo.',
+  'That did not go through. Check your signal.':
+      'Hindi iyon natuloy. Tingnan ang signal mo.',
+  'You go as {_unit}. Your position is shared every 5 seconds until the Captain marks fire out.':
+      'Pupunta ka bilang {_unit}. Ibabahagi ang posisyon mo kada 5 segundo hanggang markahan ng Captain na fire out.',
+  'This Area is still Reported. Going now verifies it for every agency — Coordinators can still reject it later.':
+      'Reported pa rin ang Area na ito. Kapag pumunta ka ngayon, magiging verified ito para sa bawat ahensiya — puwede pa rin itong tanggihan ng mga Coordinator mamaya.',
+  'Cancel, go back': 'Kanselahin, bumalik',
+  'You are going. Your location is shared while you go.':
+      'Papunta ka na. Ibinabahagi ang lokasyon mo habang papunta ka.',
+  'Verified. Go from here if you are going.':
+      'Verified. Dito ka magsimula kung pupunta ka.',
+  'Mark arrived?': 'Markahang dumating?',
+  'Command and the other units see you on scene. It is the last status you set; the Captain marks fire out.':
+      'Makikita ka ng command at ng ibang unit na nasa lugar ka na. Ito ang huling status na itatakda mo; ang Captain ang magmamarka ng fire out.',
+  'Not yet': 'Hindi pa',
+  '{label} is unavailable.': 'Hindi available ang {label}.',
+  '{label} sent to command.': 'Naipadala sa command ang {label}.',
+  'Could not send. Check your signal.':
+      'Hindi maipadala. Tingnan ang signal mo.',
+  'Could not send the request. Check your signal.':
+      'Hindi maipadala ang request. Tingnan ang signal mo.',
+  'Could not load the reports. Check your signal.':
+      'Hindi ma-load ang mga report. Tingnan ang signal mo.',
+  '{count} reports': '{count} report',
+  'Photos are for staff only.': 'Para sa staff lang ang mga litrato.',
+  'No reports could be read.': 'Walang report na mabasa.',
+  'Could not load this Area': 'Hindi ma-load ang Area na ito',
+  'Check your signal and try again.': 'Tingnan ang signal mo at subukan ulit.',
+  '{formatDistance} from you': '{formatDistance} mula sa iyo',
+  '1 resident': '1 residente',
+  '{reports} residents': '{reports} residente',
+  'First reported': 'Unang na-report',
+  'Agencies asked': 'Mga hiningang ahensiya',
+  'Acknowledged by': 'Na-acknowledge ng',
+  'Route to the Area': 'Ruta papunta sa Area',
+  'Directions only — going is I am going':
+      'Direksiyon lang — ang pagpunta ay Papunta na ako',
+  '{name} is over': 'Tapos na ang {name}',
+  'A coordinator rejected it. Nobody goes.':
+      'Tinanggihan ito ng isang coordinator. Walang pupunta.',
+  'Its reports joined a neighbouring Area. Go from that one.':
+      'Napunta sa katabing Area ang mga report nito. Doon ka magsimula.',
+  'The fire is out. Nothing is asked of a unit that did not go.':
+      'Patay na ang sunog. Walang hinihingi sa unit na hindi pumunta.',
+  'Verify, without going': 'I-verify, nang hindi pumupunta',
+  'Back to duty': 'Bumalik sa duty',
+  'Rejected': 'Tinanggihan',
+  'Stood down': 'Pinatigil',
+  'Fire out at {clockText}.': 'Fire out nang {clockText}.',
+  'ETA {_etaText}': 'ETA {_etaText}',
+  'A coordinator rejected it while you were going. Your location sharing has stopped.':
+      'Tinanggihan ito ng isang coordinator habang papunta ka. Tumigil na ang pagbabahagi ng lokasyon mo.',
+  'Navigate': 'Mag-navigate',
+  'What happened': 'Ang nangyari',
+  'Your unit': 'Ang unit mo',
+  'Codes to command': 'Mga code sa command',
+  'Location sharing stopped': 'Tumigil ang pagbabahagi ng lokasyon',
+  'Nothing more is asked of you for this Area.':
+      'Wala nang hinihingi sa iyo para sa Area na ito.',
+  'Your location is not going out': 'Hindi naipapadala ang lokasyon mo',
+  'Allow RepLiT to use your location, so command can see you while you are on this run.':
+      'Payagan ang RepLiT na gamitin ang lokasyon mo, para makita ka ng command habang nasa run na ito ka.',
+  'Your location is still shared': 'Ibinabahagi pa rin ang lokasyon mo',
+  'Your location is shared': 'Ibinabahagi ang lokasyon mo',
+  'It stops on its own when the Captain marks fire out.':
+      'Kusa itong titigil kapag minarkahan ng Captain na fire out.',
+  'Every 5 seconds while you go. It stops when the Captain marks fire out.':
+      'Kada 5 segundo habang papunta ka. Titigil ito kapag minarkahan ng Captain na fire out.',
+  'Arrived': 'Dumating',
+  'Arrived {clockText}': 'Dumating {clockText}',
+  'Marked on its own when you reach the Area, or by you':
+      'Kusang namamarkahan kapag naabot mo ang Area, o ikaw ang magmamarka',
+  'The Area was marked arrived': 'Minarkahang dumating sa Area',
+  'Fire out {clockText}': 'Fire out {clockText}',
+  'The Captain calls it on scene': 'Ang Captain ang nagdedeklara nito sa lugar',
+  'Stood down {clockText}': 'Pinatigil {clockText}',
+  'Location sharing stops': 'Titigil ang pagbabahagi ng lokasyon',
+  'Your location is no longer shared': 'Hindi na ibinabahagi ang lokasyon mo',
+  'Post-incident report {clockText}': 'Post-incident report {clockText}',
+  'Post-incident report': 'Post-incident report',
+  'The Captain files it for the whole team — not yours to do':
+      'Ang Captain ang nagfa-file nito para sa buong team — hindi ikaw ang gagawa',
+  'Fire truck': 'Fire truck',
+  'Driver {driver}': 'Driver {driver}',
+  '1 on it': '1 ang sakay',
+  '{count} on it': '{count} ang sakay',
+  'Need water': 'Kailangan ng tubig',
+  'More water supply to this Area': 'Dagdag na suplay ng tubig sa Area na ito',
+  'FC-6': 'FC-6',
+  'Need assistance': 'Kailangan ng tulong',
+  'Backup responders to this Area': 'Mga backup na responder sa Area na ito',
+  'FC-7': 'FC-7',
+  'Escalate to BFP': 'I-escalate sa BFP',
+  'Fire is out': 'Patay na ang sunog',
+  'Tell command — the Captain marks it':
+      'Sabihan ang command — ang Captain ang magmamarka nito',
+  'FC-3': 'FC-3',
+  'Responder · {agencyLabel}': 'Responder · {agencyLabel}',
+  'Go to an Area': 'Pumunta sa isang Area',
+  'I am going — verifies it if it is still Reported':
+      'Papunta na ako — ginagawa itong verified kung Reported pa',
+  'Verify an Area': 'Mag-verify ng Area',
+  'Without going, while it is still Reported':
+      'Nang hindi pumupunta, habang Reported pa ito',
+  'Choose your route': 'Piliin ang ruta mo',
+  'Up to three, all passable by a truck':
+      'Hanggang tatlo, lahat madadaanan ng trak',
+  'Or arrive on your own when you reach the Area':
+      'O kusang dumating kapag naabot mo ang Area',
+  'Share your position on a run': 'Ibahagi ang posisyon mo sa isang run',
+  'Every 5 seconds, from going to fire out':
+      'Kada 5 segundo, mula pagpunta hanggang fire out',
+  'Call for water or help': 'Humingi ng tubig o tulong',
+  'A code to command and every unit': 'Isang code sa command at sa bawat unit',
+  'BFP sets the level': 'BFP ang nagtatakda ng antas',
+  'Coordinators only': 'Mga coordinator lang',
+  'The Captain on scene': 'Ang Captain sa lugar',
+  'The Captain files for the whole team':
+      'Ang Captain ang nagfa-file para sa buong team',
+  'Responder — {agency}, {unit}': 'Responder — {agency}, {unit}',
+  'Incident sounds': 'Mga tunog ng insidente',
+  'A longer alert when an Area asks for your agency':
+      'Mas mahabang alerto kapag may Area na humihingi ng ahensiya mo',
+  'Voice directions': 'Direksiyon sa boses',
+  'Spoken turn-by-turn on runs': 'Sinasabi ang bawat liko habang nasa run',
+  'What you can do': 'Ang mga puwede mong gawin',
+  'Your actions as a Responder': 'Ang mga gagawin mo bilang Responder',
+  'RUN': 'RUN',
+  'Run — the Area you are going to': 'Run — ang Area na pinupuntahan mo',
+  'Bureau of Fire': 'Bureau of Fire',
+  'Coast Guard': 'Coast Guard',
+  'Response team': 'Response team',
+  'ROUTED TO YOUR TEAM': 'IPINASA SA TEAM MO',
+  'ROUTED TO {responderAgencyLabel}': 'IPINASA SA {responderAgencyLabel}',
+  'ROUTED TO {join}': 'IPINASA SA {join}',
+  'Admin': 'Admin',
+  'Run': 'Run',
+  'No run': 'Walang run',
+  'When you tap I am going on an Area, your run is here: the way there, your crew, and what happens next.':
+      'Kapag pinindot mo ang Papunta na ako sa isang Area, nandito ang run mo: ang daan papunta, ang crew mo, at ang susunod na mangyayari.',
+  'Open duty': 'Buksan ang duty',
+  'Summarized incident — {summaryDate}':
+      'Na-summarize na insidente — {summaryDate}',
+  'Could not load the summaries. Check your connection.':
+      'Hindi ma-load ang mga summary. Tingnan ang connection mo.',
+  "The AI writes a summary of each incident from the teams' Post-Incident Reports as soon as one is filed, and rewrites it when another team files. Open one to read it or download the report as a PDF.":
+      'Gumagawa ang AI ng summary ng bawat insidente mula sa mga Post-Incident Report ng mga team sa sandaling may ma-file, at isinusulat itong muli kapag may ibang team na nag-file. Buksan ang isa para basahin ito o i-download ang report bilang PDF.',
+  'No summaries yet': 'Wala pang summary',
+  'A summary appears here once a team files its Post-Incident Report for an incident.':
+      'Lalabas dito ang summary kapag nag-file ang isang team ng Post-Incident Report nito para sa isang insidente.',
+  'Summarized incidents': 'Mga na-summarize na insidente',
+  'Updating': 'Nag-a-update',
+  'Writing': 'Isinusulat',
+  'No summary': 'Walang summary',
+  'Could not open the browser to download the PDF.':
+      'Hindi mabuksan ang browser para i-download ang PDF.',
+  'Could not reach the server. Try again.':
+      'Hindi maabot ang server. Subukan ulit.',
+  'AI summary': 'AI summary',
+  'Download PDF': 'I-download ang PDF',
+  'The AI is writing this summary now. It is usually ready within a minute — go back and the list will show it.':
+      'Isinusulat ng AI ang summary na ito ngayon. Kadalasang handa ito sa loob ng isang minuto — bumalik ka at makikita ito sa listahan.',
+  'Another team filed its report after this was written. The AI is rewriting the summary to include it.':
+      'May ibang team na nag-file ng report nito pagkatapos maisulat ito. Isinusulat muli ng AI ang summary para maisama iyon.',
+  "No summary has been written: the server has no AI key yet. The PDF still has every team's report.":
+      'Walang naisulat na summary: wala pang AI key ang server. Nasa PDF pa rin ang report ng bawat team.',
+  "Written by AI{value}{value2} from the teams' reports. Check it against them before relying on it.":
+      'Isinulat ng AI{value}{value2} mula sa mga report ng mga team. Ikumpara ito sa mga iyon bago umasa rito.',
+  ' on {summaryDate} at {summaryTime}':
+      ' noong {summaryDate} nang {summaryTime}',
+  "The PDF has the incident, its timeline, every team's Post-Incident Report and this summary. It is made when you download it, so it includes every report filed by then.":
+      'Nasa PDF ang insidente, ang timeline nito, ang Post-Incident Report ng bawat team at ang summary na ito. Ginagawa ito kapag dina-download mo, kaya kasama ang bawat report na na-file hanggang noon.',
+  'Could not load pending reports. Check your connection.':
+      'Hindi ma-load ang mga naghihintay na report. Tingnan ang connection mo.',
+  '{mins} min ago': '{mins} min na ang nakalipas',
+  '{hrs}h {mins}m ago': '{hrs}h {mins}m na ang nakalipas',
+  '{value}d ago': '{value} araw na ang nakalipas',
+  'Pending reports': 'Mga naghihintay na report',
+  'Fire out, and your team has not filed yet. Each team that responded files its own report, for everyone on it who went.':
+      'Fire out na, at hindi pa nakakapag-file ang team mo. Bawat rumespondeng team ay nagfa-file ng sarili nitong report, para sa lahat ng miyembrong pumunta.',
+  'Nothing owed. Every report is filed.':
+      'Walang kulang. Na-file na ang bawat report.',
+  'Fire out {_ago}': 'Fire out {_ago}',
+  'File': 'I-file',
+  'Fire out recorded': 'Naitala ang fire out',
+  'File the report now?': 'I-file na ba ang report?',
+  'The trucks, the driver, the crew and what came off the units — while the crew is fresh in mind. The Area closes when it is filed. It also waits in the queue, under To file.':
+      'Ang mga trak, ang driver, ang crew at ang mga inilabas mula sa mga unit — habang sariwa pa sa isip ng crew. Magsasara ang Area kapag na-file ito. Naghihintay din ito sa queue, sa Ifa-file.',
+  'File the report': 'I-file ang report',
+  'Fire out. The report waits in the queue, under To file.':
+      'Fire out. Naghihintay ang report sa queue, sa Ifa-file.',
+  'Day the fire was out': 'Araw na namatay ang sunog',
+  'Day of the incident': 'Araw ng insidente',
+  'Time the fire was out': 'Oras na namatay ang sunog',
+  'Time of the incident': 'Oras ng insidente',
+  'That time has not happened yet.': 'Hindi pa dumarating ang oras na iyan.',
+  'Truck': 'Trak',
+  'Which vehicles went?': 'Aling mga sasakyan ang pumunta?',
+  'Pick every unit that went to this fire.':
+      'Piliin ang bawat unit na pumunta sa sunog na ito.',
+  'Driver': 'Driver',
+  'Who drove?': 'Sino ang nagmaneho?',
+  'Whoever drove went, so they join the crew too.':
+      'Pumunta ang nagmaneho, kaya kasama rin siya sa crew.',
+  'Submit and close {_areaName}?': 'Ipasa at isara ang {_areaName}?',
+  'The report saves once and cannot be edited. Filing it closes the Area.':
+      'Isang beses lang nase-save ang report at hindi na ito mae-edit. Kapag na-file ito, magsasara ang Area.',
+  'Submit and close Area': 'Ipasa at isara ang Area',
+  'Could not file the report. Check your connection.':
+      'Hindi ma-file ang report. Tingnan ang connection mo.',
+  'Still needed: {join}': 'Kailangan pa: {join}',
+  'Fire out {_clock}': 'Fire out {_clock}',
+  'Fill it in one go. There is no draft — the Area closes when this saves.':
+      'Punan ito nang isang upuan. Walang draft — magsasara ang Area kapag na-save ito.',
+  'Outcome': 'Kinalabasan',
+  'Fire attended': 'Sunog na pinuntahan',
+  'False alarm': 'False alarm',
+  'False alarm means the team arrived and found nothing — a prank, a wrong address, or already out. It must say what they found.':
+      'Ang false alarm ay nangangahulugang dumating ang team at walang nakita — biro, maling address, o patay na. Dapat nitong sabihin kung ano ang nakita nila.',
+  'Pick the units that went': 'Piliin ang mga unit na pumunta',
+  'Which vehicles went': 'Aling mga sasakyan ang pumunta',
+  'Which vehicle went': 'Aling sasakyan ang pumunta',
+  'Pick the driver': 'Piliin ang driver',
+  'Crew who went out': 'Crew na lumabas',
+  '{count} selected': '{count} ang napili',
+  'Your team has to load before you can pick.':
+      'Kailangang ma-load muna ang team mo bago ka makapili.',
+  '{name} — Driver': '{name} — Driver',
+  'Equipment taken': 'Dinalang kagamitan',
+  'Only what left the unit.': 'Ang mga inilabas lang mula sa unit.',
+  'Required for a false alarm unless you picked what the team found. The AI summary turns this into the formal narrative.':
+      'Kailangan para sa false alarm maliban kung pinili mo ang nakita ng team. Ginagawa itong pormal na salaysay ng AI summary.',
+  'Optional. The AI summary turns this into the formal narrative.':
+      'Opsyonal. Ginagawa itong pormal na salaysay ng AI summary.',
+  'Times': 'Mga oras',
+  '{label}. {value}. Change.': '{label}. {value}. Baguhin.',
+  'Not set': 'Hindi pa nakatakda',
+  'Tap to set': 'I-tap para itakda',
+  'Change': 'Baguhin',
+  'Could not load your team': 'Hindi ma-load ang team mo',
+  'No team to pick from': 'Walang team na mapipili',
+  'Could not load your team. Check your connection.':
+      'Hindi ma-load ang team mo. Tingnan ang connection mo.',
+  'Your account is not in an organization yet, so there is nobody to pick. Ask the admin to add you to your team.':
+      'Wala pa sa isang organisasyon ang account mo, kaya walang mapipili. Hilingin sa admin na idagdag ka sa team mo.',
+  'Back to queue': 'Bumalik sa queue',
+  'Report filed': 'Na-file ang report',
+  'Saved {clockText}': 'Na-save {clockText}',
+  'Report saved': 'Na-save ang report',
+  'Trucks, driver, crew, equipment and notes':
+      'Mga trak, driver, crew, kagamitan at tala',
+  'Area closed': 'Sarado na ang Area',
+  'It has left the live feed for every role':
+      'Wala na ito sa live feed para sa bawat role',
+  'Closing it now': 'Isinasara na ngayon',
+  'Formal narrative': 'Pormal na salaysay',
+  'Written and attached': 'Naisulat at nakalakip',
+  "Lit is writing it from your report and the residents' reports":
+      'Isinusulat ito ni Lit mula sa report mo at sa mga report ng mga residente',
+  'The server cannot write summaries right now. The report is complete without one.':
+      'Hindi makapagsulat ng summary ang server ngayon. Kumpleto ang report kahit wala ito.',
+  'You and Admin can read the narrative under AI summaries; nobody can edit it once it is attached.':
+      'Mababasa mo at ng Admin ang salaysay sa AI summaries; walang makakapag-edit nito kapag nakalakip na.',
+  'Writing…': 'Isinusulat…',
+  'No summary. The report you filed is the full record.':
+      'Walang summary. Ang report na na-file mo ang buong record.',
+  'Summary: writing': 'Summary: isinusulat',
+  'Summary': 'Summary',
+  'Lit': 'Lit',
+  'Pending Verify': 'Naghihintay ng verify',
+  'Awaiting review': 'Naghihintay ng pagsusuri',
+  'On the way to or on site': 'Papunta o nasa lugar na',
+  'Units Standby': 'Mga unit na naka-standby',
+  'Ready to respond': 'Handang rumesponde',
+  'OPEN INCIDENT': 'BUKSAN ANG INSIDENTE',
+  'Could not load incidents. Check your connection.':
+      'Hindi ma-load ang mga insidente. Tingnan ang connection mo.',
+  'No incidents to review right now.': 'Walang insidenteng susuriin ngayon.',
+  'No reports in this area.': 'Walang report sa Area na ito.',
+  'UNKNOWN REPORTER': 'HINDI KILALANG NAG-REPORT',
+  '{label} broadcast to units.': 'Naipadala ang {label} sa mga unit.',
+  'Could not broadcast. Check your connection.':
+      'Hindi maipadala. Tingnan ang connection mo.',
+  'Request alarm escalation': 'Humiling na itaas ang alarma',
+  'Sent to BFP for review.': 'Naipadala sa BFP para suriin.',
+  'Alarm escalation requested.': 'Naihiling na itaas ang alarma.',
+  'Could not request escalation.': 'Hindi maihiling na itaas ang alarma.',
+  'Action failed. Check your connection.':
+      'Hindi natuloy. Tingnan ang connection mo.',
+  'Reject incident': 'Tanggihan ang insidente',
+  'Anyone responding will be told to stand down.':
+      'Sasabihang tumigil ang sinumang rumeresponde.',
+  'Reason (e.g. verified by mistake)':
+      'Dahilan (hal. na-verify nang nagkamali)',
+  'REJECT': 'TANGGIHAN',
+  'Incident rejected. Anyone responding was stood down.':
+      'Tinanggihan ang insidente. Pinatigil ang sinumang rumeresponde.',
+  "Respond — I'm going": 'Rumesponde — papunta na ako',
+  'Fire out?': 'Fire out na?',
+  'Mark this incident resolved and stop the response.':
+      'Markahang tapos ang insidenteng ito at itigil ang pagresponde.',
+  'Could not resolve. Check your connection.':
+      'Hindi matapos. Tingnan ang connection mo.',
+  'NO LOCATION': 'WALANG LOKASYON',
+  'Escalate alarm': 'Itaas ang alarma',
+  'Broadcast a fire code to all responding units':
+      'Magpadala ng fire code sa lahat ng rumerespondeng unit',
+  'Need Water': 'Kailangan ng tubig',
+  'Request additional water supply': 'Humingi ng dagdag na suplay ng tubig',
+  'Need Assistance': 'Kailangan ng tulong',
+  'Request backup responders': 'Humingi ng mga backup na responder',
+  'Request alarm escalation to BFP': 'Humiling sa BFP na itaas ang alarma',
+  'Locating incident…': 'Hinahanap ang insidente…',
+  'Acknowledged by {verifier}': 'Na-acknowledge ni {verifier}',
+  'ROUTE TO THE FIRE': 'RUTA PAPUNTA SA SUNOG',
+  'ETA': 'ETA',
+  'No active units on this incident.':
+      'Walang aktibong unit sa insidenteng ito.',
+  'Recorded in the Post-Incident Report': 'Nakatala sa Post-Incident Report',
+  'Fire Truck': 'Fire truck',
+  'Crew · {count}': 'Crew · {count}',
+  'File Post-Incident Report': 'Mag-file ng Post-Incident Report',
+  'INCIDENT CLOSED': 'SARADO NA ANG INSIDENTE',
+  'INCIDENT REJECTED': 'TINANGGIHAN ANG INSIDENTE',
+  'INCIDENT RESOLVED': 'TAPOS NA ANG INSIDENTE',
+  'Reason (e.g. false report)': 'Dahilan (hal. maling report)',
+  'Incident rejected.': 'Tinanggihan ang insidente.',
+  'Verified. Respond if you are going.':
+      'Verified. Rumesponde kung pupunta ka.',
+  'Could not verify. Check your connection.':
+      'Hindi ma-verify. Tingnan ang connection mo.',
+  'Could not respond. Check your connection.':
+      'Hindi makaresponde. Tingnan ang connection mo.',
+  'Citizen report': 'Report ng residente',
+  'DESCRIPTION': 'PAGLALARAWAN',
+  'REPORTED BY': 'NAG-REPORT',
+  'REPORTED': 'NA-REPORT',
+  'COORDINATES': 'COORDINATES',
+  'ADDRESS': 'ADDRESS',
+  'VERIFIED BY': 'NAG-VERIFY',
+  'NO PHOTO': 'WALANG LITRATO',
+  'PHOTO UNAVAILABLE': 'HINDI AVAILABLE ANG LITRATO',
+  'Reported fire photo': 'Litrato ng na-report na sunog',
+  'Fire out. The Post-Incident Report is still owed — file it from Pending reports in the menu.':
+      'Fire out na. Kulang pa ang Post-Incident Report — i-file ito mula sa Mga naghihintay na report sa menu.',
+  'Closed — Post-Incident Report filed.':
+      'Sarado na — na-file ang Post-Incident Report.',
+  'This incident has been resolved.': 'Tapos na ang insidenteng ito.',
+  'Rejected: {_rejectionReason}': 'Tinanggihan: {_rejectionReason}',
+  'This incident was rejected.': 'Tinanggihan ang insidenteng ito.',
+  'VERIFY': 'I-VERIFY',
+  'You are responding. Open the incident from the map for the live response.':
+      'Rumeresponde ka. Buksan ang insidente mula sa mapa para sa live na pagresponde.',
+  "RESPOND — I'M GOING": 'RUMESPONDE — PAPUNTA NA AKO',
+  'No actions available for this incident.':
+      'Walang magagawa para sa insidenteng ito.',
+  'Could not load your responders. Check your connection.':
+      'Hindi ma-load ang mga responder mo. Tingnan ang connection mo.',
+  'Reset password': 'I-reset ang password',
+  'Deactivate account': 'I-deactivate ang account',
+  'Reactivate account': 'I-reactivate ang account',
+  'this responder': 'ang responder na ito',
+  'Give {name} a new password?': 'Bigyan ng bagong password si {name}?',
+  'Their current password stops working. You will see the new one once, to hand over.':
+      'Hindi na gagana ang kasalukuyang password nila. Isang beses mo lang makikita ang bago, para ibigay.',
+  'Deactivate {name}?': 'I-deactivate si {name}?',
+  'They are on a response now; it will be released. They will not be able to sign in. Their history stays.':
+      'Nasa pagresponde sila ngayon; aalisin sila roon. Hindi na sila makakapag-sign in. Mananatili ang kasaysayan nila.',
+  'They will not be able to sign in. Their history stays, and you can reactivate the account later.':
+      'Hindi na sila makakapag-sign in. Mananatili ang kasaysayan nila, at puwede mong i-reactivate ang account mamaya.',
+  'Deactivate': 'I-deactivate',
+  '{name} can no longer sign in.': 'Hindi na makakapag-sign in si {name}.',
+  '{name} can sign in again with their last password.':
+      'Makakapag-sign in ulit si {name} gamit ang huling password nila.',
+  'New responder': 'Bagong responder',
+  'Your responders': 'Ang mga responder mo',
+  '{active} active': '{active} aktibo',
+  'No responder accounts yet. Make one for each person on your team.':
+      'Wala pang account ng responder. Gumawa ng isa para sa bawat tao sa team mo.',
+  'Deactivated': 'Naka-deactivate',
+  'On a run': 'Nasa run',
+  'NEW RESPONDER': 'BAGONG RESPONDER',
+  'First name': 'First name',
+  'Juan': 'Juan',
+  'Surname': 'Apelyido',
+  'Dela Cruz': 'Dela Cruz',
+  'name@gmail.com': 'name@gmail.com',
+  'Their sign-in': 'Ang sign-in nila',
+  'Working it out…': 'Inaalam pa…',
+  'Made from the first initial and surname':
+      'Ginawa mula sa unang titik ng pangalan at sa apelyido',
+  'Give {name} these to sign in with.':
+      'Ibigay kay {name} ang mga ito para makapag-sign in.',
+  'Give {name} this password to sign in with.':
+      'Ibigay kay {name} ang password na ito para makapag-sign in.',
+  'Copy {label}': 'Kopyahin ang {label}',
+  '{label} copied.': 'Nakopya ang {label}.',
+  'One report, no spread yet': 'Isang report, wala pang pagkalat',
+  'Spread {value} m': 'Kalat {value} m',
+  'Corroboration (×0.4)': 'Corroboration (×0.4)',
+  '{reports} reports, full weight': '{reports} report, buong bigat',
+  '{reports} of 10 reports': '{reports} sa 10 report',
+  'Spatial agreement (×0.3)': 'Spatial agreement (×0.3)',
+  'Source credibility (×0.3)': 'Source credibility (×0.3)',
+  'Reporters average {value}%': 'Average ng mga nag-report {value}%',
+  'Progress: {value}, step {value2} of {count}':
+      'Progreso: {value}, hakbang {value2} sa {count}',
+  'Lit is writing the summary. The reports below are the full record until it is ready.':
+      'Isinusulat ni Lit ang summary. Ang mga report sa ibaba ang buong record hanggang handa ito.',
+  'Location unknown': 'Hindi alam ang lokasyon',
+  'under way': 'nagaganap',
+  'not under way': 'hindi nagaganap',
+  'The server enforces these rules. This screen only mirrors them.':
+      'Ang server ang nagpapatupad ng mga panuntunang ito. Ipinapakita lang ito ng screen na ito.',
+  'You can': 'Puwede mong',
+  "You can't": 'Hindi mo puwedeng',
+  'On-scene requests': 'Mga request mula sa lugar',
+  'Locked': 'Naka-lock',
+  'Unlocked · {label}': 'Naka-unlock · {label}',
+  'Pick the fire type to unlock requests. Arrived is recorded already.':
+      'Piliin ang uri ng sunog para ma-unlock ang mga request. Naitala na ang pagdating.',
+  'You’re marked safe · {at}': 'Minarkahan kang ligtas · {at}',
+  'Recorded for this fire. You won’t be alerted about it again.':
+      'Naitala para sa sunog na ito. Hindi ka na aalertuhan tungkol dito.',
+  'Help requested · {at}': 'Humingi ng tulong · {at}',
+  'The responding Captain now sees your location and phone number. In danger right now? Call 911.':
+      'Nakikita na ng rumerespondeng Captain ang lokasyon at numero ng phone mo. Nasa panganib ka ngayon? Tumawag sa 911.',
+  'You’re not in the area': 'Wala ka sa lugar',
+  'No more alerts or roll call for this Area.':
+      'Wala nang alerto o roll call para sa Area na ito.',
+  'Ignore': 'Huwag pansinin',
+  'Are you safe?': 'Ligtas ka ba?',
+  'Saving your answer…': 'Sine-save ang sagot mo…',
+  'Safe': 'Ligtas',
+  'Need help': 'Kailangan ng tulong',
+  'Not in area': 'Wala sa lugar',
+  'Need help · {raisedAt}': 'Kailangan ng tulong · {raisedAt}',
+  'Seen {seenAt}': 'Nakita {seenAt}',
+  'Resident needs help': 'Kailangan ng tulong ng residente',
+  'Call': 'Tumawag',
+  'Show on map': 'Ipakita sa mapa',
+  'Visible to the responding Captain only — never to other residents.':
+      'Nakikita lang ng rumerespondeng Captain — hindi kailanman ng ibang residente.',
+  '{votes} residents': '{votes} residente',
+  'Citizens report fire out': 'Iniulat ng mga residente na patay na ang sunog',
+  '{residents} said the fire looks out':
+      'Sinabi ng {residents} na mukhang patay na ang sunog',
+  '{residents} {window}. Only you can mark fire out.':
+      '{residents} {window}. Ikaw lang ang puwedeng magmarka ng fire out.',
+  'Seen {seenAt}. Mark fire out once you have confirmed it on scene.':
+      'Nakita {seenAt}. Markahang fire out kapag nakumpirma mo na ito sa lugar.',
+  'Writing the CIAR': 'Isinusulat ang CIAR',
+  'Lit is composing the formal report from your Post-Incident Report. Usually under 10 seconds.':
+      'Binubuo ni Lit ang pormal na report mula sa Post-Incident Report mo. Kadalasang wala pang 10 segundo.',
+  'The CIAR couldn’t be generated': 'Hindi nagawa ang CIAR',
+  'Your Post-Incident Report is saved. Tell your Admin and quote the reference above.':
+      'Naka-save ang Post-Incident Report mo. Sabihan ang Admin mo at ibigay ang reference sa itaas.',
+  'CIAR attached': 'Nakalakip ang CIAR',
+  'Locked {value}. Every agency on this Area can read it. It is never edited — corrections go on record.':
+      'Naka-lock {value}. Mababasa ito ng bawat ahensiya sa Area na ito. Hindi ito kailanman ine-edit — itinatala ang mga pagwawasto.',
+  'CIAR · {reference}': 'CIAR · {reference}',
+  'View': 'Tingnan',
+  '0% · not usable': '0% · hindi magagamit',
+  '{pct} percent': '{pct} porsiyento',
+  '0 percent, not usable': '0 porsiyento, hindi magagamit',
+  '{p} percent': '{p} porsiyento',
+  'Moves in 5% steps. 0% marks the source as not usable.':
+      'Gumagalaw nang 5% kada hakbang. Ang 0% ay nagmamarka na hindi magagamit ang pinagkukunan.',
+  'Urgency': 'Gaano kaapurahan',
+  'Enter an estimate, like 2,000 litres.':
+      'Maglagay ng tantiya, tulad ng 2,000 litro.',
+  'Say what you need, like a 10 m ladder.':
+      'Sabihin ang kailangan mo, tulad ng 10 m na hagdan.',
+  'Pick the agency to ask.': 'Piliin ang ahensiyang hihingan.',
+  'Pick a level.': 'Pumili ng antas.',
+  'Pick how urgent it is.': 'Piliin kung gaano ito kaapurahan.',
+  'Your request was not sent. Check your connection and send it again.':
+      'Hindi naipadala ang request mo. Tingnan ang connection mo at ipadala ulit.',
+  'Your Admin sees this at once and can ask other organizations for water.':
+      'Makikita agad ito ng Admin mo at puwede siyang humingi ng tubig sa ibang organisasyon.',
+  'Send request': 'Ipadala ang request',
+  'Need equipment': 'Kailangan ng kagamitan',
+  'Say exactly what you need. Your Admin passes it on.':
+      'Sabihin nang eksakto ang kailangan mo. Ipapasa ito ng Admin mo.',
+  'Need backup': 'Kailangan ng backup',
+  'Pick the agency. Your Admin asks that agency’s Admins.':
+      'Piliin ang ahensiya. Hihilingin ito ng Admin mo sa mga Admin ng ahensiyang iyon.',
+  'Your Admin sends this to BFP Pasay. Only BFP sets the alarm level.':
+      'Ipapadala ito ng Admin mo sa BFP Pasay. BFP lang ang nagtatakda ng antas ng alarma.',
+  'Send escalation request': 'Ipadala ang request na itaas ang alarma',
+  'Estimated amount': 'Tantiyang dami',
+  'Rough is fine — gallons or litres.': 'Puwede ang tantiya — galon o litro.',
+  'e.g. 2,000 litres': 'hal. 2,000 litro',
+  'What do you need?': 'Ano ang kailangan mo?',
+  'Free text for now. A picker may replace it later.':
+      'Malayang teksto muna. Baka mapalitan ito ng pagpipilian mamaya.',
+  'e.g. Extension ladder, 10 m. Two SCBA sets.':
+      'hal. Extension ladder, 10 m. Dalawang SCBA set.',
+  'Which agency?': 'Aling ahensiya?',
+  'Propose a level': 'Magmungkahi ng antas',
+  'Now: {currentLevel}': 'Ngayon: {currentLevel}',
+  '{areaLabel} — {label} · step 2 of 2':
+      '{areaLabel} — {label} · hakbang 2 sa 2',
+  '{label} — which kind?': '{label} — anong uri?',
+  'Pick the closest match. The Captain can correct it in the post-incident report.':
+      'Piliin ang pinakamalapit. Puwede itong itama ng Captain sa post-incident report.',
+  'Pick one to confirm': 'Pumili ng isa para kumpirmahin',
+  'Confirm {label} — {_subtype}': 'Kumpirmahin ang {label} — {_subtype}',
+  ' — arrived {arrivedAt}': ' — dumating {arrivedAt}',
+  '{areaLabel}{arrived} · required': '{areaLabel}{arrived} · kailangan',
+  'What’s burning?': 'Ano ang nasusunog?',
+  'Pick the fire type. Requests for water, equipment, backup and escalation unlock once it is set.':
+      'Piliin ang uri ng sunog. Mabubuksan ang mga request para sa tubig, kagamitan, backup at pagtaas ng alarma kapag naitakda na ito.',
+  'Continue': 'Magpatuloy',
+  'Confirm {label}': 'Kumpirmahin ang {label}',
+  'Menu': 'Menu',
+  'Staff': 'Staff',
+  'Everyone responding stands down and stops sharing location. The Area moves to To file until you submit its post-incident report.':
+      'Titigil ang lahat ng rumeresponde at hindi na magbabahagi ng lokasyon. Mapupunta ang Area sa Ifa-file hanggang maipasa mo ang post-incident report nito.',
+  '{unit} stands down and stops sharing location. The Area moves to To file until you submit its post-incident report.':
+      'Titigil ang {unit} at hindi na magbabahagi ng lokasyon. Mapupunta ang Area sa Ifa-file hanggang maipasa mo ang post-incident report nito.',
+  '{units} stand down and stop sharing location. The Area moves to To file until you submit its post-incident report.':
+      'Titigil ang {units} at hindi na magbabahagi ng lokasyon. Mapupunta ang Area sa Ifa-file hanggang maipasa mo ang post-incident report nito.',
+  '1 Post-Incident Report to file': '1 Post-Incident Report ang ifa-file',
+  '{n} Post-Incident Reports to file': '{n} Post-Incident Report ang ifa-file',
+  'Your responders sign in with the accounts you make here. Each gets a @replit.com address, and a link to set the password goes to their own email.':
+      'Nagsa-sign in ang mga responder mo gamit ang mga account na ginagawa mo rito. Bawat isa ay may @replit.com na address, at sa sarili nilang email ipinapadala ang link para itakda ang password.',
+  'Hand these over in person. The password is shown only this once. You can give them a new one from this screen.':
+      'Ibigay ang mga ito nang personal. Isang beses lang ipinapakita ang password. Puwede mo silang bigyan ng bago mula sa screen na ito.',
+  'False alarm — no fire found': 'False alarm — walang nakitang sunog',
+  'Duplicate of another Area': 'Kapareho ng ibang Area',
+  'Not an emergency': 'Hindi emergency',
+  'Prank or misuse': 'Biro o maling paggamit',
+  'Codes': 'Mga code',
+  'Merged': 'Pinagsama',
+  'Kept separate': 'Pinanatiling hiwalay',
+  'Acknowledged': 'Na-acknowledge',
+  'Closed': 'Sarado',
+  'Pick the fire type first': 'Piliin muna ang uri ng sunog',
+  'Request to your Admin': 'Request sa Admin mo',
+  'Say what you need': 'Sabihin ang kailangan mo',
+  'Pick an agency': 'Pumili ng ahensiya',
+  'Your Admin asks BFP': 'Ang Admin mo ang hihiling sa BFP',
+  'I am safe': 'Ligtas ako',
+  'Tell responders you are out of danger':
+      'Sabihan ang mga responder na wala ka nang panganib',
+  'I need help': 'Kailangan ko ng tulong',
+  'The responding Captain sees where you are':
+      'Makikita ng rumerespondeng Captain kung nasaan ka',
+  'Not in the area': 'Wala sa lugar',
+  'No more alerts for this Area': 'Wala nang alerto para sa Area na ito',
+  'Water level': 'Antas ng tubig',
+  'Unit not recorded': 'Hindi nakatala ang unit',
+  'Coordinator': 'Coordinator',
 };

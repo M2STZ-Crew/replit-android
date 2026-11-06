@@ -23,6 +23,7 @@ import 'post_incident_report_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _sheet => ThemeChoice.palette.surfaceSolid;
@@ -249,16 +250,16 @@ class _SubAdminIncidentCommandScreenState
   Future<void> _pressCode(String codeNumber, String label) async {
     final id = _fireCodeIds[codeNumber];
     if (id == null) {
-      _toast('$label is unavailable.');
+      _toast(t('{label} is unavailable.', {'label': label}));
       return;
     }
     try {
       await _api.pressFireCode(id, areaId: widget.areaId);
-      if (mounted) _toast('$label broadcast to units.');
+      if (mounted) _toast(t('{label} broadcast to units.', {'label': label}));
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not broadcast. Check your connection.');
+      if (mounted) _toast(t('Could not broadcast. Check your connection.'));
     }
   }
 
@@ -284,7 +285,7 @@ class _SubAdminIncidentCommandScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Request alarm escalation',
+                t('Request alarm escalation'),
                 style: TextStyle(
                   color: _ink,
                   fontSize: 16,
@@ -293,7 +294,7 @@ class _SubAdminIncidentCommandScreenState
               ),
               const SizedBox(height: 4),
               Text(
-                'Sent to BFP for review.',
+                t('Sent to BFP for review.'),
                 style: TextStyle(color: context.pal.muted, fontSize: 12),
               ),
               const SizedBox(height: 14),
@@ -312,11 +313,11 @@ class _SubAdminIncidentCommandScreenState
     if (level == null) return;
     try {
       await _api.createAlarmRequest(areaId: widget.areaId, alarmLevel: level);
-      if (mounted) _toast('Alarm escalation requested.');
+      if (mounted) _toast(t('Alarm escalation requested.'));
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not request escalation.');
+      if (mounted) _toast(t('Could not request escalation.'));
     }
   }
 
@@ -353,7 +354,7 @@ class _SubAdminIncidentCommandScreenState
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Action failed. Check your connection.');
+      if (mounted) _toast(t('Action failed. Check your connection.'));
     } finally {
       await _refresh();
       if (mounted) setState(() => _busy = false);
@@ -362,11 +363,11 @@ class _SubAdminIncidentCommandScreenState
 
   void _respond() => _act(
     () => _api.selfDispatch(widget.areaId),
-    'You are responding. Your location is shared while you go.',
+    t('You are responding. Your location is shared while you go.'),
   );
 
   void _arrived() =>
-      _act(() => _api.markArrived(widget.areaId), 'Marked on scene.');
+      _act(() => _api.markArrived(widget.areaId), t('Marked on scene.'));
 
   Future<void> _reject() async {
     final reason = await showAppDialog<String>(
@@ -376,7 +377,7 @@ class _SubAdminIncidentCommandScreenState
         return AlertDialog(
           backgroundColor: context.pal.surface,
           title: Text(
-            'Reject incident',
+            t('Reject incident'),
             style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
           ),
           content: Column(
@@ -384,7 +385,7 @@ class _SubAdminIncidentCommandScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Anyone responding will be told to stand down.',
+                t('Anyone responding will be told to stand down.'),
                 style: TextStyle(color: context.pal.muted, fontSize: 13),
               ),
               TextField(
@@ -392,7 +393,7 @@ class _SubAdminIncidentCommandScreenState
                 autofocus: true,
                 style: TextStyle(color: _ink),
                 decoration: InputDecoration(
-                  hintText: 'Reason (e.g. verified by mistake)',
+                  hintText: t('Reason (e.g. verified by mistake)'),
                   hintStyle: TextStyle(color: context.pal.darkText),
                 ),
               ),
@@ -401,12 +402,15 @@ class _SubAdminIncidentCommandScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(),
-              child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
+              child: Text(
+                t('CANCEL'),
+                style: TextStyle(color: context.pal.muted),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dctx).pop(ctrl.text.trim()),
               child: Text(
-                'REJECT',
+                t('REJECT'),
                 style: TextStyle(color: _red, fontWeight: FontWeight.w800),
               ),
             ),
@@ -420,7 +424,7 @@ class _SubAdminIncidentCommandScreenState
     try {
       await _api.rejectIncident(widget.areaId, reason);
       if (!mounted) return;
-      _toast('Incident rejected. Anyone responding was stood down.');
+      _toast(t('Incident rejected. Anyone responding was stood down.'));
       navigator.pop(true);
     } on ApiException catch (e) {
       if (mounted) {
@@ -431,7 +435,7 @@ class _SubAdminIncidentCommandScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _toast('Could not reject. Check your connection.');
+        _toast(t('Could not reject. Check your connection.'));
       }
     }
   }
@@ -456,7 +460,7 @@ class _SubAdminIncidentCommandScreenState
       if (mine == null) {
         buttons.add(
           AppButton(
-            "Respond — I'm going",
+            t("Respond — I'm going"),
             height: 52,
             busy: _busy,
             onPressed: _busy ? null : _respond,
@@ -465,7 +469,7 @@ class _SubAdminIncidentCommandScreenState
       } else if (_status == 'en_route') {
         buttons.add(
           AppButton(
-            'Mark arrived',
+            t('Mark arrived'),
             height: 52,
             busy: _busy,
             onPressed: _busy ? null : _arrived,
@@ -474,7 +478,7 @@ class _SubAdminIncidentCommandScreenState
       } else {
         buttons.add(
           Text(
-            'You are on scene.',
+            t('You are on scene.'),
             style: TextStyle(color: _muted, fontSize: 13),
           ),
         );
@@ -484,7 +488,7 @@ class _SubAdminIncidentCommandScreenState
       buttons.addAll([
         const SizedBox(height: 10),
         AppButton.secondary(
-          'Reject incident',
+          t('Reject incident'),
           height: 48,
           onPressed: _busy ? null : _reject,
         ),
@@ -506,22 +510,25 @@ class _SubAdminIncidentCommandScreenState
       builder: (dctx) => AlertDialog(
         backgroundColor: context.pal.surface,
         title: Text(
-          'Fire out?',
+          t('Fire out?'),
           style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
         ),
         content: Text(
-          'Mark this incident resolved and stop the response.',
+          t('Mark this incident resolved and stop the response.'),
           style: TextStyle(color: context.pal.muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(false),
-            child: Text('CANCEL', style: TextStyle(color: context.pal.muted)),
+            child: Text(
+              t('CANCEL'),
+              style: TextStyle(color: context.pal.muted),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(true),
             child: Text(
-              'FIRE OUT',
+              t('FIRE OUT'),
               style: TextStyle(
                 color: context.pal.accent,
                 fontWeight: FontWeight.w800,
@@ -553,7 +560,7 @@ class _SubAdminIncidentCommandScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _toast('Could not resolve. Check your connection.');
+        _toast(t('Could not resolve. Check your connection.'));
       }
     }
   }
@@ -578,7 +585,7 @@ class _SubAdminIncidentCommandScreenState
     return StaffScaffold(
       me: widget.me,
       page: StaffPage.incidents,
-      title: (_incident?['designation'] as String?) ?? 'Incident',
+      title: (_incident?['designation'] as String?) ?? t('Incident'),
       body: _loading
           ? const SkeletonDetail(media: true)
           : Column(
@@ -605,10 +612,10 @@ class _SubAdminIncidentCommandScreenState
       children: [
         Positioned.fill(
           child: c == null
-              ? const PlaceholderBox(
+              ? PlaceholderBox(
                   width: double.infinity,
                   height: double.infinity,
-                  label: 'NO LOCATION',
+                  label: t('NO LOCATION'),
                 )
               : FlutterMap(
                   mapController: _map,
@@ -720,12 +727,12 @@ class _SubAdminIncidentCommandScreenState
                 ],
               const SizedBox(height: 8),
               Text(
-                'Escalate alarm',
+                t('Escalate alarm'),
                 style: TextStyle(color: _ink, fontSize: 16),
               ),
               const SizedBox(height: 4),
               Text(
-                'Broadcast a fire code to all responding units',
+                t('Broadcast a fire code to all responding units'),
                 style: TextStyle(color: _muted, fontSize: 12),
               ),
               const SizedBox(height: 12),
@@ -733,26 +740,26 @@ class _SubAdminIncidentCommandScreenState
                 icon: AppIcons.waterDrop,
                 tint: const Color(0x1E3B82F6),
                 iconColor: context.pal.info,
-                title: 'Need Water',
-                subtitle: 'Request additional water supply',
-                onTap: () => _pressCode('FC-6', 'Need Water'),
+                title: t('Need Water'),
+                subtitle: t('Request additional water supply'),
+                onTap: () => _pressCode(t('FC-6'), t('Need Water')),
               ),
               const SizedBox(height: 10),
               _escalationRow(
                 icon: AppIcons.groupAdd,
                 tint: const Color(0x1EF59E0B),
                 iconColor: const Color(0xFFF59E0B),
-                title: 'Need Assistance',
-                subtitle: 'Request backup responders',
-                onTap: () => _pressCode('FC-7', 'Need Assistance'),
+                title: t('Need Assistance'),
+                subtitle: t('Request backup responders'),
+                onTap: () => _pressCode(t('FC-7'), t('Need Assistance')),
               ),
               const SizedBox(height: 10),
               _escalationRow(
                 icon: AppIcons.campaign,
                 tint: const Color(0x23EF4444),
                 iconColor: context.pal.live,
-                title: 'Escalate to BFP',
-                subtitle: 'Request alarm escalation to BFP',
+                title: t('Escalate to BFP'),
+                subtitle: t('Request alarm escalation to BFP'),
                 onTap: _escalateBfp,
               ),
             ],
@@ -804,20 +811,20 @@ class _SubAdminIncidentCommandScreenState
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Live',
+                      t('Live'),
                       style: TextStyle(color: context.pal.accent, fontSize: 11),
                     ),
                   ],
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  _address ?? 'Locating incident…',
+                  _address ?? t('Locating incident…'),
                   style: TextStyle(color: _ink, fontSize: 16, height: 1.2),
                 ),
                 if (verifierLine(_incident) case final verifier?) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Acknowledged by $verifier',
+                    t('Acknowledged by {verifier}', {'verifier': verifier}),
                     style: TextStyle(color: _muted, fontSize: 12),
                   ),
                 ],
@@ -833,7 +840,7 @@ class _SubAdminIncidentCommandScreenState
                         color: context.pal.accent,
                       ),
                       label: Text(
-                        'ROUTE TO THE FIRE',
+                        t('ROUTE TO THE FIRE'),
                         style: TextStyle(
                           color: context.pal.accent,
                           fontWeight: FontWeight.w800,
@@ -846,7 +853,7 @@ class _SubAdminIncidentCommandScreenState
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: 'ETA',
+                        text: t('ETA'),
                         style: TextStyle(color: _muted, fontSize: 16),
                       ),
                       TextSpan(
@@ -892,7 +899,7 @@ class _SubAdminIncidentCommandScreenState
         border: Border.all(color: _panelBorder),
       ),
       child: Text(
-        'No active units on this incident.',
+        t('No active units on this incident.'),
         style: TextStyle(color: context.pal.muted, fontSize: 13),
       ),
     );
@@ -901,8 +908,8 @@ class _SubAdminIncidentCommandScreenState
   Widget _unitCard(String vehicleName, List<Map<String, dynamic>> crew) {
     final unit = _fleetByName[vehicleName];
     final subtitle = vehicleName == _noUnit
-        ? 'Recorded in the Post-Incident Report'
-        : unit?.subtitle ?? 'Fire Truck';
+        ? t('Recorded in the Post-Incident Report')
+        : unit?.subtitle ?? t('Fire Truck');
     Map<String, dynamic>? driver;
     final others = <Map<String, dynamic>>[];
     for (final d in crew) {
@@ -946,7 +953,7 @@ class _SubAdminIncidentCommandScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      vehicleName,
+                      t(vehicleName),
                       style: TextStyle(
                         color: _ink,
                         fontSize: 16,
@@ -997,14 +1004,17 @@ class _SubAdminIncidentCommandScreenState
             children: [
               Icon(AppIcons.localTaxi, color: _crewGrey, size: 14),
               SizedBox(width: 6),
-              Text('Driver', style: TextStyle(color: _crewGrey, fontSize: 11)),
+              Text(
+                t('Driver'),
+                style: TextStyle(color: _crewGrey, fontSize: 11),
+              ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             driver == null
                 ? '—'
-                : ((driver['responder_name'] as String?) ?? 'Responder'),
+                : ((driver['responder_name'] as String?) ?? t('Responder')),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: _ink, fontSize: 15),
@@ -1039,7 +1049,7 @@ class _SubAdminIncidentCommandScreenState
               Icon(AppIcons.groups, color: _crewGrey, size: 14),
               const SizedBox(width: 6),
               Text(
-                'Crew · ${crew.length}',
+                t('Crew · {count}', {'count': crew.length}),
                 style: TextStyle(color: _crewGrey, fontSize: 11),
               ),
             ],
@@ -1146,7 +1156,7 @@ class _SubAdminIncidentCommandScreenState
     // Fire out, report still owed: the one thing left to do here is file it.
     if (_status == 'post_incident_report') {
       return AppButton(
-        'File Post-Incident Report',
+        t('File Post-Incident Report'),
         icon: AppIcons.assignment,
         height: 56,
         onPressed: _openReport,
@@ -1164,10 +1174,10 @@ class _SubAdminIncidentCommandScreenState
         ),
         child: Text(
           _status == 'closed'
-              ? 'INCIDENT CLOSED'
+              ? t('INCIDENT CLOSED')
               : _status == 'rejected'
-              ? 'INCIDENT REJECTED'
-              : 'INCIDENT RESOLVED',
+              ? t('INCIDENT REJECTED')
+              : t('INCIDENT RESOLVED'),
           style: TextStyle(
             color: context.pal.muted,
             fontSize: 14,
@@ -1204,8 +1214,8 @@ class _SubAdminIncidentCommandScreenState
                     color: AppColors.accentText,
                   ),
                 )
-              : const Text(
-                  'FIRE OUT',
+              : Text(
+                  t('FIRE OUT'),
                   style: TextStyle(
                     color: AppColors.accentText,
                     fontSize: 16,

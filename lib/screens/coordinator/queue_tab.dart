@@ -14,6 +14,7 @@ import 'coordinator_feed.dart';
 import 'coordinator_shell.dart';
 import 'overlap_screen.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// Which part of the queue is showing.
 enum QueueSegment { decide, active, file }
@@ -38,10 +39,10 @@ class _QueueTabState extends State<QueueTab> {
 
   /// What a new Area asks this coordinator's agency for: "Fire", "Police".
   String get _askedWord => switch (_feed.agency) {
-    'police' => 'Police',
-    'medical' => 'Medical',
-    'barangay' => 'Barangay',
-    _ => 'Fire',
+    'police' => t('Police'),
+    'medical' => t('Medical'),
+    'barangay' => t('Barangay'),
+    _ => t('Fire'),
   };
 
   /// "Pasay Fire Volunteers · Team 2": whose queue this is.
@@ -106,7 +107,7 @@ class _QueueTabState extends State<QueueTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TabHeader(eyebrow: _team, title: 'Queue'),
+            TabHeader(eyebrow: _team, title: t('Queue')),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
               child: _segments(),
@@ -138,11 +139,11 @@ class _QueueTabState extends State<QueueTab> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          segment(QueueSegment.decide, 'To decide', SegmentTone.attention),
+          segment(QueueSegment.decide, t('To decide'), SegmentTone.attention),
           const SizedBox(width: 8),
-          segment(QueueSegment.active, 'Active', SegmentTone.live),
+          segment(QueueSegment.active, t('Active'), SegmentTone.live),
           const SizedBox(width: 8),
-          segment(QueueSegment.file, 'To file', SegmentTone.settled),
+          segment(QueueSegment.file, t('To file'), SegmentTone.settled),
         ],
       ),
     );
@@ -153,9 +154,12 @@ class _QueueTabState extends State<QueueTab> {
       return _feed.error == null
           ? const SkeletonList(rows: 5, trailing: true)
           : EmptyState(
-              title: 'Queue unavailable',
+              title: t('Queue unavailable'),
               body: _feed.error!,
-              action: AppButton.secondary('Try again', onPressed: _feed.load),
+              action: AppButton.secondary(
+                t('Try again'),
+                onPressed: _feed.load,
+              ),
             );
     }
     final children = switch (_segment) {
@@ -186,7 +190,7 @@ class _QueueTabState extends State<QueueTab> {
     );
   }
 
-  String _areas(int n) => n == 1 ? '1 area' : '$n areas';
+  String _areas(int n) => n == 1 ? t('1 area') : t('{n} areas', {'n': n});
 
   List<Widget> _decideList() {
     final areas = _feed.toDecide;
@@ -195,15 +199,17 @@ class _QueueTabState extends State<QueueTab> {
       for (final o in _feed.overlaps.take(1)) _overlapAlert(o),
       if (areas.isEmpty)
         _Empty(
-          title: 'Nothing to decide',
-          body: 'A new Area that asks for $_askedWord lands here first.',
+          title: t('Nothing to decide'),
+          body: t('A new Area that asks for {_askedWord} lands here first.', {
+            '_askedWord': _askedWord,
+          }),
         )
       else ...[
-        SectionHeader('Waiting on you', meta: _areas(areas.length)),
+        SectionHeader(t('Waiting on you'), meta: _areas(areas.length)),
         for (final (i, a) in areas.indexed)
           _card(
             a,
-            action: 'Decide',
+            action: t('Decide'),
             onTap: () => _decide(a),
             // The newest is the one to look at first.
             emphasis: i == 0 ? AreaEmphasis.attention : AreaEmphasis.normal,
@@ -211,18 +217,19 @@ class _QueueTabState extends State<QueueTab> {
           ),
       ],
       if (_powers.rejects)
-        const InlineAlert(
-          body:
-              'Any responding agency can accept. Only a Fire Volunteer or BFP '
-              'coordinator can reject.',
+        InlineAlert(
+          body: t(
+            'Any responding agency can accept. Only a Fire Volunteer or BFP '
+            'coordinator can reject.',
+          ),
         )
       else
         // 06 · C01P: a PNP Coordinator's queue.
         InlineAlert(
-          body:
-              'These Areas asked for $_askedWord. Accepting acknowledges them '
-              'for $_team. Only a Fire Volunteer or BFP Coordinator can '
-              'reject.',
+          body: t(
+            'These Areas asked for {_askedWord}. Accepting acknowledges them for {_team}. Only a Fire Volunteer or BFP Coordinator can reject.',
+            {'_askedWord': _askedWord, '_team': _team},
+          ),
         ),
     ];
   }
@@ -240,13 +247,19 @@ class _QueueTabState extends State<QueueTab> {
     return InlineAlert(
       tone: AlertTone.danger,
       title: asks.length == 1
-          ? '${first.areaName} asks for ${alarmWord(first.level)}'
-          : '${asks.length} alarm requests waiting',
+          ? t('{areaName} asks for {alarmWord}', {
+              'areaName': first.areaName,
+              'alarmWord': alarmWord(first.level),
+            })
+          : t('{count} alarm requests waiting', {'count': asks.length}),
       body: asks.length == 1
-          ? '$who. Only BFP sets the alarm level.'
-          : 'Newest: ${first.areaName} asks for ${alarmWord(first.level)} · '
-                '$who.',
-      action: asks.length == 1 ? 'Answer' : 'Answer them',
+          ? t('{who}. Only BFP sets the alarm level.', {'who': who})
+          : t('Newest: {areaName} asks for {alarmWord} · {who}.', {
+              'areaName': first.areaName,
+              'alarmWord': alarmWord(first.level),
+              'who': who,
+            }),
+      action: asks.length == 1 ? t('Answer') : t('Answer them'),
       onAction: () => _answerAlarm(first),
     );
   }
@@ -257,11 +270,13 @@ class _QueueTabState extends State<QueueTab> {
     final metres = (o['distance_m'] as num?)?.round();
     return InlineAlert(
       tone: AlertTone.warning,
-      title: '$a and $b overlap',
-      body:
-          '${metres == null ? 'They are close' : 'They are $metres m apart'}. '
-          'Merge them into one incident or keep them separate.',
-      action: 'Review',
+      title: t('{a} and {b} overlap', {'a': a, 'b': b}),
+      body: t('{value}. Merge them into one incident or keep them separate.', {
+        'value': metres == null
+            ? t('They are close')
+            : t('They are {metres} m apart', {'metres': metres}),
+      }),
+      action: t('Review'),
       onAction: () => _review(o),
     );
   }
@@ -277,18 +292,19 @@ class _QueueTabState extends State<QueueTab> {
     ];
     return [
       if (ground.isEmpty && nobody.isEmpty)
-        const _Empty(
-          title: 'Nothing under way',
-          body:
-              'An Area you or another agency accepts shows here until the '
-              'fire is out.',
+        _Empty(
+          title: t('Nothing under way'),
+          body: t(
+            'An Area you or another agency accepts shows here until the '
+            'fire is out.',
+          ),
         ),
       if (ground.isNotEmpty) ...[
-        SectionHeader('On the ground', meta: _areas(ground.length)),
+        SectionHeader(t('On the ground'), meta: _areas(ground.length)),
         for (final a in ground)
           _card(
             a,
-            action: 'Open',
+            action: t('Open'),
             onTap: () => widget.shell.showLive(a.id),
             emphasis: AreaEmphasis.live,
             note: _groundNote(a),
@@ -296,22 +312,23 @@ class _QueueTabState extends State<QueueTab> {
       ],
       if (nobody.isNotEmpty) ...[
         SectionHeader(
-          'Accepted, nobody going yet',
+          t('Accepted, nobody going yet'),
           meta: _areas(nobody.length),
         ),
         for (final a in nobody)
           _card(
             a,
-            action: 'Open',
+            action: t('Open'),
             onTap: () => _decide(a),
             emphasis: AreaEmphasis.attention,
             note: _acceptedNote(a),
           ),
       ],
-      const InlineAlert(
-        body:
-            'Only staff see who accepted. The public map shows status, '
-            'confidence and report count — never who is responding.',
+      InlineAlert(
+        body: t(
+          'Only staff see who accepted. The public map shows status, '
+          'confidence and report count — never who is responding.',
+        ),
       ),
     ];
   }
@@ -321,7 +338,7 @@ class _QueueTabState extends State<QueueTab> {
     final who = andList([for (final g in a.accepted) agencyWord(g)]);
     if (at == null && who.isEmpty) return null;
     return [
-      if (at != null) 'Accepted ${clockText(at)}',
+      if (at != null) t('Accepted {clockText}', {'clockText': clockText(at)}),
       if (who.isNotEmpty) who,
     ].join(' · ');
   }
@@ -330,11 +347,16 @@ class _QueueTabState extends State<QueueTab> {
     final arrived = a.at('arrived_at');
     if (a.status == 'arrived' && arrived != null) {
       final who = andList([for (final g in a.accepted) agencyWord(g)]);
-      return 'Arrived ${clockText(arrived)}${who.isEmpty ? '' : ' · $who'}';
+      return t('Arrived {clockText}{value}', {
+        'clockText': clockText(arrived),
+        'value': who.isEmpty ? '' : ' · $who',
+      });
     }
     final going = a.respondingCount;
     final accepted = _acceptedNote(a);
-    final units = going == 1 ? '1 responding' : '$going responding';
+    final units = going == 1
+        ? t('1 responding')
+        : t('{going} responding', {'going': going});
     return [?accepted, if (going > 0) units].join(' · ');
   }
 
@@ -342,16 +364,18 @@ class _QueueTabState extends State<QueueTab> {
     final owed = _feed.owed;
     return [
       if (owed.isEmpty)
-        const _Empty(
-          title: 'Nothing to file',
-          body: 'When a fire your team went to is out, its report waits here.',
+        _Empty(
+          title: t('Nothing to file'),
+          body: t(
+            'When a fire your team went to is out, its report waits here.',
+          ),
         )
       else ...[
-        SectionHeader('Reports to file', meta: _areas(owed.length)),
+        SectionHeader(t('Reports to file'), meta: _areas(owed.length)),
         for (final a in owed)
           _card(
             a,
-            action: 'File report',
+            action: t('File report'),
             onTap: () => _file(a),
             emphasis: _waitingLong(a)
                 ? AreaEmphasis.attention
@@ -359,10 +383,11 @@ class _QueueTabState extends State<QueueTab> {
             note: _fileNote(a),
           ),
       ],
-      const InlineAlert(
-        body:
-            'An Area closes only after its post-incident report is filed. '
-            'There is no draft — the form saves once, when it is complete.',
+      InlineAlert(
+        body: t(
+          'An Area closes only after its post-incident report is filed. '
+          'There is no draft — the form saves once, when it is complete.',
+        ),
       ),
     ];
   }
@@ -376,8 +401,12 @@ class _QueueTabState extends State<QueueTab> {
     final out = a.at('resolved_at');
     if (out == null) return null;
     final hours = DateTime.now().difference(out).inHours;
-    return 'Fire out ${whenText(out)} · '
-        '${hours >= 1 ? 'waiting $hours h' : 'ready to file'}';
+    return t('Fire out {whenText} · {value}', {
+      'whenText': whenText(out),
+      'value': hours >= 1
+          ? t('waiting {hours} h', {'hours': hours})
+          : t('ready to file'),
+    });
   }
 
   Widget _card(
@@ -398,9 +427,9 @@ class _QueueTabState extends State<QueueTab> {
         place: placeLine(a, place),
         facts: facts
             ? [
-                ('Reports', '${a.reports}'),
-                ('Confidence', a.confidence),
-                ('Reported', reported == null ? '—' : agoText(reported)),
+                (t('Reports'), '${a.reports}'),
+                (t('Confidence'), a.confidence),
+                (t('Reported'), reported == null ? '—' : agoText(reported)),
               ]
             : const [],
         note: note,
@@ -414,7 +443,7 @@ class _QueueTabState extends State<QueueTab> {
 
 String _designation(Object? d) {
   final s = (d as String?) ?? '';
-  return s.toLowerCase().startsWith('area') ? s : 'Area $s';
+  return s.toLowerCase().startsWith('area') ? s : t('Area {s}', {'s': s});
 }
 
 class _Empty extends StatelessWidget {

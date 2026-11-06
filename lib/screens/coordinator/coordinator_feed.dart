@@ -6,6 +6,7 @@ import '../../api/api_client.dart';
 import '../../api/live_refresh.dart';
 import '../../models/alarm.dart';
 import '../../models/area_view.dart';
+import '../../i18n/i18n.dart';
 
 /// What the coordinator's tabs share: the live Areas their agency sees, the
 /// reports their team still owes, the overlaps waiting on a decision and,
@@ -99,7 +100,7 @@ class CoordinatorFeed extends ChangeNotifier {
       if (_disposed) return;
       // Keep the last good lists; say so only when there are none.
       if (!loaded) {
-        error = 'Could not load the queue. Check your signal.';
+        error = t('Could not load the queue. Check your signal.');
         notifyListeners();
       }
     }

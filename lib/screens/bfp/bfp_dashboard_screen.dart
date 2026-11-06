@@ -17,6 +17,7 @@ import 'bfp_alarm_requests_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
+import '../../i18n/i18n.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _panel => ThemeChoice.palette.glassDim;
@@ -123,7 +124,9 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         final pts = await layer.load!();
         if (mounted) setState(() => _cache[layer.key] = pts);
       } catch (_) {
-        if (mounted) _toast('Could not load ${layer.label}.');
+        if (mounted) {
+          _toast(t('Could not load {label}.', {'label': layer.label}));
+        }
       }
     }
   }
@@ -142,7 +145,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
       me: widget.me,
       page: StaffPage.dashboard,
       home: true,
-      title: 'Dashboard',
+      title: t('Dashboard'),
       body: Column(
         children: [
           Padding(
@@ -172,8 +175,8 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         Expanded(
           child: _statCard(
             '${s?['active_incidents'] ?? '–'}',
-            'Active Incidents',
-            'In progress now',
+            t('Active Incidents'),
+            t('In progress now'),
             _red,
             AppIcons.warning,
           ),
@@ -182,8 +185,8 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
         Expanded(
           child: _statCard(
             '${s?['units_deployed'] ?? '–'}',
-            'Units Deployed',
-            'On the way or on site',
+            t('Units Deployed'),
+            t('On the way or on site'),
             _orange,
             AppIcons.localShipping,
           ),
@@ -277,7 +280,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Alarm Requests',
+                    t('Alarm Requests'),
                     style: TextStyle(
                       color: _ink,
                       fontSize: 16,
@@ -287,8 +290,10 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                   const SizedBox(height: 2),
                   Text(
                     _pendingAlarms > 0
-                        ? '$_pendingAlarms pending • review & execute'
-                        : 'No pending requests',
+                        ? t('{_pendingAlarms} pending • review & execute', {
+                            '_pendingAlarms': _pendingAlarms,
+                          })
+                        : t('No pending requests'),
                     style: const TextStyle(
                       color: Color(0xFF71717B),
                       fontSize: 11,
@@ -346,7 +351,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Live Map',
+                        t('Live Map'),
                         style: TextStyle(
                           color: _ink,
                           fontSize: 16,
@@ -355,7 +360,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Real-time incidents across Pasay City',
+                        t('Real-time incidents across Pasay City'),
                         style: context.type.meta,
                       ),
                     ],
@@ -373,7 +378,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Updating live',
+                      t('Updating live'),
                       style: TextStyle(color: _orange, fontSize: 10),
                     ),
                   ],
@@ -537,7 +542,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      (inc['designation'] as String?) ?? 'Incident',
+                      (inc['designation'] as String?) ?? t('Incident'),
                       style: TextStyle(
                         color: _ink,
                         fontSize: 22,
@@ -550,8 +555,11 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                '${(inc['report_count'] as num?)?.toInt() ?? 0} reports • '
-                '${(inc['active_dispatch_count'] as num?)?.toInt() ?? 0} responding',
+                t('{value} reports • {value2} responding', {
+                  'value': (inc['report_count'] as num?)?.toInt() ?? 0,
+                  'value2':
+                      (inc['active_dispatch_count'] as num?)?.toInt() ?? 0,
+                }),
                 style: TextStyle(color: context.pal.muted, fontSize: 13),
               ),
               if (alarm != null && alarm.isNotEmpty) ...[
@@ -561,7 +569,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                     Icon(AppIcons.campaign, color: _red, size: 16),
                     const SizedBox(width: 8),
                     Text(
-                      'Alarm: ${alarm.toUpperCase()}',
+                      t('Alarm: {alarm}', {'alarm': alarm.toUpperCase()}),
                       style: TextStyle(
                         color: _red,
                         fontSize: 13,
@@ -577,7 +585,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
               ],
               const SizedBox(height: 18),
               AppButton(
-                'Open incident',
+                t('Open incident'),
                 onPressed: () {
                   Navigator.of(context).pop();
                   _openIncident(inc);

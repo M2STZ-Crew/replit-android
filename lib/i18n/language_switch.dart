@@ -24,9 +24,12 @@ class LanguageSwitch extends StatelessWidget {
   /// is sent again with the next sign-in (PushService.syncForUser).
   static Future<void> choose(AppLanguage language, {ApiClient? api}) async {
     await LanguageChoice.set(language);
+    // Saved to the account below; until then this phone's choice stands.
+    await LanguageChoice.markUnsaved(true);
     if (!Session.instance.isAuthenticated) return;
     try {
       await (api ?? ApiClient()).setLanguage(language.code);
+      await LanguageChoice.markUnsaved(false);
     } catch (_) {
       // Sent again later.
     }

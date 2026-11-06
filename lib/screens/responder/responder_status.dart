@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../../widgets/design.dart';
+import '../../i18n/i18n.dart';
 
 /// Shared label/colour helpers for incident status + agency, used across the
 /// responder console.
@@ -30,13 +31,13 @@ String responderStatusLabel(String status) => LifecycleChip.word(status);
 
 /// What an agency is called on screen.
 String agencyLabel(String? agency) => switch (agency) {
-  'fire_volunteer' => 'Fire Volunteer',
-  'bfp' => 'Bureau of Fire',
-  'police' => 'Police',
-  'medical' => 'Medical',
-  'barangay' => 'Barangay',
-  'coastguard' => 'Coast Guard',
-  _ => 'Response team',
+  'fire_volunteer' => t('Fire Volunteer'),
+  'bfp' => t('Bureau of Fire'),
+  'police' => t('Police'),
+  'medical' => t('Medical'),
+  'barangay' => t('Barangay'),
+  'coastguard' => t('Coast Guard'),
+  _ => t('Response team'),
 };
 
 /// Response Teams exist in all five agencies (v10 §2.6), but fire codes — Need
@@ -68,19 +69,25 @@ String? routingLabel(
     );
     if (mine.isEmpty) return null;
     if (orgId != null && mine.any((r) => r['organization_id'] == orgId)) {
-      return 'ROUTED TO YOUR TEAM';
+      return t('ROUTED TO YOUR TEAM');
     }
     if (mine.any((r) => r['organization_id'] == null)) {
-      return 'ROUTED TO ${responderAgencyLabel(agency).toUpperCase()}';
+      return t('ROUTED TO {responderAgencyLabel}', {
+        'responderAgencyLabel': responderAgencyLabel(agency).toUpperCase(),
+      });
     }
     final teams = mine
         .map((r) => r['organization_name'] as String?)
         .whereType<String>();
-    return teams.isEmpty ? null : 'ROUTED TO ${teams.join(', ').toUpperCase()}';
+    return teams.isEmpty
+        ? null
+        : t('ROUTED TO {join}', {'join': teams.join(', ').toUpperCase()});
   }
   final routed = incident['routed_agencies'];
   if (routed is List && routed.contains(agency)) {
-    return 'ROUTED TO ${responderAgencyLabel(agency).toUpperCase()}';
+    return t('ROUTED TO {responderAgencyLabel}', {
+      'responderAgencyLabel': responderAgencyLabel(agency).toUpperCase(),
+    });
   }
   return null;
 }
@@ -97,7 +104,7 @@ String? verifierLine(Map<String, dynamic>? incident) {
   final team = org != null && org.isNotEmpty
       ? org
       : agency == null
-      ? 'Admin'
+      ? t('Admin')
       : responderAgencyLabel(agency);
   return '$name · $team';
 }
@@ -105,16 +112,16 @@ String? verifierLine(Map<String, dynamic>? incident) {
 String responderAgencyLabel(String? agency) {
   switch (agency) {
     case 'fire_volunteer':
-      return 'Fire Volunteer';
+      return t('Fire Volunteer');
     case 'bfp':
-      return 'BFP';
+      return t('BFP');
     case 'barangay':
-      return 'Barangay';
+      return t('Barangay');
     case 'medical':
-      return 'Medical';
+      return t('Medical');
     case 'police':
-      return 'Police';
+      return t('Police');
     default:
-      return 'Responder';
+      return t('Responder');
   }
 }

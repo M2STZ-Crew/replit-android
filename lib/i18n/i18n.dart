@@ -31,6 +31,13 @@ enum AppLanguage {
 /// agencies' working terms.
 abstract final class LanguageChoice {
   static const String _key = 'language_v1';
+  static const String _unsavedKey = 'language_unsaved_v1';
+
+  /// A choice made on this phone that the account does not have yet: made
+  /// signed out, or offline. Sent with the next sign-in
+  /// (PushService.syncForUser); until then the phone's choice stands over
+  /// the account's.
+  static bool unsaved = false;
 
   static final ValueNotifier<AppLanguage> current = ValueNotifier(
     AppLanguage.en,
@@ -43,6 +50,7 @@ abstract final class LanguageChoice {
     try {
       final prefs = await SharedPreferences.getInstance();
       current.value = AppLanguage.fromCode(prefs.getString(_key));
+      unsaved = prefs.getBool(_unsavedKey) ?? false;
     } catch (_) {
       // English stands.
     }
@@ -58,9 +66,33 @@ abstract final class LanguageChoice {
     }
   }
 
+  /// Whether the account has this phone's choice yet (see [unsaved]).
+  static Future<void> markUnsaved(bool value) async {
+    unsaved = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_unsavedKey, value);
+    } catch (_) {
+      // Holds for this session.
+    }
+  }
+
+  /// The account's language, from GET /auth/me (WHAT'S NEXT, 1.3): the app
+  /// follows it, so a choice made in the Admin console or on another phone
+  /// reaches this one. Not while this phone has a choice of its own the
+  /// account does not have yet.
+  static Future<void> adopt(Object? code) async {
+    if (unsaved || code is! String || code.isEmpty) return;
+    final language = AppLanguage.fromCode(code);
+    if (language != current.value) await set(language);
+  }
+
   /// For tests: back to English, without touching storage.
   @visibleForTesting
-  static void reset() => current.value = AppLanguage.en;
+  static void reset() {
+    current.value = AppLanguage.en;
+    unsaved = false;
+  }
 }
 
 /// [en] in the resident's language.

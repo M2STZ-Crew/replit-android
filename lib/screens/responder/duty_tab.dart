@@ -10,6 +10,7 @@ import 'responder_incident_screen.dart';
 import 'responder_shell.dart';
 import 'responder_status.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// Duty (REPLIT (MAIN) 07 · R01, R02): what needs this unit now.
 ///
@@ -56,7 +57,7 @@ class DutyTab extends StatelessWidget {
           children: [
             TabHeader(
               eyebrow: '${feed.unit} — ${agencyLabel(feed.agency)}',
-              title: 'Duty',
+              title: t('Duty'),
             ),
             Expanded(child: _body(context)),
           ],
@@ -72,9 +73,9 @@ class DutyTab extends StatelessWidget {
           : EmptyState(
               icon: AppIcons.cloudOff,
               tone: context.pal.live,
-              title: 'Could not reach command',
+              title: t('Could not reach command'),
               body: feed.error!,
-              action: AppButton.secondary('Try again', onPressed: feed.load),
+              action: AppButton.secondary(t('Try again'), onPressed: feed.load),
             );
     }
     final waiting = feed.needsUnit;
@@ -102,12 +103,12 @@ class DutyTab extends StatelessWidget {
             ],
             if (run != null) ...[
               if (waiting.isEmpty) const SizedBox(height: 20),
-              const SectionHeader('Your run'),
+              SectionHeader(t('Your run')),
               const SizedBox(height: 12),
               _card(
                 context,
                 run,
-                action: 'Open run',
+                action: t('Open run'),
                 emphasis: run.live ? AreaEmphasis.live : AreaEmphasis.normal,
                 onTap: () => shell.show(ResponderTab.run),
               ),
@@ -115,17 +116,17 @@ class DutyTab extends StatelessWidget {
             ],
             if (waiting.isNotEmpty) ...[
               SectionHeader(
-                'Needs a unit',
+                t('Needs a unit'),
                 meta: waiting.length == 1
-                    ? '1 Area'
-                    : '${waiting.length} Areas',
+                    ? t('1 Area')
+                    : t('{count} Areas', {'count': waiting.length}),
               ),
               const SizedBox(height: 12),
               for (final (i, a) in waiting.indexed) ...[
                 _card(
                   context,
                   a,
-                  action: 'Review',
+                  action: t('Review'),
                   // The newest is the one to look at first.
                   emphasis: i == 0
                       ? AreaEmphasis.attention
@@ -138,7 +139,7 @@ class DutyTab extends StatelessWidget {
             ],
             if (feed.stats case final stats?) ...[
               if (waiting.isEmpty && run == null) const SizedBox(height: 20),
-              const SectionHeader('Pasay now'),
+              SectionHeader(t('Pasay now')),
               const SizedBox(height: 12),
               _Counters(stats: stats),
             ],
@@ -152,20 +153,21 @@ class DutyTab extends StatelessWidget {
     if (sharing) {
       return InlineAlert(
         tone: AlertTone.success,
-        title: 'Location sharing is on',
-        body:
-            'Command sees where you are while you are on '
-            '${run?.name ?? 'your run'}. It stops when the Captain marks fire '
-            'out.',
-        action: 'Open run',
+        title: t('Location sharing is on'),
+        body: t(
+          'Command sees where you are while you are on {value}. It stops when the Captain marks fire out.',
+          {'value': run?.name ?? t('your run')},
+        ),
+        action: t('Open run'),
         onAction: () => shell.show(ResponderTab.run),
       );
     }
-    return const InlineAlert(
-      title: 'Location sharing is off',
-      body:
-          'It starts when you tap I am going and stops when the Captain marks '
-          'fire out.',
+    return InlineAlert(
+      title: t('Location sharing is off'),
+      body: t(
+        'It starts when you tap I am going and stops when the Captain marks '
+        'fire out.',
+      ),
     );
   }
 
@@ -184,9 +186,9 @@ class DutyTab extends StatelessWidget {
         title: a.name,
         place: placeLine(a, place),
         facts: [
-          ('Reports', '${a.reports}'),
-          ('Confidence', a.confidence),
-          ('Reported', reported == null ? '—' : agoText(reported)),
+          (t('Reports'), '${a.reports}'),
+          (t('Confidence'), a.confidence),
+          (t('Reported'), reported == null ? '—' : agoText(reported)),
         ],
         action: action,
         onTap: onTap,
@@ -220,15 +222,17 @@ class _NothingWaiting extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              'No Area needs $unit'.toUpperCase(),
+              t('No Area needs {unit}', {'unit': unit}).toUpperCase(),
               textAlign: TextAlign.center,
               style: context.type.cardTitle,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'When an Area asks for ${agencyLabel(agency)} it arrives here '
-            'with an alert sound. You can leave this screen.',
+            t(
+              'When an Area asks for {agencyLabel} it arrives here with an alert sound. You can leave this screen.',
+              {'agencyLabel': agencyLabel(agency)},
+            ),
             textAlign: TextAlign.center,
             style: context.type.bodySm.copyWith(color: pal.textSoft),
           ),
@@ -257,7 +261,7 @@ class _Counters extends StatelessWidget {
             Expanded(
               child: StatTile(
                 value: _n('active_incidents'),
-                label: 'Live now',
+                label: t('Live now'),
                 color: pal.live,
               ),
             ),
@@ -265,7 +269,7 @@ class _Counters extends StatelessWidget {
             Expanded(
               child: StatTile(
                 value: _n('pending_verify'),
-                label: 'To verify',
+                label: t('To verify'),
                 color: pal.warn,
               ),
             ),
@@ -275,11 +279,14 @@ class _Counters extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: StatTile(value: _n('units_deployed'), label: 'Units out'),
+              child: StatTile(
+                value: _n('units_deployed'),
+                label: t('Units out'),
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: StatTile(value: _n('units_standby'), label: 'Standby'),
+              child: StatTile(value: _n('units_standby'), label: t('Standby')),
             ),
           ],
         ),

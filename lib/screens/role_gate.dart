@@ -81,6 +81,8 @@ class _RoleGateState extends State<RoleGate> {
     });
     try {
       final me = await _api.getMe().timeout(ApiClient.signInTimeout);
+      // The account's language, as the console or another phone left it.
+      await LanguageChoice.adopt(me['language']);
       if (mounted) setState(() => _me = me);
     } on SessionExpiredException {
       // The stored session was too old to renew. The client has already cleared

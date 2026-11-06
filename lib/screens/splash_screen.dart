@@ -110,6 +110,8 @@ class _SplashScreenState extends State<SplashScreen>
     Widget? next;
     try {
       final me = await _api.getMe().timeout(ApiClient.signInTimeout);
+      // The account's language, as the console or another phone left it.
+      await LanguageChoice.adopt(me['language']);
       // A resident's home is the tour the first time, the map after: read
       // which now, so the first frame after the splash is the right one.
       await Tour.seen();

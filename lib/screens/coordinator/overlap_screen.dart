@@ -9,6 +9,7 @@ import '../../widgets/area_map_preview.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import 'coordinator_feed.dart';
+import '../../i18n/i18n.dart';
 
 /// Two Areas that have grown into each other (06 · C07): merge them into one
 /// incident or keep them separate. The server folds the newer Area (B) into
@@ -70,7 +71,7 @@ class _OverlapScreenState extends State<OverlapScreen> {
 
   String _name(String key) {
     final d = (_o[key] as String?) ?? '';
-    return d.toLowerCase().startsWith('area') ? d : 'Area $d';
+    return d.toLowerCase().startsWith('area') ? d : t('Area {d}', {'d': d});
   }
 
   Duration? get _left {
@@ -95,9 +96,11 @@ class _OverlapScreenState extends State<OverlapScreen> {
         SnackBar(
           content: Text(
             merge
-                ? '${_name('area_b_designation')} merged into '
-                      '${_name('area_a_designation')}.'
-                : 'Kept as two Areas.',
+                ? t('{_name} merged into {_name2}.', {
+                    '_name': _name('area_b_designation'),
+                    '_name2': _name('area_a_designation'),
+                  })
+                : t('Kept as two Areas.'),
           ),
         ),
       );
@@ -110,7 +113,7 @@ class _OverlapScreenState extends State<OverlapScreen> {
       if (!mounted) return;
       setState(() => _busy = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Could not decide. Check your signal.')),
+        SnackBar(content: Text(t('Could not decide. Check your signal.'))),
       );
     }
   }
@@ -128,13 +131,13 @@ class _OverlapScreenState extends State<OverlapScreen> {
       bottomNavigationBar: ActionBar(
         children: [
           AppButton(
-            'Merge into $a',
+            t('Merge into {a}', {'a': a}),
             run: true,
             busy: _busy,
             onPressed: _busy || over ? null : () => _decide(merge: true),
           ),
           AppButton.secondary(
-            'Keep them separate',
+            t('Keep them separate'),
             onPressed: _busy || over ? null : () => _decide(merge: false),
           ),
         ],
@@ -145,11 +148,17 @@ class _OverlapScreenState extends State<OverlapScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DetailHeader(
-              eyebrow: metres == null ? 'Overlap' : 'Overlap · $metres m apart',
-              title: 'Merge these Areas?',
+              eyebrow: metres == null
+                  ? t('Overlap')
+                  : t('Overlap · {metres} m apart', {'metres': metres}),
+              title: t('Merge these Areas?'),
               subtitle: metres == null
-                  ? '$b has grown into $a.'
-                  : '$b has grown to within $metres m of $a.',
+                  ? t('{b} has grown into {a}.', {'b': b, 'a': a})
+                  : t('{b} has grown to within {metres} m of {a}.', {
+                      'b': b,
+                      'metres': metres,
+                      'a': a,
+                    }),
             ),
             Expanded(
               child: ScrollFade(
@@ -170,21 +179,23 @@ class _OverlapScreenState extends State<OverlapScreen> {
                     _row(_b, b),
                     const SizedBox(height: 16),
                     InlineAlert(
-                      body:
-                          'Merging folds $b into $a. The smaller Area becomes '
-                          '"merged" and records what it joined. It cannot be '
-                          'split again.',
+                      body: t(
+                        'Merging folds {b} into {a}. The smaller Area becomes "merged" and records what it joined. It cannot be split again.',
+                        {'b': b, 'a': a},
+                      ),
                     ),
                     if (left != null) ...[
                       const SizedBox(height: 12),
                       InlineAlert(
                         tone: over ? AlertTone.danger : AlertTone.warning,
                         title: over
-                            ? 'The decision window has closed'
-                            : 'Decide within ${_clock(left)}',
+                            ? t('The decision window has closed')
+                            : t('Decide within {_clock}', {
+                                '_clock': _clock(left),
+                              }),
                         body: over
-                            ? 'They stay as two Areas.'
-                            : 'If nobody decides, they stay as two Areas.',
+                            ? t('They stay as two Areas.')
+                            : t('If nobody decides, they stay as two Areas.'),
                       ),
                     ],
                   ],
@@ -211,7 +222,7 @@ class _OverlapScreenState extends State<OverlapScreen> {
         title: name,
         subtitle:
             '${place.street ?? placeLine(area, place)} · '
-            '${area.reports == 1 ? '1 report' : '${area.reports} reports'}',
+            '${area.reports == 1 ? t('1 report') : t('{reports} reports', {'reports': area.reports})}',
         trailing: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
