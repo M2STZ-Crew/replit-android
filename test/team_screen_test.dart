@@ -23,6 +23,7 @@ void main() {
     'agency_type': 'fire_volunteer',
   };
 
+  late List<Map<String, dynamic>> sent;
   late List<String> calls;
   late List<Map<String, dynamic>> roster;
 
@@ -34,24 +35,30 @@ void main() {
         final first = req.url.queryParameters['first_name']!;
         final last = req.url.queryParameters['last_name']!;
         final base = '${first[0]}$last'.toLowerCase().replaceAll(' ', '');
-        return http.Response(jsonEncode({'email': '$base.resfir@replit.com'}), 200);
+        return http.Response(
+          jsonEncode({'email': '$base.firres@replit.com'}),
+          200,
+        );
       }
       if (req.method == 'POST' && path == '/team/responders') {
         final body = jsonDecode(req.body) as Map<String, dynamic>;
         final made = {
           'id': 'r9',
           'full_name': '${body['first_name']} ${body['last_name']}',
-          'email': 'jdelacruz.resfir@replit.com',
+          'email': 'jdelacruz.firres@replit.com',
           'agency_type': 'fire_volunteer',
           'is_active': true,
           'responding': false,
         };
         roster.add(made);
+        sent.add(body);
         return http.Response(
           jsonEncode({
             'responder': made,
-            'email': 'jdelacruz.resfir@replit.com',
-            'temporary_password': 'Kq7m-x3Rt-9pWa',
+            'email': 'jdelacruz.firres@replit.com',
+            'temporary_password': null,
+            'personal_email': body['personal_email'],
+            'invite_email_sent': true,
           }),
           201,
         );
@@ -68,12 +75,13 @@ void main() {
   );
 
   setUp(() {
+    sent = [];
     calls = [];
     roster = [
       {
         'id': 'r1',
         'full_name': 'Miguel Bautista',
-        'email': 'mbautista.resfir@replit.com',
+        'email': 'mbautista.firres@replit.com',
         'agency_type': 'fire_volunteer',
         'is_active': true,
         'responding': true,
@@ -81,7 +89,7 @@ void main() {
       {
         'id': 'r2',
         'full_name': 'Ana Cruz',
-        'email': 'acruz.resfir@replit.com',
+        'email': 'acruz.firres@replit.com',
         'agency_type': 'fire_volunteer',
         'is_active': false,
         'responding': false,
@@ -111,14 +119,16 @@ void main() {
     expect(find.text('RESPONDERS'), findsOneWidget, reason: 'the top bar');
     expect(find.text('Coordinator'), findsOneWidget);
     expect(find.text('Miguel Bautista'), findsOneWidget);
-    expect(find.text('mbautista.resfir@replit.com'), findsOneWidget);
+    expect(find.text('mbautista.firres@replit.com'), findsOneWidget);
     expect(find.text('On a run'), findsOneWidget);
     expect(find.text('Deactivated'), findsOneWidget);
     expect(find.text('1 ACTIVE'), findsOneWidget);
   });
 
-  testWidgets('a new responder: the address as the name is typed, then the '
-      'password once', (tester) async {
+  // The 6 November list: their own email instead of a mobile number, and
+  // a link there to set the password, so nothing to hand over.
+  testWidgets('a new responder: the address as the name is typed, and the '
+      'link to set a password goes to their own email', (tester) async {
     await pump(tester);
     await tester.tap(find.text('NEW RESPONDER'));
     await tester.pumpAndSettle();
@@ -128,19 +138,44 @@ void main() {
     await tester.enterText(fields.at(1), 'Dela Cruz');
     await tester.pump(const Duration(milliseconds: 450)); // the debounce
     await tester.pump();
-    expect(find.text('jdelacruz.resfir@replit.com'), findsOneWidget);
+    expect(find.text('jdelacruz.firres@replit.com'), findsOneWidget);
+    expect(find.text('Mobile (optional)'), findsNothing);
+    await tester.enterText(fields.at(2), 'juan.delacruz@gmail.com');
+    await tester.pump();
 
+    await tester.ensureVisible(find.text('CREATE ACCOUNT'));
     await tester.tap(find.text('CREATE ACCOUNT'));
     await tester.pumpAndSettle();
     expect(calls, contains('POST /team/responders'));
+    expect(sent.single['personal_email'], 'juan.delacruz@gmail.com');
+    expect(sent.single.containsKey('mobile'), isFalse);
     expect(find.text('Account ready'), findsOneWidget);
-    expect(find.text('Kq7m-x3Rt-9pWa'), findsOneWidget);
-    expect(find.text('jdelacruz.resfir@replit.com'), findsOneWidget);
+    expect(find.text('jdelacruz.firres@replit.com'), findsOneWidget);
+    expect(
+      find.textContaining('We emailed juan.delacruz@gmail.com'),
+      findsOneWidget,
+    );
+    expect(find.text('Password'), findsNothing, reason: 'nothing to hand over');
 
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
-    expect(find.text('Kq7m-x3Rt-9pWa'), findsNothing, reason: 'shown once');
     expect(find.text('Juan Dela Cruz'), findsOneWidget, reason: 'now listed');
+  });
+
+  testWidgets('a @replit.com address is not their own email', (tester) async {
+    await pump(tester);
+    await tester.tap(find.text('NEW RESPONDER'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Juan');
+    await tester.enterText(fields.at(1), 'Dela Cruz');
+    await tester.enterText(fields.at(2), 'jdelacruz.firres@replit.com');
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.ensureVisible(find.text('CREATE ACCOUNT'));
+    await tester.tap(find.text('CREATE ACCOUNT'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('have no mailbox'), findsOneWidget);
+    expect(sent, isEmpty);
   });
 
   testWidgets('deactivating asks first, then turns the account off', (

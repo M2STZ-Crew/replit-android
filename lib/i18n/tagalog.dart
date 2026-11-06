@@ -606,6 +606,38 @@ const Map<String, String> kTagalog = {
       'Hindi mapalitan ang password. Subukan ulit.',
   'Password changed. Other phones and browsers are signed out; this one stays signed in.':
       'Napalitan na ang password. Na-sign out na ang ibang phone at browser; naka-sign in pa rin ang phone na ito.',
+  // The 6 November list: staff sign in at @replit.com, and their password
+  // links go to their own email.
+  "Enter the email you sign in with, or a staff account's personal email, and we'll send a reset link.":
+      'Ilagay ang email na ginagamit mo sa pag-sign in, o ang personal email ng staff account, at padadalhan ka namin ng reset link.',
+  'Enter an email like name@gmail.com.':
+      'Maglagay ng email na tulad ng name@gmail.com.',
+  'Use their own email: @replit.com addresses have no mailbox.':
+      'Gamitin ang sarili nilang email: walang mailbox ang mga @replit.com na address.',
+  'Use your own email: @replit.com addresses have no mailbox.':
+      'Gamitin ang sarili mong email: walang mailbox ang mga @replit.com na address.',
+  'Their personal email': 'Ang personal email nila',
+  'We email them a link to confirm it and set their password. If they forget it, the reset link goes there too.':
+      'Padadalhan namin sila ng link para kumpirmahin ito at itakda ang password nila. Kapag nakalimutan nila ito, doon din ipapadala ang reset link.',
+  'Account ready': 'Handa na ang account',
+  '{name} signs in with this address.':
+      'Ito ang address na gagamitin ni {name} sa pag-sign in.',
+  'Sign-in address': 'Address sa pag-sign in',
+  'We emailed {to} a link to confirm it and set their password. It works for three days.':
+      'Nagpadala kami sa {to} ng link para kumpirmahin ito at itakda ang password nila. Gagana ito nang tatlong araw.',
+  'That email is already confirmed.': 'Kumpirmado na ang email na iyan.',
+  'We sent a link to {email}. Open it to confirm.':
+      'Nagpadala kami ng link sa {email}. Buksan ito para kumpirmahin.',
+  'The email could not be saved. Try again.':
+      'Hindi ma-save ang email. Subukan ulit.',
+  'Personal email': 'Personal email',
+  'PERSONAL EMAIL': 'PERSONAL EMAIL',
+  'Add one, so a forgotten password can be reset':
+      'Magdagdag nito, para ma-reset ang password kapag nakalimutan',
+  '{email} · confirmed': '{email} · kumpirmado',
+  '{email} · open the link we sent': '{email} · buksan ang link na ipinadala namin',
+  'Your sign-in at @replit.com has no mailbox. If you forget your password, the reset link comes to this email.':
+      'Walang mailbox ang @replit.com na sign-in mo. Kapag nakalimutan mo ang password mo, sa email na ito ipapadala ang reset link.',
   'Get the newest version of RepLiT':
       'Kunin ang pinakabagong bersiyon ng RepLiT',
   'Version {v} installed': 'Naka-install ang bersiyon {v}',

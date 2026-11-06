@@ -30,6 +30,10 @@ void main() {
         sent.add(jsonDecode(request.body) as Map<String, dynamic>);
         return reply();
       }
+      if (request.url.path == '/auth/me/personal-email') {
+        sent.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return http.Response('{"message":"sent"}', 200);
+      }
       return http.Response('{}', 200);
     }),
   );
@@ -164,6 +168,64 @@ void main() {
       await tester.tap(find.text('Change password'));
       await tester.pumpAndSettle();
       expect(find.byType(ChangePasswordScreen), findsOneWidget);
+    });
+
+    Future<void> section(WidgetTester tester, Map<String, dynamic> me) async {
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: Scaffold(
+            body: ListView(
+              padding: const EdgeInsets.all(24),
+              children: [StaffAccountSection(api: api(), me: me)],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // The 6 November list: a sign-in at @replit.com has no mailbox, so the
+    // password links go to a personal email, which the Profile can add.
+    testWidgets('a @replit.com sign-in adds its personal email', (
+      tester,
+    ) async {
+      await section(tester, {'email': 'jdelacruz.firres@replit.com'});
+      expect(
+        find.text('Add one, so a forgotten password can be reset'),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.text('Personal email'));
+      await tester.tap(find.text('Personal email'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'juan@gmail.com');
+      await tester.tap(find.text('SEND LINK'));
+      await tester.pumpAndSettle();
+      expect(sent.single, {'email': 'juan@gmail.com'});
+      expect(
+        find.text('We sent a link to juan@gmail.com. Open it to confirm.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('juan@gmail.com · open the link we sent'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a confirmed one says so, and other sign-ins have no row', (
+      tester,
+    ) async {
+      await section(tester, {
+        'email': 'obryan.fircor@replit.com',
+        'personal_email': 'odyssey@gmail.com',
+        'personal_email_verified': true,
+      });
+      expect(find.text('odyssey@gmail.com · confirmed'), findsOneWidget);
+
+      await section(tester, {'email': 'captain@brigade.example.com'});
+      expect(find.text('Personal email'), findsNothing);
     });
   });
 }

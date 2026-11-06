@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../api/api_client.dart';
-import '../../models/ph_mobile.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/sheet_grip.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// The coordinator's responder accounts (v1.12.4) — where a responder's
 /// account comes from.
@@ -233,7 +233,11 @@ class _TeamScreenState extends State<TeamScreen> {
             ((creds['responder'] as Map?)?['full_name'] as String?) ??
             'The responder',
         email: '${creds['email']}',
-        password: '${creds['temporary_password']}',
+        password: creds['temporary_password'] as String?,
+        personalEmail: creds['personal_email'] as String?,
+        detail: creds['invite_email_sent'] == false
+            ? creds['detail'] as String?
+            : null,
         created: created,
       ),
     );
@@ -371,7 +375,11 @@ class _ResponderRow extends StatelessWidget {
   }
 }
 
-/// First name, surname, an optional mobile — and the address it makes, live.
+/// First name, surname, their own email — and the address it makes, live.
+///
+/// The 6 November list: the email replaces the mobile number. A link sent
+/// there confirms it and sets the password, so there is no password to hand
+/// over, and Forgot password? sends there later: @replit.com has no mailboxes.
 class _NewResponderSheet extends StatefulWidget {
   const _NewResponderSheet({required this.api});
 
@@ -384,7 +392,7 @@ class _NewResponderSheet extends StatefulWidget {
 class _NewResponderSheetState extends State<_NewResponderSheet> {
   final TextEditingController _first = TextEditingController();
   final TextEditingController _last = TextEditingController();
-  final TextEditingController _mobile = TextEditingController();
+  final TextEditingController _email = TextEditingController();
   Timer? _debounce;
   String? _preview;
   bool _previewing = false;
@@ -396,12 +404,15 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
     _debounce?.cancel();
     _first.dispose();
     _last.dispose();
-    _mobile.dispose();
+    _email.dispose();
     super.dispose();
   }
 
   bool get _ready =>
-      _first.text.trim().isNotEmpty && _last.text.trim().isNotEmpty && !_busy;
+      _first.text.trim().isNotEmpty &&
+      _last.text.trim().isNotEmpty &&
+      _email.text.trim().isNotEmpty &&
+      !_busy;
 
   /// The address as the name is typed — a moment after the last key.
   void _onName(String _) {
@@ -438,9 +449,17 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
   }
 
   Future<void> _submit() async {
-    final mobile = _mobile.text.trim();
-    if (mobile.isNotEmpty && !looksLikePhMobile(mobile)) {
-      setState(() => _error = 'Enter a mobile number like $kPhMobileHint.');
+    final email = _email.text.trim();
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      setState(() => _error = t('Enter an email like name@gmail.com.'));
+      return;
+    }
+    if (email.toLowerCase().endsWith('@replit.com')) {
+      setState(
+        () => _error = t(
+          'Use their own email: @replit.com addresses have no mailbox.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -451,7 +470,7 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
       final made = await widget.api.createResponder(
         firstName: _first.text.trim(),
         lastName: _last.text.trim(),
-        mobile: mobile.isEmpty ? null : mobile,
+        personalEmail: email,
       );
       if (mounted) Navigator.of(context).pop(made);
     } on ApiException catch (e) {
@@ -502,15 +521,24 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
             ),
             const SizedBox(height: 14),
             LabeledField(
-              label: 'Mobile (optional)',
+              label: t('Their personal email'),
               builder: (focus) => TextField(
-                controller: _mobile,
+                controller: _email,
                 focusNode: focus,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [PhMobileFormatter()],
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                onChanged: (_) => setState(() {}),
                 style: context.type.input,
-                decoration: const InputDecoration(hintText: kPhMobileHint),
+                decoration: const InputDecoration(hintText: 'name@gmail.com'),
               ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              t(
+                'We email them a link to confirm it and set their password. '
+                'If they forget it, the reset link goes there too.',
+              ),
+              style: context.type.caption,
             ),
             const SizedBox(height: 18),
             Panel(
@@ -566,22 +594,32 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
   }
 }
 
-/// The address and the temporary password, once, with copy buttons.
+/// The address and how the password is set, with copy buttons: a link at
+/// their personal email (new accounts), or a temporary password, once (a
+/// reset, or an account made without a personal email).
 class _CredentialsDialog extends StatelessWidget {
   const _CredentialsDialog({
     required this.name,
     required this.email,
     required this.password,
     required this.created,
+    this.personalEmail,
+    this.detail,
   });
 
   final String name;
   final String email;
-  final String password;
+  final String? password;
   final bool created;
+  final String? personalEmail;
+
+  /// Why the email to [personalEmail] did not go, when it did not.
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
+    final password = this.password;
+    if (password == null) return _linkSent(context);
     return AlertDialog(
       title: Text(
         created ? 'Account ready' : 'New password',
@@ -615,6 +653,48 @@ class _CredentialsDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
             'Done',
+            style: context.type.label.copyWith(color: context.pal.accentInk),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// A new account with a personal email: where they sign in, and where the
+  /// link went.
+  Widget _linkSent(BuildContext context) {
+    final to = personalEmail ?? '';
+    return AlertDialog(
+      title: Text(t('Account ready'), style: context.type.headline),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            t('{name} signs in with this address.', {'name': name}),
+            style: context.type.bodySm,
+          ),
+          const SizedBox(height: 16),
+          _CopyRow(label: t('Sign-in address'), value: email),
+          const SizedBox(height: 16),
+          Text(
+            detail ??
+                t(
+                  'We emailed {to} a link to confirm it and set their '
+                  'password. It works for three days.',
+                  {'to': to},
+                ),
+            style: context.type.caption.copyWith(
+              color: detail == null ? null : context.pal.warn,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            t('Done'),
             style: context.type.label.copyWith(color: context.pal.accentInk),
           ),
         ),

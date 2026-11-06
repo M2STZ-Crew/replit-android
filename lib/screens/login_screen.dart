@@ -155,7 +155,10 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              t("Enter your account email and we'll send a reset link."),
+              t(
+                "Enter the email you sign in with, or a staff account's "
+                "personal email, and we'll send a reset link.",
+              ),
               style: context.type.body,
             ),
             const SizedBox(height: 16),

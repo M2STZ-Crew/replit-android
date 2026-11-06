@@ -219,7 +219,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     trailing: RowValue('Hybrid', color: pal.onBackground),
                   ),
                   const SizedBox(height: 16),
-                  StaffAccountSection(api: widget.feed.api),
+                  StaffAccountSection(api: widget.feed.api, me: _me),
                   const SizedBox(height: 16),
                   const SectionHeader('More'),
                   const SizedBox(height: 12),
