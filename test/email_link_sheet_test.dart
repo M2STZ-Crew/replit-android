@@ -204,8 +204,7 @@ void main() {
     testWidgets('back from Gmail with the link opened: confirmed, and '
         'Continue goes on', (tester) async {
       await open(tester);
-      routes['/verification/status'] = () =>
-          json(200, standing(email: true));
+      routes['/verification/status'] = () => json(200, standing(email: true));
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await settle(tester);
@@ -222,8 +221,7 @@ void main() {
       await open(tester);
       await tester.pump(EmailLinkSheet.checkEvery);
       expect(find.text('CHECK YOUR EMAIL'), findsOneWidget);
-      routes['/verification/status'] = () =>
-          json(200, standing(email: true));
+      routes['/verification/status'] = () => json(200, standing(email: true));
       await tester.pump(EmailLinkSheet.checkEvery);
       await settle(tester);
       expect(find.text('EMAIL CONFIRMED'), findsOneWidget);
@@ -309,7 +307,8 @@ void main() {
         'down the rest', (tester) async {
       routes['/verification/email/request'] = () => json(429, {
         'error': 'email_link_cooldown',
-        'message': 'We just sent a link. You can ask for another in 42 seconds.',
+        'message':
+            'We just sent a link. You can ask for another in 42 seconds.',
         'details': {'retry_after_seconds': 42},
       });
       await open(tester, sendNow: false);
@@ -339,9 +338,28 @@ void main() {
       expect(button(tester, 'Send the link again').onPressed, isNull);
     });
 
-    testWidgets('an address not known yet reads "your email"', (
-      tester,
-    ) async {
+    testWidgets('an account on a temporary address is told why it cannot '
+        'be confirmed', (tester) async {
+      routes['/verification/email/request'] = () => json(400, {
+        'error': 'disposable_email',
+        'message':
+            'Your email is from a temporary email service, so it cannot be '
+            'confirmed.',
+        'details': {'field': 'email', 'domain': 'mailinator.com'},
+      });
+      await open(tester, email: 'juan@mailinator.com', sendNow: false);
+      await tap(tester, find.text('SEND THE LINK'));
+      expect(find.text('CONFIRM YOUR EMAIL'), findsOneWidget);
+      expect(
+        find.text(
+          "Your email is from a temporary email service, so it can't be "
+          'confirmed.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('an address not known yet reads "your email"', (tester) async {
       await open(tester, email: null, sendNow: false);
       expect(
         find.text(

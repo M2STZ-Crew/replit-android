@@ -46,7 +46,8 @@ Future<bool> showEmailLinkSheet(
 /// An address Gmail holds: the sheet says Gmail and opens it.
 bool isGmailAddress(String? email) {
   final at = (email ?? '').trim().toLowerCase().split('@');
-  return at.length == 2 && const {'gmail.com', 'googlemail.com'}.contains(at[1]);
+  return at.length == 2 &&
+      const {'gmail.com', 'googlemail.com'}.contains(at[1]);
 }
 
 const MethodChannel _device = MethodChannel('replit/device');
@@ -234,6 +235,16 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
             );
           });
           _startWatching();
+        case 'disposable_email':
+          // An account made with a burner address before v1.12.23: it keeps
+          // working, but such an inbox earns no trust.
+          setState(() {
+            _step = sentBefore ? _Step.sent : _Step.ask;
+            _error = t(
+              "Your email is from a temporary email service, so it can't be "
+              'confirmed.',
+            );
+          });
         default:
           setState(() {
             _step = sentBefore ? _Step.sent : _Step.ask;
@@ -284,9 +295,7 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
       'works for 24 hours.',
       {'email': _shown},
     ),
-    _Step.confirmed => t('{email} is confirmed. Thank you!', {
-      'email': _shown,
-    }),
+    _Step.confirmed => t('{email} is confirmed. Thank you!', {'email': _shown}),
   };
 
   Widget _button() {

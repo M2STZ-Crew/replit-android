@@ -796,6 +796,11 @@ const Map<String, String> kTagalog = {
   'Not in your inbox? Look in Spam or Promotions.':
       'Wala sa inbox mo? Tingnan sa Spam o Promotions.',
   'Send the link again': 'Ipadala ulit ang link',
+  // Burner email addresses (backend v1.12.23).
+  "Temporary email addresses can't be used. Use an email that will last, like your Gmail.":
+      'Hindi puwede ang pansamantalang email. Gumamit ng email na pangmatagalan, gaya ng Gmail mo.',
+  "Your email is from a temporary email service, so it can't be confirmed.":
+      'Galing sa pansamantalang email service ang email mo, kaya hindi ito makukumpirma.',
   'That is all the links we can send today. Use the newest email we sent, or ask for another tomorrow.':
       'Iyan na ang lahat ng link na maipapadala namin ngayong araw. Gamitin ang pinakabagong email na ipinadala namin, o humingi ulit bukas.',
   'Could not send the email. Check your connection.':
