@@ -9,6 +9,7 @@ import '../models/phone_numbers.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/email_link_sheet.dart';
 import '../widgets/phone_code_sheet.dart';
 import 'role_gate.dart';
 import '../widgets/app_icons.dart';
@@ -16,13 +17,18 @@ import '../i18n/i18n.dart';
 
 /// "03 Sign up" from the REPLIT-OVERHAUL Figma.
 ///
-/// Full name, email, mobile number, password. Email first (WHAT'S NEXT, 2.2):
-/// it is how everyone signs in while mobile numbers wait for an SMS provider,
-/// and until then the mobile field is greyed out, "Coming soon". With
-/// [PhoneNumbers.open] the number is asked for again, and proving it is theirs
-/// is part of signing up: the moment the account exists, a code is texted to
-/// it and a sheet over this form takes it back ([showPhoneCodeSheet]); closing
-/// the sheet is allowed, and RoleGate asks again. Birthday and gender stay in
+/// First name, last name, email, mobile number, password. The names and the
+/// email are required; email first (WHAT'S NEXT, 2.2), as it is how everyone
+/// signs in while mobile numbers wait for an SMS provider. Until then the
+/// mobile number is optional (7 November): a number given is kept as an
+/// unchecked contact number, and no code is texted. The email is checked
+/// instead: the moment the account exists, a link is emailed to it, to open
+/// in Gmail, and a sheet over this form waits for it ([showEmailLinkSheet]);
+/// "Later" is allowed, and Profile asks again. With [PhoneNumbers.open]
+/// the number is required again, and proving it is theirs is part of signing
+/// up: the moment the account exists, a code is texted to it and a sheet over
+/// this form takes it back ([showPhoneCodeSheet]); closing the sheet is
+/// allowed, and RoleGate asks again. Birthday and gender stay in
 /// Edit Profile. The password field keeps a show/hide eye the frame does not
 /// draw: with the confirm field gone, it is the only way to check what you
 /// typed.
@@ -37,7 +43,8 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
-  final _name = TextEditingController();
+  final _first = TextEditingController();
+  final _last = TextEditingController();
   final _mobile = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -48,7 +55,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _name.dispose();
+    _first.dispose();
+    _last.dispose();
     _mobile.dispose();
     _email.dispose();
     _password.dispose();
@@ -56,13 +64,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
-    final name = _name.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    String tidy(TextEditingController c) =>
+        c.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final first = tidy(_first);
+    final last = tidy(_last);
     final mobile = _mobile.text.trim();
     final email = _email.text.trim();
     final password = _password.text;
 
-    if (name.isEmpty) return _error(t('Please enter your full name.'));
-    if (PhoneNumbers.open && !looksLikePhMobile(mobile)) {
+    if (first.isEmpty) return _error(t('Please enter your first name.'));
+    if (last.isEmpty) return _error(t('Please enter your last name.'));
+    // Required once SMS is settled; until then optional, but a number given
+    // has to be one.
+    if ((PhoneNumbers.open || mobile.isNotEmpty) &&
+        !looksLikePhMobile(mobile)) {
       return _error(t('Enter your mobile number, like 0917 123 4567.'));
     }
     if (!email.contains('@') || !email.contains('.')) {
@@ -80,8 +95,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _api.signup(
         email: email,
         password: password,
-        fullName: name,
-        mobile: PhoneNumbers.open ? mobile : null,
+        fullName: '$first $last',
+        mobile: mobile.isEmpty ? null : mobile,
       );
       await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
@@ -90,8 +105,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Verified or not, the account exists now; RoleGate decides what next.
       if (PhoneNumbers.open) {
         await showPhoneCodeSheet(context, phone: mobile, api: _api);
-        if (!mounted) return;
+      } else {
+        await showEmailLinkSheet(context, email: email, api: _api);
       }
+      if (!mounted) return;
       await Navigator.of(
         context,
       ).pushReplacement(MaterialPageRoute(builder: (_) => const RoleGate()));
@@ -131,20 +148,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       'is yours. You sign in with it from then on.',
                     )
                   : t(
-                      'You sign in with your email. Signing in with a mobile '
-                      'number is coming soon.',
+                      'You sign in with your email. We will email you a link '
+                      'to confirm it.',
                     ),
               style: context.type.body,
             ),
             const SizedBox(height: 46),
             LabeledField(
-              label: t('Full name'),
+              label: t('First name'),
               builder: (focus) => TextField(
-                controller: _name,
+                controller: _first,
                 focusNode: focus,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.name],
+                autofillHints: const [AutofillHints.givenName],
+                style: context.type.input,
+                decoration: InputDecoration(hintText: t('As on your ID')),
+              ),
+            ),
+            const SizedBox(height: 14),
+            LabeledField(
+              label: t('Last name'),
+              builder: (focus) => TextField(
+                controller: _last,
+                focusNode: focus,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.familyName],
                 style: context.type.input,
                 decoration: InputDecoration(hintText: t('As on your ID')),
               ),
@@ -165,32 +195,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 14),
             LabeledField(
-              label: t('Mobile number'),
+              // Optional until SMS is settled ([PhoneNumbers]).
+              label: PhoneNumbers.open
+                  ? t('Mobile number')
+                  : t('Mobile number (optional)'),
               builder: (focus) => TextField(
                 controller: _mobile,
                 focusNode: focus,
-                // Greyed out until SMS is settled ([PhoneNumbers]).
-                enabled: PhoneNumbers.open,
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.telephoneNumber],
                 inputFormatters: const [PhMobileFormatter()],
                 style: context.type.input,
-                decoration: InputDecoration(
-                  hintText: kPhMobileHint,
-                  suffixIcon: PhoneNumbers.open
-                      ? null
-                      : const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Align(
-                            widthFactor: 1,
-                            heightFactor: 1,
-                            child: ComingSoon(),
-                          ),
-                        ),
-                ),
+                decoration: const InputDecoration(hintText: kPhMobileHint),
               ),
             ),
+            if (!PhoneNumbers.open) ...[
+              const SizedBox(height: 6),
+              Text(
+                t('Checking it by SMS is coming soon.'),
+                style: context.type.caption,
+              ),
+            ],
             const SizedBox(height: 14),
             LabeledField(
               label: t('Password'),

@@ -4,6 +4,7 @@ package com.m2stz.replit
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ActivityNotFoundException
 import android.content.ContentResolver
 import android.content.Intent
 import android.media.AudioAttributes
@@ -67,6 +68,11 @@ class MainActivity : FlutterActivity() {
                             result.success(false)
                         }
                     }
+                    // lib/widgets/email_link_sheet.dart: Open Gmail, once
+                    // the link that confirms a resident's email has gone out.
+                    "openMailApp" -> result.success(
+                        openMailApp(gmailFirst = call.argument<Boolean>("gmail") == true)
+                    )
                     else -> result.notImplemented()
                 }
             }
@@ -145,6 +151,29 @@ class MainActivity : FlutterActivity() {
     }
 
     /** The "Developer options" switch at the top of that Settings page. */
+    /**
+     * Opens Gmail, or the phone's email app, at the inbox: Gmail first for a
+     * Gmail address, each falling back to the other. False when neither
+     * opens. Starting an activity needs no <queries> entry on Android 11+.
+     */
+    private fun openMailApp(gmailFirst: Boolean): Boolean {
+        val gmail = Intent(Intent.ACTION_MAIN)
+            .addCategory(Intent.CATEGORY_LAUNCHER)
+            .setPackage("com.google.android.gm")
+        val mail = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_EMAIL)
+        for (intent in if (gmailFirst) listOf(gmail, mail) else listOf(mail, gmail)) {
+            try {
+                startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                return true
+            } catch (e: ActivityNotFoundException) {
+                // Not on this phone: the other one.
+            } catch (e: SecurityException) {
+                // Not ours to open: the other one.
+            }
+        }
+        return false
+    }
+
     private fun developerOptionsOn(): Boolean =
         Settings.Global.getInt(
             contentResolver,

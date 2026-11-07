@@ -15,10 +15,12 @@ import 'package:replit/screens/register_screen.dart';
 import 'package:replit/screens/role_gate.dart';
 import 'package:replit/theme.dart';
 
-/// Email first (WHAT'S NEXT, 2.2): signing up and signing in take an email,
-/// with the mobile number greyed out, "Coming soon", until SMS is settled.
-/// Then ([PhoneNumbers.open]) signing up with a number — the code taken in a
-/// sheet over the form — and signing in with it.
+/// Email first (WHAT'S NEXT, 2.2): signing up and signing in take an email.
+/// Until SMS is settled the mobile number is optional at sign-up (7 November)
+/// and the email is checked instead, by a link to open in Gmail
+/// (test/email_link_sheet_test.dart has the sheet). Then ([PhoneNumbers.open])
+/// signing up with a number — the code taken in a sheet over the form — and
+/// signing in with it.
 void main() {
   late List<(String, Map<String, dynamic>)> calls;
   late Map<String, http.Response Function(Map<String, dynamic>)> routes;
@@ -38,6 +40,15 @@ void main() {
     routes = {
       '/auth/signup': (_) => json(201, session),
       '/auth/login': (_) => json(200, session),
+      '/verification/email/request': (_) => json(200, {
+        'message': 'Verification email sent. Check your inbox.',
+        'email': 'juan@example.com',
+        'sent': true,
+        'expires_in_seconds': 86400,
+        'resend_after_seconds': 60,
+      }),
+      '/verification/status': (_) =>
+          json(200, {'verified_percent': 0, 'badge': 'yellow', 'channels': []}),
       '/verification/phone/request': (_) => json(200, {
         'message': 'We texted a code to +639171234567.',
         'phone': '+639171234567',
@@ -94,11 +105,22 @@ void main() {
   Finder field(String hint) =>
       find.ancestor(of: find.text(hint), matching: find.byType(TextField));
 
+  /// The field under the label [label].
+  Finder labeled(String label) => find.descendant(
+    of: find
+        .ancestor(of: find.text(label), matching: find.byType(Column))
+        .first,
+    matching: find.byType(TextField),
+  );
+
   Future<void> fillSignup(
     WidgetTester tester, {
     String? mobile = '0917 123 4567',
+    String first = 'Juan',
+    String last = 'dela Cruz',
   }) async {
-    await tester.enterText(field('As on your ID'), 'Juan dela Cruz');
+    await tester.enterText(labeled('First name'), first);
+    await tester.enterText(labeled('Last name'), last);
     if (mobile != null) await tester.enterText(field('09XX XXX XXXX'), mobile);
     await tester.enterText(field('you@email.com'), 'juan@example.com');
     await tester.enterText(field('At least 8 characters'), 'long-enough-1');
@@ -107,30 +129,99 @@ void main() {
 
   List<String> paths() => [for (final c in calls) c.$1];
 
+  // 7 November: first name, last name and email are required; the mobile
+  // number is optional while SMS is unavailable.
   group('sign up, email first', () {
-    testWidgets('the email comes before the mobile number, which is greyed '
-        'out, "Coming soon"', (tester) async {
+    testWidgets('first and last name, then the email, then the optional '
+        'mobile number', (tester) async {
       await pump(tester, RegisterScreen(api: api()));
+      double top(Finder f) => tester.getTopLeft(f).dy;
+      expect(top(labeled('First name')), lessThan(top(labeled('Last name'))));
+      expect(top(labeled('Last name')), lessThan(top(field('you@email.com'))));
       expect(
-        tester.getTopLeft(field('you@email.com')).dy,
-        lessThan(tester.getTopLeft(field('09XX XXX XXXX')).dy),
+        top(field('you@email.com')),
+        lessThan(top(field('09XX XXX XXXX'))),
       );
-      expect(tester.widget<TextField>(field('09XX XXX XXXX')).enabled, isFalse);
-      expect(find.text('Coming soon'), findsOneWidget);
+      expect(find.text('Mobile number (optional)'), findsOneWidget);
+      expect(
+        tester.widget<TextField>(field('09XX XXX XXXX')).enabled,
+        isNot(false),
+      );
+      expect(find.text('Checking it by SMS is coming soon.'), findsOneWidget);
     });
 
-    testWidgets('the account is made with the email, and no code is texted', (
+    testWidgets('the account is made with the email, and a link to confirm '
+        'it is emailed in place of a texted code', (tester) async {
+      await pump(tester, RegisterScreen(api: api()));
+      expect(
+        find.text(
+          'You sign in with your email. We will email you a link to confirm '
+          'it.',
+        ),
+        findsOneWidget,
+      );
+      await fillSignup(tester, mobile: null);
+      await tap(tester, find.text('CREATE ACCOUNT'));
+      expect(paths(), ['/auth/signup', '/verification/email/request']);
+      expect(calls.first.$2['email'], 'juan@example.com');
+      expect(calls.first.$2['full_name'], 'Juan dela Cruz');
+      expect(calls.first.$2.containsKey('mobile'), isFalse);
+      expect(find.text('ENTER THE CODE'), findsNothing);
+      expect(find.text('CHECK YOUR EMAIL'), findsOneWidget);
+      expect(find.textContaining('a link to juan@example.com'), findsOneWidget);
+
+      // "Later" still goes on into the app; Profile asks again.
+      await tap(tester, find.text('Later'));
+      expect(find.text('CHECK YOUR EMAIL'), findsNothing);
+      expect(find.byType(RoleGate), findsOneWidget);
+    });
+
+    testWidgets('a mobile number may be given, and no code is texted', (
       tester,
     ) async {
       await pump(tester, RegisterScreen(api: api()));
-      await fillSignup(tester, mobile: null);
+      await fillSignup(tester);
       await tap(tester, find.text('CREATE ACCOUNT'));
-      expect(paths(), ['/auth/signup']);
-      expect(calls.single.$2['email'], 'juan@example.com');
-      expect(calls.single.$2.containsKey('mobile'), isFalse);
+      expect(paths(), ['/auth/signup', '/verification/email/request']);
+      expect(calls.first.$2['mobile'], '0917 123 4567');
       expect(find.text('ENTER THE CODE'), findsNothing);
+      await tap(tester, find.text('Later'));
       expect(find.byType(RoleGate), findsOneWidget);
     });
+
+    testWidgets('the email link sheet fits at a large font', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pump(tester, RegisterScreen(api: api()));
+      await fillSignup(tester, mobile: null);
+      await tap(tester, find.text('CREATE ACCOUNT'));
+      expect(tester.takeException(), isNull);
+      expect(find.text('CHECK YOUR EMAIL'), findsOneWidget);
+    });
+
+    testWidgets('a number given has to be a PH mobile', (tester) async {
+      await pump(tester, RegisterScreen(api: api()));
+      await fillSignup(tester, mobile: '12345');
+      await tap(tester, find.text('CREATE ACCOUNT'));
+      expect(
+        find.text('Enter your mobile number, like 0917 123 4567.'),
+        findsOneWidget,
+      );
+      expect(calls, isEmpty);
+    });
+
+    for (final (missing, first, last, message) in [
+      ('first', '', 'dela Cruz', 'Please enter your first name.'),
+      ('last', 'Juan', '  ', 'Please enter your last name.'),
+    ]) {
+      testWidgets('the $missing name is required', (tester) async {
+        await pump(tester, RegisterScreen(api: api()));
+        await fillSignup(tester, mobile: null, first: first, last: last);
+        await tap(tester, find.text('CREATE ACCOUNT'));
+        expect(find.text(message), findsOneWidget);
+        expect(calls, isEmpty);
+      });
+    }
   });
 
   group('sign up with a mobile number, once SMS is settled', () {

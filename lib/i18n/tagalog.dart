@@ -22,7 +22,6 @@ const Map<String, String> kTagalog = {
   'Could not reach the server.': 'Hindi ma-contact ang server.',
   'Your answer was not recorded.': 'Hindi naitala ang sagot mo.',
   'Could not save the language.': 'Hindi ma-save ang wika.',
-  'Verification email sent.': 'Naipadala na ang verification email.',
   'Failed to load incidents.': 'Hindi ma-load ang mga insidente.',
   'Failed to load responders.': 'Hindi ma-load ang mga responder.',
   'Failed to load equipment.': 'Hindi ma-load ang mga kagamitan.',
@@ -304,8 +303,8 @@ const Map<String, String> kTagalog = {
   'Show password': 'Ipakita ang password',
   'Hide password': 'Itago ang password',
   'Use mobile number': 'Gamitin ang mobile number',
-  'You sign in with your email. Signing in with a mobile number is coming soon.':
-      'Email mo ang gamit sa pag-sign in. Malapit nang magamit ang mobile number sa pag-sign in.',
+  'You sign in with your email. We will email you a link to confirm it.':
+      'Email mo ang gamit sa pag-sign in. Magpapadala kami ng link sa email mo para makumpirma ito.',
   'Use email instead': 'Email na lang ang gamitin',
   'Forgot password?': 'Nakalimutan ang password?',
   'Sign in': 'Mag-sign in',
@@ -623,6 +622,14 @@ const Map<String, String> kTagalog = {
   '{name} signs in with this address.':
       'Ito ang address na gagamitin ni {name} sa pag-sign in.',
   'Sign-in address': 'Address sa pag-sign in',
+  // Resident sign-up (7 November): first and last name, the mobile
+  // number optional.
+  'Last name': 'Apelyido',
+  'Please enter your first name.': 'Ilagay ang pangalan mo.',
+  'Please enter your last name.': 'Ilagay ang apelyido mo.',
+  'Mobile number (optional)': 'Mobile number (opsyonal)',
+  'Checking it by SMS is coming soon.':
+      'Malapit nang masuri ito sa pamamagitan ng SMS.',
   'We emailed {to} a link to confirm it and set their password. It works for three days.':
       'Nagpadala kami sa {to} ng link para kumpirmahin ito at itakda ang password nila. Gagana ito nang tatlong araw.',
   'That email is already confirmed.': 'Kumpirmado na ang email na iyan.',
@@ -771,12 +778,30 @@ const Map<String, String> kTagalog = {
   '{channel}, plus {n} percent. {line}':
       '{channel}, dagdag na {n} porsiyento. {line}',
   'CONFIRM YOUR EMAIL': 'KUMPIRMAHIN ANG EMAIL MO',
-  'The link is on its way. Open it on this phone, then come back — your level updates by itself.':
-      'Papunta na ang link. Buksan ito sa phone na ito, saka bumalik — kusang mag-a-update ang level mo.',
-  'We\'ll email you a secure link. Opening it on this phone confirms the address.':
-      'Magpapadala kami ng ligtas na link sa email mo. Kapag binuksan mo ito sa phone na ito, makukumpirma ang email.',
   'Send the link': 'Ipadala ang link',
-  'Send it again': 'Ipadala ulit',
+  // Sign-up's email link (7 November), in place of a texted code.
+  'CHECK YOUR EMAIL': 'TINGNAN ANG EMAIL MO',
+  'EMAIL CONFIRMED': 'KUMPIRMADO NA ANG EMAIL',
+  'your email': 'ang email mo',
+  "We'll email a link to {email}. Opening it confirms the address.":
+      'Magpapadala kami ng link sa {email}. Kapag binuksan mo ito, kumpirmado na ang address.',
+  'Sending a link to {email}…': 'Nagpapadala ng link sa {email}…',
+  'We sent a link to {email}. Open it in Gmail and tap Verify my email. It works for 24 hours.':
+      'Nagpadala kami ng link sa {email}. Buksan ito sa Gmail at i-tap ang Verify my email. Gumagana ito nang 24 oras.',
+  'We sent a link to {email}. Open the email and tap Verify my email. It works for 24 hours.':
+      'Nagpadala kami ng link sa {email}. Buksan ang email at i-tap ang Verify my email. Gumagana ito nang 24 oras.',
+  '{email} is confirmed. Thank you!': 'Kumpirmado na ang {email}. Salamat!',
+  'Open Gmail': 'Buksan ang Gmail',
+  'Open your email': 'Buksan ang email mo',
+  'Not in your inbox? Look in Spam or Promotions.':
+      'Wala sa inbox mo? Tingnan sa Spam o Promotions.',
+  'Send the link again': 'Ipadala ulit ang link',
+  'That is all the links we can send today. Use the newest email we sent, or ask for another tomorrow.':
+      'Iyan na ang lahat ng link na maipapadala namin ngayong araw. Gamitin ang pinakabagong email na ipinadala namin, o humingi ulit bukas.',
+  'Could not send the email. Check your connection.':
+      'Hindi maipadala ang email. Tingnan ang koneksyon mo.',
+  'Open your email app and look for the email from RepLiT.':
+      'Buksan ang email app mo at hanapin ang email mula sa RepLiT.',
   'Developer options are on': 'Naka-on ang Developer options',
   'Our system found settings on this phone that are not secure: Developer options are on.':
       'May nakita ang system namin na settings sa phone na ito na hindi ligtas: naka-on ang Developer options.',
@@ -1966,7 +1991,7 @@ const Map<String, String> kTagalog = {
   'Deactivated': 'Naka-deactivate',
   'On a run': 'Nasa run',
   'NEW RESPONDER': 'BAGONG RESPONDER',
-  'First name': 'First name',
+  'First name': 'Pangalan',
   'Juan': 'Juan',
   'Surname': 'Apelyido',
   'Dela Cruz': 'Dela Cruz',

@@ -6,6 +6,7 @@ import '../models/phone_numbers.dart';
 import '../models/verification_state.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/email_link_sheet.dart';
 import 'national_id_screen.dart';
 import 'phone_verify_screen.dart';
 import '../widgets/app_icons.dart';
@@ -58,17 +59,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Future<void> _openEmail() async {
-    await showAppSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: context.pal.surfaceSolid,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-      ),
-      builder: (_) => _EmailVerifySheet(api: _api),
-    );
+    await showEmailLinkSheet(context, email: _email, api: _api, sendNow: false);
     _load();
   }
 
@@ -373,123 +364,6 @@ class _Legend extends StatelessWidget {
             style: context.type.eyebrow.copyWith(color: context.pal.textSoft),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Email verification bottom sheet: send the link, then prompt the user to open
-/// it and come back. Confirmation happens in the browser (GET .../email/confirm).
-class _EmailVerifySheet extends StatefulWidget {
-  const _EmailVerifySheet({required this.api});
-
-  final ApiClient api;
-
-  @override
-  State<_EmailVerifySheet> createState() => _EmailVerifySheetState();
-}
-
-class _EmailVerifySheetState extends State<_EmailVerifySheet> {
-  bool _sending = false;
-  bool _sent = false;
-  String? _message;
-
-  Future<void> _send() async {
-    setState(() {
-      _sending = true;
-      _message = null;
-    });
-    try {
-      final msg = await widget.api.requestEmailVerification();
-      if (mounted) {
-        setState(() {
-          _sent = true;
-          _message = msg;
-        });
-      }
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _message = e.message);
-    } catch (_) {
-      if (mounted) {
-        setState(
-          () => _message = 'Could not send the email. Check your connection.',
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          10,
-          24,
-          24 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Center(child: SheetHandle()),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    t('CONFIRM YOUR EMAIL'),
-                    style: context.type.title,
-                  ),
-                ),
-                Text(
-                  '+10%',
-                  style: context.type.cardTitleSm.copyWith(
-                    color: context.pal.accent,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _sent
-                  ? t(
-                      "The link is on its way. Open it on this phone, then come "
-                      'back — your level updates by itself.',
-                    )
-                  : t(
-                      "We'll email you a secure link. Opening it on this phone "
-                      'confirms the address.',
-                    ),
-              style: context.type.body,
-            ),
-            if (_message != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _message!,
-                style: context.type.caption.copyWith(color: context.pal.accent),
-              ),
-            ],
-            const SizedBox(height: 20),
-            AppButton(
-              _sent ? 'Done' : t('Send the link'),
-              busy: _sending,
-              onPressed: _sending
-                  ? null
-                  : _sent
-                  ? () => Navigator.of(context).pop()
-                  : _send,
-            ),
-            if (_sent) ...[
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: _sending ? null : _send,
-                child: Text(t('Send it again')),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }
