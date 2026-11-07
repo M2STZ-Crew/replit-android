@@ -6,6 +6,48 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.29 — 7 November 2026 — First and last name, and the email confirmed in Gmail
+
+With backend v1.12.22: deploy it first. This app works with v1.12.21 too, but
+then a confirmed email can be un-confirmed by asking again, and an old link
+shows an error in JSON. No new permission or dependency.
+
+### Changes
+
+**UI**
+- **First name and last name** at sign-up (7 November), in place of one Full
+  name field. Both are required, with the email; the account's name is the
+  two together.
+- **The mobile number is optional** while SMS is unavailable: "Mobile number
+  (optional)", with "Checking it by SMS is coming soon." under it. A number
+  given has to be a PH mobile and is kept as a contact number, unchecked; no
+  code is texted.
+
+**Logic**
+- **The email is confirmed in Gmail, in place of a texted code** ("instead of
+  OTP, they will confirm it via email in Gmail"). The moment the account
+  exists a link is emailed, and a sheet over the form says where it went.
+  OPEN GMAIL opens Gmail, or the phone's email app for another address. The
+  sheet sees the link opened by itself: on coming back from Gmail, or within
+  five seconds if it was opened on a computer. Then EMAIL CONFIRMED, +10%,
+  and Continue. Send again after a minute; Later goes on into the app, and
+  Profile > Verify beside the email opens the same sheet.
+
+**Android**
+- `MainActivity`: `openMailApp` on the `replit/device` channel starts Gmail, or
+  the phone's email app, at the inbox. An iPhone opens Gmail's address, then
+  Mail's.
+
+### Tests
+- `test/email_link_sheet_test.dart` (17): sending as it opens or on Send the
+  link, Gmail or another email app, Send again after a minute, confirmed on
+  coming back or while open, Later, no connection, the wait and the day's
+  links, a large font, Tagalog.
+- `test/phone_signup_test.dart`: first and last name required, the optional
+  mobile number, and sign-up ending in the email link sheet. 704 tests in all.
+
+---
+
 ## v1.12.28 — 7 November 2026 — Email first, change password, Tagalog for staff, the two-state splash
 
 With backend v1.12.21, which has to be deployed first (its migration
