@@ -147,6 +147,30 @@ class CoralPlate extends StatelessWidget {
 
 /// A text button (04 · Text button): Type/Label in the accent, sentence case
 /// — a question or an instruction is not a name — over a 44 px target.
+/// "Coming soon", beside an option that is shown but not open yet: mobile
+/// numbers while SMS is being settled (models/phone_numbers.dart).
+class ComingSoon extends StatelessWidget {
+  const ComingSoon({super.key});
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(color: context.pal.lineStrong),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      child: Text(
+        t('Coming soon'),
+        style: context.type.caption.copyWith(
+          color: context.pal.muted,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
+}
+
 class TextLink extends StatelessWidget {
   const TextLink(this.label, {super.key, required this.onTap, this.color});
 

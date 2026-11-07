@@ -23,6 +23,7 @@ import '../coordinator/area_decision_screen.dart' show openRouteToArea;
 import '../coordinator/report_detail_screen.dart';
 import 'responder_status.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// One Area, as a responder sees it (REPLIT (MAIN) 07).
 ///
@@ -205,7 +206,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         if (_incident == null) {
           _error = e is ApiException
               ? e.message
-              : 'Could not load this Area. Check your signal.';
+              : t('Could not load this Area. Check your signal.');
         }
       });
     }
@@ -279,7 +280,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       // read below shows what is true now.
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('That did not go through. Check your signal.');
+      if (mounted) _toast(t('That did not go through. Check your signal.'));
     } finally {
       await _load(silent: true);
       if (mounted) setState(() => _busy = false);
@@ -295,28 +296,30 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         children: [
           SheetTitles(
             eyebrow: '${area.name} — ${LifecycleChip.word(area.status)}',
-            title: 'Go to ${area.name}?',
-            body:
-                'You go as $_unit. Your position is shared every 5 seconds '
-                'until the Captain marks fire out.',
+            title: t('Go to {name}?', {'name': area.name}),
+            body: t(
+              'You go as {_unit}. Your position is shared every 5 seconds until the Captain marks fire out.',
+              {'_unit': _unit},
+            ),
           ),
           if (reported) ...[
             const SizedBox(height: 16),
-            const InlineAlert(
-              body:
-                  'This Area is still Reported. Going now verifies it for '
-                  'every agency — Coordinators can still reject it later.',
+            InlineAlert(
+              body: t(
+                'This Area is still Reported. Going now verifies it for '
+                'every agency — Coordinators can still reject it later.',
+              ),
             ),
           ],
           const SizedBox(height: 20),
           AppButton(
-            'I am going',
+            t('I am going'),
             run: true,
             onPressed: () => Navigator.of(context).pop(true),
           ),
           const SizedBox(height: 10),
           AppButton.secondary(
-            'Cancel, go back',
+            t('Cancel, go back'),
             onPressed: () => Navigator.of(context).pop(false),
           ),
         ],
@@ -330,14 +333,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       await _api.selfDispatch(widget.incidentId);
       await _load(silent: true);
       if (!mounted) return;
-      _toast('You are going. Your location is shared while you go.');
+      _toast(t('You are going. Your location is shared while you go.'));
       setState(() => _busy = false);
       await _navigate();
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
       await _load(silent: true);
     } catch (_) {
-      if (mounted) _toast('That did not go through. Check your signal.');
+      if (mounted) _toast(t('That did not go through. Check your signal.'));
     } finally {
       if (mounted && _busy) setState(() => _busy = false);
     }
@@ -345,7 +348,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
 
   void _verifyOnly() => _action(
     () => _api.verifyIncident(widget.incidentId),
-    'Verified. Go from here if you are going.',
+    t('Verified. Go from here if you are going.'),
   );
 
   /// Turn-by-turn to the Area (R05, R06). While on the way, arriving ends
@@ -371,20 +374,21 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         children: [
           SheetTitles(
             eyebrow: '${area.name} — ${LifecycleChip.word(area.status)}',
-            title: 'Mark arrived?',
-            body:
-                'Command and the other units see you on scene. It is the last '
-                'status you set; the Captain marks fire out.',
+            title: t('Mark arrived?'),
+            body: t(
+              'Command and the other units see you on scene. It is the last '
+              'status you set; the Captain marks fire out.',
+            ),
           ),
           const SizedBox(height: 20),
           AppButton(
-            'Mark arrived',
+            t('Mark arrived'),
             run: true,
             onPressed: () => Navigator.of(context).pop(true),
           ),
           const SizedBox(height: 10),
           AppButton.secondary(
-            'Not yet',
+            t('Not yet'),
             onPressed: () => Navigator.of(context).pop(false),
           ),
         ],
@@ -393,7 +397,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     if (yes != true || !mounted) return;
     await _action(
       () => _api.markArrived(widget.incidentId),
-      'Marked on scene.',
+      t('Marked on scene.'),
     );
   }
 
@@ -401,17 +405,17 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     if (_pressing) return;
     final id = _fireCodeIds[codeNumber];
     if (id == null) {
-      _toast('$label is unavailable.');
+      _toast(t('{label} is unavailable.', {'label': label}));
       return;
     }
     setState(() => _pressing = true);
     try {
       await _api.pressFireCode(id, areaId: widget.incidentId);
-      if (mounted) _toast('$label sent to command.');
+      if (mounted) _toast(t('{label} sent to command.', {'label': label}));
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not send. Check your signal.');
+      if (mounted) _toast(t('Could not send. Check your signal.'));
     } finally {
       if (mounted) setState(() => _pressing = false);
     }
@@ -444,7 +448,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       if (level == null) {
         if (waiting == null) return;
         await _api.cancelAlarmRequest(waiting.id);
-        if (mounted) _toast('Request taken back. BFP no longer sees it.');
+        if (mounted) _toast(t('Request taken back. BFP no longer sees it.'));
         return;
       }
       await _api.createAlarmRequest(
@@ -454,13 +458,15 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       );
       if (mounted) {
         _toast(
-          'Asked BFP for ${alarmWord(level)}. You are told when they answer.',
+          t('Asked BFP for {alarmWord}. You are told when they answer.', {
+            'alarmWord': alarmWord(level),
+          }),
         );
       }
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not send the request. Check your signal.');
+      if (mounted) _toast(t('Could not send the request. Check your signal.'));
     }
   }
 
@@ -472,7 +478,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         widget.incidentId,
       )).cast<Map<String, dynamic>>();
     } catch (_) {
-      if (mounted) _toast('Could not load the reports. Check your signal.');
+      if (mounted) _toast(t('Could not load the reports. Check your signal.'));
       return;
     }
     if (!mounted) return;
@@ -483,13 +489,13 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           SheetTitles(
             eyebrow: area.name,
             title: reports.length == 1
-                ? '1 report'
-                : '${reports.length} reports',
-            body: 'Photos are for staff only.',
+                ? t('1 report')
+                : t('{count} reports', {'count': reports.length}),
+            body: t('Photos are for staff only.'),
           ),
           const SizedBox(height: 16),
           if (reports.isEmpty)
-            Text('No reports could be read.', style: context.type.bodySm),
+            Text(t('No reports could be read.'), style: context.type.bodySm),
           for (final (i, r) in reports.indexed) ...[
             _reportRow(r, i, sheet),
             const SizedBox(height: 8),
@@ -505,7 +511,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     final photo = r['photo_url'] is String;
     return ListRow(
       leading: IconPlate(photo ? AppIcons.photo : AppIcons.person),
-      title: 'Resident · $pct% verified',
+      title: t('Resident · {pct}% verified', {'pct': pct}),
       subtitle: [if (at != null) clockText(at), if (photo) 'photo'].join(' · '),
       chevron: true,
       onTap: () => Navigator.of(sheet).push(
@@ -534,17 +540,17 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _header(title: 'Area'),
+          _header(title: t('Area')),
           Expanded(
             child: _loading
                 ? const SkeletonDetail(media: true)
                 : EmptyState(
                     icon: AppIcons.cloudOff,
                     tone: context.pal.live,
-                    title: 'Could not load this Area',
-                    body: _error ?? 'Check your signal and try again.',
+                    title: t('Could not load this Area'),
+                    body: _error ?? t('Check your signal and try again.'),
                     action: AppButton.secondary(
-                      'Try again',
+                      t('Try again'),
                       onPressed: () => _load(),
                     ),
                   ),
@@ -596,7 +602,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     final centre = area.centre;
     final away = here == null || centre == null
         ? null
-        : '${formatDistance(metresBetween(here, centre))} from you';
+        : t('{formatDistance} from you', {
+            'formatDistance': formatDistance(metresBetween(here, centre)),
+          });
     final subtitle = [?place.line, ?away].join(' — ');
     final reported = area.reportedAt;
     final asked = askedFor(area.requested);
@@ -632,9 +640,11 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           ConfidenceMeter(area: area),
           const SizedBox(height: 16),
           ListRow(
-            title: 'Reports',
+            title: t('Reports'),
             trailing: RowValue(
-              area.reports == 1 ? '1 resident' : '${area.reports} residents',
+              area.reports == 1
+                  ? t('1 resident')
+                  : t('{reports} residents', {'reports': area.reports}),
               color: pal.onBackground,
             ),
             chevron: true,
@@ -642,7 +652,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           ),
           gap,
           ListRow(
-            title: 'First reported',
+            title: t('First reported'),
             trailing: RowValue(
               reported == null ? '—' : clockText(reported),
               color: pal.onBackground,
@@ -650,7 +660,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           ),
           gap,
           ListRow(
-            title: 'Agencies asked',
+            title: t('Agencies asked'),
             trailing: RowValue(
               asked.isEmpty ? '—' : asked,
               color: pal.onBackground,
@@ -658,14 +668,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           ),
           if (verifier != null) ...[
             gap,
-            ListRow(title: 'Acknowledged by', subtitle: verifier),
+            ListRow(title: t('Acknowledged by'), subtitle: verifier),
           ],
           if (centre != null && area.active) ...[
             gap,
             ListRow(
               leading: const IconPlate(AppIcons.directions),
-              title: 'Route to the Area',
-              subtitle: 'Directions only — going is I am going',
+              title: t('Route to the Area'),
+              subtitle: t('Directions only — going is I am going'),
               chevron: true,
               onTap: _navigate,
             ),
@@ -677,17 +687,19 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
                   ? AlertTone.danger
                   : AlertTone.info,
               title: switch (area.status) {
-                'rejected' => '${area.name} was rejected',
-                'merged' => '${area.name} was merged',
-                _ => '${area.name} is over',
+                'rejected' => t('{name} was rejected', {'name': area.name}),
+                'merged' => t('{name} was merged', {'name': area.name}),
+                _ => t('{name} is over', {'name': area.name}),
               },
               body: switch (area.status) {
-                'rejected' => 'A coordinator rejected it. Nobody goes.',
-                'merged' =>
+                'rejected' => t('A coordinator rejected it. Nobody goes.'),
+                'merged' => t(
                   'Its reports joined a neighbouring Area. Go from that one.',
-                _ =>
+                ),
+                _ => t(
                   'The fire is out. Nothing is asked of a unit that did not '
-                      'go.',
+                  'go.',
+                ),
               },
             ),
           ],
@@ -702,18 +714,18 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       children: [
         if (open)
           AppButton(
-            'I am going',
+            t('I am going'),
             run: true,
             busy: _busy,
             onPressed: _busy ? null : () => _go(area),
           ),
         if (area.toDecide)
           AppButton.secondary(
-            'Verify, without going',
+            t('Verify, without going'),
             onPressed: _busy ? null : _verifyOnly,
           )
         else
-          AppButton.secondary('Back to duty', onPressed: _backToDuty),
+          AppButton.secondary(t('Back to duty'), onPressed: _backToDuty),
       ],
     );
   }
@@ -723,16 +735,17 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     final over = kAfterFireOut.contains(_status);
     final out = area.at('resolved_at');
     final title = switch (_status) {
-      'en_route' => 'On the way',
-      'arrived' => 'On scene',
-      'rejected' => 'Rejected',
-      _ => 'Stood down',
+      'en_route' => t('On the way'),
+      'arrived' => t('On scene'),
+      'rejected' => t('Rejected'),
+      _ => t('Stood down'),
     };
     final subtitle = over && out != null
-        ? 'Fire out at ${clockText(out)}.'
+        ? t('Fire out at {clockText}.', {'clockText': clockText(out)})
         : [
             ?place.line,
-            if (_status == 'en_route' && _etaText != null) 'ETA $_etaText',
+            if (_status == 'en_route' && _etaText != null)
+              t('ETA {_etaText}', {'_etaText': _etaText}),
           ].join(' — ');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -746,10 +759,11 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           if (_status == 'rejected')
             InlineAlert(
               tone: AlertTone.danger,
-              title: '${area.name} was rejected',
-              body:
-                  'A coordinator rejected it while you were going. Your '
-                  'location sharing has stopped.',
+              title: t('{name} was rejected', {'name': area.name}),
+              body: t(
+                'A coordinator rejected it while you were going. Your '
+                'location sharing has stopped.',
+              ),
             )
           else
             LifecycleRail(status: _status),
@@ -758,36 +772,38 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           if (_status == 'en_route') ...[
             const SizedBox(height: 16),
             AppButton(
-              'Navigate',
+              t('Navigate'),
               run: true,
               icon: AppIcons.directions,
               onPressed: _busy ? null : _navigate,
             ),
             const SizedBox(height: 10),
             AppButton.secondary(
-              'Mark arrived',
+              t('Mark arrived'),
               onPressed: _busy ? null : () => _markArrived(area),
             ),
           ],
           const SizedBox(height: 20),
-          SectionHeader(over ? 'What happened' : 'What happens next'),
+          SectionHeader(over ? t('What happened') : t('What happens next')),
           const SizedBox(height: 4),
           ..._steps(area),
           if (_crew() case final crew?) ...[
             const SizedBox(height: 16),
-            const SectionHeader('Your unit'),
+            SectionHeader(t('Your unit')),
             const SizedBox(height: 12),
             crew,
           ],
           if (_hasActiveDispatch && _onGround) ...[
             const SizedBox(height: 20),
-            SectionHeader(_fireCrew ? 'Codes to command' : 'Call for help'),
+            SectionHeader(
+              _fireCrew ? t('Codes to command') : t('Call for help'),
+            ),
             const SizedBox(height: 12),
             ..._codes(area),
           ],
           if (over || _status == 'rejected') ...[
             const SizedBox(height: 20),
-            AppButton.secondary('Back to duty', onPressed: _backToDuty),
+            AppButton.secondary(t('Back to duty'), onPressed: _backToDuty),
           ],
         ]),
       ],
@@ -796,29 +812,32 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
 
   Widget _sharingAlert(bool over) {
     if (over || _status == 'rejected') {
-      return const InlineAlert(
+      return InlineAlert(
         tone: AlertTone.success,
-        title: 'Location sharing stopped',
-        body: 'Nothing more is asked of you for this Area.',
+        title: t('Location sharing stopped'),
+        body: t('Nothing more is asked of you for this Area.'),
       );
     }
     if (!_streaming) {
-      return const InlineAlert(
+      return InlineAlert(
         tone: AlertTone.warning,
-        title: 'Your location is not going out',
-        body:
-            'Allow RepLiT to use your location, so command can see you while '
-            'you are on this run.',
+        title: t('Your location is not going out'),
+        body: t(
+          'Allow RepLiT to use your location, so command can see you while '
+          'you are on this run.',
+        ),
       );
     }
     return InlineAlert(
       title: _status == 'arrived'
-          ? 'Your location is still shared'
-          : 'Your location is shared',
+          ? t('Your location is still shared')
+          : t('Your location is shared'),
       body: _status == 'arrived'
-          ? 'It stops on its own when the Captain marks fire out.'
-          : 'Every 5 seconds while you go. It stops when the Captain marks '
-                'fire out.',
+          ? t('It stops on its own when the Captain marks fire out.')
+          : t(
+              'Every 5 seconds while you go. It stops when the Captain marks '
+              'fire out.',
+            ),
     );
   }
 
@@ -832,29 +851,37 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     return [
       ProgressStep(
         state: arrived == null ? ProgressState.pending : ProgressState.done,
-        title: arrived == null ? 'Arrived' : 'Arrived ${clockText(arrived)}',
+        title: arrived == null
+            ? t('Arrived')
+            : t('Arrived {clockText}', {'clockText': clockText(arrived)}),
         detail: arrived == null
-            ? 'Marked on its own when you reach the Area, or by you'
-            : 'The Area was marked arrived',
+            ? t('Marked on its own when you reach the Area, or by you')
+            : t('The Area was marked arrived'),
       ),
       ProgressStep(
         state: out == null ? ProgressState.pending : ProgressState.done,
-        title: out == null ? 'Fire out' : 'Fire out ${clockText(out)}',
-        detail: 'The Captain calls it on scene',
+        title: out == null
+            ? t('Fire out')
+            : t('Fire out {clockText}', {'clockText': clockText(out)}),
+        detail: t('The Captain calls it on scene'),
       ),
       ProgressStep(
         state: out == null ? ProgressState.pending : ProgressState.done,
-        title: out == null ? 'Stood down' : 'Stood down ${clockText(out)}',
+        title: out == null
+            ? t('Stood down')
+            : t('Stood down {clockText}', {'clockText': clockText(out)}),
         detail: out == null
-            ? 'Location sharing stops'
-            : 'Your location is no longer shared',
+            ? t('Location sharing stops')
+            : t('Your location is no longer shared'),
       ),
       ProgressStep(
         state: closed ? ProgressState.done : ProgressState.pending,
         title: closed && filed != null
-            ? 'Post-incident report ${clockText(filed)}'
-            : 'Post-incident report',
-        detail: 'The Captain files it for the whole team — not yours to do',
+            ? t('Post-incident report {clockText}', {
+                'clockText': clockText(filed),
+              })
+            : t('Post-incident report'),
+        detail: t('The Captain files it for the whole team — not yours to do'),
       ),
     ];
   }
@@ -877,14 +904,16 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         break;
       }
     }
-    final kind = _fleetByName[vehicle]?.subtitle ?? 'Fire truck';
+    final kind = _fleetByName[vehicle]?.subtitle ?? t('Fire truck');
     return ListRow(
       leading: const IconPlate(AppIcons.fireTruck),
       title: vehicle,
       subtitle: [
         kind,
-        if (driver != null) 'Driver $driver',
-        crew.length == 1 ? '1 on it' : '${crew.length} on it',
+        if (driver != null) t('Driver {driver}', {'driver': driver}),
+        crew.length == 1
+            ? t('1 on it')
+            : t('{count} on it', {'count': crew.length}),
       ].join(' · '),
     );
   }
@@ -912,23 +941,23 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         code(
           AppIcons.waterDrop,
           pal.water,
-          'Need water',
-          'More water supply to this Area',
-          () => _pressCode('FC-6', 'Need water'),
+          t('Need water'),
+          t('More water supply to this Area'),
+          () => _pressCode(t('FC-6'), t('Need water')),
         ),
       code(
         AppIcons.groupAdd,
         pal.warn,
-        'Need assistance',
-        'Backup responders to this Area',
-        () => _pressCode('FC-7', 'Need assistance'),
+        t('Need assistance'),
+        t('Backup responders to this Area'),
+        () => _pressCode(t('FC-7'), t('Need assistance')),
       ),
       if (mayRequestAlarm(widget.agency))
         code(
           AppIcons.campaign,
           pal.live,
-          'Escalate to BFP',
-          'Ask BFP to raise the alarm',
+          t('Escalate to BFP'),
+          t('Ask BFP to raise the alarm'),
           () => _escalateBfp(area),
         ),
       // Fire out is the Captain's to mark; a crew on scene tells command.
@@ -936,9 +965,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         code(
           AppIcons.flag,
           pal.ok,
-          'Fire is out',
-          'Tell command — the Captain marks it',
-          () => _pressCode('FC-3', 'Fire out'),
+          t('Fire is out'),
+          t('Tell command — the Captain marks it'),
+          () => _pressCode(t('FC-3'), t('Fire out')),
         ),
     ];
   }

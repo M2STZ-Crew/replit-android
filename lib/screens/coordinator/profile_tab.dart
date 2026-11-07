@@ -8,6 +8,7 @@ import '../../updates/app_updates.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import '../../widgets/staff_account_section.dart';
 import '../../widgets/staff_shell.dart';
 import '../bfp/bfp_alarm_requests_screen.dart';
 import '../notifications_screen.dart';
@@ -16,6 +17,7 @@ import '../subadmin/ai_summaries_screen.dart';
 import '../subadmin/team_screen.dart';
 import 'coordinator_feed.dart';
 import 'my_decisions_screen.dart';
+import '../../i18n/i18n.dart';
 
 /// The Profile tab (06 · C15): who you are, what you may do, how the fire
 /// alert sounds, and the rest of the console — your decisions, your
@@ -69,13 +71,14 @@ class _ProfileTabState extends State<ProfileTab> {
       builder: (context) => StatefulBuilder(
         builder: (context, set) => SheetFrame(
           children: [
-            const SheetTitles(
-              eyebrow: 'Alerts',
-              title: 'Alert volume',
-              body:
-                  'How loud the alarm rings in the app, on top of your '
-                  "phone's notification volume. At 0% it stays quiet here "
-                  'only; the notification still shows.',
+            SheetTitles(
+              eyebrow: t('Alerts'),
+              title: t('Alert volume'),
+              body: t(
+                'How loud the alarm rings in the app, on top of your '
+                "phone's notification volume. At 0% it stays quiet here "
+                'only; the notification still shows.',
+              ),
             ),
             const SizedBox(height: 16),
             Row(
@@ -99,13 +102,13 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
             const SizedBox(height: 12),
             AppButton(
-              'Save',
+              t('Save'),
               run: true,
               onPressed: () => Navigator.of(context).pop(value),
             ),
             const SizedBox(height: 10),
             AppButton.secondary(
-              'Play it',
+              t('Play it'),
               icon: AppIcons.volumeUp,
               onPressed: () async {
                 final before = await _sound.fireAlarmVolume();
@@ -133,16 +136,16 @@ class _ProfileTabState extends State<ProfileTab> {
   Widget build(BuildContext context) {
     final pal = context.pal;
     final name =
-        (_me['full_name'] as String?) ?? (_me['email'] as String?) ?? 'You';
+        (_me['full_name'] as String?) ?? (_me['email'] as String?) ?? t('You');
     final team = (_me['organization_name'] as String?)?.trim();
     final agency = responderAgencyLabel(widget.feed.agency);
     final bfp = widget.feed.isBfp;
     final powers = CoordinatorPowers.of(_me);
     final asked = switch (widget.feed.agency) {
-      'police' => 'Police',
-      'medical' => 'Medical',
-      'barangay' => 'Barangay',
-      _ => 'Fire',
+      'police' => t('Police'),
+      'medical' => t('Medical'),
+      'barangay' => t('Barangay'),
+      _ => t('Fire'),
     };
     const gap = SizedBox(height: 8);
     return SafeArea(
@@ -150,7 +153,7 @@ class _ProfileTabState extends State<ProfileTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const TabHeader(eyebrow: 'Account', title: 'Profile'),
+          TabHeader(eyebrow: t('Account'), title: t('Profile')),
           Expanded(
             child: ScrollFade(
               child: ListView(
@@ -164,33 +167,40 @@ class _ProfileTabState extends State<ProfileTab> {
                   ListRow(
                     leading: AgencyPlate(agency: widget.feed.agency ?? ''),
                     title: name,
-                    subtitle:
-                        'Coordinator · ${team == null || team.isEmpty ? agency : '$team, $agency'}',
+                    subtitle: t('Coordinator · {value}', {
+                      'value': team == null || team.isEmpty
+                          ? agency
+                          : '$team, $agency',
+                    }),
                   ),
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.shield),
                     title: powers.rejects
-                        ? 'You can accept and reject'
-                        : 'You can accept',
+                        ? t('You can accept and reject')
+                        : t('You can accept'),
                     subtitle: powers.rejects
-                        ? 'Any agency can accept. Only Fire Volunteer and BFP '
-                              'can reject.'
-                        : 'Accepting acknowledges the Areas that ask for '
-                              '$asked. Only Fire Volunteer and BFP can reject.',
+                        ? t(
+                            'Any agency can accept. Only Fire Volunteer and BFP '
+                            'can reject.',
+                          )
+                        : t(
+                            'Accepting acknowledges the Areas that ask for {asked}. Only Fire Volunteer and BFP can reject.',
+                            {'asked': asked},
+                          ),
                     chevron: true,
                     onTap: () => _push(PermissionsScreen(me: _me)),
                   ),
                   const SizedBox(height: 16),
-                  const SectionHeader('Alerts'),
+                  SectionHeader(t('Alerts')),
                   const SizedBox(height: 12),
                   ListRow(
                     leading: const IconPlate(AppIcons.volumeUp),
-                    title: 'Fire alert sound',
-                    subtitle:
-                        'Rings in the app when a new Area asks for $asked. '
-                        "With the app closed, Android's $asked alerts channel "
-                        'rings it.',
+                    title: t('Fire alert sound'),
+                    subtitle: t(
+                      'Rings in the app when a new Area asks for {asked}. With the app closed, Android\'s {asked2} alerts channel rings it.',
+                      {'asked': asked, 'asked2': asked},
+                    ),
                     trailing: Switch(
                       value: _alarmOn ?? true,
                       onChanged: _alarmOn == null ? null : _setAlarm,
@@ -202,8 +212,8 @@ class _ProfileTabState extends State<ProfileTab> {
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.volumeUp),
-                    title: 'Alert volume',
-                    subtitle: 'In the app only. At 0% it is quiet here.',
+                    title: t('Alert volume'),
+                    subtitle: t('In the app only. At 0% it is quiet here.'),
                     trailing: RowValue(
                       '${((_volume ?? 1) * 100).round()}%',
                       color: pal.onBackground,
@@ -213,26 +223,29 @@ class _ProfileTabState extends State<ProfileTab> {
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.explore),
-                    title: 'Map rotation',
-                    subtitle: 'Heading-up while moving, compass when still',
-                    trailing: RowValue('Hybrid', color: pal.onBackground),
+                    title: t('Map rotation'),
+                    subtitle: t('Heading-up while moving, compass when still'),
+                    trailing: RowValue(t('Hybrid'), color: pal.onBackground),
                   ),
                   const SizedBox(height: 16),
-                  const SectionHeader('More'),
+                  StaffAccountSection(api: widget.feed.api, me: _me),
+                  const SizedBox(height: 16),
+                  SectionHeader(t('More')),
                   const SizedBox(height: 12),
                   ListRow(
                     leading: const IconPlate(AppIcons.history),
-                    title: 'My decisions',
-                    subtitle:
-                        'Every accept, reject, merge and fire out you made',
+                    title: t('My decisions'),
+                    subtitle: t(
+                      'Every accept, reject, merge and fire out you made',
+                    ),
                     chevron: true,
                     onTap: () => _push(MyDecisionsScreen(feed: widget.feed)),
                   ),
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.group),
-                    title: 'Responders',
-                    subtitle: "Make and manage your responders' accounts",
+                    title: t('Responders'),
+                    subtitle: t("Make and manage your responders' accounts"),
                     chevron: true,
                     onTap: () => _push(TeamScreen(me: _me)),
                   ),
@@ -242,8 +255,10 @@ class _ProfileTabState extends State<ProfileTab> {
                     gap,
                     ListRow(
                       leading: const IconPlate(AppIcons.autoAwesome),
-                      title: 'AI summaries',
-                      subtitle: 'What each fire your teams filed for came to',
+                      title: t('AI summaries'),
+                      subtitle: t(
+                        'What each fire your teams filed for came to',
+                      ),
                       chevron: true,
                       onTap: () => _push(AiSummariesScreen(me: _me)),
                     ),
@@ -252,8 +267,8 @@ class _ProfileTabState extends State<ProfileTab> {
                     gap,
                     ListRow(
                       leading: const IconPlate(AppIcons.campaign),
-                      title: 'Alarm requests',
-                      subtitle: 'Fire Volunteer asks to raise the alarm',
+                      title: t('Alarm requests'),
+                      subtitle: t('Fire Volunteer asks to raise the alarm'),
                       chevron: true,
                       onTap: () => _push(const BfpAlarmRequestsScreen()),
                     ),
@@ -261,8 +276,8 @@ class _ProfileTabState extends State<ProfileTab> {
                   gap,
                   ListRow(
                     leading: const IconPlate(AppIcons.notifications),
-                    title: 'Alerts',
-                    subtitle: 'Every notification sent to you',
+                    title: t('Alerts'),
+                    subtitle: t('Every notification sent to you'),
                     chevron: true,
                     onTap: () => _push(const NotificationsScreen()),
                   ),
@@ -270,17 +285,19 @@ class _ProfileTabState extends State<ProfileTab> {
                     gap,
                     ListRow(
                       leading: const IconPlate(AppIcons.download),
-                      title: 'Check for updates',
+                      title: t('Check for updates'),
                       subtitle: AppVersion.label.isEmpty
-                          ? 'Get the newest version of RepLiT'
-                          : 'Version ${AppVersion.label} installed',
+                          ? t('Get the newest version of RepLiT')
+                          : t('Version {label} installed', {
+                              'label': AppVersion.label,
+                            }),
                       chevron: true,
                       onTap: () => showUpdateSheet(context),
                     ),
                   ],
                   const SizedBox(height: 24),
                   AppButton.danger(
-                    'Log out',
+                    t('Log out'),
                     icon: AppIcons.logout,
                     onPressed: () => staffSignOut(
                       Navigator.of(context),
@@ -312,62 +329,75 @@ class PermissionsScreen extends StatelessWidget {
       // A Police, Medical or Barangay coordinator (06 · C01P): the server
       // lets them acknowledge their agency's Areas and follow them.
       return CapabilitiesScreen(
-        eyebrow:
-            'Coordinator · ${responderAgencyLabel(me['agency_type'] as String?)}',
-        can: const [
-          (
-            'Accept an Area',
-            'Acknowledges it for your organization when it asks for your '
-                'agency',
+        eyebrow: t('Coordinator · {responderAgencyLabel}', {
+          'responderAgencyLabel': responderAgencyLabel(
+            me['agency_type'] as String?,
           ),
-          ('Merge or keep separate', 'When two Areas overlap'),
+        }),
+        can: [
           (
-            'Follow an Area on LIVE and the map',
-            'Its units and its alarm level',
+            t('Accept an Area'),
+            t(
+              'Acknowledges it for your organization when it asks for your '
+              'agency',
+            ),
           ),
-          ('Route to an Area', 'Directions, once it has been accepted'),
-          ("Make your responders' accounts", 'Under Profile, Responders'),
+          (t('Merge or keep separate'), t('When two Areas overlap')),
+          (
+            t('Follow an Area on LIVE and the map'),
+            t('Its units and its alarm level'),
+          ),
+          (t('Route to an Area'), t('Directions, once it has been accepted')),
+          (t("Make your responders' accounts"), t('Under Profile, Responders')),
         ],
-        cannot: const [
-          ('Reject an Area', 'Fire Volunteer and BFP coordinators'),
-          ('Respond or mark fire out', 'Fire Volunteer and BFP'),
-          ('Press fire codes', 'Fire Volunteer and BFP coordinators'),
-          ('File the post-incident report', 'The responding fire team'),
-          ('Change the alarm level', 'BFP coordinators only'),
+        cannot: [
+          (t('Reject an Area'), t('Fire Volunteer and BFP coordinators')),
+          (t('Respond or mark fire out'), t('Fire Volunteer and BFP')),
+          (t('Press fire codes'), t('Fire Volunteer and BFP coordinators')),
+          (t('File the post-incident report'), t('The responding fire team')),
+          (t('Change the alarm level'), t('BFP coordinators only')),
         ],
       );
     }
     final can = <(String, String)>[
       (
-        'Accept an Area',
-        'Verifies it — and puts you on the way, on your unit, if you are '
-            'going too',
+        t('Accept an Area'),
+        t(
+          'Verifies it — and puts you on the way, on your unit, if you are '
+          'going too',
+        ),
       ),
-      ('Reject an Area', 'Fire Volunteer and BFP coordinators only'),
-      ('Merge or keep separate', 'When two Areas overlap'),
-      ('Mark fire out', 'Your units stand down and stop sharing location'),
-      ('Press fire codes', 'Recorded as events on the incident'),
+      (t('Reject an Area'), t('Fire Volunteer and BFP coordinators only')),
+      (t('Merge or keep separate'), t('When two Areas overlap')),
       (
-        'File the post-incident report',
-        'Once per Area for your team, no draft',
+        t('Mark fire out'),
+        t('Your units stand down and stop sharing location'),
       ),
-      ("Make your responders' accounts", 'Under Profile, Responders'),
+      (t('Press fire codes'), t('Recorded as events on the incident')),
+      (
+        t('File the post-incident report'),
+        t('Once per Area for your team, no draft'),
+      ),
+      (t("Make your responders' accounts"), t('Under Profile, Responders')),
       if (bfp)
         (
-          'Raise the alarm level',
-          'From the alarm requests Fire Volunteer sends',
+          t('Raise the alarm level'),
+          t('From the alarm requests Fire Volunteer sends'),
         )
       else
-        ('Ask BFP to raise the alarm', 'From the alarm level on LIVE'),
+        (t('Ask BFP to raise the alarm'), t('From the alarm level on LIVE')),
     ];
     final cannot = <(String, String)>[
-      if (!bfp) ('Change the alarm level', 'BFP coordinators only'),
-      ('Edit a filed report', 'A post-incident report saves once'),
-      ('Reopen a rejected Area', 'It has left the live feed for good'),
+      if (!bfp) (t('Change the alarm level'), t('BFP coordinators only')),
+      (t('Edit a filed report'), t('A post-incident report saves once')),
+      (t('Reopen a rejected Area'), t('It has left the live feed for good')),
     ];
     return CapabilitiesScreen(
-      eyebrow:
-          'Coordinator · ${responderAgencyLabel(me['agency_type'] as String?)}',
+      eyebrow: t('Coordinator · {responderAgencyLabel}', {
+        'responderAgencyLabel': responderAgencyLabel(
+          me['agency_type'] as String?,
+        ),
+      }),
       can: can,
       cannot: cannot,
     );

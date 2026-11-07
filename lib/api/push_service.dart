@@ -110,11 +110,16 @@ class PushService {
     } catch (_) {
       // FCM unconfigured / offline — push simply stays inactive.
     }
-    // The alerts come in the language the resident chose on this phone.
-    try {
-      await _api.setLanguage(LanguageChoice.current.value.code);
-    } catch (_) {
-      // Sent again on the next sign-in.
+    // A language chosen on this phone that the account does not have yet
+    // (signed out, or offline) goes to the account; otherwise the app
+    // follows the account's (LanguageChoice.adopt).
+    if (LanguageChoice.unsaved) {
+      try {
+        await _api.setLanguage(LanguageChoice.current.value.code);
+        await LanguageChoice.markUnsaved(false);
+      } catch (_) {
+        // Sent again on the next sign-in.
+      }
     }
     // Reports while the app is closed, where location is allowed for it.
     await LocationBeacon.syncClosed(alertsOn: true);

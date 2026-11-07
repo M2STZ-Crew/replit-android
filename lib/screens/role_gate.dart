@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/session.dart';
 import '../theme.dart';
-import '../widgets/design.dart';
 import 'call_screen.dart';
 import 'coordinator/coordinator_shell.dart';
 import 'login_screen.dart';
@@ -17,6 +16,7 @@ import 'phone_verify_screen.dart';
 import 'responder/responder_shell.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/launch_mark.dart';
 import '../widgets/skeleton.dart';
 import '../i18n/i18n.dart';
 
@@ -37,7 +37,12 @@ import '../i18n/i18n.dart';
 /// the SOS is one tap away on a coral button that floats over the map — a
 /// bigger, more findable target than a quarter of the tab bar.
 class RoleGate extends StatefulWidget {
-  const RoleGate({super.key});
+  const RoleGate({super.key, this.initialMe});
+
+  /// The account as the splash already loaded it (GET /auth/me), so opening
+  /// the app goes straight to home. Null right after signing in: then the
+  /// account loads here, over the skeleton.
+  final Map<String, dynamic>? initialMe;
 
   @override
   State<RoleGate> createState() => _RoleGateState();
@@ -55,7 +60,8 @@ class _RoleGateState extends State<RoleGate> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _me = widget.initialMe;
+    if (_me == null) _load();
   }
 
   @override
@@ -75,6 +81,8 @@ class _RoleGateState extends State<RoleGate> {
     });
     try {
       final me = await _api.getMe().timeout(ApiClient.signInTimeout);
+      // The account's language, as the console or another phone left it.
+      await LanguageChoice.adopt(me['language']);
       if (mounted) setState(() => _me = me);
     } on SessionExpiredException {
       // The stored session was too old to renew. The client has already cleared
@@ -82,7 +90,7 @@ class _RoleGateState extends State<RoleGate> {
       // button re-sends the same dead token.
       await _signInAgain();
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not load your account.');
+      if (mounted) setState(() => _error = t('Could not load your account.'));
     } finally {
       _slowTimer?.cancel();
     }
@@ -223,7 +231,7 @@ class _RoleGateState extends State<RoleGate> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(Art.mark, width: 90, height: 90),
+              LaunchMark.image(context, semanticLabel: 'RepLiT'),
               const SizedBox(height: 28),
               child,
             ],
@@ -236,15 +244,18 @@ class _RoleGateState extends State<RoleGate> {
 
 /// The resident's way in: the tour the first time, the map ever after.
 ///
-/// Reading the flag takes a frame or two, so the wait is the app's own ground
-/// rather than a spinner — a resident opening the app should never see a
-/// loading state before the map they came for.
+/// The splash reads the flag on the way in, so the map is the first frame;
+/// otherwise reading it takes a frame or two, and the wait is the app's own
+/// ground rather than a spinner — a resident opening the app should never see
+/// a loading state before the map they came for.
 class _CitizenEntry extends StatelessWidget {
   const _CitizenEntry();
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
+      // Read by the splash on the way in, so the first frame is the map.
+      initialData: Tour.lastSeen,
       future: Tour.seen(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {

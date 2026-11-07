@@ -16,6 +16,7 @@ import 'app_logo.dart';
 import 'design.dart';
 import 'notification_bell.dart';
 import 'app_icons.dart';
+import '../i18n/i18n.dart';
 
 /// The one console responders and coordinators share.
 ///
@@ -132,7 +133,7 @@ class StaffTopBar extends StatelessWidget {
           if (canPop)
             Semantics(
               button: true,
-              label: 'Back',
+              label: t('Back'),
               excludeSemantics: true,
               child: IconWellButton(
                 icon: AppIcons.chevronLeft,
@@ -166,7 +167,7 @@ class StaffTopBar extends StatelessWidget {
           const SizedBox(width: 8),
           Semantics(
             button: true,
-            label: 'Menu',
+            label: t('Menu'),
             excludeSemantics: true,
             child: IconWellButton(
               icon: AppIcons.menu,
@@ -188,7 +189,7 @@ class RoleTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Tag(role.label, color: role.colour(context.pal), dot: true);
+      Tag(t(role.label), color: role.colour(context.pal), dot: true);
 }
 
 /// The console menu — one drawer for every staff screen.
@@ -288,7 +289,9 @@ class _StaffDrawerState extends State<StaffDrawer> {
   Widget build(BuildContext context) {
     final me = widget.me;
     final name =
-        (me?['full_name'] as String?) ?? (me?['email'] as String?) ?? 'Staff';
+        (me?['full_name'] as String?) ??
+        (me?['email'] as String?) ??
+        t('Staff');
     final team = (me?['organization_name'] as String?)?.trim();
     final agency = responderAgencyLabel(_agency);
     return Drawer(
@@ -323,24 +326,28 @@ class _StaffDrawerState extends State<StaffDrawer> {
             ),
             Divider(color: context.pal.line, height: 1),
             const SizedBox(height: 8),
-            _item(AppIcons.dashboard, 'Dashboard', StaffPage.dashboard),
+            _item(AppIcons.dashboard, t('Dashboard'), StaffPage.dashboard),
             if (_role == StaffRole.coordinator) ...[
-              _item(AppIcons.listAlt, 'Incidents', StaffPage.incidents),
+              _item(AppIcons.listAlt, t('Incidents'), StaffPage.incidents),
               _item(
                 AppIcons.assignmentLate,
-                'Pending reports',
+                t('Pending reports'),
                 StaffPage.reports,
                 count: _reportsOwed,
               ),
               // Where a coordinator's responders get their accounts.
-              _item(AppIcons.group, 'Responders', StaffPage.team),
+              _item(AppIcons.group, t('Responders'), StaffPage.team),
             ],
             if (_fireCoordinator)
-              _item(AppIcons.autoAwesome, 'AI summaries', StaffPage.summaries),
+              _item(
+                AppIcons.autoAwesome,
+                t('AI summaries'),
+                StaffPage.summaries,
+              ),
             if (_bfp)
               _item(
                 AppIcons.campaign,
-                'Alarm requests',
+                t('Alarm requests'),
                 StaffPage.alarms,
                 count: _alarmsPending,
               ),
@@ -354,7 +361,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
                 ),
                 leading: Icon(AppIcons.logout, color: context.pal.live),
                 title: Text(
-                  'Log out',
+                  t('Log out'),
                   style: context.type.label.copyWith(color: context.pal.live),
                 ),
                 onTap: _signOut,

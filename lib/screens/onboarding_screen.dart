@@ -19,11 +19,17 @@ abstract final class Tour {
   static const String _tourKey = 'tour_seen_v1';
   static const String _coachKey = 'map_coach_seen_v1';
 
-  static Future<bool> seen() async =>
+  /// What [seen] last read, for a screen that wants the answer on its first
+  /// frame rather than one frame later.
+  static bool? lastSeen;
+
+  static Future<bool> seen() async => lastSeen =
       (await SharedPreferences.getInstance()).getBool(_tourKey) ?? false;
 
-  static Future<void> markSeen() async =>
-      (await SharedPreferences.getInstance()).setBool(_tourKey, true);
+  static Future<void> markSeen() async {
+    lastSeen = true;
+    await (await SharedPreferences.getInstance()).setBool(_tourKey, true);
+  }
 
   static Future<bool> coachMarksSeen() async =>
       (await SharedPreferences.getInstance()).getBool(_coachKey) ?? false;

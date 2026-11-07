@@ -9,13 +9,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:replit/api/api_client.dart';
 import 'package:replit/api/session.dart';
 import 'package:replit/i18n/i18n.dart';
+import 'package:replit/models/phone_numbers.dart';
 import 'package:replit/screens/login_screen.dart';
 import 'package:replit/screens/register_screen.dart';
 import 'package:replit/screens/role_gate.dart';
 import 'package:replit/theme.dart';
 
-/// Signing up with a mobile number — the code taken in a sheet over the form —
-/// and signing in with it.
+/// Email first (WHAT'S NEXT, 2.2): signing up and signing in take an email,
+/// with the mobile number greyed out, "Coming soon", until SMS is settled.
+/// Then ([PhoneNumbers.open]) signing up with a number — the code taken in a
+/// sheet over the form — and signing in with it.
 void main() {
   late List<(String, Map<String, dynamic>)> calls;
   late Map<String, http.Response Function(Map<String, dynamic>)> routes;
@@ -93,10 +96,10 @@ void main() {
 
   Future<void> fillSignup(
     WidgetTester tester, {
-    String mobile = '0917 123 4567',
+    String? mobile = '0917 123 4567',
   }) async {
     await tester.enterText(field('As on your ID'), 'Juan dela Cruz');
-    await tester.enterText(field('09XX XXX XXXX'), mobile);
+    if (mobile != null) await tester.enterText(field('09XX XXX XXXX'), mobile);
     await tester.enterText(field('you@email.com'), 'juan@example.com');
     await tester.enterText(field('At least 8 characters'), 'long-enough-1');
     await tap(tester, find.textContaining('I agree that my location'));
@@ -104,7 +107,36 @@ void main() {
 
   List<String> paths() => [for (final c in calls) c.$1];
 
-  group('sign up', () {
+  group('sign up, email first', () {
+    testWidgets('the email comes before the mobile number, which is greyed '
+        'out, "Coming soon"', (tester) async {
+      await pump(tester, RegisterScreen(api: api()));
+      expect(
+        tester.getTopLeft(field('you@email.com')).dy,
+        lessThan(tester.getTopLeft(field('09XX XXX XXXX')).dy),
+      );
+      expect(tester.widget<TextField>(field('09XX XXX XXXX')).enabled, isFalse);
+      expect(find.text('Coming soon'), findsOneWidget);
+    });
+
+    testWidgets('the account is made with the email, and no code is texted', (
+      tester,
+    ) async {
+      await pump(tester, RegisterScreen(api: api()));
+      await fillSignup(tester, mobile: null);
+      await tap(tester, find.text('CREATE ACCOUNT'));
+      expect(paths(), ['/auth/signup']);
+      expect(calls.single.$2['email'], 'juan@example.com');
+      expect(calls.single.$2.containsKey('mobile'), isFalse);
+      expect(find.text('ENTER THE CODE'), findsNothing);
+      expect(find.byType(RoleGate), findsOneWidget);
+    });
+  });
+
+  group('sign up with a mobile number, once SMS is settled', () {
+    setUp(() => PhoneNumbers.open = true);
+    tearDown(() => PhoneNumbers.open = PhoneNumbers.live);
+
     testWidgets('asks for the mobile number', (tester) async {
       await pump(tester, RegisterScreen(api: api()));
       expect(find.text('Mobile number'), findsOneWidget);
@@ -212,26 +244,8 @@ void main() {
       expect(find.text('GUMAWA NG ACCOUNT'), findsOneWidget);
     });
 
-    testWidgets('by mobile number, first', (tester) async {
+    testWidgets('by email, first', (tester) async {
       await pump(tester, LoginScreen(api: api()));
-      expect(find.text('Mobile number'), findsOneWidget);
-      await tester.enterText(field('09XX XXX XXXX'), '0917 123 4567');
-      await tester.enterText(field('Your password'), 'long-enough-1');
-      await tap(tester, find.text('SIGN IN'));
-
-      expect(calls.single.$1, '/auth/login');
-      expect(calls.single.$2, {
-        'phone': '0917 123 4567',
-        'password': 'long-enough-1',
-      });
-      expect(find.byType(RoleGate), findsOneWidget);
-    });
-
-    testWidgets('or by email, for staff and the not-yet-verified', (
-      tester,
-    ) async {
-      await pump(tester, LoginScreen(api: api()));
-      await tap(tester, find.text('Use email instead'));
       expect(find.text('Email address'), findsOneWidget);
       await tester.enterText(field('you@email.com'), 'captain@example.com');
       await tester.enterText(field('Your password'), 'long-enough-1');
@@ -240,34 +254,87 @@ void main() {
         'email': 'captain@example.com',
         'password': 'long-enough-1',
       });
+      expect(find.byType(RoleGate), findsOneWidget);
     });
 
-    testWidgets('a wrong number or password says what to try', (tester) async {
+    testWidgets('the mobile number is greyed out, "Coming soon"', (
+      tester,
+    ) async {
+      await pump(tester, LoginScreen(api: api()));
+      expect(find.text('Use mobile number'), findsOneWidget);
+      expect(find.text('Coming soon'), findsOneWidget);
+      await tester.tap(find.text('Use mobile number'));
+      await tester.pump();
+      expect(find.text('Email address'), findsOneWidget);
+      expect(find.text('Mobile number'), findsNothing);
+    });
+
+    testWidgets('a wrong email or password says so', (tester) async {
       routes['/auth/login'] = (_) => json(401, {
         'error': 'auth_error',
         'message': 'Invalid login credentials',
       });
       await pump(tester, LoginScreen(api: api()));
-      await tester.enterText(field('09XX XXX XXXX'), '09171234567');
+      await tester.enterText(field('you@email.com'), 'me@example.com');
       await tester.enterText(field('Your password'), 'nope');
       await tap(tester, find.text('SIGN IN'));
-      expect(
-        find.textContaining('Wrong mobile number or password.'),
-        findsOneWidget,
-      );
+      expect(find.text('Wrong email or password.'), findsOneWidget);
       expect(find.byType(RoleGate), findsNothing);
     });
 
-    testWidgets('a landline is caught before sending', (tester) async {
-      await pump(tester, LoginScreen(api: api()));
-      await tester.enterText(field('09XX XXX XXXX'), '02 8123 4567');
-      await tester.enterText(field('Your password'), 'x');
-      await tap(tester, find.text('SIGN IN'));
-      expect(
-        find.text('Enter your mobile number, like 0917 123 4567.'),
-        findsOneWidget,
-      );
-      expect(calls, isEmpty);
+    group('once SMS is settled', () {
+      setUp(() => PhoneNumbers.open = true);
+      tearDown(() => PhoneNumbers.open = PhoneNumbers.live);
+
+      Future<void> byNumber(WidgetTester tester) async {
+        await pump(tester, LoginScreen(api: api()));
+        await tap(tester, find.text('Use mobile number'));
+        expect(find.text('Mobile number'), findsOneWidget);
+      }
+
+      testWidgets('by mobile number, from the link', (tester) async {
+        await byNumber(tester);
+        await tester.enterText(field('09XX XXX XXXX'), '0917 123 4567');
+        await tester.enterText(field('Your password'), 'long-enough-1');
+        await tap(tester, find.text('SIGN IN'));
+
+        expect(calls.single.$1, '/auth/login');
+        expect(calls.single.$2, {
+          'phone': '0917 123 4567',
+          'password': 'long-enough-1',
+        });
+        expect(find.byType(RoleGate), findsOneWidget);
+      });
+
+      testWidgets('a wrong number or password says what to try', (
+        tester,
+      ) async {
+        routes['/auth/login'] = (_) => json(401, {
+          'error': 'auth_error',
+          'message': 'Invalid login credentials',
+        });
+        await byNumber(tester);
+        await tester.enterText(field('09XX XXX XXXX'), '09171234567');
+        await tester.enterText(field('Your password'), 'nope');
+        await tap(tester, find.text('SIGN IN'));
+        expect(
+          find.textContaining('Wrong mobile number or password.'),
+          findsOneWidget,
+        );
+        expect(find.byType(RoleGate), findsNothing);
+      });
+
+      testWidgets('a landline is caught before sending', (tester) async {
+        await byNumber(tester);
+        await tester.enterText(field('09XX XXX XXXX'), '02 8123 4567');
+        await tester.enterText(field('Your password'), 'x');
+        await tap(tester, find.text('SIGN IN'));
+        expect(
+          find.text('Enter your mobile number, like 0917 123 4567.'),
+          findsOneWidget,
+        );
+        expect(calls, isEmpty);
+      });
     });
   });
 }

@@ -7,6 +7,7 @@ import '../../widgets/staff_shell.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// The "pending report" tray (Master Context v10 §10.2): incidents whose fire
 /// is out and for which this captain's team has not filed its Post-Incident
@@ -59,7 +60,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'Could not load pending reports. Check your connection.';
+          _error = t('Could not load pending reports. Check your connection.');
           _loading = false;
         });
       }
@@ -83,14 +84,16 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
   }
 
   static String _ago(String? iso) {
-    final t = iso == null ? null : DateTime.tryParse(iso);
-    if (t == null) return '';
-    final mins = DateTime.now().difference(t).inMinutes;
-    if (mins < 1) return 'just now';
-    if (mins < 60) return '$mins min ago';
+    final at = iso == null ? null : DateTime.tryParse(iso);
+    if (at == null) return '';
+    final mins = DateTime.now().difference(at).inMinutes;
+    if (mins < 1) return t('just now');
+    if (mins < 60) return t('{mins} min ago', {'mins': mins});
     final hrs = mins ~/ 60;
-    if (hrs < 24) return '${hrs}h ${mins % 60}m ago';
-    return '${hrs ~/ 24}d ago';
+    if (hrs < 24) {
+      return t('{hrs}h {mins}m ago', {'hrs': hrs, 'mins': mins % 60});
+    }
+    return t('{value}d ago', {'value': hrs ~/ 24});
   }
 
   @override
@@ -103,7 +106,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
       child: StaffScaffold(
         page: StaffPage.reports,
         home: true,
-        title: 'Pending reports',
+        title: t('Pending reports'),
         body: Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
           child: Column(
@@ -114,9 +117,11 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Fire out, and your team has not filed yet. Each team '
-                      'that responded files its own report, for everyone on '
-                      'it who went.',
+                      t(
+                        'Fire out, and your team has not filed yet. Each team '
+                        'that responded files its own report, for everyone on '
+                        'it who went.',
+                      ),
                       style: context.type.body.copyWith(fontSize: 13),
                     ),
                   ),
@@ -154,7 +159,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
             Icon(AppIcons.taskAlt, color: context.pal.ok, size: 40),
             const SizedBox(height: 12),
             Text(
-              'Nothing owed. Every report is filed.',
+              t('Nothing owed. Every report is filed.'),
               style: context.type.meta,
             ),
           ],
@@ -184,19 +189,21 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ((inc['designation'] as String?) ?? 'Incident')
+                        ((inc['designation'] as String?) ?? t('Incident'))
                             .toUpperCase(),
                         style: context.type.cardTitle,
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Fire out ${_ago(inc['resolved_at'] as String?)}',
+                        t('Fire out {_ago}', {
+                          '_ago': _ago(inc['resolved_at'] as String?),
+                        }),
                         style: context.type.meta,
                       ),
                     ],
                   ),
                 ),
-                Tag('File', color: tint),
+                Tag(t('File'), color: tint),
               ],
             ),
           );

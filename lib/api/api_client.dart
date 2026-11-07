@@ -477,6 +477,25 @@ class ApiClient {
     }
   }
 
+  /// A new password, given the current one: POST /auth/me/password
+  /// (WHAT'S NEXT, 1.2). Every other phone and browser is signed out; this
+  /// session stays. A wrong current password is a 400 `wrong_password` (never
+  /// a 401, which would read as an expired session), the same password again
+  /// `same_password`, and a new one outside 8–128 characters a 422.
+  Future<void> changePassword({
+    required String current,
+    required String next,
+  }) async {
+    final resp = await _authed(
+      () => _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/me/password'),
+        headers: _jsonAuth,
+        body: jsonEncode({'current_password': current, 'new_password': next}),
+      ),
+    );
+    _decode(resp);
+  }
+
   /// Revoke the current session server-side: POST /auth/logout (best-effort).
   Future<void> logout() async {
     try {
@@ -1104,10 +1123,13 @@ class ApiClient {
   }
 
   /// Create a responder account: POST /team/responders. Returns
-  /// {responder, email, temporary_password} — the password only this once.
+  /// {responder, email, personal_email, invite_email_sent, detail}: with
+  /// [personalEmail] the link to set the password goes there (the 6 November
+  /// list). Without one, a temporary_password, only this once.
   Future<Map<String, dynamic>> createResponder({
     required String firstName,
     required String lastName,
+    String? personalEmail,
     String? mobile,
   }) async {
     final resp = await _client.post(
@@ -1116,10 +1138,25 @@ class ApiClient {
       body: jsonEncode({
         'first_name': firstName,
         'last_name': lastName,
+        'personal_email': ?personalEmail,
         'mobile': ?mobile,
       }),
     );
     return _decode(resp);
+  }
+
+  /// A coordinator's or responder's own email, where their password links go:
+  /// PUT /auth/me/personal-email. A link to confirm it is sent there; the
+  /// answer says so.
+  Future<String> setPersonalEmail(String email) async {
+    final resp = await _authed(
+      () => _client.put(
+        Uri.parse('${ApiConfig.baseUrl}/auth/me/personal-email'),
+        headers: _jsonAuth,
+        body: jsonEncode({'email': email}),
+      ),
+    );
+    return (_decode(resp)['message'] as String?) ?? '';
   }
 
   /// A new temporary password for a responder, returned once:

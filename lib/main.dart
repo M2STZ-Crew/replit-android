@@ -10,6 +10,8 @@ import 'app_version.dart';
 import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/responsive_frame.dart';
+import 'widgets/launch_mark.dart';
+import 'updates/update_nudge.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
 import 'i18n/i18n.dart';
@@ -35,6 +37,9 @@ Future<void> main() async {
   // The ground the app draws on is a choice made inside it, so it has to be
   // read before the first frame or the app flashes the wrong one.
   await ThemeChoice.load();
+  // The splash's mark is decoded before its first frame, so the phone's
+  // launch screen hands over to it without the mark blinking.
+  await LaunchMark.precache();
   await ContactMask.load();
   await LanguageChoice.load();
   await LocationBeacon.init();
@@ -120,6 +125,8 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
     if (state != AppLifecycleState.resumed) return;
     _keepLocationFresh();
     unawaited(_syncClosedReports());
+    // Back to the front: a newer release? (At most every six hours.)
+    unawaited(UpdateNudge.maybeCheck());
     if (!Session.instance.isAuthenticated || ReportComposer.active) return;
     final report = ActiveReportStore.mine;
     final nav = PushService.navigatorKey.currentState;

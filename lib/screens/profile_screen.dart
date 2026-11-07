@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../api/api_client.dart';
 import '../app_version.dart';
+import 'change_password_screen.dart';
 import '../location/location_beacon.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
@@ -396,6 +397,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       LanguageSwitch(api: _api),
                     ],
                   ),
+                ),
+                const SizedBox(height: 8),
+                _Link(
+                  title: t('Change password'),
+                  line: t('Signs you out of your other phones'),
+                  onTap: () => ChangePasswordScreen.open(context, api: _api),
                 ),
                 const SizedBox(height: 8),
                 _Link(

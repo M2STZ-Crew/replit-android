@@ -2,4 +2,7 @@
 <resources>
     <!-- The accent a notification's icon and name are tinted with. -->
     <color name="notification_accent">#FF7943</color>
+    <!-- The app's light ground, behind the launch screen (the dark one is in
+         values-night/colors.xml). -->
+    <color name="launch_ground">#EEEDEA</color>
 </resources>

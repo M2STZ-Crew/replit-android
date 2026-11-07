@@ -11,6 +11,7 @@ import 'package:replit/api/api_client.dart';
 import 'package:replit/app_version.dart';
 import 'package:replit/i18n/i18n.dart';
 import 'package:replit/models/verification_state.dart';
+import 'package:replit/models/phone_numbers.dart';
 import 'package:replit/screens/profile_screen.dart';
 import 'package:replit/screens/verification_screen.dart';
 import 'package:replit/theme.dart';
@@ -181,7 +182,7 @@ void main() {
         expect(find.text('60%'), findsOneWidget);
         expect(find.text('LIGHT GREEN'), findsOneWidget);
         expect(
-          find.text('Unavailable while we change SMS provider'),
+          find.text('Coming soon'),
           findsOneWidget,
           reason: 'phone verification is paused (§10.3)',
         );
@@ -217,7 +218,7 @@ void main() {
           {'type': 'email', 'status': 'verified'},
         ],
       });
-      expect(kPhoneVerificationOpen, isFalse);
+      expect(PhoneNumbers.open, isFalse);
       expect(s.nextStep, isNull);
     });
   });

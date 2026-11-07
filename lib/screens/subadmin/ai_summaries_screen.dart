@@ -9,6 +9,7 @@ import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// Opens a link outside the app — the phone's browser, which saves the PDF to
 /// Downloads. A parameter so tests need no browser.
@@ -40,8 +41,11 @@ String summaryTime(String? iso) {
 /// "Summarized incident — 10/5/2026": the day the summary was written, or,
 /// while the first one is being written, the day the last team filed.
 String summaryTitle(Map<String, dynamic> item) =>
-    'Summarized incident — '
-    '${summaryDate((item['generated_at'] ?? item['last_filed_at']) as String?)}';
+    t('Summarized incident — {summaryDate}', {
+      'summaryDate': summaryDate(
+        (item['generated_at'] ?? item['last_filed_at']) as String?,
+      ),
+    });
 
 /// "Area 3 · Hercules Fire Brigade, BFP Pasay".
 String summarySubtitle(Map<String, dynamic> item) {
@@ -50,7 +54,7 @@ String summarySubtitle(Map<String, dynamic> item) {
   final who = teams.isNotEmpty
       ? teams.join(', ')
       : '$filed ${filed == 1 ? 'team' : 'teams'}';
-  return '${item['designation'] ?? 'Incident'} · $who';
+  return '${item['designation'] ?? t('Incident')} · $who';
 }
 
 /// The coordinator's AI summaries (v1.12.5).
@@ -130,7 +134,7 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = 'Could not load the summaries. Check your connection.';
+          _error = t('Could not load the summaries. Check your connection.');
         });
       }
     }
@@ -156,7 +160,7 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
       me: widget.me,
       page: StaffPage.summaries,
       home: true,
-      title: 'AI summaries',
+      title: t('AI summaries'),
       body: RefreshIndicator(
         color: context.pal.accent,
         onRefresh: _refresh,
@@ -164,10 +168,12 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           children: [
             Text(
-              'The AI writes a summary of each incident from the teams\' '
-              'Post-Incident Reports as soon as one is filed, and rewrites it '
-              'when another team files. Open one to read it or download the '
-              'report as a PDF.',
+              t(
+                'The AI writes a summary of each incident from the teams\' '
+                'Post-Incident Reports as soon as one is filed, and rewrites it '
+                'when another team files. Open one to read it or download the '
+                'report as a PDF.',
+              ),
               style: context.type.bodySm,
             ),
             const SizedBox(height: 22),
@@ -191,13 +197,14 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
       ];
     }
     if (_items.isEmpty) {
-      return const [
+      return [
         EmptyState(
           icon: AppIcons.autoAwesome,
-          title: 'No summaries yet',
-          body:
-              'A summary appears here once a team files its Post-Incident '
-              'Report for an incident.',
+          title: t('No summaries yet'),
+          body: t(
+            'A summary appears here once a team files its Post-Incident '
+            'Report for an incident.',
+          ),
         ),
       ];
     }
@@ -205,7 +212,10 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
       Row(
         children: [
           Expanded(
-            child: Eyebrow('Summarized incidents', color: context.pal.accent),
+            child: Eyebrow(
+              t('Summarized incidents'),
+              color: context.pal.accent,
+            ),
           ),
           Eyebrow('${_items.length}', color: context.pal.muted),
         ],
@@ -267,12 +277,12 @@ class _SummaryRow extends StatelessWidget {
           const SizedBox(width: 8),
           if (state == 'writing')
             Tag(
-              hasText ? 'Updating' : 'Writing',
+              hasText ? t('Updating') : t('Writing'),
               color: context.pal.info,
               dot: true,
             )
           else if (state == 'unavailable')
-            Tag('No summary', color: context.pal.muted),
+            Tag(t('No summary'), color: context.pal.muted),
           Icon(AppIcons.chevronRight, color: context.pal.muted),
         ],
       ),
@@ -316,11 +326,11 @@ class _SummaryNoteScreenState extends State<SummaryNoteScreen> {
     try {
       final link = await _api.getReportLink('${_item['area_id']}');
       final opened = await (widget.openLink ?? _openInBrowser)(link);
-      if (!opened) _toast('Could not open the browser to download the PDF.');
+      if (!opened) _toast(t('Could not open the browser to download the PDF.'));
     } on ApiException catch (e) {
       _toast(e.message);
     } catch (_) {
-      _toast('Could not reach the server. Try again.');
+      _toast(t('Could not reach the server. Try again.'));
     } finally {
       if (mounted) setState(() => _downloading = false);
     }
@@ -335,13 +345,13 @@ class _SummaryNoteScreenState extends State<SummaryNoteScreen> {
     return StaffScaffold(
       me: widget.me,
       page: StaffPage.summaries,
-      title: 'AI summary',
+      title: t('AI summary'),
       bottom: SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
           child: AppButton(
-            'Download PDF',
+            t('Download PDF'),
             icon: AppIcons.download,
             busy: _downloading,
             onPressed: _downloading ? null : _download,
@@ -358,15 +368,21 @@ class _SummaryNoteScreenState extends State<SummaryNoteScreen> {
           if (state == 'writing')
             _Notice(
               text == null
-                  ? 'The AI is writing this summary now. It is usually ready '
-                        'within a minute — go back and the list will show it.'
-                  : 'Another team filed its report after this was written. The '
-                        'AI is rewriting the summary to include it.',
+                  ? t(
+                      'The AI is writing this summary now. It is usually ready '
+                      'within a minute — go back and the list will show it.',
+                    )
+                  : t(
+                      'Another team filed its report after this was written. The '
+                      'AI is rewriting the summary to include it.',
+                    ),
             )
           else if (state == 'unavailable')
-            const _Notice(
-              'No summary has been written: the server has no AI key yet. '
-              'The PDF still has every team\'s report.',
+            _Notice(
+              t(
+                'No summary has been written: the server has no AI key yet. '
+                'The PDF still has every team\'s report.',
+              ),
               icon: AppIcons.info,
             ),
           if (state != 'ready' && state != null) const SizedBox(height: 14),
@@ -382,18 +398,28 @@ class _SummaryNoteScreenState extends State<SummaryNoteScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Written by AI${model == null ? '' : ' ($model)'}'
-              '${written == null ? '' : ' on ${summaryDate(written)} at ${summaryTime(written)}'}'
-              ' from the teams\' reports. Check it against them before relying '
-              'on it.',
+              t(
+                'Written by AI{value}{value2} from the teams\' reports. Check it against them before relying on it.',
+                {
+                  'value': model == null ? '' : ' ($model)',
+                  'value2': written == null
+                      ? ''
+                      : t(' on {summaryDate} at {summaryTime}', {
+                          'summaryDate': summaryDate(written),
+                          'summaryTime': summaryTime(written),
+                        }),
+                },
+              ),
               style: context.type.captionSm,
             ),
           ],
           const SizedBox(height: 14),
           Text(
-            'The PDF has the incident, its timeline, every team\'s '
-            'Post-Incident Report and this summary. It is made when you '
-            'download it, so it includes every report filed by then.',
+            t(
+              'The PDF has the incident, its timeline, every team\'s '
+              'Post-Incident Report and this summary. It is made when you '
+              'download it, so it includes every report filed by then.',
+            ),
             style: context.type.caption,
           ),
         ],

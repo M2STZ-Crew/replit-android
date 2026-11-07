@@ -18,6 +18,7 @@ import '../responder/responder_status.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
 import 'coordinator_shell.dart';
+import '../../i18n/i18n.dart';
 
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
@@ -65,13 +66,13 @@ class _MapTabState extends State<MapTab> {
 
   /// The chip's word: short, as over a map it must be.
   static String _chipLabel(OpsLayer layer) => switch (layer.key) {
-    'incidents' => 'Areas',
-    'hydrants' => 'Hydrants',
-    'evac' => 'Shelters',
-    'water' => 'Water',
-    'risk' => 'Risk zones',
-    'fire' => 'Fire stations',
-    'police' => 'Police',
+    'incidents' => t('Areas'),
+    'hydrants' => t('Hydrants'),
+    'evac' => t('Shelters'),
+    'water' => t('Water'),
+    'risk' => t('Risk zones'),
+    'fire' => t('Fire stations'),
+    'police' => t('Police'),
     _ => layer.label,
   };
   final Set<String> _on = {'incidents', 'hydrants', 'evac'};
@@ -101,7 +102,9 @@ class _MapTabState extends State<MapTab> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load ${layer.label}.')),
+          SnackBar(
+            content: Text(t('Could not load {label}.', {'label': layer.label})),
+          ),
         );
       }
     }
@@ -288,8 +291,11 @@ class _MapTabState extends State<MapTab> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Monitoring Pasay · '
-                    '${live == 0 ? 'nothing on the ground' : '$live on the ground'}',
+                    t('Monitoring Pasay · {value}', {
+                      'value': live == 0
+                          ? t('nothing on the ground')
+                          : t('{live} on the ground', {'live': live}),
+                    }),
                     style: context.type.caption.copyWith(
                       color: context.pal.textSoft,
                     ),
@@ -331,13 +337,17 @@ class _MapTabState extends State<MapTab> {
               ),
               children: [
                 SectionHeader(
-                  'Live incidents',
-                  meta: running == 1 ? '1 running now' : '$running running now',
+                  t('Live incidents'),
+                  meta: running == 1
+                      ? t('1 running now')
+                      : t('{running} running now', {'running': running}),
                 ),
                 const SizedBox(height: 12),
                 if (areas.isEmpty)
                   Text(
-                    'Nothing is running. New Areas appear here and on the map.',
+                    t(
+                      'Nothing is running. New Areas appear here and on the map.',
+                    ),
                     style: context.type.bodySm,
                   ),
                 for (final a in areas) ...[
@@ -403,12 +413,14 @@ class _Standing extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Eyebrow(
-          area.reports == 1 ? '1 report' : '${area.reports} reports',
+          area.reports == 1
+              ? t('1 report')
+              : t('{reports} reports', {'reports': area.reports}),
           color: pal.label,
         ),
         const SizedBox(height: 4),
         Semantics(
-          label: '${area.bandWord} confidence',
+          label: t('{bandWord} confidence', {'bandWord': area.bandWord}),
           excludeSemantics: true,
           child: Row(
             mainAxisSize: MainAxisSize.min,

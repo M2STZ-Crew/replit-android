@@ -15,4 +15,8 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- Chosen by MainActivity on Android 13+ only (values-v31/styles.xml has
+         the real ones); here so every Android has the names. -->
+    <style name="SplashOnLight" parent="@android:style/Theme.Light.NoTitleBar" />
+    <style name="SplashOnDark" parent="@android:style/Theme.Black.NoTitleBar" />
 </resources>

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-
-/// Whether phone verification can be done at all. Master Context v10 §10.3:
-/// it is paused until an SMS provider is chosen, so the channel shows as
-/// unavailable (as the REPLIT-OVERHAUL verification frame draws it) instead
-/// of opening a form that cannot send a code. Flip when a provider is live.
-const bool kPhoneVerificationOpen = false;
+import 'phone_numbers.dart';
 
 /// The three channels and what each is worth (the server's weights).
 enum VerifyChannel {
@@ -98,7 +93,7 @@ class VerificationState {
     for (final c in const [VerifyChannel.nationalId, VerifyChannel.email]) {
       if (!isVerified(c)) return c;
     }
-    if (kPhoneVerificationOpen && !isVerified(VerifyChannel.phone)) {
+    if (PhoneNumbers.open && !isVerified(VerifyChannel.phone)) {
       return VerifyChannel.phone;
     }
     return null;

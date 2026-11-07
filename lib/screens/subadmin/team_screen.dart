@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../api/api_client.dart';
-import '../../models/ph_mobile.dart';
 import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/sheet_grip.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// The coordinator's responder accounts (v1.12.4) — where a responder's
 /// account comes from.
@@ -65,7 +65,7 @@ class _TeamScreenState extends State<TeamScreen> {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = 'Could not load your responders. Check your connection.';
+          _error = t('Could not load your responders. Check your connection.');
         });
       }
     }
@@ -112,7 +112,7 @@ class _TeamScreenState extends State<TeamScreen> {
             children: [
               const Center(child: SheetHandle()),
               Text(
-                (r['full_name'] as String?) ?? 'Responder',
+                (r['full_name'] as String?) ?? t('Responder'),
                 style: context.type.cardTitle,
               ),
               const SizedBox(height: 6),
@@ -120,21 +120,21 @@ class _TeamScreenState extends State<TeamScreen> {
               const SizedBox(height: 20),
               if (active) ...[
                 AppButton.secondary(
-                  'Reset password',
+                  t('Reset password'),
                   icon: AppIcons.key,
                   height: 50,
                   onPressed: () => Navigator.of(sheet).pop('reset'),
                 ),
                 const SizedBox(height: 10),
                 AppButton.danger(
-                  'Deactivate account',
+                  t('Deactivate account'),
                   icon: AppIcons.block,
                   height: 50,
                   onPressed: () => Navigator.of(sheet).pop('deactivate'),
                 ),
               ] else
                 AppButton(
-                  'Reactivate account',
+                  t('Reactivate account'),
                   icon: AppIcons.restartAlt,
                   height: 50,
                   onPressed: () => Navigator.of(sheet).pop('reactivate'),
@@ -146,15 +146,17 @@ class _TeamScreenState extends State<TeamScreen> {
     );
     if (action == null || !mounted) return;
     final id = '${r['id']}';
-    final name = (r['full_name'] as String?) ?? 'this responder';
+    final name = (r['full_name'] as String?) ?? t('this responder');
     try {
       switch (action) {
         case 'reset':
           if (!await _confirm(
-            'Give $name a new password?',
-            'Their current password stops working. You will see the new one '
-                'once, to hand over.',
-            'New password',
+            t('Give {name} a new password?', {'name': name}),
+            t(
+              'Their current password stops working. You will see the new one '
+              'once, to hand over.',
+            ),
+            t('New password'),
           )) {
             return;
           }
@@ -162,27 +164,35 @@ class _TeamScreenState extends State<TeamScreen> {
           if (mounted) await _showCredentials(creds, created: false);
         case 'deactivate':
           if (!await _confirm(
-            'Deactivate $name?',
+            t('Deactivate {name}?', {'name': name}),
             r['responding'] == true
-                ? 'They are on a response now; it will be released. They '
-                      'will not be able to sign in. Their history stays.'
-                : 'They will not be able to sign in. Their history stays, and '
-                      'you can reactivate the account later.',
-            'Deactivate',
+                ? t(
+                    'They are on a response now; it will be released. They '
+                    'will not be able to sign in. Their history stays.',
+                  )
+                : t(
+                    'They will not be able to sign in. Their history stays, and '
+                    'you can reactivate the account later.',
+                  ),
+            t('Deactivate'),
             danger: true,
           )) {
             return;
           }
           await _api.deactivateResponder(id);
-          _toast('$name can no longer sign in.');
+          _toast(t('{name} can no longer sign in.', {'name': name}));
         case 'reactivate':
           await _api.reactivateResponder(id);
-          _toast('$name can sign in again with their last password.');
+          _toast(
+            t('{name} can sign in again with their last password.', {
+              'name': name,
+            }),
+          );
       }
     } on ApiException catch (e) {
       _toast(e.message);
     } catch (_) {
-      _toast('Could not reach the server. Try again.');
+      _toast(t('Could not reach the server. Try again.'));
     }
     _load();
   }
@@ -202,7 +212,7 @@ class _TeamScreenState extends State<TeamScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialog).pop(false),
             child: Text(
-              'Cancel',
+              t('Cancel'),
               style: context.type.label.copyWith(color: context.pal.muted),
             ),
           ),
@@ -233,7 +243,11 @@ class _TeamScreenState extends State<TeamScreen> {
             ((creds['responder'] as Map?)?['full_name'] as String?) ??
             'The responder',
         email: '${creds['email']}',
-        password: '${creds['temporary_password']}',
+        password: creds['temporary_password'] as String?,
+        personalEmail: creds['personal_email'] as String?,
+        detail: creds['invite_email_sent'] == false
+            ? creds['detail'] as String?
+            : null,
         created: created,
       ),
     );
@@ -246,7 +260,7 @@ class _TeamScreenState extends State<TeamScreen> {
       me: widget.me,
       page: StaffPage.team,
       home: true,
-      title: 'Responders',
+      title: t('Responders'),
       body: RefreshIndicator(
         color: context.pal.accent,
         onRefresh: _load,
@@ -254,14 +268,16 @@ class _TeamScreenState extends State<TeamScreen> {
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           children: [
             Text(
-              'Your responders sign in with the accounts you make here. Each '
-              'gets a @replit.com address and a password you hand over in '
-              'person.',
+              t(
+                'Your responders sign in with the accounts you make here. Each '
+                'gets a @replit.com address, and a link to set the password '
+                'goes to their own email.',
+              ),
               style: context.type.bodySm,
             ),
             const SizedBox(height: 16),
             AppButton(
-              'New responder',
+              t('New responder'),
               icon: AppIcons.personAdd,
               onPressed: _create,
             ),
@@ -290,16 +306,21 @@ class _TeamScreenState extends State<TeamScreen> {
       Row(
         children: [
           Expanded(
-            child: Eyebrow('Your responders', color: context.pal.accent),
+            child: Eyebrow(t('Your responders'), color: context.pal.accent),
           ),
-          Eyebrow('$active active', color: context.pal.muted),
+          Eyebrow(
+            t('{active} active', {'active': active}),
+            color: context.pal.muted,
+          ),
         ],
       ),
       const SizedBox(height: 12),
       if (_responders.isEmpty)
         Panel(
           child: Text(
-            'No responder accounts yet. Make one for each person on your team.',
+            t(
+              'No responder accounts yet. Make one for each person on your team.',
+            ),
             style: context.type.bodySm,
           ),
         ),
@@ -343,7 +364,7 @@ class _ResponderRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    (responder['full_name'] as String?) ?? 'Responder',
+                    (responder['full_name'] as String?) ?? t('Responder'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.type.rowTitleLg,
@@ -360,9 +381,9 @@ class _ResponderRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             if (!active)
-              Tag('Deactivated', color: context.pal.muted)
+              Tag(t('Deactivated'), color: context.pal.muted)
             else if (responding)
-              Tag('On a run', color: context.pal.accentInk, dot: true),
+              Tag(t('On a run'), color: context.pal.accentInk, dot: true),
             Icon(AppIcons.chevronRight, color: context.pal.muted),
           ],
         ),
@@ -371,7 +392,11 @@ class _ResponderRow extends StatelessWidget {
   }
 }
 
-/// First name, surname, an optional mobile — and the address it makes, live.
+/// First name, surname, their own email — and the address it makes, live.
+///
+/// The 6 November list: the email replaces the mobile number. A link sent
+/// there confirms it and sets the password, so there is no password to hand
+/// over, and Forgot password? sends there later: @replit.com has no mailboxes.
 class _NewResponderSheet extends StatefulWidget {
   const _NewResponderSheet({required this.api});
 
@@ -384,7 +409,7 @@ class _NewResponderSheet extends StatefulWidget {
 class _NewResponderSheetState extends State<_NewResponderSheet> {
   final TextEditingController _first = TextEditingController();
   final TextEditingController _last = TextEditingController();
-  final TextEditingController _mobile = TextEditingController();
+  final TextEditingController _email = TextEditingController();
   Timer? _debounce;
   String? _preview;
   bool _previewing = false;
@@ -396,12 +421,15 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
     _debounce?.cancel();
     _first.dispose();
     _last.dispose();
-    _mobile.dispose();
+    _email.dispose();
     super.dispose();
   }
 
   bool get _ready =>
-      _first.text.trim().isNotEmpty && _last.text.trim().isNotEmpty && !_busy;
+      _first.text.trim().isNotEmpty &&
+      _last.text.trim().isNotEmpty &&
+      _email.text.trim().isNotEmpty &&
+      !_busy;
 
   /// The address as the name is typed — a moment after the last key.
   void _onName(String _) {
@@ -438,9 +466,17 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
   }
 
   Future<void> _submit() async {
-    final mobile = _mobile.text.trim();
-    if (mobile.isNotEmpty && !looksLikePhMobile(mobile)) {
-      setState(() => _error = 'Enter a mobile number like $kPhMobileHint.');
+    final email = _email.text.trim();
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      setState(() => _error = t('Enter an email like name@gmail.com.'));
+      return;
+    }
+    if (email.toLowerCase().endsWith('@replit.com')) {
+      setState(
+        () => _error = t(
+          'Use their own email: @replit.com addresses have no mailbox.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -451,13 +487,13 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
       final made = await widget.api.createResponder(
         firstName: _first.text.trim(),
         lastName: _last.text.trim(),
-        mobile: mobile.isEmpty ? null : mobile,
+        personalEmail: email,
       );
       if (mounted) Navigator.of(context).pop(made);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not reach the server.');
+      if (mounted) setState(() => _error = t('Could not reach the server.'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -473,10 +509,10 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
           handlePadding: const EdgeInsets.only(top: 12, bottom: 16),
           children: [
-            Text('NEW RESPONDER', style: context.type.headline),
+            Text(t('NEW RESPONDER'), style: context.type.headline),
             const SizedBox(height: 18),
             LabeledField(
-              label: 'First name',
+              label: t('First name'),
               builder: (focus) => TextField(
                 controller: _first,
                 focusNode: focus,
@@ -484,12 +520,12 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
                 textInputAction: TextInputAction.next,
                 onChanged: _onName,
                 style: context.type.input,
-                decoration: const InputDecoration(hintText: 'Juan'),
+                decoration: InputDecoration(hintText: t('Juan')),
               ),
             ),
             const SizedBox(height: 14),
             LabeledField(
-              label: 'Surname',
+              label: t('Surname'),
               builder: (focus) => TextField(
                 controller: _last,
                 focusNode: focus,
@@ -497,20 +533,29 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
                 textInputAction: TextInputAction.next,
                 onChanged: _onName,
                 style: context.type.input,
-                decoration: const InputDecoration(hintText: 'Dela Cruz'),
+                decoration: InputDecoration(hintText: t('Dela Cruz')),
               ),
             ),
             const SizedBox(height: 14),
             LabeledField(
-              label: 'Mobile (optional)',
+              label: t('Their personal email'),
               builder: (focus) => TextField(
-                controller: _mobile,
+                controller: _email,
                 focusNode: focus,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [PhMobileFormatter()],
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                onChanged: (_) => setState(() {}),
                 style: context.type.input,
-                decoration: const InputDecoration(hintText: kPhMobileHint),
+                decoration: InputDecoration(hintText: t('name@gmail.com')),
               ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              t(
+                'We email them a link to confirm it and set their password. '
+                'If they forget it, the reset link goes there too.',
+              ),
+              style: context.type.caption,
             ),
             const SizedBox(height: 18),
             Panel(
@@ -528,13 +573,15 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Eyebrow('Their sign-in', color: context.pal.muted),
+                        Eyebrow(t('Their sign-in'), color: context.pal.muted),
                         const SizedBox(height: 6),
                         Text(
                           _preview ??
                               (_previewing
-                                  ? 'Working it out…'
-                                  : 'Made from the first initial and surname'),
+                                  ? t('Working it out…')
+                                  : t(
+                                      'Made from the first initial and surname',
+                                    )),
                           key: const ValueKey('email-preview'),
                           style: _preview == null
                               ? context.type.caption
@@ -555,7 +602,7 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
             ],
             const SizedBox(height: 18),
             AppButton(
-              'Create account',
+              t('Create account'),
               busy: _busy,
               onPressed: _ready ? _submit : null,
             ),
@@ -566,25 +613,35 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
   }
 }
 
-/// The address and the temporary password, once, with copy buttons.
+/// The address and how the password is set, with copy buttons: a link at
+/// their personal email (new accounts), or a temporary password, once (a
+/// reset, or an account made without a personal email).
 class _CredentialsDialog extends StatelessWidget {
   const _CredentialsDialog({
     required this.name,
     required this.email,
     required this.password,
     required this.created,
+    this.personalEmail,
+    this.detail,
   });
 
   final String name;
   final String email;
-  final String password;
+  final String? password;
   final bool created;
+  final String? personalEmail;
+
+  /// Why the email to [personalEmail] did not go, when it did not.
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
+    final password = this.password;
+    if (password == null) return _linkSent(context);
     return AlertDialog(
       title: Text(
-        created ? 'Account ready' : 'New password',
+        created ? t('Account ready') : t('New password'),
         style: context.type.headline,
       ),
       content: Column(
@@ -593,19 +650,22 @@ class _CredentialsDialog extends StatelessWidget {
         children: [
           Text(
             created
-                ? 'Give $name these to sign in with.'
-                : 'Give $name this password to sign in with.',
+                ? t('Give {name} these to sign in with.', {'name': name})
+                : t('Give {name} this password to sign in with.', {
+                    'name': name,
+                  }),
             style: context.type.bodySm,
           ),
           const SizedBox(height: 16),
-          _CopyRow(label: 'Email', value: email),
+          _CopyRow(label: t('Email'), value: email),
           const SizedBox(height: 10),
-          _CopyRow(label: 'Password', value: password),
+          _CopyRow(label: t('Password'), value: password),
           const SizedBox(height: 16),
           Text(
-            'Hand these over in person. The password is shown only this once '
-            '— it cannot be reset by email. You can give them a new one from '
-            'this screen.',
+            t(
+              'Hand these over in person. The password is shown only this '
+              'once. You can give them a new one from this screen.',
+            ),
             style: context.type.caption,
           ),
         ],
@@ -614,7 +674,49 @@ class _CredentialsDialog extends StatelessWidget {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(
-            'Done',
+            t('Done'),
+            style: context.type.label.copyWith(color: context.pal.accentInk),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// A new account with a personal email: where they sign in, and where the
+  /// link went.
+  Widget _linkSent(BuildContext context) {
+    final to = personalEmail ?? '';
+    return AlertDialog(
+      title: Text(t('Account ready'), style: context.type.headline),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            t('{name} signs in with this address.', {'name': name}),
+            style: context.type.bodySm,
+          ),
+          const SizedBox(height: 16),
+          _CopyRow(label: t('Sign-in address'), value: email),
+          const SizedBox(height: 16),
+          Text(
+            detail ??
+                t(
+                  'We emailed {to} a link to confirm it and set their '
+                  'password. It works for three days.',
+                  {'to': to},
+                ),
+            style: context.type.caption.copyWith(
+              color: detail == null ? null : context.pal.warn,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            t('Done'),
             style: context.type.label.copyWith(color: context.pal.accentInk),
           ),
         ),
@@ -653,7 +755,7 @@ class _CopyRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Copy $label',
+            tooltip: t('Copy {label}', {'label': label}),
             icon: Icon(
               AppIcons.contentCopy,
               size: 18,
@@ -661,9 +763,9 @@ class _CopyRow extends StatelessWidget {
             ),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: value));
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('$label copied.')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(t('{label} copied.', {'label': label}))),
+              );
             },
           ),
         ],

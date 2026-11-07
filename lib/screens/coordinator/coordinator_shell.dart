@@ -10,6 +10,7 @@ import 'live_incident.dart';
 import 'map_tab.dart';
 import 'profile_tab.dart';
 import 'queue_tab.dart';
+import '../../i18n/i18n.dart';
 
 /// The coordinator's five destinations (REPLIT (MAIN) 06 · Coordinator
 /// Experience): Queue, Map, the raised LIVE disc, Codes, Profile.
@@ -152,17 +153,17 @@ class CoordinatorShellState extends State<CoordinatorShell> {
           ],
         ),
         bottomNavigationBar: NavBarShell(
-          disc: 'LIVE',
-          discLabel: 'Live — the incident under way',
+          disc: t('LIVE'),
+          discLabel: t('Live — the incident under way'),
           discActive: _tab == CoordinatorTab.live,
           onDisc: () => show(CoordinatorTab.live),
           items: [
-            for (final t in CoordinatorTab.values)
+            for (final tab in CoordinatorTab.values)
               (
-                icon: t.icon,
-                label: t.label,
-                selected: t == _tab,
-                onTap: () => show(t),
+                icon: tab.icon,
+                label: t(tab.label),
+                selected: tab == _tab,
+                onTap: () => show(tab),
               ),
           ],
         ),

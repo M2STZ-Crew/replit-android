@@ -11,6 +11,7 @@ import '../../widgets/design.dart';
 import 'coordinator_feed.dart';
 import 'live_incident.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// The Codes tab (06 · C11b): the fire codes, pressed on the incident LIVE
 /// is showing. A press records an event on the incident (and tells its
@@ -61,7 +62,7 @@ class _CodesTabState extends State<CodesTab> {
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _error = 'Could not load the fire codes.');
+      if (mounted) setState(() => _error = t('Could not load the fire codes.'));
     }
   }
 
@@ -72,9 +73,13 @@ class _CodesTabState extends State<CodesTab> {
       await _api.pressFireCode(id, areaId: area.id);
       if (!mounted) return;
       setState(
-        () => _recorded =
-            '${code['code_number']} recorded at ${clockText(DateTime.now())}. '
-            'Every code press is kept in the audit log.',
+        () => _recorded = t(
+          '{code_number} recorded at {clockText}. Every code press is kept in the audit log.',
+          {
+            'code_number': code['code_number'],
+            'clockText': clockText(DateTime.now()),
+          },
+        ),
       );
     } on ApiException catch (e) {
       if (mounted) {
@@ -85,7 +90,7 @@ class _CodesTabState extends State<CodesTab> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not record it. Check signal.')),
+          SnackBar(content: Text(t('Could not record it. Check signal.'))),
         );
       }
     } finally {
@@ -114,11 +119,12 @@ class _CodesTabState extends State<CodesTab> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TabHeader(
-                eyebrow: area?.name ?? 'No live incident',
-                title: 'Fire codes',
-                subtitle:
-                    'Pressing a code records an event on this incident. It '
-                    'does not change the Area status.',
+                eyebrow: area?.name ?? t('No live incident'),
+                title: t('Fire codes'),
+                subtitle: t(
+                  'Pressing a code records an event on this incident. It '
+                  'does not change the Area status.',
+                ),
               ),
               Expanded(child: _list(area)),
             ],
@@ -138,9 +144,9 @@ class _CodesTabState extends State<CodesTab> {
       return _error == null
           ? const SkeletonList(rows: 6)
           : EmptyState(
-              title: 'Codes unavailable',
+              title: t('Codes unavailable'),
               body: _error!,
-              action: AppButton.secondary('Try again', onPressed: _load),
+              action: AppButton.secondary(t('Try again'), onPressed: _load),
             );
     }
     return ScrollFade(
@@ -153,23 +159,27 @@ class _CodesTabState extends State<CodesTab> {
         ),
         children: [
           if (!presses)
-            const InlineAlert(
-              body:
-                  'Fire codes are pressed by Fire Volunteer and BFP '
-                  'Coordinators. You can see each one here.',
+            InlineAlert(
+              body: t(
+                'Fire codes are pressed by Fire Volunteer and BFP '
+                'Coordinators. You can see each one here.',
+              ),
             )
           else if (area == null)
-            const InlineAlert(
-              body:
-                  'Codes are pressed on a live incident. When an Area is '
-                  'under way, LIVE shows it and its codes work here.',
+            InlineAlert(
+              body: t(
+                'Codes are pressed on a live incident. When an Area is '
+                'under way, LIVE shows it and its codes work here.',
+              ),
             )
           else if (_recorded != null)
             InlineAlert(tone: AlertTone.success, body: _recorded!),
           const SizedBox(height: 16),
           SectionHeader(
-            'All codes',
-            meta: codes.length == 1 ? '1 code' : '${codes.length} codes',
+            t('All codes'),
+            meta: codes.length == 1
+                ? t('1 code')
+                : t('{count} codes', {'count': codes.length}),
           ),
           const SizedBox(height: 12),
           for (final c in codes) ...[
@@ -177,7 +187,7 @@ class _CodesTabState extends State<CodesTab> {
               opacity: area == null ? AppColors.disabledOpacity : 1,
               child: ListRow(
                 leading: const _CodePlate(),
-                title: (c['name'] as String?) ?? 'Code',
+                title: (c['name'] as String?) ?? t('Code'),
                 subtitle: c['description'] as String?,
                 trailing: _pressing == c['id']
                     ? SizedBox.square(

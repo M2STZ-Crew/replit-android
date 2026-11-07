@@ -22,15 +22,15 @@ class SoundCues {
   static const String _fireKey = 'sound.fire_alarm';
   static const String _fireVolumeKey = 'sound.fire_alarm_volume';
   static const Set<String> categories = {
-     'fire',
-      'police',
-      'medical',
-      'barangay',
-      'citizen',
-      'verified',
-      'on_route',
-      'on_scene',
-      'fire_out',
+    'fire',
+    'police',
+    'medical',
+    'barangay',
+    'citizen',
+    'verified',
+    'on_route',
+    'on_scene',
+    'fire_out',
   };
 
   /// The staff member's own agency's sound: fire for Fire Volunteers and BFP.

@@ -7,6 +7,7 @@ import '../../api/live_refresh.dart';
 import '../../location/responder_tracker.dart';
 import '../../models/area_view.dart';
 import 'responder_status.dart';
+import '../../i18n/i18n.dart';
 
 /// What the responder's tabs share (REPLIT (MAIN) 07): the live Areas their
 /// agency sees, the counters behind them, and the run this responder is on.
@@ -115,7 +116,7 @@ class ResponderFeed extends ChangeNotifier {
       if (_disposed) return;
       // Keep the last good list; say so only when there is none.
       if (!loaded) {
-        error = 'Could not reach command. Check your signal.';
+        error = t('Could not reach command. Check your signal.');
         notifyListeners();
       }
     }

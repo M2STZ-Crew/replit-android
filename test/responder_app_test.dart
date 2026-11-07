@@ -448,10 +448,18 @@ void main() {
         findsNothing,
         reason: 'no registration URL yet (standby)',
       );
+      // The Account rows every staff Profile has.
+      expect(find.text('Language'), findsOneWidget);
+      expect(find.text('Light mode'), findsOneWidget);
+      final more = find.widgetWithText(ListRow, 'What you can do');
+      await tester.scrollUntilVisible(
+        more,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Change password'), findsOneWidget);
       // The row may sit under the bar at this size; open it as a tap would.
-      tester
-          .widget<ListRow>(find.widgetWithText(ListRow, 'What you can do'))
-          .onTap!();
+      tester.widget<ListRow>(more).onTap!();
       await settle(tester);
       expect(find.text('WHAT YOU CAN DO'), findsOneWidget);
       expect(find.text('Reject an Area', skipOffstage: false), findsOneWidget);

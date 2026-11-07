@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
 import '../../theme.dart';
+import '../../theme_choice.dart';
 import '../../widgets/design.dart';
 import '../../widgets/placeholder_box.dart';
 import '../../widgets/staff_shell.dart';
@@ -13,14 +14,15 @@ import 'subadmin_incident_report_screen.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
-Color _panel = AppColors.glassDim;
-Color _panelBorder = AppColors.line;
-Color _grey = AppColors.muted;
-Color _green = AppColors.ok;
-Color _orange = AppColors.accent;
-Color _red = AppColors.live;
-Color _label = AppColors.label;
+Color get _panel => ThemeChoice.palette.glassDim;
+Color get _panelBorder => ThemeChoice.palette.line;
+Color get _grey => ThemeChoice.palette.muted;
+Color get _green => ThemeChoice.palette.ok;
+Color get _orange => ThemeChoice.palette.accent;
+Color get _red => ThemeChoice.palette.live;
+Color get _label => ThemeChoice.palette.label;
 
 Color _areaColor(String s) {
   switch (s) {
@@ -106,7 +108,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'Could not load incidents. Check your connection.';
+          _error = t('Could not load incidents. Check your connection.');
           _loading = false;
         });
       }
@@ -168,7 +170,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
       me: widget.me,
       page: StaffPage.incidents,
       home: true,
-      title: 'Incidents',
+      title: t('Incidents'),
       body: _body(),
     );
   }
@@ -181,7 +183,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
       return _centered(AppIcons.cloudOff, _error!, retry: true);
     }
     if (_areas.isEmpty) {
-      return _centered(AppIcons.inbox, 'No incidents to review right now.');
+      return _centered(AppIcons.inbox, t('No incidents to review right now.'));
     }
     return ScrollFade(
       child: RefreshIndicator(
@@ -221,7 +223,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ((area['designation'] as String?) ?? 'Area')
+                        ((area['designation'] as String?) ?? t('Area'))
                             .toUpperCase(),
                         style: TextStyle(
                           color: color,
@@ -284,7 +286,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
       return Padding(
         padding: EdgeInsets.fromLTRB(24, 12, 24, 12),
         child: Text(
-          'No reports in this area.',
+          t('No reports in this area.'),
           style: TextStyle(color: context.pal.muted),
         ),
       );
@@ -304,7 +306,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
 
   Widget _reportCard(Map<String, dynamic> r, String status, String areaId) {
     final name =
-        (r['reporter_name'] as String?)?.toUpperCase() ?? 'UNKNOWN REPORTER';
+        (r['reporter_name'] as String?)?.toUpperCase() ?? t('UNKNOWN REPORTER');
     final created = r['created_at'] as String?;
     return GestureDetector(
       onTap: () => _openReport(r, status, areaId),
@@ -433,7 +435,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
               TextButton(
                 onPressed: () => _load(),
                 child: Text(
-                  'Retry',
+                  t('Retry'),
                   style: TextStyle(
                     color: context.pal.accent,
                     fontWeight: FontWeight.w700,

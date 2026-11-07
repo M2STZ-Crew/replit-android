@@ -16,6 +16,7 @@ import '../../widgets/design.dart';
 import '../directions_screen.dart';
 import 'report_detail_screen.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// An Area and the decision on it (06 · C04): where it is, how sure the
 /// system is and why, the summary, every report, and the one decision —
@@ -110,7 +111,9 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
       }
     } catch (_) {
       if (mounted && _area == null) {
-        setState(() => _error = 'Could not load this Area. Check your signal.');
+        setState(
+          () => _error = t('Could not load this Area. Check your signal.'),
+        );
       }
     }
   }
@@ -164,17 +167,17 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         _changed = true;
         if (choice.unit != null) await GoSheet.remember(choice.unit!);
         if (!mounted) return;
-        _toast('You are responding. Your location is shared while you go.');
+        _toast(t('You are responding. Your location is shared while you go.'));
         _goLive();
         return;
       }
       if (mounted) {
-        _toast('Accepted. Every agency asked for sees it acknowledged.');
+        _toast(t('Accepted. Every agency asked for sees it acknowledged.'));
       }
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not accept. Check your connection.');
+      if (mounted) _toast(t('Could not accept. Check your connection.'));
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -197,7 +200,9 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     try {
       await _api.rejectIncident(widget.areaId, reason);
       if (!mounted) return;
-      _toast('${area.name} rejected. It has left the live feed.');
+      _toast(
+        t('{name} rejected. It has left the live feed.', {'name': area.name}),
+      );
       navigator.pop(true);
     } on ApiException catch (e) {
       if (mounted) {
@@ -208,7 +213,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     } catch (_) {
       if (mounted) {
         setState(() => _busy = false);
-        _toast('Could not reject. Check your connection.');
+        _toast(t('Could not reject. Check your connection.'));
       }
     }
   }
@@ -257,7 +262,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
               ? Column(
                   children: [
                     DetailHeader(
-                      title: 'Area',
+                      title: t('Area'),
                       onBack: () => Navigator.of(context).pop(_changed),
                     ),
                     Expanded(
@@ -326,9 +331,16 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         runSpacing: 8,
         children: [
           LifecycleChip(area.status),
-          Tag(n == 1 ? '1 report' : '$n reports', color: pal.textSoft),
+          Tag(
+            n == 1 ? t('1 report') : t('{n} reports', {'n': n}),
+            color: pal.textSoft,
+          ),
           if (area.band != null)
-            Tag('${area.bandWord} confidence', color: bandTone, dot: true),
+            Tag(
+              t('{bandWord} confidence', {'bandWord': area.bandWord}),
+              color: bandTone,
+              dot: true,
+            ),
         ],
       ),
       gap,
@@ -342,12 +354,17 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         text: _summary,
         meta: _summaryAt == null ? null : whenText(_summaryAt!),
         empty: _summaryNotYours
-            ? 'The summary and the post-incident reports are for the teams '
-                  'that responded.'
-            : 'No summary yet. The reports below are the full record.',
+            ? t(
+                'The summary and the post-incident reports are for the teams '
+                'that responded.',
+              )
+            : t('No summary yet. The reports below are the full record.'),
       ),
       gap,
-      SectionHeader('Reports', meta: '$n · photos are staff-only'),
+      SectionHeader(
+        t('Reports'),
+        meta: t('{n} · photos are staff-only', {'n': n}),
+      ),
       const SizedBox(height: 12),
       for (final (i, r) in _reports.indexed) ...[
         _reportRow(r, i),
@@ -358,13 +375,18 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         InlineAlert(
           tone: AlertTone.danger,
           title: area.status == 'merged'
-              ? '${area.name} was merged'
-              : '${area.name} was rejected',
+              ? t('{name} was merged', {'name': area.name})
+              : t('{name} was rejected', {'name': area.name}),
           body: area.status == 'merged'
-              ? 'Its reports joined a neighbouring Area. It has left the live '
-                    'feed.'
-              : 'Reason: ${(area.raw['rejection_reason'] as String?) ?? 'none given'}. '
-                    'It has left the live feed for everyone.',
+              ? t(
+                  'Its reports joined a neighbouring Area. It has left the live '
+                  'feed.',
+                )
+              : t('Reason: {value}. It has left the live feed for everyone.', {
+                  'value':
+                      (area.raw['rejection_reason'] as String?) ??
+                      t('none given'),
+                }),
         )
       else
         LifecycleRail(status: area.status),
@@ -380,11 +402,11 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     );
     return ListRow(
       leading: IconPlate(photo ? AppIcons.photo : AppIcons.person),
-      title: 'Resident · $pct% verified',
+      title: t('Resident · {pct}% verified', {'pct': pct}),
       subtitle: [
         if (at != null) clockText(at),
         if (photo) 'photo',
-        if (asked.isNotEmpty) 'asked $asked',
+        if (asked.isNotEmpty) t('asked {asked}', {'asked': asked}),
       ].join(' · '),
       chevron: true,
       onTap: () => _openReport(r, i),
@@ -397,14 +419,14 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         return ActionBar(
           children: [
             AppButton(
-              'Accept',
+              t('Accept'),
               run: true,
               busy: _busy,
               onPressed: _busy ? null : () => _accept(alreadyAccepted: false),
             ),
             if (_powers.rejects)
               AppButton.secondary(
-                'Reject this area',
+                t('Reject this area'),
                 onPressed: _busy ? null : _reject,
               ),
           ],
@@ -418,7 +440,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
           return ActionBar(
             children: [
               AppButton(
-                'Route to the fire',
+                t('Route to the fire'),
                 run: true,
                 icon: AppIcons.directions,
                 onPressed: _route,
@@ -431,13 +453,13 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
             if (_powers.responds)
               _responding
                   ? AppButton(
-                      'Route to the fire',
+                      t('Route to the fire'),
                       run: true,
                       icon: AppIcons.directions,
                       onPressed: _route,
                     )
                   : AppButton(
-                      'I am going',
+                      t('I am going'),
                       run: true,
                       busy: _busy,
                       onPressed: _busy
@@ -446,7 +468,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
                     ),
             if (_powers.rejects)
               AppButton.secondary(
-                'Reject this area',
+                t('Reject this area'),
                 onPressed: _busy ? null : _reject,
               ),
           ],
@@ -455,7 +477,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
         return ActionBar(
           children: [
             AppButton(
-              'Open live',
+              t('Open live'),
               run: true,
               onPressed: widget.onLive == null ? null : _goLive,
             ),
@@ -575,7 +597,7 @@ class GoSheetState extends State<GoSheet> {
         for (final e in rows)
           if (_unitCategories.contains(e['category']) &&
               (e['status'] == null || e['status'] == 'available'))
-            ((e['name'] as String?) ?? 'Unit').trim(),
+            ((e['name'] as String?) ?? t('Unit')).trim(),
       ];
     } catch (_) {
       units = const [];
@@ -599,24 +621,27 @@ class GoSheetState extends State<GoSheet> {
         children: [
           SheetTitles(
             eyebrow: '${area.name} — ${LifecycleChip.word(area.status)}',
-            title: 'Accept ${area.name}?',
-            body:
-                'Accepting acknowledges it for '
-                '${org == null || org.isEmpty ? 'your organization' : org}. '
-                'Every agency the reporter asked for'
-                '${asked.isEmpty ? '' : ' — $asked —'} sees it as '
-                'acknowledged.',
+            title: t('Accept {name}?', {'name': area.name}),
+            body: t(
+              'Accepting acknowledges it for {value}. Every agency the reporter asked for{value2} sees it as acknowledged.',
+              {
+                'value': org == null || org.isEmpty
+                    ? t('your organization')
+                    : org,
+                'value2': asked.isEmpty ? '' : ' — $asked —',
+              },
+            ),
           ),
           const SizedBox(height: 16),
           AppButton(
-            'Accept',
+            t('Accept'),
             run: true,
             onPressed: () =>
                 Navigator.of(context).pop(const GoChoice(going: false)),
           ),
           const SizedBox(height: 10),
           AppButton.secondary(
-            'Cancel',
+            t('Cancel'),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -628,20 +653,23 @@ class GoSheetState extends State<GoSheet> {
         SheetTitles(
           eyebrow: '${area.name} — ${LifecycleChip.word(area.status)}',
           title: widget.alreadyAccepted
-              ? 'Go to ${area.name}?'
-              : 'Accept ${area.name}?',
+              ? t('Go to {name}?', {'name': area.name})
+              : t('Accept {name}?', {'name': area.name}),
           body: widget.alreadyAccepted
-              ? 'It is verified already. Going puts it on the way for the '
-                    'reporter and shares your location until you arrive.'
-              : 'Accepting verifies the Area. Every agency the reporter asked '
-                    'for${asked.isEmpty ? '' : ' — $asked —'} sees it as '
-                    'verified.',
+              ? t(
+                  'It is verified already. Going puts it on the way for the '
+                  'reporter and shares your location until you arrive.',
+                )
+              : t(
+                  'Accepting verifies the Area. Every agency the reporter asked for{value} sees it as verified.',
+                  {'value': asked.isEmpty ? '' : ' — $asked —'},
+                ),
         ),
         const SizedBox(height: 16),
         if (!widget.alreadyAccepted) ...[
           ListRow(
-            title: 'I am going too',
-            subtitle: 'Dispatch a unit with this Accept',
+            title: t('I am going too'),
+            subtitle: t('Dispatch a unit with this Accept'),
             trailing: Switch(
               value: _going,
               onChanged: (v) => setState(() => _going = v),
@@ -651,7 +679,10 @@ class GoSheetState extends State<GoSheet> {
           const SizedBox(height: 16),
         ],
         if (_going) ...[
-          SectionHeader('Unit', meta: _last == null ? null : 'Last used first'),
+          SectionHeader(
+            t('Unit'),
+            meta: _last == null ? null : t('Last used first'),
+          ),
           const SizedBox(height: 8),
           if (units == null)
             const SkeletonRows(rows: 2)
@@ -659,8 +690,10 @@ class GoSheetState extends State<GoSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                'No unit is available in your team\'s register. You can still '
-                'go; the report records the truck afterwards.',
+                t(
+                  'No unit is available in your team\'s register. You can still '
+                  'go; the report records the truck afterwards.',
+                ),
                 style: context.type.bodySm,
               ),
             )
@@ -669,7 +702,7 @@ class GoSheetState extends State<GoSheet> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: RadioRow(
-                  label: u == _last ? '$u · last used' : u,
+                  label: u == _last ? t('{u} · last used', {'u': u}) : u,
                   selected: u == _unit,
                   onTap: () => setState(() => _unit = u),
                 ),
@@ -678,8 +711,8 @@ class GoSheetState extends State<GoSheet> {
         ],
         AppButton(
           _going
-              ? (widget.alreadyAccepted ? 'I am going' : 'Accept and go')
-              : 'Accept',
+              ? (widget.alreadyAccepted ? t('I am going') : t('Accept and go'))
+              : t('Accept'),
           run: true,
           onPressed: _going && units == null
               ? null
@@ -689,7 +722,7 @@ class GoSheetState extends State<GoSheet> {
         ),
         const SizedBox(height: 10),
         AppButton.secondary(
-          'Cancel',
+          t('Cancel'),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ],
@@ -726,12 +759,20 @@ class _RejectSheetState extends State<RejectSheet> {
         .map((r) => r['reporter_id'] ?? r['id'])
         .toSet()
         .length;
-    final who = people <= 1 ? 'by 1 person' : 'by $people people';
+    final who = people <= 1
+        ? t('by 1 person')
+        : t('by {people} people', {'people': people});
     return [
-      '${area.name}, reported ${reported == null ? '' : '${agoText(reported)} '}'
-          '$who. ${area.bandWord} confidence.',
-      'A rejected Area leaves the live feed for everyone and cannot be '
-          'reopened or versioned.',
+      t('{name}, reported {value}{who}. {bandWord} confidence.', {
+        'name': area.name,
+        'value': reported == null ? '' : '${agoText(reported)} ',
+        'who': who,
+        'bandWord': area.bandWord,
+      }),
+      t(
+        'A rejected Area leaves the live feed for everyone and cannot be '
+        'reopened or versioned.',
+      ),
     ].join(' ');
   }
 
@@ -741,32 +782,33 @@ class _RejectSheetState extends State<RejectSheet> {
     return SheetFrame(
       children: [
         SheetTitles(
-          eyebrow: 'Confirm · can\'t be undone',
+          eyebrow: t('Confirm · can\'t be undone'),
           eyebrowColour: context.pal.live,
-          title: 'Reject ${area.name}?',
+          title: t('Reject {name}?', {'name': area.name}),
           body: _describe(),
         ),
         const SizedBox(height: 16),
-        const InlineAlert(
-          body:
-              'Only Fire Volunteer and BFP coordinators can reject. Admins '
-              'cannot.',
+        InlineAlert(
+          body: t(
+            'Only Fire Volunteer and BFP coordinators can reject. Admins '
+            'cannot.',
+          ),
         ),
         const SizedBox(height: 16),
-        const SectionHeader('Why'),
+        SectionHeader(t('Why')),
         const SizedBox(height: 8),
         for (final r in _reasons)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: RadioRow(
-              label: r,
+              label: t(r),
               selected: r == _reason,
               onTap: () => setState(() => _reason = r),
             ),
           ),
         const SizedBox(height: 12),
         AppButton.danger(
-          'Reject ${area.name}',
+          t('Reject {name}', {'name': area.name}),
           run: true,
           onPressed: _reason == null
               ? null
@@ -774,7 +816,7 @@ class _RejectSheetState extends State<RejectSheet> {
         ),
         const SizedBox(height: 10),
         AppButton.secondary(
-          'Keep it',
+          t('Keep it'),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ],

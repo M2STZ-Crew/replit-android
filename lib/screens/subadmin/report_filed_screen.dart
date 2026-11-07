@@ -9,6 +9,7 @@ import '../../theme.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../coordinator/coordinator_shell.dart';
+import '../../i18n/i18n.dart';
 
 /// What the AI summary of an Area is doing, as GET /ai-summaries says.
 enum NarrativeState { writing, ready, unavailable }
@@ -112,8 +113,8 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
   }
 
   String get _areaName {
-    final d = _designation ?? 'Incident';
-    return d.toLowerCase().startsWith('area') ? d : 'Area $d';
+    final d = _designation ?? t('Incident');
+    return d.toLowerCase().startsWith('area') ? d : t('Area {d}', {'d': d});
   }
 
   void _backToQueue() {
@@ -130,7 +131,7 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
       backgroundColor: context.pal.background,
       bottomNavigationBar: ActionBar(
         children: [
-          AppButton('Back to queue', run: true, onPressed: _backToQueue),
+          AppButton(t('Back to queue'), run: true, onPressed: _backToQueue),
         ],
       ),
       body: SafeArea(
@@ -140,8 +141,10 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
           children: [
             DetailHeader(
               eyebrow: '$_areaName · ${LifecycleChip.word(_status)}',
-              title: 'Report filed',
-              subtitle: 'Saved ${clockText(_savedAt)}',
+              title: t('Report filed'),
+              subtitle: t('Saved {clockText}', {
+                'clockText': clockText(_savedAt),
+              }),
             ),
             Expanded(
               child: ScrollFade(
@@ -160,19 +163,19 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
                     const SizedBox(height: 16),
                     LifecycleRail(status: _status),
                     const SizedBox(height: 16),
-                    const ProgressStep(
+                    ProgressStep(
                       state: ProgressState.done,
-                      title: 'Report saved',
-                      detail: 'Trucks, driver, crew, equipment and notes',
+                      title: t('Report saved'),
+                      detail: t('Trucks, driver, crew, equipment and notes'),
                     ),
                     ProgressStep(
                       state: closed
                           ? ProgressState.done
                           : ProgressState.current,
-                      title: 'Area closed',
+                      title: t('Area closed'),
                       detail: closed
-                          ? 'It has left the live feed for every role'
-                          : 'Closing it now',
+                          ? t('It has left the live feed for every role')
+                          : t('Closing it now'),
                     ),
                     ProgressStep(
                       state: switch (_narrative) {
@@ -180,24 +183,27 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
                         NarrativeState.writing => ProgressState.current,
                         NarrativeState.unavailable => ProgressState.pending,
                       },
-                      title: 'Formal narrative',
+                      title: t('Formal narrative'),
                       detail: switch (_narrative) {
-                        NarrativeState.ready => 'Written and attached',
-                        NarrativeState.writing =>
+                        NarrativeState.ready => t('Written and attached'),
+                        NarrativeState.writing => t(
                           'Lit is writing it from your report and the '
-                              "residents' reports",
-                        NarrativeState.unavailable =>
+                          "residents' reports",
+                        ),
+                        NarrativeState.unavailable => t(
                           'The server cannot write summaries right now. The '
-                              'report is complete without one.',
+                          'report is complete without one.',
+                        ),
                       },
                     ),
                     const SizedBox(height: 8),
                     _narrativeCard(),
                     const SizedBox(height: 16),
-                    const InlineAlert(
-                      body:
-                          'You and Admin can read the narrative under AI '
-                          'summaries; nobody can edit it once it is attached.',
+                    InlineAlert(
+                      body: t(
+                        'You and Admin can read the narrative under AI '
+                        'summaries; nobody can edit it once it is attached.',
+                      ),
                     ),
                   ],
                 ),
@@ -216,8 +222,8 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
     }
     return SummaryCard(
       text: _summary,
-      meta: _narrative == NarrativeState.writing ? 'Writing…' : null,
-      empty: 'No summary. The report you filed is the full record.',
+      meta: _narrative == NarrativeState.writing ? t('Writing…') : null,
+      empty: t('No summary. The report you filed is the full record.'),
     );
   }
 }
@@ -239,7 +245,7 @@ class _WritingCard extends StatelessWidget {
       ),
     );
     return Semantics(
-      label: 'Summary: writing',
+      label: t('Summary: writing'),
       excludeSemantics: true,
       child: Container(
         width: double.infinity,
@@ -254,9 +260,9 @@ class _WritingCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Eyebrow('Summary', color: pal.accentInk)),
+                Expanded(child: Eyebrow(t('Summary'), color: pal.accentInk)),
                 Text(
-                  'Writing…',
+                  t('Writing…'),
                   style: context.type.detail.copyWith(color: pal.label),
                 ),
               ],
@@ -309,7 +315,7 @@ class LitPlaceholder extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Text(
-          'Lit',
+          t('Lit'),
           style: context.type.label.copyWith(color: pal.accentInk),
         ),
       ),

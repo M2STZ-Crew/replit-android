@@ -18,6 +18,7 @@ import '../../widgets/you_are_here.dart';
 import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
 import 'responder_shell.dart';
+import '../../i18n/i18n.dart';
 
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
@@ -74,23 +75,23 @@ class _FieldMapTabState extends State<FieldMapTab> {
 
   /// The chip's word: short, as over a map it must be.
   static String _chipLabel(OpsLayer layer) => switch (layer.key) {
-    'incidents' => 'Areas',
-    'hydrants' => 'Hydrants',
-    'evac' => 'Shelters',
-    'water' => 'Water',
-    'risk' => 'Risk zones',
-    'fire' => 'Fire stations',
-    'police' => 'Police',
+    'incidents' => t('Areas'),
+    'hydrants' => t('Hydrants'),
+    'evac' => t('Shelters'),
+    'water' => t('Water'),
+    'risk' => t('Risk zones'),
+    'fire' => t('Fire stations'),
+    'police' => t('Police'),
     _ => layer.label,
   };
 
   /// What one point is, in a row.
   static String _noun(String key) => switch (key) {
-    'hydrants' => 'Fire hydrant',
-    'evac' => 'Evacuation site',
-    'water' => 'Body of water',
-    'cisterns' => 'Underground cistern',
-    _ => 'Place',
+    'hydrants' => t('Fire hydrant'),
+    'evac' => t('Evacuation site'),
+    'water' => t('Body of water'),
+    'cisterns' => t('Underground cistern'),
+    _ => t('Place'),
   };
 
   final Set<String> _on = {'incidents', 'hydrants', 'evac'};
@@ -128,7 +129,9 @@ class _FieldMapTabState extends State<FieldMapTab> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load ${layer.label}.')),
+          SnackBar(
+            content: Text(t('Could not load {label}.', {'label': layer.label})),
+          ),
         );
       }
     }
@@ -318,8 +321,8 @@ class _FieldMapTabState extends State<FieldMapTab> {
                   const SizedBox(height: 4),
                   Text(
                     sharing
-                        ? 'Location sharing is on'
-                        : 'Location sharing is off',
+                        ? t('Location sharing is on')
+                        : t('Location sharing is off'),
                     style: context.type.caption.copyWith(
                       color: sharing ? context.pal.ok : context.pal.textSoft,
                     ),
@@ -376,14 +379,18 @@ class _FieldMapTabState extends State<FieldMapTab> {
               ),
               children: [
                 SectionHeader(
-                  'Around you',
-                  meta: 'Within ${FieldMapTab.aroundMetres.round()} m',
+                  t('Around you'),
+                  meta: t('Within {aroundMetres} m', {
+                    'aroundMetres': FieldMapTab.aroundMetres.round(),
+                  }),
                 ),
                 const SizedBox(height: 12),
                 if (here == null)
                   Text(
-                    'Hydrants, shelters and water near you are listed here '
-                    'once the phone knows where you are.',
+                    t(
+                      'Hydrants, shelters and water near you are listed here '
+                      'once the phone knows where you are.',
+                    ),
                     style: context.type.bodySm,
                   )
                 else
@@ -409,9 +416,10 @@ class _FieldMapTabState extends State<FieldMapTab> {
     if (near.isEmpty) {
       return [
         Text(
-          'Nothing from the layers that are on is within '
-          '${FieldMapTab.aroundMetres.round()} m. Turn on Water or Cisterns '
-          'for more.',
+          t(
+            'Nothing from the layers that are on is within {aroundMetres} m. Turn on Water or Cisterns for more.',
+            {'aroundMetres': FieldMapTab.aroundMetres.round()},
+          ),
           style: context.type.bodySm,
         ),
       ];
@@ -422,7 +430,10 @@ class _FieldMapTabState extends State<FieldMapTab> {
       final parts = [
         ?p.name,
         if (centre != null)
-          '${formatDistance(metresBetween(p.point, centre))} from ${run!.name}',
+          t('{formatDistance} from {name}', {
+            'formatDistance': formatDistance(metresBetween(p.point, centre)),
+            'name': run!.name,
+          }),
       ];
       return parts.isEmpty ? null : parts.join(' · ');
     }

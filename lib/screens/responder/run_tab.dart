@@ -7,6 +7,7 @@ import '../../widgets/design.dart';
 import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
 import 'responder_shell.dart';
+import '../../i18n/i18n.dart';
 
 /// RUN — the raised disc (REPLIT (MAIN) 07 · R06–R10): the Area this
 /// responder is going to, on scene at, or was stood down from.
@@ -31,7 +32,7 @@ class RunTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TabHeader(eyebrow: feed.unit, title: 'Run'),
+                TabHeader(eyebrow: feed.unit, title: t('Run')),
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(
@@ -40,13 +41,14 @@ class RunTab extends StatelessWidget {
                     child: EmptyState(
                       icon: AppIcons.fireTruck,
                       tone: context.pal.accentInk,
-                      title: 'No run',
-                      body:
-                          'When you tap I am going on an Area, your run is '
-                          'here: the way there, your crew, and what happens '
-                          'next.',
+                      title: t('No run'),
+                      body: t(
+                        'When you tap I am going on an Area, your run is '
+                        'here: the way there, your crew, and what happens '
+                        'next.',
+                      ),
                       action: AppButton.secondary(
-                        'Open duty',
+                        t('Open duty'),
                         onPressed: () => shell.show(ResponderTab.duty),
                       ),
                     ),

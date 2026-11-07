@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
 import '../api/session.dart';
+import '../models/phone_numbers.dart';
 import '../models/verification_state.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
@@ -17,7 +18,7 @@ import '../i18n/i18n.dart';
 /// started — the aggregate percent alone cannot tell those apart, and a
 /// resident told to upload their ID again while the first is still in the
 /// queue would do exactly that. Phone is shown unavailable while no SMS
-/// provider is chosen ([kPhoneVerificationOpen], §10.3).
+/// provider is chosen ([PhoneNumbers], §10.3).
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key, this.api});
 
@@ -207,14 +208,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
     if (s.isVerified(c)) {
       return _Channel(channel: c, line: t('Verified'), done: true);
     }
-    if (!kPhoneVerificationOpen) {
-      return _Channel(
-        channel: c,
-        line: t('Unavailable while we change SMS provider'),
-        lineColor: context.pal.warn,
-        trailing: Icon(AppIcons.error, size: 16, color: context.pal.warn),
-        dimmed: true,
-      );
+    if (!PhoneNumbers.open) {
+      // Greyed out, "Coming soon" (WHAT'S NEXT, 2.2).
+      return _Channel(channel: c, line: t('Coming soon'), dimmed: true);
     }
     return _Channel(
       channel: c,

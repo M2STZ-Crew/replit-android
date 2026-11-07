@@ -13,6 +13,7 @@ import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import '../subadmin/coordinator_nav.dart';
 import '../../widgets/skeleton.dart';
+import '../../i18n/i18n.dart';
 
 /// BFP's alarm request queue: Fire Volunteer coordinators (and their
 /// responders) ask BFP to raise an Area's alarm; a BFP Coordinator sets the
@@ -101,7 +102,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
         if (_requests.isEmpty) {
           _error = e is ApiException
               ? e.message
-              : 'Could not load the alarm requests. Check your signal.';
+              : t('Could not load the alarm requests. Check your signal.');
         }
         _loading = false;
       });
@@ -138,21 +139,25 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
       builder: (context) => SheetFrame(
         children: [
           SheetTitles(
-            eyebrow: '${r.areaName} · now at ${alarmWord(r.areaLevel)}',
-            title: 'Set ${alarmWord(r.level)}?',
-            body:
-                'Every organization on ${r.areaName} sees the new level at '
-                'once, and ${r.askedBy} is told.',
+            eyebrow: t('{areaName} · now at {alarmWord}', {
+              'areaName': r.areaName,
+              'alarmWord': alarmWord(r.areaLevel),
+            }),
+            title: t('Set {alarmWord}?', {'alarmWord': alarmWord(r.level)}),
+            body: t(
+              'Every organization on {areaName} sees the new level at once, and {askedBy} is told.',
+              {'areaName': r.areaName, 'askedBy': r.askedBy},
+            ),
           ),
           const SizedBox(height: 16),
           AppButton(
-            'Set ${alarmWord(r.level)}',
+            t('Set {alarmWord}', {'alarmWord': alarmWord(r.level)}),
             run: true,
             onPressed: () => Navigator.of(context).pop(true),
           ),
           const SizedBox(height: 10),
           AppButton.secondary(
-            'Cancel',
+            t('Cancel'),
             onPressed: () => Navigator.of(context).pop(false),
           ),
         ],
@@ -162,7 +167,10 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     await _answer(
       r,
       () => _api.executeAlarmRequest(r.id),
-      '${r.areaName} is now at ${alarmWord(r.level)}.',
+      t('{areaName} is now at {alarmWord}.', {
+        'areaName': r.areaName,
+        'alarmWord': alarmWord(r.level),
+      }),
     );
   }
 
@@ -176,7 +184,10 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
       r,
       () =>
           _api.rejectAlarmRequest(r.id, notes: reason.isEmpty ? null : reason),
-      'Declined. ${r.askedBy} is told ${r.areaName} stays as it is.',
+      t('Declined. {askedBy} is told {areaName} stays as it is.', {
+        'askedBy': r.askedBy,
+        'areaName': r.areaName,
+      }),
     );
   }
 
@@ -194,7 +205,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
       // server said, and show the queue as it is now.
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not send that. Check your signal.');
+      if (mounted) _toast(t('Could not send that. Check your signal.'));
     } finally {
       if (mounted) setState(() => _busyId = null);
       await _load(silent: true);
@@ -214,7 +225,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast('Could not open the Area. Check your signal.');
+      if (mounted) _toast(t('Could not open the Area. Check your signal.'));
     }
   }
 
@@ -227,12 +238,13 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const DetailHeader(
-              eyebrow: 'BFP',
-              title: 'Alarm requests',
-              subtitle:
-                  'Fire Volunteer coordinators ask. Only BFP sets the alarm '
-                  'level.',
+            DetailHeader(
+              eyebrow: t('BFP'),
+              title: t('Alarm requests'),
+              subtitle: t(
+                'Fire Volunteer coordinators ask. Only BFP sets the alarm '
+                'level.',
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
@@ -243,7 +255,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
                     Expanded(
                       child: CountSegment(
                         count: _waiting.length,
-                        label: 'Waiting',
+                        label: t('Waiting'),
                         tone: SegmentTone.attention,
                         selected: !_answered,
                         onTap: () => setState(() => _answered = false),
@@ -253,7 +265,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
                     Expanded(
                       child: CountSegment(
                         count: _done.length,
-                        label: 'Answered',
+                        label: t('Answered'),
                         tone: SegmentTone.settled,
                         selected: _answered,
                         onTap: () => setState(() => _answered = true),
@@ -278,9 +290,9 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     if (_error != null) {
       return EmptyState(
         icon: AppIcons.cloudOff,
-        title: 'Requests unavailable',
+        title: t('Requests unavailable'),
         body: _error!,
-        action: AppButton.secondary('Try again', onPressed: _load),
+        action: AppButton.secondary(t('Try again'), onPressed: _load),
       );
     }
     final rows = _answered ? _done : _waiting;
@@ -302,13 +314,19 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
                 padding: const EdgeInsets.only(top: 48),
                 child: EmptyState(
                   icon: AppIcons.notificationsOff,
-                  title: _answered ? 'Nothing answered yet' : 'Nothing waiting',
+                  title: _answered
+                      ? t('Nothing answered yet')
+                      : t('Nothing waiting'),
                   body: _answered
-                      ? 'Requests move here once BFP sets the level or '
-                            'declines, or the coordinator takes one back.'
-                      : 'A request lands here, with the fire alert, when a '
-                            'Fire Volunteer coordinator asks BFP to raise an '
-                            "Area's alarm.",
+                      ? t(
+                          'Requests move here once BFP sets the level or '
+                          'declines, or the coordinator takes one back.',
+                        )
+                      : t(
+                          'A request lands here, with the fire alert, when a '
+                          'Fire Volunteer coordinator asks BFP to raise an '
+                          "Area's alarm.",
+                        ),
                 ),
               )
             else
@@ -410,13 +428,15 @@ class _RequestCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${LifecycleChip.word(r.areaStatus ?? 'reported')} · now at '
-            '${alarmWord(r.areaLevel)}',
+            t('{word} · now at {alarmWord}', {
+              'word': LifecycleChip.word(r.areaStatus ?? 'reported'),
+              'alarmWord': alarmWord(r.areaLevel),
+            }),
             style: context.type.detail.copyWith(color: pal.label),
           ),
           const SizedBox(height: 6),
           Text(
-            'Asked by $who',
+            t('Asked by {who}', {'who': who}),
             style: context.type.detail.copyWith(color: pal.label),
           ),
           if (r.justification != null) ...[
@@ -431,20 +451,24 @@ class _RequestCard extends StatelessWidget {
               const SizedBox(height: 12),
               InlineAlert(
                 tone: AlertTone.warning,
-                body:
-                    '${r.areaName} is already at ${alarmWord(r.areaLevel)}. '
-                    'Setting this would not raise it: decline it instead.',
+                body: t(
+                  '{areaName} is already at {alarmWord}. Setting this would not raise it: decline it instead.',
+                  {'areaName': r.areaName, 'alarmWord': alarmWord(r.areaLevel)},
+                ),
               ),
             ],
             const SizedBox(height: 14),
             AppButton(
-              'Set ${alarmWord(r.level)}',
+              t('Set {alarmWord}', {'alarmWord': alarmWord(r.level)}),
               run: true,
               busy: busy,
               onPressed: busy || !r.stillRaises ? null : onSet,
             ),
             const SizedBox(height: 10),
-            AppButton.secondary('Decline', onPressed: busy ? null : onDecline),
+            AppButton.secondary(
+              t('Decline'),
+              onPressed: busy ? null : onDecline,
+            ),
           ] else ...[
             const SizedBox(height: 10),
             Text(
@@ -455,7 +479,10 @@ class _RequestCard extends StatelessWidget {
           const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerLeft,
-            child: TextLink('Open ${r.areaName}', onTap: onOpen),
+            child: TextLink(
+              t('Open {areaName}', {'areaName': r.areaName}),
+              onTap: onOpen,
+            ),
           ),
         ],
       ),
@@ -465,12 +492,25 @@ class _RequestCard extends StatelessWidget {
   static String _answer(AlarmRequest r) {
     final at = r.answeredAt;
     final when = at == null ? '' : ' · ${clockText(at)}';
-    final by = r.answeredBy == null ? '' : ' by ${r.answeredBy}';
+    final by = r.answeredBy == null
+        ? ''
+        : t(' by {answeredBy}', {'answeredBy': r.answeredBy});
     final notes = r.notes == null ? '' : '\n${r.notes}';
     return switch (r.status) {
-      'approved' => 'Set$by$when.$notes',
-      'rejected' => 'Declined$by$when.$notes',
-      'cancelled' => 'Taken back$when.$notes',
+      'approved' => t('Set{by}{when}.{notes}', {
+        'by': by,
+        'when': when,
+        'notes': notes,
+      }),
+      'rejected' => t('Declined{by}{when}.{notes}', {
+        'by': by,
+        'when': when,
+        'notes': notes,
+      }),
+      'cancelled' => t('Taken back{when}.{notes}', {
+        'when': when,
+        'notes': notes,
+      }),
       _ => '',
     };
   }
@@ -504,15 +544,23 @@ class _DeclineSheetState extends State<_DeclineSheet> {
       child: SheetFrame(
         children: [
           SheetTitles(
-            eyebrow: '${r.areaName} · ${alarmWord(r.level)} asked',
-            title: 'Decline this request?',
-            body:
-                '${r.areaName} stays at ${alarmWord(r.areaLevel)}. ${r.askedBy} '
-                'is told, with your reason.',
+            eyebrow: t('{areaName} · {alarmWord} asked', {
+              'areaName': r.areaName,
+              'alarmWord': alarmWord(r.level),
+            }),
+            title: t('Decline this request?'),
+            body: t(
+              '{areaName} stays at {alarmWord}. {askedBy} is told, with your reason.',
+              {
+                'areaName': r.areaName,
+                'alarmWord': alarmWord(r.areaLevel),
+                'askedBy': r.askedBy,
+              },
+            ),
           ),
           const SizedBox(height: 16),
           LabeledField(
-            label: 'Reason (optional)',
+            label: t('Reason (optional)'),
             builder: (focus) => TextField(
               controller: _reason,
               focusNode: focus,
@@ -521,19 +569,19 @@ class _DeclineSheetState extends State<_DeclineSheet> {
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
               style: context.type.input,
-              decoration: const InputDecoration(
-                hintText: 'Contained at 1st alarm',
+              decoration: InputDecoration(
+                hintText: t('Contained at 1st alarm'),
               ),
             ),
           ),
           const SizedBox(height: 8),
           AppButton.danger(
-            'Decline',
+            t('Decline'),
             onPressed: () => Navigator.of(context).pop(_reason.text.trim()),
           ),
           const SizedBox(height: 10),
           AppButton.secondary(
-            'Keep it waiting',
+            t('Keep it waiting'),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],

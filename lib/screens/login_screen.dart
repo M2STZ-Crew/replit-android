@@ -6,6 +6,7 @@ import '../api/api_client.dart';
 import '../api/api_config.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../models/phone_numbers.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
@@ -17,12 +18,12 @@ import '../i18n/i18n.dart';
 
 /// "02 Sign in" from the REPLIT-OVERHAUL Figma.
 ///
-/// Mobile number + password first: residents sign up with their number and
-/// verify it by text, so it is what they remember. "Use email instead" is for
-/// staff, whose accounts have no verified number, and for a resident who has
-/// not verified theirs yet — the server accepts only a verified number. The
-/// overhaul dropped v2's "Keep session active" box: a reporter who is signed
-/// out at 2am is a reporter who cannot send, so the session is always kept.
+/// Email + password first (WHAT'S NEXT, 2.2): every account has an email, and
+/// mobile numbers wait for an SMS provider. Until then "Use mobile number" is
+/// greyed out, "Coming soon"; with [PhoneNumbers.open] it switches to a
+/// verified number, the only kind the server accepts. The overhaul dropped
+/// v2's "Keep session active" box: a reporter who is signed out at 2am is a
+/// reporter who cannot send, so the session is always kept.
 /// The line that matters most stays — hotlines work while you are locked out —
 /// and now it is a button: the same hotlines, with no account and no signal.
 ///
@@ -50,8 +51,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _slow = false;
   Timer? _slowTimer;
 
-  /// Signing in by email instead of by number.
-  bool _byEmail = false;
+  /// Signing in by email, the first way; by number once [PhoneNumbers.open].
+  bool _byEmail = true;
 
   @override
   void initState() {
@@ -154,7 +155,10 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              t("Enter your account email and we'll send a reset link."),
+              t(
+                "Enter the email you sign in with, or a staff account's "
+                "personal email, and we'll send a reset link.",
+              ),
               style: context.type.body,
             ),
             const SizedBox(height: 16),
@@ -291,10 +295,13 @@ class _LoginScreenState extends State<LoginScreen> {
               alignment: WrapAlignment.spaceBetween,
               runSpacing: 4,
               children: [
-                TextLink(
-                  _byEmail ? t('Use mobile number') : t('Use email instead'),
-                  onTap: () => setState(() => _byEmail = !_byEmail),
-                ),
+                if (PhoneNumbers.open)
+                  TextLink(
+                    _byEmail ? t('Use mobile number') : t('Use email instead'),
+                    onTap: () => setState(() => _byEmail = !_byEmail),
+                  )
+                else
+                  const _MobileComingSoon(),
                 TextLink(t('Forgot password?'), onTap: _recoverDialog),
               ],
             ),
@@ -368,6 +375,42 @@ class _LoginScreenState extends State<LoginScreen> {
                   MaterialPageRoute(builder: (_) => const RegisterScreen()),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Use mobile number", greyed out, with "Coming soon": where the way to
+/// sign in by number goes once SMS is settled ([PhoneNumbers]).
+class _MobileComingSoon extends StatelessWidget {
+  const _MobileComingSoon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: t('Use mobile number'),
+      hint: t('Coming soon'),
+      enabled: false,
+      excludeSemantics: true,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          // Wrap: at a large font scale the tag goes under the words
+          // rather than off the edge.
+          child: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Text(
+                t('Use mobile number'),
+                style: context.type.label.copyWith(color: context.pal.muted),
+              ),
+              const ComingSoon(),
             ],
           ),
         ),

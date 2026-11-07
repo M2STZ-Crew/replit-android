@@ -7,6 +7,7 @@ import 'app_icons.dart';
 import 'coordinator_kit.dart';
 import 'design.dart';
 import 'sheet_grip.dart';
+import '../i18n/i18n.dart';
 
 /// REPLIT (MAIN) 04 · V13 field operations (pass 6): the Choice row, the
 /// on-scene Action tile and its Field actions grid, the neighbourhood Safety
@@ -248,7 +249,7 @@ class ActionTile extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: active,
-      label: '$title. ${locked ? lockedMeta : meta}',
+      label: '$title. ${t(locked ? lockedMeta : meta)}',
       excludeSemantics: true,
       onTap: active ? onTap : null,
       child: Material(
@@ -283,7 +284,7 @@ class ActionTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  locked ? lockedMeta : meta,
+                  t(locked ? lockedMeta : meta),
                   style: context.type.detail.copyWith(color: pal.label),
                 ),
               ],
@@ -320,8 +321,8 @@ class FieldActions extends StatelessWidget {
       return Expanded(
         child: ActionTile(
           icon: icon,
-          title: type.label,
-          meta: meta,
+          title: t(type.label),
+          meta: t(meta),
           locked: locked,
           onTap: () => onRequest(type),
         ),
@@ -333,8 +334,10 @@ class FieldActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SectionHeader(
-          'On-scene requests',
-          meta: locked ? 'Locked' : 'Unlocked · ${fireType!.label}',
+          t('On-scene requests'),
+          meta: locked
+              ? t('Locked')
+              : t('Unlocked · {label}', {'label': fireType!.label}),
         ),
         const SizedBox(height: 12),
         IntrinsicHeight(
@@ -353,8 +356,10 @@ class FieldActions extends StatelessWidget {
         if (locked) ...[
           const SizedBox(height: 12),
           Text(
-            'Pick the fire type to unlock requests. Arrived is recorded '
-            'already.',
+            t(
+              'Pick the fire type to unlock requests. Arrived is recorded '
+              'already.',
+            ),
             style: context.type.detail.copyWith(color: context.pal.label),
           ),
         ],
@@ -382,21 +387,23 @@ class _SafetyResult extends StatelessWidget {
       SafetyAnswer.safe => (
         pal.ok,
         AppIcons.healthAndSafety,
-        'You’re marked safe · $at',
-        'Recorded for this fire. You won’t be alerted about it again.',
+        t('You’re marked safe · {at}', {'at': at}),
+        t('Recorded for this fire. You won’t be alerted about it again.'),
       ),
       SafetyAnswer.needHelp => (
         pal.live,
         AppIcons.frontHand,
-        'Help requested · $at',
-        'The responding Captain now sees your location and phone '
-            'number. In danger right now? Call 911.',
+        t('Help requested · {at}', {'at': at}),
+        t(
+          'The responding Captain now sees your location and phone '
+          'number. In danger right now? Call 911.',
+        ),
       ),
       SafetyAnswer.notInArea => (
         null,
         AppIcons.locationOff,
-        'You’re not in the area',
-        'No more alerts or roll call for this Area.',
+        t('You’re not in the area'),
+        t('No more alerts or roll call for this Area.'),
       ),
     };
     return Semantics(
@@ -524,13 +531,13 @@ class SafetyPromptCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Text('Do you see it too?', style: question),
+          Text(t('Do you see it too?'), style: question),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: AppButton(
-                  'Report',
+                  t('Report'),
                   busy: reporting,
                   onPressed: ignoring ? null : onReport,
                 ),
@@ -538,7 +545,7 @@ class SafetyPromptCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: AppButton.secondary(
-                  'Ignore',
+                  t('Ignore'),
                   busy: ignoring,
                   onPressed: reporting ? null : onIgnore,
                 ),
@@ -624,7 +631,7 @@ class SafetyQuestion extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Are you safe?',
+          t('Are you safe?'),
           style: context.type.label.copyWith(color: pal.textSoft),
         ),
         const SizedBox(height: 8),
@@ -634,8 +641,8 @@ class SafetyQuestion extends StatelessWidget {
           for (final (i, (value, label, meta, icon)) in rows.indexed) ...[
             if (i > 0) const SizedBox(height: 8),
             ChoiceRow(
-              title: label,
-              meta: meta,
+              title: t(label),
+              meta: t(meta),
               icon: icon,
               tint: switch (value) {
                 SafetyAnswer.safe => pal.ok,
@@ -649,7 +656,7 @@ class SafetyQuestion extends StatelessWidget {
           if (sending) ...[
             const SizedBox(height: 8),
             Text(
-              'Saving your answer…',
+              t('Saving your answer…'),
               style: context.type.detail.copyWith(color: pal.label),
             ),
           ],
@@ -749,11 +756,11 @@ class SafetyRollCallStrip extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              count(rollCall.safe, 'Safe', pal.ok),
+              count(rollCall.safe, t('Safe'), pal.ok),
               const SizedBox(width: 8),
-              count(rollCall.needHelp, 'Need help', pal.live),
+              count(rollCall.needHelp, t('Need help'), pal.live),
               const SizedBox(width: 8),
-              count(rollCall.notInArea, 'Not in area', pal.muted),
+              count(rollCall.notInArea, t('Not in area'), pal.muted),
             ],
           ),
         ],
@@ -815,12 +822,16 @@ class HelpAlertCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Eyebrow(
-                        fresh ? 'Need help · $raisedAt' : 'Seen $seenAt',
+                        fresh
+                            ? t('Need help · {raisedAt}', {
+                                'raisedAt': raisedAt,
+                              })
+                            : t('Seen {seenAt}', {'seenAt': seenAt}),
                         color: fresh ? pal.live : pal.label,
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Resident needs help',
+                        t('Resident needs help'),
                         style: context.type.listTitle,
                       ),
                       const SizedBox(height: 2),
@@ -839,7 +850,7 @@ class HelpAlertCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'Contact',
+                  t('Contact'),
                   style: context.type.detail.copyWith(color: pal.label),
                 ),
                 const Spacer(),
@@ -856,7 +867,7 @@ class HelpAlertCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: AppButton.secondary(
-                    'Call',
+                    t('Call'),
                     icon: AppIcons.call,
                     onPressed: onCall,
                   ),
@@ -864,7 +875,7 @@ class HelpAlertCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: AppButton.secondary(
-                    'Show on map',
+                    t('Show on map'),
                     icon: AppIcons.locationOn,
                     onPressed: onShowOnMap,
                   ),
@@ -873,8 +884,10 @@ class HelpAlertCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Visible to the responding Captain only — never to other '
-              'residents.',
+              t(
+                'Visible to the responding Captain only — never to other '
+                'residents.',
+              ),
               style: context.type.caption.copyWith(color: pal.label),
             ),
           ],
@@ -938,18 +951,19 @@ class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: _c,
         builder: (context, child) {
-          final t = _c.value;
+          final phase = _c.value;
           return Stack(
             alignment: Alignment.center,
             children: [
               Container(
-                width: 30 + 14 * (widget.active ? (t == 0 ? 1 : t) : 1),
-                height: 30 + 14 * (widget.active ? (t == 0 ? 1 : t) : 1),
+                width: 30 + 14 * (widget.active ? (phase == 0 ? 1 : phase) : 1),
+                height:
+                    30 + 14 * (widget.active ? (phase == 0 ? 1 : phase) : 1),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: (widget.active ? pal.ok : pal.lineStrong).withValues(
-                      alpha: widget.active && t > 0 ? 1 - t : 1,
+                      alpha: widget.active && phase > 0 ? 1 - phase : 1,
                     ),
                     width: 1.5,
                   ),
@@ -1002,7 +1016,9 @@ class FireOutSignalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pal = context.pal;
     final fresh = seenAt == null;
-    final residents = votes == 1 ? '1 resident' : '$votes residents';
+    final residents = votes == 1
+        ? t('1 resident')
+        : t('{votes} residents', {'votes': votes});
     return Semantics(
       container: true,
       liveRegion: fresh,
@@ -1023,16 +1039,23 @@ class FireOutSignalCard extends StatelessWidget {
                 children: [
                   Text(
                     fresh
-                        ? 'Citizens report fire out'
-                        : '$residents said the fire looks out',
+                        ? t('Citizens report fire out')
+                        : t('{residents} said the fire looks out', {
+                            'residents': residents,
+                          }),
                     style: context.type.listTitle,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     fresh
-                        ? '$residents $window. Only you can mark fire out.'
-                        : 'Seen $seenAt. Mark fire out once you have '
-                              'confirmed it on scene.',
+                        ? t(
+                            '{residents} {window}. Only you can mark fire out.',
+                            {'residents': residents, 'window': window},
+                          )
+                        : t(
+                            'Seen {seenAt}. Mark fire out once you have confirmed it on scene.',
+                            {'seenAt': seenAt},
+                          ),
                     style: context.type.detail.copyWith(color: pal.textSoft),
                   ),
                 ],
@@ -1065,7 +1088,7 @@ class LitPlaceholder extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: Text(
-            'Lit',
+            t('Lit'),
             style: context.type.label.copyWith(color: pal.accentInk),
           ),
         ),
@@ -1123,19 +1146,25 @@ class CiarStatusCard extends StatelessWidget {
     final pal = context.pal;
     final (title, body) = switch (state) {
       CiarState.generating => (
-        'Writing the CIAR',
-        'Lit is composing the formal report from your Post-Incident Report. '
-            'Usually under 10 seconds.',
+        t('Writing the CIAR'),
+        t(
+          'Lit is composing the formal report from your Post-Incident Report. '
+          'Usually under 10 seconds.',
+        ),
       ),
       CiarState.failed => (
-        'The CIAR couldn’t be generated',
-        'Your Post-Incident Report is saved. Tell your Admin and quote the '
-            'reference above.',
+        t('The CIAR couldn’t be generated'),
+        t(
+          'Your Post-Incident Report is saved. Tell your Admin and quote the '
+          'reference above.',
+        ),
       ),
       CiarState.ready => (
-        'CIAR attached',
-        'Locked ${lockedAt ?? ''}. Every agency on this Area can read it. It '
-            'is never edited — corrections go on record.',
+        t('CIAR attached'),
+        t(
+          'Locked {value}. Every agency on this Area can read it. It is never edited — corrections go on record.',
+          {'value': lockedAt ?? ''},
+        ),
       ),
     };
     return Semantics(
@@ -1168,7 +1197,10 @@ class CiarStatusCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Eyebrow('CIAR · $reference', color: pal.label),
+                  Eyebrow(
+                    t('CIAR · {reference}', {'reference': reference}),
+                    color: pal.label,
+                  ),
                   const SizedBox(height: 2),
                   Text(title, style: context.type.listTitle),
                   const SizedBox(height: 2),
@@ -1181,7 +1213,7 @@ class CiarStatusCard extends StatelessWidget {
             ),
             if (state == CiarState.ready && onView != null) ...[
               const SizedBox(width: 8),
-              TextLink('View', onTap: onView!),
+              TextLink(t('View'), onTap: onView!),
             ],
           ],
         ),
@@ -1211,12 +1243,12 @@ class _WaterHeader extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            label,
+            t(label),
             style: context.type.label.copyWith(color: pal.textSoft),
           ),
         ),
         Text(
-          empty ? '0% · not usable' : '$pct%',
+          empty ? t('0% · not usable') : '$pct%',
           style: context.type.rowValue.copyWith(
             color: empty ? pal.live : pal.onBackground,
           ),
@@ -1242,8 +1274,10 @@ class WaterLevelBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final pal = context.pal;
     return Semantics(
-      label: label,
-      value: WaterLevel.usable(pct) ? '$pct percent' : '0 percent, not usable',
+      label: t(label),
+      value: WaterLevel.usable(pct)
+          ? t('{pct} percent', {'pct': pct})
+          : t('0 percent, not usable'),
       excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1337,7 +1371,9 @@ class WaterLevelSlider extends StatelessWidget {
               label: '$pct%',
               semanticFormatterCallback: (v) {
                 final p = WaterLevel.snap(v);
-                return p == 0 ? '0 percent, not usable' : '$p percent';
+                return p == 0
+                    ? t('0 percent, not usable')
+                    : t('{p} percent', {'p': p});
               },
               onChanged: onChanged == null
                   ? null
@@ -1361,7 +1397,7 @@ class WaterLevelSlider extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          'Moves in 5% steps. 0% marks the source as not usable.',
+          t('Moves in 5% steps. 0% marks the source as not usable.'),
           style: steps,
         ),
       ],
@@ -1440,7 +1476,7 @@ class _UrgencyChips extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Urgency',
+          t('Urgency'),
           style: context.type.label.copyWith(color: context.pal.textSoft),
         ),
         const SizedBox(height: 8),
@@ -1510,15 +1546,21 @@ class _RequestSheetState extends State<RequestSheet> {
   }
 
   String? get _missing => switch (widget.type) {
-    FieldRequestType.water when _text.text.trim().isEmpty =>
+    FieldRequestType.water when _text.text.trim().isEmpty => t(
       'Enter an estimate, like 2,000 litres.',
-    FieldRequestType.equipment when _text.text.trim().isEmpty =>
+    ),
+    FieldRequestType.equipment when _text.text.trim().isEmpty => t(
       'Say what you need, like a 10 m ladder.',
-    FieldRequestType.backup when _agency == null => 'Pick the agency to ask.',
-    FieldRequestType.escalation when _level == null => 'Pick a level.',
+    ),
+    FieldRequestType.backup when _agency == null => t(
+      'Pick the agency to ask.',
+    ),
+    FieldRequestType.escalation when _level == null => t('Pick a level.'),
     FieldRequestType.water ||
     FieldRequestType.equipment ||
-    FieldRequestType.backup when _urgency == null => 'Pick how urgent it is.',
+    FieldRequestType.backup when _urgency == null => t(
+      'Pick how urgent it is.',
+    ),
     _ => null,
   };
 
@@ -1553,9 +1595,10 @@ class _RequestSheetState extends State<RequestSheet> {
       if (!mounted) return;
       setState(() {
         _sending = false;
-        _error =
-            'Your request was not sent. Check your connection and send '
-            'it again.';
+        _error = t(
+          'Your request was not sent. Check your connection and send '
+          'it again.',
+        );
       });
     }
   }
@@ -1566,25 +1609,27 @@ class _RequestSheetState extends State<RequestSheet> {
     final missing = _tried ? _missing : null;
     final (String title, String body, String send) = switch (widget.type) {
       FieldRequestType.water => (
-        'Need water',
-        'Your Admin sees this at once and can ask other organizations for '
-            'water.',
-        'Send request',
+        t('Need water'),
+        t(
+          'Your Admin sees this at once and can ask other organizations for '
+          'water.',
+        ),
+        t('Send request'),
       ),
       FieldRequestType.equipment => (
-        'Need equipment',
-        'Say exactly what you need. Your Admin passes it on.',
-        'Send request',
+        t('Need equipment'),
+        t('Say exactly what you need. Your Admin passes it on.'),
+        t('Send request'),
       ),
       FieldRequestType.backup => (
-        'Need backup',
-        'Pick the agency. Your Admin asks that agency’s Admins.',
-        'Send request',
+        t('Need backup'),
+        t('Pick the agency. Your Admin asks that agency’s Admins.'),
+        t('Send request'),
       ),
       FieldRequestType.escalation => (
-        'Request alarm escalation',
-        'Your Admin sends this to BFP Pasay. Only BFP sets the alarm level.',
-        'Send escalation request',
+        t('Request alarm escalation'),
+        t('Your Admin sends this to BFP Pasay. Only BFP sets the alarm level.'),
+        t('Send escalation request'),
       ),
     };
     final editable = !_sending;
@@ -1596,16 +1641,16 @@ class _RequestSheetState extends State<RequestSheet> {
         const SizedBox(height: 16),
         switch (widget.type) {
           FieldRequestType.water => _field(
-            label: 'Estimated amount',
-            helper: 'Rough is fine — gallons or litres.',
-            hint: 'e.g. 2,000 litres',
+            label: t('Estimated amount'),
+            helper: t('Rough is fine — gallons or litres.'),
+            hint: t('e.g. 2,000 litres'),
             multiline: false,
             editable: editable,
           ),
           FieldRequestType.equipment => _field(
-            label: 'What do you need?',
-            helper: 'Free text for now. A picker may replace it later.',
-            hint: 'e.g. Extension ladder, 10 m. Two SCBA sets.',
+            label: t('What do you need?'),
+            helper: t('Free text for now. A picker may replace it later.'),
+            hint: t('e.g. Extension ladder, 10 m. Two SCBA sets.'),
             multiline: true,
             editable: editable,
           ),
@@ -1613,7 +1658,7 @@ class _RequestSheetState extends State<RequestSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Which agency?',
+                t('Which agency?'),
                 style: context.type.label.copyWith(color: pal.textSoft),
               ),
               const SizedBox(height: 8),
@@ -1636,12 +1681,14 @@ class _RequestSheetState extends State<RequestSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Propose a level',
+                      t('Propose a level'),
                       style: context.type.label.copyWith(color: pal.textSoft),
                     ),
                   ),
                   Text(
-                    'Now: ${widget.currentLevel}',
+                    t('Now: {currentLevel}', {
+                      'currentLevel': widget.currentLevel,
+                    }),
                     style: context.type.detail.copyWith(color: pal.label),
                   ),
                 ],
@@ -1709,7 +1756,7 @@ class _RequestSheetState extends State<RequestSheet> {
         AppButton(send, run: true, busy: _sending, onPressed: _send),
         const SizedBox(height: 10),
         AppButton.secondary(
-          'Cancel',
+          t('Cancel'),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ],
@@ -1802,21 +1849,21 @@ class _FireTypeSheetState extends State<FireTypeSheet> {
   };
 
   void _continue() {
-    final t = _type;
-    if (t == null) return;
-    if (t.hasSubtypes && !_subtypeStep) {
+    final type = _type;
+    if (type == null) return;
+    if (type.hasSubtypes && !_subtypeStep) {
       setState(() => _subtypeStep = true);
       return;
     }
-    if (t.hasSubtypes && _subtype == null) return;
-    Navigator.of(context).pop(FireClassification(t, _subtype));
+    if (type.hasSubtypes && _subtype == null) return;
+    Navigator.of(context).pop(FireClassification(type, _subtype));
   }
 
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
-    final t = _type;
-    if (_subtypeStep && t != null) {
+    final type = _type;
+    if (_subtypeStep && type != null) {
       return PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
@@ -1825,14 +1872,18 @@ class _FireTypeSheetState extends State<FireTypeSheet> {
         child: _PassSixSheet(
           children: [
             _SheetHead(
-              eyebrow: '${widget.areaLabel} — ${t.label} · step 2 of 2',
-              title: '${t.label} — which kind?',
-              body:
-                  'Pick the closest match. The Captain can correct it in '
-                  'the post-incident report.',
+              eyebrow: t('{areaLabel} — {label} · step 2 of 2', {
+                'areaLabel': widget.areaLabel,
+                'label': type.label,
+              }),
+              title: t('{label} — which kind?', {'label': type.label}),
+              body: t(
+                'Pick the closest match. The Captain can correct it in '
+                'the post-incident report.',
+              ),
             ),
             const SizedBox(height: 14),
-            for (final (i, s) in t.subtypes.indexed) ...[
+            for (final (i, s) in type.subtypes.indexed) ...[
               if (i > 0) const SizedBox(height: 8),
               ChoiceRow(
                 title: s,
@@ -1843,8 +1894,11 @@ class _FireTypeSheetState extends State<FireTypeSheet> {
             const SizedBox(height: 14),
             AppButton(
               _subtype == null
-                  ? 'Pick one to confirm'
-                  : 'Confirm ${t.label} — $_subtype',
+                  ? t('Pick one to confirm')
+                  : t('Confirm {label} — {_subtype}', {
+                      'label': type.label,
+                      '_subtype': _subtype,
+                    }),
               run: true,
               onPressed: _subtype == null ? null : _continue,
             ),
@@ -1855,15 +1909,19 @@ class _FireTypeSheetState extends State<FireTypeSheet> {
 
     final arrived = widget.arrivedAt == null
         ? ''
-        : ' — arrived ${widget.arrivedAt}';
+        : t(' — arrived {arrivedAt}', {'arrivedAt': widget.arrivedAt});
     return _PassSixSheet(
       children: [
         _SheetHead(
-          eyebrow: '${widget.areaLabel}$arrived · required',
-          title: 'What’s burning?',
-          body:
-              'Pick the fire type. Requests for water, equipment, backup '
-              'and escalation unlock once it is set.',
+          eyebrow: t('{areaLabel}{arrived} · required', {
+            'areaLabel': widget.areaLabel,
+            'arrived': arrived,
+          }),
+          title: t('What’s burning?'),
+          body: t(
+            'Pick the fire type. Requests for water, equipment, backup '
+            'and escalation unlock once it is set.',
+          ),
         ),
         const SizedBox(height: 14),
         for (final (i, type) in FireType.values.indexed) ...[
@@ -1882,9 +1940,11 @@ class _FireTypeSheetState extends State<FireTypeSheet> {
         ],
         const SizedBox(height: 14),
         AppButton(
-          t == null || t.hasSubtypes ? 'Continue' : 'Confirm ${t.label}',
+          type == null || type.hasSubtypes
+              ? t('Continue')
+              : t('Confirm {label}', {'label': type.label}),
           run: true,
-          onPressed: t == null ? null : _continue,
+          onPressed: type == null ? null : _continue,
         ),
       ],
     );
