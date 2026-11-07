@@ -42,6 +42,19 @@ void main() {
       }
       if (req.method == 'POST' && path == '/team/responders') {
         final body = jsonDecode(req.body) as Map<String, dynamic>;
+        if ('${body['personal_email']}'.endsWith('@mailinator.com')) {
+          return http.Response(
+            jsonEncode({
+              'error': 'disposable_email',
+              'message': 'mailinator.com gives out temporary email addresses.',
+              'details': {
+                'field': 'personal_email',
+                'domain': 'mailinator.com',
+              },
+            }),
+            400,
+          );
+        }
         final made = {
           'id': 'r9',
           'full_name': '${body['first_name']} ${body['last_name']}',
@@ -176,6 +189,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('have no mailbox'), findsOneWidget);
     expect(sent, isEmpty);
+  });
+
+  testWidgets('a temporary email address is refused, in the app\'s words', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(find.text('NEW RESPONDER'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'Juan');
+    await tester.enterText(fields.at(1), 'Dela Cruz');
+    await tester.enterText(fields.at(2), 'juan@mailinator.com');
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.ensureVisible(find.text('CREATE ACCOUNT'));
+    await tester.tap(find.text('CREATE ACCOUNT'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        "Temporary email addresses can't be used. Use an email that will "
+        'last, like your Gmail.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Account ready'), findsNothing);
   });
 
   testWidgets('deactivating asks first, then turns the account off', (

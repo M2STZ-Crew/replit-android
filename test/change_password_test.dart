@@ -31,7 +31,18 @@ void main() {
         return reply();
       }
       if (request.url.path == '/auth/me/personal-email') {
-        sent.add(jsonDecode(request.body) as Map<String, dynamic>);
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        if ('${body['email']}'.endsWith('@mailinator.com')) {
+          return http.Response(
+            jsonEncode({
+              'error': 'disposable_email',
+              'message': 'mailinator.com gives out temporary email addresses.',
+              'details': {'field': 'email', 'domain': 'mailinator.com'},
+            }),
+            400,
+          );
+        }
+        sent.add(body);
         return http.Response('{"message":"sent"}', 200);
       }
       return http.Response('{}', 200);
@@ -210,6 +221,26 @@ void main() {
       );
       expect(
         find.text('juan@gmail.com · open the link we sent'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a temporary email address is refused, in the app\'s words', (
+      tester,
+    ) async {
+      await section(tester, {'email': 'jdelacruz.firres@replit.com'});
+      await tester.ensureVisible(find.text('Personal email'));
+      await tester.tap(find.text('Personal email'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'juan@mailinator.com');
+      await tester.tap(find.text('SEND LINK'));
+      await tester.pumpAndSettle();
+      expect(sent, isEmpty);
+      expect(
+        find.text(
+          "Temporary email addresses can't be used. Use an email that will "
+          'last, like your Gmail.',
+        ),
         findsOneWidget,
       );
     });

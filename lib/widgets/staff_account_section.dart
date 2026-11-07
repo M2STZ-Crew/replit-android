@@ -63,11 +63,14 @@ class _StaffAccountSectionState extends State<StaffAccountSection> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.code == 'not_personal'
-                ? t('Use your own email: @replit.com addresses have no mailbox.')
-                : t('The email could not be saved. Try again.'),
-          ),
+          content: Text(switch (e.code) {
+            'not_personal' => t(
+              'Use your own email: @replit.com addresses have no mailbox.',
+            ),
+            // In the app's words already (ApiClient).
+            'disposable_email' => e.message,
+            _ => t('The email could not be saved. Try again.'),
+          }),
           backgroundColor: context.pal.live,
         ),
       );

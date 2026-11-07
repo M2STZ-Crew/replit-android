@@ -1355,10 +1355,17 @@ class ApiClient {
       );
     }
     if (resp.statusCode >= 400) {
-      final message =
-          (body['message'] as String?) ??
-          'Request failed (${resp.statusCode}).';
       final code = body['error'] is String ? body['error'] as String : null;
+      // A burner email address (backend v1.12.23), refused at sign-up, for a
+      // responder or as a personal email: the server names the service in
+      // English, so every screen says it in the app's own words instead.
+      final message = code == 'disposable_email'
+          ? t(
+              "Temporary email addresses can't be used. Use an email that will "
+              'last, like your Gmail.',
+            )
+          : (body['message'] as String?) ??
+                'Request failed (${resp.statusCode}).';
       final details = body['details'] is Map<String, dynamic>
           ? body['details'] as Map<String, dynamic>
           : null;

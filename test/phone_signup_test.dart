@@ -199,6 +199,31 @@ void main() {
       expect(find.text('CHECK YOUR EMAIL'), findsOneWidget);
     });
 
+    testWidgets('a temporary email address is refused, in the app\'s words, '
+        'and nothing is sent to it', (tester) async {
+      routes['/auth/signup'] = (_) => json(400, {
+        'error': 'disposable_email',
+        'message':
+            'mailinator.com gives out temporary email addresses, which '
+            'RepLiT cannot use. Use an email you will keep, such as Gmail or '
+            'Yahoo.',
+        'details': {'field': 'email', 'domain': 'mailinator.com'},
+      });
+      await pump(tester, RegisterScreen(api: api()));
+      await fillSignup(tester, mobile: null);
+      await tap(tester, find.text('CREATE ACCOUNT'));
+      expect(
+        find.text(
+          "Temporary email addresses can't be used. Use an email that will "
+          'last, like your Gmail.',
+        ),
+        findsOneWidget,
+      );
+      expect(paths(), ['/auth/signup']);
+      expect(find.text('CHECK YOUR EMAIL'), findsNothing);
+      expect(find.byType(RoleGate), findsNothing);
+    });
+
     testWidgets('a number given has to be a PH mobile', (tester) async {
       await pump(tester, RegisterScreen(api: api()));
       await fillSignup(tester, mobile: '12345');
