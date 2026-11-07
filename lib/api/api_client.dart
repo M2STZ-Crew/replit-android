@@ -516,17 +516,23 @@ class ApiClient {
 
   /// Email verification (+10%): POST /verification/email/request.
   ///
-  /// Sends a one-time link to the user's email. Confirmation happens when the
-  /// user clicks the link (opens in a browser); the app then re-reads /auth/me.
-  Future<String> requestEmailVerification() async {
-    final resp = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}/verification/email/request'),
-      headers: {
-        'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
-      },
+  /// Emails a one-time link that confirms the account's address when opened
+  /// (in Gmail, say); GET /verification/status then shows the email verified.
+  /// Returns {message, email, sent, expires_in_seconds, resend_after_seconds};
+  /// `sent` is false when the address is already confirmed. A 429 carries
+  /// `details.retry_after_seconds`: the wait between links
+  /// (`email_link_cooldown`) or the day's links spent
+  /// (`email_link_daily_limit`). A backend before 1.12.22 answers {message}.
+  Future<Map<String, dynamic>> requestEmailLink() async {
+    final resp = await _authed(
+      () => _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/verification/email/request'),
+        headers: {
+          'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
+        },
+      ),
     );
-    final body = _decode(resp);
-    return (body['message'] as String?) ?? t('Verification email sent.');
+    return _decode(resp);
   }
 
   /// Phone OTP step 1: POST /verification/phone/request.
