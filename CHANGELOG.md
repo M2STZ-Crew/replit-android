@@ -6,6 +6,30 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.30 — 7 November 2026 — Burner email addresses are refused
+
+With backend v1.12.23, which refuses them; deploy it first. On an older
+backend nothing changes. No new permission or dependency.
+
+### Changes
+
+**UI**
+- **Temporary email addresses can't be used** (Disposable Email Address
+  detection, 7 November). Signing up, a new responder's email and a staff
+  Profile's personal email all say "Temporary email addresses can't be used.
+  Use an email that will last, like your Gmail.", in English or Tagalog, and
+  nothing is made or sent. The server decides what is a burner address; the
+  app says it in its own words wherever the answer comes back (`ApiClient`).
+- An account made with such an address earlier keeps working, but its email
+  link says "Your email is from a temporary email service, so it can't be
+  confirmed."
+
+### Tests
+- Sign-up, the email link sheet, New responder and the staff Profile each
+  refuse a mailinator.com address in the app's words.
+
+---
+
 ## v1.12.29 — 7 November 2026 — First and last name, and the email confirmed in Gmail
 
 With backend v1.12.22: deploy it first. This app works with v1.12.21 too, but
