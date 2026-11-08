@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../theme.dart';
 import 'app_icons.dart';
@@ -1042,6 +1045,7 @@ class FootedScroll extends StatelessWidget {
     required this.footer,
     this.padding = EdgeInsets.zero,
     this.gap = 32,
+    this.topRoom = 0,
   });
 
   final List<Widget> content;
@@ -1051,37 +1055,190 @@ class FootedScroll extends StatelessWidget {
   /// The least space kept between the content and the footer.
   final double gap;
 
+  /// Up to this much of the room the page has to spare goes above the
+  /// content, and the rest above the footer. With less to spare, the room
+  /// above shrinks first, so the page fits a shorter screen or a larger font
+  /// without scrolling; with none, the content starts at the top and the
+  /// page scrolls (the keyboard up, a very large font). The sign-in screen:
+  /// 8 November, "why is the sign-in screen scrollable?".
+  final double topRoom;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: padding,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: (constraints.maxHeight - padding.vertical).clamp(
-              0,
-              double.infinity,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: content,
-              ),
-              Padding(
-                padding: EdgeInsets.only(top: gap),
-                child: footer,
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (context, constraints) {
+        final minHeight = math.max(
+          0.0,
+          constraints.maxHeight - padding.vertical,
+        );
+        final body = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: content,
+        );
+        final foot = Padding(
+          padding: EdgeInsets.only(top: gap),
+          child: footer,
+        );
+        return SingleChildScrollView(
+          padding: padding,
+          child: topRoom > 0
+              ? _FootedLayout(
+                  minHeight: minHeight,
+                  topRoom: topRoom,
+                  children: [body, foot],
+                )
+              : ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: minHeight),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [body, foot],
+                  ),
+                ),
+        );
+      },
     );
   }
+}
+
+/// [FootedScroll] with room above: its content, then its footer, at least
+/// [minHeight] tall. The room to spare goes above the content, up to
+/// [topRoom], and the rest above the footer, which sits at the foot. Laid
+/// out for real rather than from intrinsic heights, which a text held to a
+/// narrower width than the page reports for the wrong width.
+class _FootedLayout extends MultiChildRenderObjectWidget {
+  const _FootedLayout({
+    required this.minHeight,
+    required this.topRoom,
+    required super.children,
+  });
+
+  final double minHeight;
+  final double topRoom;
+
+  @override
+  _RenderFootedLayout createRenderObject(BuildContext context) =>
+      _RenderFootedLayout(minHeight: minHeight, topRoom: topRoom);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderFootedLayout renderObject,
+  ) {
+    renderObject
+      ..minHeight = minHeight
+      ..topRoom = topRoom;
+  }
+}
+
+class _FootedParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderFootedLayout extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _FootedParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _FootedParentData> {
+  _RenderFootedLayout({required double minHeight, required double topRoom})
+    : _minHeight = minHeight,
+      _topRoom = topRoom;
+
+  double _minHeight;
+  set minHeight(double value) {
+    if (value == _minHeight) return;
+    _minHeight = value;
+    markNeedsLayout();
+  }
+
+  double _topRoom;
+  set topRoom(double value) {
+    if (value == _topRoom) return;
+    _topRoom = value;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _FootedParentData) {
+      child.parentData = _FootedParentData();
+    }
+  }
+
+  BoxConstraints _childConstraints(BoxConstraints constraints) =>
+      BoxConstraints.tightFor(width: constraints.maxWidth);
+
+  double _height(BoxConstraints constraints, double needed) =>
+      constraints.constrainHeight(math.max(needed, _minHeight));
+
+  @override
+  void performLayout() {
+    final content = firstChild!;
+    final footer = childAfter(content)!;
+    final inner = _childConstraints(constraints);
+    content.layout(inner, parentUsesSize: true);
+    footer.layout(inner, parentUsesSize: true);
+    final needed = content.size.height + footer.size.height;
+    final height = _height(constraints, needed);
+    final room = math.max(0.0, height - needed);
+    (content.parentData! as _FootedParentData).offset = Offset(
+      0,
+      math.min(room, _topRoom),
+    );
+    (footer.parentData! as _FootedParentData).offset = Offset(
+      0,
+      height - footer.size.height,
+    );
+    size = Size(constraints.maxWidth, height);
+  }
+
+  @override
+  Size computeDryLayout(covariant BoxConstraints constraints) {
+    final inner = _childConstraints(constraints);
+    var needed = 0.0;
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      needed += child.getDryLayout(inner).height;
+    }
+    return Size(constraints.maxWidth, _height(constraints, needed));
+  }
+
+  double _sum(double Function(RenderBox child) measure) {
+    var total = 0.0;
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      total += measure(child);
+    }
+    return total;
+  }
+
+  double _widest(double Function(RenderBox child) measure) {
+    var widest = 0.0;
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      widest = math.max(widest, measure(child));
+    }
+    return widest;
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      math.max(_minHeight, _sum((c) => c.getMinIntrinsicHeight(width)));
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      math.max(_minHeight, _sum((c) => c.getMaxIntrinsicHeight(width)));
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      _widest((c) => c.getMinIntrinsicWidth(height));
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      _widest((c) => c.getMaxIntrinsicWidth(height));
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }
 
 /// Standard page padding: 24px sides, matching the 402px design frame.

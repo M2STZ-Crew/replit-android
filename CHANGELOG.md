@@ -6,6 +6,33 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.32 — 8 November 2026 — The sign-in screen fits without scrolling
+
+App only. No new permission or dependency.
+
+### Changes
+
+**UI**
+- **The sign-in screen fits the screen** (8 November: "why the sign-in
+  screen is scrollable?"). A fixed 120 above the title made the page a
+  little taller than a phone with a wider system font, and more so with the
+  affiliate line, so it scrolled. Now the room above the title gives way
+  first (up to 104, so the title still sits 120 down on the design frame),
+  and the page scrolls only when it cannot fit at all: the keyboard up, a very
+  large font, a small phone. A few gaps are tighter (32 under the subtitle, 18
+  above SIGN IN, 12 above the hotline note). With Roboto it fits a 393 × 780
+  screen up to a 1.2 font scale; a 360 × 700 one still scrolls a little.
+- `FootedScroll.topRoom` lays the content and footer out for real rather
+  than from intrinsic heights, which a text held narrower than the page (the
+  subtitle, 306 wide) reports for the wrong width.
+
+### Tests
+- `test/login_fit_test.dart`: the room above the title gives way before the
+  page scrolls; with room to spare the title sits 120 down and the footer at
+  the foot; a very large font scrolls and nothing overflows.
+
+---
+
 ## v1.12.31 — 8 November 2026 — The update banner on the home screen, one look for every Profile, affiliates from sign-in
 
 App only; no backend change. No new permission or dependency.
