@@ -202,10 +202,18 @@ class MainActivity : FlutterActivity() {
      * - updates: General notifications
      *
      * NEW CITIZEN NOTIFICATION CHANNELS:
-     * - citizen_verified_v1: Incident Verified
+     * - citizen_verified_v2: Incident Verified
      * - citizen_on_route_v1: Responders On Route
      * - citizen_on_scene_v1: Responders On Scene
      * - citizen_fire_out_v1: Fire Out
+     * - citizen_rejected_v1: Report Rejected
+     *
+     * v1.12.33 (9 November): sound_rejected is new, and it sorts before
+     * sound_verified, so on a phone whose channels predate v1.12.23 (made by
+     * resource number, below) "citizen_verified_v1" would play the rejected
+     * recording. Verified moved to "citizen_verified_v2", made by name, and
+     * the old channel is deleted. The server names the same ids
+     * (app/integrations/fcm.py SOUND_CHANNELS in replit-backend).
      *
      * Android notification channel sounds are established
      * when the channel is first created.
@@ -227,8 +235,10 @@ class MainActivity : FlutterActivity() {
         val manager =
             getSystemService(NotificationManager::class.java) ?: return
 
-        // Remove obsolete legacy channel.
+        // Remove obsolete legacy channels. citizen_verified_v1 may hold
+        // sound_verified by number, which sound_rejected moved (v1.12.33).
         manager.deleteNotificationChannel("fire_alerts")
+        manager.deleteNotificationChannel("citizen_verified_v1")
 
         // Audio configuration.
         val attributes = AudioAttributes.Builder()
@@ -365,7 +375,7 @@ class MainActivity : FlutterActivity() {
 
                 // NEW: Incident Verified
                 citizenStage(
-                    "citizen_verified_v1",
+                    "citizen_verified_v2",
                     "Incident verified",
                     R.raw.sound_verified
                 ),
@@ -389,6 +399,14 @@ class MainActivity : FlutterActivity() {
                     "citizen_fire_out_v1",
                     "Fire out",
                     R.raw.sound_fire_out
+                ),
+
+                // NEW: Report Rejected (v1.12.33), where it played the
+                // general "Report updates" recording.
+                citizenStage(
+                    "citizen_rejected_v1",
+                    "Report rejected",
+                    R.raw.sound_rejected
                 ),
 
                 // EXISTING: Silent reminders

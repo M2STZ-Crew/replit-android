@@ -5,7 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// the pilot), for a push that arrives while the app is open. The push names
 /// its sound in `sound_category` — fire, police, medical, barangay, citizen,
 /// or a stage of an incident the resident reported: verified, on_route,
-/// on_scene, fire_out. With the app closed the phone plays the same recording
+/// on_scene, fire_out, rejected (v1.12.33; it played the general one). With
+/// the app closed the phone plays the same recording
 /// itself, from that sound's notification channel
 /// (android/.../res/raw/`sound_<category>.mp3` — keep them the same as
 /// assets/sounds/; test/sound_files_test.dart checks).
@@ -31,6 +32,7 @@ class SoundCues {
     'on_route',
     'on_scene',
     'fire_out',
+    'rejected',
   };
 
   /// The staff member's own agency's sound: fire for Fire Volunteers and BFP.

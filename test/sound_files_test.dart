@@ -28,15 +28,16 @@ void main() {
     }
   });
 
-  test('the stages of an incident are the four the server names', () {
+  test('the stages of an incident are the five the server names', () {
     // app/services/incident_notify.py _REPORTER_SOUNDS: verified, en route,
-    // arrived, resolved. Reported has none.
+    // arrived, resolved, rejected. Reported has none.
     expect(
       SoundCues.categories.containsAll({
         'verified',
         'on_route',
         'on_scene',
         'fire_out',
+        'rejected',
       }),
       isTrue,
     );
@@ -60,17 +61,17 @@ void main() {
       'sound_on_route.mp3',
       'sound_on_scene.mp3',
       'sound_police.mp3',
+      'sound_rejected.mp3',
       'sound_verified.mp3',
     ]);
   });
 
   test('each stage of an incident has a recording of its own', () {
-    // Known: the On Scene recording has not been made. sound_on_scene.mp3 is
-    // a copy of sound_on_route.mp3 (one ElevenLabs file, 28 Oct), so On Scene
-    // still announces On Route. Replace both copies of sound_on_scene.mp3 with
-    // the real recording, under the same name, and delete this exception.
-    const knownCopies = {'on_scene': 'on_route'};
-    const stages = ['verified', 'on_route', 'on_scene', 'fire_out'];
+    // 9 November: "the phase is en route but the sound is on scene". From
+    // 28 Oct sound_on_route.mp3 was a copy of sound_on_scene.mp3, which an
+    // exception here let through. The En route recording replaced it, Rejected
+    // got its own, and no two stages may share a file again.
+    const stages = ['verified', 'on_route', 'on_scene', 'fire_out', 'rejected'];
     final copies = <String>[];
     for (var i = 0; i < stages.length; i++) {
       for (var j = i + 1; j < stages.length; j++) {
@@ -81,7 +82,6 @@ void main() {
         )) {
           continue;
         }
-        if (knownCopies[b] == a || knownCopies[a] == b) continue;
         copies.add('sound_$a.mp3 = sound_$b.mp3');
       }
     }
