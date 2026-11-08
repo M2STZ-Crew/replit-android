@@ -6,6 +6,48 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.31 — 8 November 2026 — The update banner on the home screen, one look for every Profile, affiliates from sign-in
+
+App only; no backend change. No new permission or dependency.
+
+### Changes
+
+**Logic**
+- **"There's a new update!" on the home screen** (8 November: "why there's no
+  banner in the home screen?"). It was a pop-up for ten seconds, after a look
+  at most every six hours that counted a look which found nothing: a release
+  out an hour after a look went unseen for hours, and a pop-up shown as the
+  home screen was drawn was easy to miss. Now the app looks every time it
+  opens and on coming back to the front, at most every 15 minutes (the
+  release's `latest.json`, a small file, not GitHub's rate-limited API), and
+  the banner stays at the top of the home screen until UPDATE or ×: the
+  resident's map, the coordinator's Queue, the responder's Duty
+  (`lib/updates/update_banner.dart`). × keeps it away until a newer release.
+- **An iPhone is told too.** Nothing sideloaded can update itself, so its
+  banner says "RepLiT 1.12.31 is out. Install it with Sideloadly, as before.",
+  with only ×. Its build numbers count apart from Android's (8 to 52), so it
+  compares versions.
+
+**UI**
+- **The resident's Profile looks like the coordinator's and the responder's**
+  (8 November): every row has its icon plate, the same one where staff have
+  the row too (a key for Change password, an eye for Light mode), on the
+  shared `ListRow`, under the same section headers.
+- **"Want to be an affiliate? REGISTER HERE"** under "New to the app? CREATE
+  ACCOUNT" on the sign-in screen opens the Admin console's affiliation form
+  (replit-backend-5u9u.vercel.app/register) in the browser, or says where it
+  is when no browser opens. In Tagalog too.
+
+### Tests
+- `test/update_nudge_test.dart`, rewritten: a look every time the app opens
+  and at most every 15 minutes on coming back; a release out after a look
+  that found nothing shows 15 minutes on; the banner stays; × until a newer
+  one; an iPhone is told to use Sideloadly. The banner on the map, the Queue
+  and Duty, not on the other tabs; an iPhone's check compares versions. The
+  affiliate link and its fallback; every Profile row's icon.
+
+---
+
 ## v1.12.30 — 7 November 2026 — Burner email addresses are refused
 
 With backend v1.12.23, which refuses them; deploy it first. On an older
