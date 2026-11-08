@@ -19,6 +19,8 @@ import 'package:replit/location/responder_tracker.dart';
 import 'package:replit/screens/responder/responder_incident_screen.dart';
 import 'package:replit/screens/responder/responder_shell.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/updates/app_updates.dart';
+import 'package:replit/updates/update_nudge.dart';
 import 'package:replit/widgets/coordinator_kit.dart';
 import 'package:replit/widgets/map_layers.dart';
 
@@ -225,6 +227,25 @@ void main() {
   });
 
   group('Duty', () {
+    // 8 November: Duty is a responder's home screen.
+    testWidgets('"There\'s a new update!" above Duty, not on the other '
+        'tabs', (tester) async {
+      addTearDown(UpdateNudge.reset);
+      UpdateNudge.waiting.value = const AvailableRelease(
+        version: '1.12.31',
+        build: 53,
+      );
+      await shell(tester);
+      expect(tester.takeException(), isNull);
+      final banner = find.text("There's a new update!");
+      expect(banner, findsOneWidget);
+      await tab(tester, 'Alerts');
+      expect(banner, findsNothing);
+      await tab(tester, 'Duty');
+      expect(banner, findsOneWidget);
+      await done(tester);
+    });
+
     testWidgets('what needs the unit, newest first, and the counters', (
       tester,
     ) async {

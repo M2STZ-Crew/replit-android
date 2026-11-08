@@ -31,4 +31,12 @@ class ApiConfig {
   /// someone else's domain, which answered with a redirect — and the app could
   /// only say that it could not reach the server.
   static String get host => Uri.parse(baseUrl).host;
+
+  /// The public affiliation form, in the Admin console: an organisation (a
+  /// fire brigade, a barangay) applies to join RepLiT there. "Want to be an
+  /// affiliate? REGISTER HERE" on the sign-in screen opens it.
+  static const String affiliateRegisterUrl = String.fromEnvironment(
+    'REPLIT_AFFILIATE_REGISTER',
+    defaultValue: 'https://replit-backend-5u9u.vercel.app/register',
+  );
 }

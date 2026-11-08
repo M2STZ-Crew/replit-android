@@ -313,6 +313,10 @@ const Map<String, String> kTagalog = {
   'Locked out or offline? Hotlines need no account and no internet.':
       'Hindi maka-sign in o offline? Hindi kailangan ng account o internet sa mga hotline.',
   'New to the app?': 'Bago ka sa app?',
+  'Want to be an affiliate?': 'Gusto mo bang maging affiliate?',
+  'Register here': 'Magparehistro dito',
+  'Could not open the page. Visit {url}.':
+      'Hindi mabuksan ang page. Pumunta sa {url}.',
   'Create account': 'Gumawa ng account',
   'A saved report was turned down: {why}':
       'Hindi tinanggap ang isang naka-save na report: {why}',
@@ -582,6 +586,8 @@ const Map<String, String> kTagalog = {
   'RepLiT {version} is ready to install.':
       'Handa nang i-install ang RepLiT {version}.',
   'UPDATE': 'I-UPDATE',
+  'RepLiT {version} is out. Install it with Sideloadly, as before.':
+      'Labas na ang RepLiT {version}. I-install ito sa Sideloadly, gaya ng dati.',
   // WHAT'S NEXT, 1.2: Change password, for residents and staff.
   'Change password': 'Palitan ang password',
   'CHANGE PASSWORD': 'PALITAN ANG PASSWORD',

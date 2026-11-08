@@ -113,6 +113,28 @@ class UpdateCheckFailed extends UpdateCheck {
   final String code;
 }
 
+/// Whether [version] ("1.12.31") is later than [than] ("1.12.30"), number by
+/// number; false when either is not a version (an iPhone's, read too early).
+bool isNewerVersion(String version, {required String than}) {
+  List<int>? numbers(String v) {
+    final core = v.trim().split('+').first.split('-').first;
+    if (core.isEmpty) return null;
+    final parts = [for (final p in core.split('.')) int.tryParse(p)];
+    return parts.contains(null) ? null : parts.cast<int>();
+  }
+
+  final a = numbers(version);
+  final b = numbers(than);
+  if (a == null || b == null) return false;
+  final length = a.length > b.length ? a.length : b.length;
+  for (var i = 0; i < length; i++) {
+    final x = i < a.length ? a[i] : 0;
+    final y = i < b.length ? b[i] : 0;
+    if (x != y) return x > y;
+  }
+  return false;
+}
+
 /// An install that did not go through, and why.
 class UpdateInstallFailed implements Exception {
   const UpdateInstallFailed(this.code);
@@ -155,6 +177,11 @@ abstract final class AppUpdates {
   @visibleForTesting
   static bool? supportedOverride;
 
+  /// Whether this phone is told of a newer release ("There's a new update!"):
+  /// Android, which installs it, and an iPhone, which is only told.
+  static bool get canTell =>
+      supported || (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS);
+
   @visibleForTesting
   static Future<UpdateCheck> Function()? checkOverride;
 
@@ -167,6 +194,8 @@ abstract final class AppUpdates {
   static http.Client Function()? clientOverride;
   @visibleForTesting
   static int? installedBuildOverride;
+  @visibleForTesting
+  static String? installedVersionOverride;
 
   /// What the last [check] found, for [install].
   static AvailableRelease? _found;
@@ -194,6 +223,14 @@ abstract final class AppUpdates {
         jsonDecode(utf8.decode(response.bodyBytes)),
       );
       if (release == null) return const UpdateCheckFailed('BAD_RELEASE');
+      if (!supported) {
+        // An iPhone: its build numbers count apart from Android's, so the
+        // version decides, and there is nothing to download.
+        final installed = installedVersionOverride ?? AppVersion.version;
+        return isNewerVersion(release.version, than: installed)
+            ? UpdateAvailable(release)
+            : const UpToDate();
+      }
       final installed = installedBuildOverride ?? AppVersion.build;
       if (installed != null && release.build <= installed) {
         // Installed already: an APK still waiting in the cache is not

@@ -27,6 +27,7 @@ import '../widgets/you_are_here.dart';
 import 'onboarding_screen.dart' show Tour;
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../updates/update_banner.dart';
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
@@ -920,6 +921,9 @@ class _MapScreenState extends State<MapScreen> {
             // tab on the bar since the overhaul.
             Align(alignment: Alignment.centerLeft, child: _localityPill()),
             const SizedBox(height: 16),
+            // "There's a new update!", while one is waiting: the map is the
+            // resident's home screen.
+            const UpdateBanner(padding: EdgeInsets.only(bottom: 16)),
             if (queued.isNotEmpty)
               _queueCard(queued)
             else ...[

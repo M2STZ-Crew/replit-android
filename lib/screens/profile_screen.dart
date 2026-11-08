@@ -16,6 +16,7 @@ import '../updates/app_updates.dart';
 import '../theme.dart';
 import '../theme_choice.dart';
 import '../widgets/app_nav_bar.dart';
+import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import '../widgets/notification_bell.dart';
 import 'edit_profile_screen.dart';
@@ -343,9 +344,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 _details(),
                 const SizedBox(height: 20),
-                Eyebrow(t('Settings'), color: context.pal.muted),
-                const SizedBox(height: 8),
+                SectionHeader(t('Settings')),
+                const SizedBox(height: 12),
                 _Toggle(
+                  icon: AppIcons.notificationsActive,
                   title: t('Barangay alerts'),
                   line: t(
                     'Fires reported within 150 m, and news on your reports',
@@ -357,6 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_canAskAllTheTime && _alerts) ...[
                   const SizedBox(height: 8),
                   _Link(
+                    icon: AppIcons.myLocation,
                     title: t('Fire alerts with the app closed'),
                     line: _allTheTime
                         ? t(
@@ -372,6 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
                 const SizedBox(height: 8),
                 _Toggle(
+                  icon: AppIcons.visibility,
                   title: t('Light mode'),
                   line: t('The pale ground, for daylight'),
                   value: ThemeChoice.light.value,
@@ -381,58 +385,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                Panel(
-                  radius: AppRadius.card,
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(t('Language'), style: context.type.label),
-                      const SizedBox(height: 5),
-                      Text(
-                        t('Your alerts come in the same language'),
-                        style: context.type.caption,
-                      ),
-                      const SizedBox(height: 10),
-                      LanguageSwitch(api: _api),
-                    ],
-                  ),
+                // As on a coordinator's and a responder's Profile.
+                ListRow(
+                  leading: const IconPlate(AppIcons.campaign),
+                  title: t('Language'),
+                  subtitle: t('Your alerts come in the same language'),
                 ),
                 const SizedBox(height: 8),
+                LanguageSwitch(api: _api),
+                const SizedBox(height: 8),
                 _Link(
+                  icon: AppIcons.key,
                   title: t('Change password'),
                   line: t('Signs you out of your other phones'),
                   onTap: () => ChangePasswordScreen.open(context, api: _api),
                 ),
                 const SizedBox(height: 8),
                 _Link(
+                  icon: AppIcons.send,
                   title: t('Send a test alert'),
                   line: _testNote ?? t('Check this phone receives them'),
                   busy: _testing,
                   onTap: _testing ? null : _sendTest,
                 ),
                 const SizedBox(height: 20),
-                Eyebrow(t('More'), color: context.pal.muted),
-                const SizedBox(height: 8),
+                SectionHeader(t('More')),
+                const SizedBox(height: 12),
                 _Link(
+                  icon: AppIcons.assignment,
                   title: t('Your reports'),
                   line: t('Everything you have sent, and where it got to'),
                   onTap: () => _push(const MyReportsScreen()),
                 ),
                 const SizedBox(height: 8),
                 _Link(
+                  icon: AppIcons.notifications,
                   title: t('Notifications'),
                   line: t('Alerts and updates sent to you'),
                   onTap: () => _push(const NotificationsScreen()),
                 ),
                 const SizedBox(height: 8),
                 _Link(
+                  icon: AppIcons.help,
                   title: t('Help center'),
                   line: t('How reporting works, and what happens next'),
                   onTap: () => _push(const HelpCenterScreen()),
                 ),
                 const SizedBox(height: 8),
                 _Link(
+                  icon: AppIcons.info,
                   title: t('About RepLiT'),
                   line: t('Emergency reporting for Pasay City'),
                   onTap: _about,
@@ -440,6 +441,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (AppUpdates.supported) ...[
                   const SizedBox(height: 8),
                   _Link(
+                    icon: AppIcons.download,
                     title: t('Check for updates'),
                     line: AppVersion.label.isEmpty
                         ? t('Get the newest version of RepLiT')
@@ -685,9 +687,12 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// A 58px settings row with a switch.
+/// A settings row with a switch: the shared [ListRow], icon plate first, as
+/// on a coordinator's and a responder's Profile (8 November: the resident's
+/// rows had no icons where the coordinator's did).
 class _Toggle extends StatelessWidget {
   const _Toggle({
+    required this.icon,
     required this.title,
     required this.line,
     required this.value,
@@ -695,6 +700,7 @@ class _Toggle extends StatelessWidget {
     this.busy = false,
   });
 
+  final IconData icon;
   final String title;
   final String line;
   final bool value;
@@ -703,39 +709,28 @@ class _Toggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Panel(
-      radius: AppRadius.card,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title, style: context.type.label),
-                const SizedBox(height: 5),
-                Text(line, style: context.type.caption),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Switch(value: value, onChanged: busy ? null : onChanged),
-        ],
-      ),
+    return ListRow(
+      leading: IconPlate(icon),
+      title: title,
+      subtitle: line,
+      trailing: Switch(value: value, onChanged: busy ? null : onChanged),
+      onTap: busy ? null : () => onChanged(!value),
     );
   }
 }
 
-/// A 58px row that opens something.
+/// A row that opens something: the shared [ListRow], icon plate first, with
+/// a chevron, or a spinner while it works.
 class _Link extends StatelessWidget {
   const _Link({
+    required this.icon,
     required this.title,
     required this.line,
     this.onTap,
     this.busy = false,
   });
 
+  final IconData icon;
   final String title;
   final String line;
   final VoidCallback? onTap;
@@ -743,33 +738,19 @@ class _Link extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Panel(
-      radius: AppRadius.card,
+    return ListRow(
+      leading: IconPlate(icon),
+      title: title,
+      subtitle: line,
+      chevron: !busy,
+      trailing: busy
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : null,
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title, style: context.type.label),
-                const SizedBox(height: 5),
-                Text(line, style: context.type.caption),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          busy
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Icon(AppIcons.chevronRight, size: 18, color: context.pal.muted),
-        ],
-      ),
     );
   }
 }

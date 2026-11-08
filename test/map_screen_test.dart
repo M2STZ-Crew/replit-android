@@ -16,6 +16,8 @@ import 'package:replit/location/live_position.dart';
 import 'package:replit/models/hotline.dart';
 import 'package:replit/screens/map_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/updates/app_updates.dart';
+import 'package:replit/updates/update_nudge.dart';
 import 'package:replit/widgets/map_coach_marks.dart';
 
 /// The citizen map ("04 Map" and "05 Map — offline queue"): what the sheet
@@ -233,6 +235,27 @@ void main() {
     );
   }
 
+  // 8 November: the map is the resident's home screen.
+  testWidgets('"There\'s a new update!" under the locality pill while one is '
+      'waiting', (tester) async {
+    addTearDown(UpdateNudge.reset);
+    UpdateNudge.waiting.value = const AvailableRelease(
+      version: '1.12.31',
+      build: 53,
+    );
+    await pump(tester);
+    expect(tester.takeException(), isNull);
+    final banner = find.text("There's a new update!");
+    expect(banner, findsOneWidget);
+    expect(
+      tester.getTopLeft(banner).dy,
+      greaterThan(tester.getTopLeft(find.text('RESPONDERS').first).dy),
+    );
+    UpdateNudge.waiting.value = null;
+    await tester.pump();
+    expect(banner, findsNothing);
+  });
+
   testWidgets('the areas sheet drags down out of the way, and comes back', (
     tester,
   ) async {
@@ -316,7 +339,10 @@ void main() {
       await pump(tester);
       expect(tester.takeException(), isNull);
 
-      expect(find.text('Checking what is happening around you…'), findsOneWidget);
+      expect(
+        find.text('Checking what is happening around you…'),
+        findsOneWidget,
+      );
       expect(find.text('Area 1.2'), findsNothing);
       expect(find.text('Area 9.1'), findsNothing);
       expect(find.text('Evacuation site open'), findsNothing);
@@ -330,7 +356,10 @@ void main() {
     ) async {
       areasGate = Completer<void>();
       await pump(tester);
-      expect(find.text('Checking what is happening around you…'), findsOneWidget);
+      expect(
+        find.text('Checking what is happening around you…'),
+        findsOneWidget,
+      );
       expect(find.text('Area 1.2'), findsNothing);
 
       areasGate!.complete();

@@ -12,6 +12,10 @@ abstract final class AppVersion {
   /// Empty until [load] has run, and where the platform cannot say (tests).
   static String label = '';
 
+  /// The version name alone ("1.12.31"): what an iPhone compares, its
+  /// build numbers counting apart from Android's. Empty until [load].
+  static String version = '';
+
   /// The build number on its own — what "Check for updates" compares — or
   /// null until [load] has run.
   static int? build;
@@ -21,6 +25,7 @@ abstract final class AppVersion {
     try {
       final info = await PackageInfo.fromPlatform();
       build = int.tryParse(info.buildNumber);
+      version = info.version;
       label = info.buildNumber.isEmpty
           ? info.version
           : '${info.version} (${info.buildNumber})';

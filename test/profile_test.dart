@@ -15,6 +15,8 @@ import 'package:replit/models/phone_numbers.dart';
 import 'package:replit/screens/profile_screen.dart';
 import 'package:replit/screens/verification_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/widgets/app_icons.dart';
+import 'package:replit/widgets/coordinator_kit.dart';
 
 /// "15 Profile" and "16 Verification": every channel says where it really
 /// stands, and no setting is shown that does nothing.
@@ -96,6 +98,41 @@ void main() {
         expect(find.text('Share location always'), findsNothing);
       });
     }
+
+    // 8 November: "the components in coordinator have a logo (like change
+    // password has a key), while citizen hasn't". The same rows now, icon
+    // plate first, with the same icon where staff have the row too.
+    testWidgets('every row has its icon, as on a coordinator\'s Profile', (
+      tester,
+    ) async {
+      await pump(tester, ProfileScreen(api: api()));
+      for (final (title, icon) in [
+        ('Barangay alerts', AppIcons.notificationsActive),
+        ('Light mode', AppIcons.visibility),
+        ('Language', AppIcons.campaign),
+        ('Change password', AppIcons.key),
+        ('Send a test alert', AppIcons.send),
+        ('Your reports', AppIcons.assignment),
+        ('Notifications', AppIcons.notifications),
+        ('Help center', AppIcons.help),
+        ('About RepLiT', AppIcons.info),
+        ('Check for updates', AppIcons.download),
+      ]) {
+        final row = find.widgetWithText(ListRow, title);
+        await tester.scrollUntilVisible(
+          row,
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(row, findsOneWidget, reason: title);
+        expect(
+          find.descendant(of: row, matching: find.byIcon(icon)),
+          findsOneWidget,
+          reason: title,
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets('Language switches the whole screen to Tagalog and back', (
       tester,

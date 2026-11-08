@@ -22,6 +22,8 @@ import 'package:replit/screens/coordinator/my_decisions_screen.dart';
 import 'package:replit/screens/coordinator/report_detail_screen.dart';
 import 'package:replit/screens/subadmin/report_filed_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/updates/app_updates.dart';
+import 'package:replit/updates/update_nudge.dart';
 import 'package:replit/widgets/coordinator_kit.dart';
 
 /// The Coordinator Experience (REPLIT (MAIN) 06): the queue counts what
@@ -237,6 +239,28 @@ void main() {
       expect(find.text('REPORTS TO FILE'), findsOneWidget);
       expect(find.text('FILE REPORT'), findsOneWidget);
       expect(find.textContaining('waiting 16 h'), findsOneWidget);
+      await done(tester);
+    });
+
+    // 8 November: the Queue is a coordinator's home screen.
+    testWidgets('"There\'s a new update!" above the Queue, not on the other '
+        'tabs', (tester) async {
+      addTearDown(UpdateNudge.reset);
+      UpdateNudge.waiting.value = const AvailableRelease(
+        version: '1.12.31',
+        build: 53,
+      );
+      await pump(tester, CoordinatorShell(me: me, api: api()));
+      expect(tester.takeException(), isNull);
+      final banner = find.text("There's a new update!");
+      expect(banner, findsOneWidget);
+      expect(
+        tester.getTopLeft(banner).dy,
+        lessThan(tester.getTopLeft(find.text('QUEUE')).dy),
+      );
+      await tester.tap(find.bySemanticsLabel(RegExp('^Codes, tab ')));
+      await settle(tester);
+      expect(banner, findsNothing);
       await done(tester);
     });
 
