@@ -6,6 +6,34 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.33 — 9 November 2026 — The En route sound, and a Rejected one
+
+With backend v1.12.25, which names the new channels: deploy it first. No new
+permission or dependency.
+
+### Changes
+
+**Sounds**
+- **En route plays the En route recording** (9 November: "the phase is en
+  route but the notification sound is on scene"). Since the stage recordings
+  came in on 28 October, `sound_on_route.mp3` was a copy of
+  `sound_on_scene.mp3`, for everyone who reported; a test let it through as a
+  known copy. Both copies of it (res/raw, which a closed app's channel plays,
+  and assets/sounds, which the open app plays) now hold the En route recording.
+- **Rejected has its own recording**, where a rejected report played the
+  general "Report updates" one: a new channel, "Report rejected"
+  (`citizen_rejected_v1`).
+- **"Incident verified" moved to a new channel** (`citizen_verified_v2`).
+  `sound_rejected` sorts before `sound_verified`, so on a phone whose channels
+  predate v1.12.23 (held by resource number) the old channel would have played
+  the rejected recording. The old channel is deleted.
+
+### Tests
+- `test/sound_files_test.dart`: no two stages share a recording, with no
+  exception any more; the five stages; res/raw's new list.
+
+---
+
 ## v1.12.32 — 8 November 2026 — The sign-in screen fits without scrolling
 
 App only. No new permission or dependency.
