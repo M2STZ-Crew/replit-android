@@ -241,12 +241,17 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: context.pal.background,
       body: SafeArea(
-        // The sign-up line sits at the foot, as in the frame, and the page
-        // still scrolls when the keyboard or a large font scale takes the room.
+        // The sign-up lines sit at the foot, as in the frame. The room above
+        // the title gives way first on a shorter screen or with a larger
+        // font, so the page fits without scrolling (8 November); it scrolls
+        // only when the keyboard or a very large font leaves no room.
         child: FootedScroll(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+          gap: 16,
+          // With room to spare the title sits 120 down, as in the frame.
+          topRoom: 104,
           content: [
-            const SizedBox(height: 120),
+            const SizedBox(height: 16),
             Text(t('WELCOME BACK'), style: context.type.display),
             const SizedBox(height: 10),
             Align(
@@ -262,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 42),
+            const SizedBox(height: 32),
             LabeledField(
               key: ValueKey(_byEmail),
               label: _byEmail ? t('Email address') : t('Mobile number'),
@@ -331,7 +336,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextLink(t('Forgot password?'), onTap: _recoverDialog),
               ],
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
             AppButton(
               t('Sign in'),
               height: 54,
@@ -359,7 +364,7 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: AppIcons.call,
               onPressed: _hotlines,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Panel(
               radius: AppRadius.card,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
