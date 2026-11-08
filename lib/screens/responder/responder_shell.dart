@@ -12,6 +12,7 @@ import 'responder_feed.dart';
 import 'responder_profile_tab.dart';
 import 'run_tab.dart';
 import '../../i18n/i18n.dart';
+import '../../updates/update_banner.dart';
 
 /// The responder's five destinations (REPLIT (MAIN) 07 · Responder): Duty,
 /// Map, the raised RUN disc, Alerts, Profile.
@@ -110,15 +111,21 @@ class ResponderShellState extends State<ResponderShell> {
         backgroundColor: context.pal.background,
         // The field map draws under the bar's raised disc.
         extendBody: true,
-        body: IndexedStack(
-          index: _tab.index,
-          children: [
-            for (final t in ResponderTab.values)
-              TickerMode(
-                enabled: t == _tab,
-                child: _built.contains(t) ? _build(t) : const SizedBox.shrink(),
-              ),
-          ],
+        // "There's a new update!" above the home tab, while one is waiting.
+        body: UpdateBannerSlot(
+          visible: _tab == ResponderTab.duty,
+          child: IndexedStack(
+            index: _tab.index,
+            children: [
+              for (final t in ResponderTab.values)
+                TickerMode(
+                  enabled: t == _tab,
+                  child: _built.contains(t)
+                      ? _build(t)
+                      : const SizedBox.shrink(),
+                ),
+            ],
+          ),
         ),
         bottomNavigationBar: NavBarShell(
           disc: t('RUN'),

@@ -125,7 +125,7 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
     if (state != AppLifecycleState.resumed) return;
     _keepLocationFresh();
     unawaited(_syncClosedReports());
-    // Back to the front: a newer release? (At most every six hours.)
+    // Back to the front: a newer release? (At most every 15 minutes.)
     unawaited(UpdateNudge.maybeCheck());
     if (!Session.instance.isAuthenticated || ReportComposer.active) return;
     final report = ActiveReportStore.mine;

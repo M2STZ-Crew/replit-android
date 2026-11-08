@@ -76,8 +76,9 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    // "There's a new update!" waits for the screen after this one.
-    UpdateNudge.hold = true;
+    // A newer release? Looked for while the splash is up, so the home screen
+    // has the banner as it appears.
+    unawaited(UpdateNudge.start());
     _trigger = Timer(SplashScreen.triggerFor, () {
       if (!mounted) return;
       setState(() => _loading = true);
@@ -88,7 +89,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    UpdateNudge.hold = false;
     _trigger?.cancel();
     _slowTimer?.cancel();
     _loader.dispose();
@@ -158,9 +158,6 @@ class _SplashScreenState extends State<SplashScreen>
     } else {
       unawaited(navigator.pushReplacement(route));
     }
-    // Past the splash: a newer release? (At most every six hours.)
-    UpdateNudge.hold = false;
-    unawaited(UpdateNudge.maybeCheck());
   }
 
   @override

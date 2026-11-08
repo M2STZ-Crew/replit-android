@@ -358,6 +358,43 @@ void main() {
       await pump(tester, LoginScreen(api: api()));
       expect(find.text('Bago ka sa app?'), findsOneWidget);
       expect(find.text('GUMAWA NG ACCOUNT'), findsOneWidget);
+      expect(find.text('Gusto mo bang maging affiliate?'), findsOneWidget);
+      expect(find.text('MAGPAREHISTRO DITO'), findsOneWidget);
+    });
+
+    // 8 November: an organisation applies to join in the Admin console.
+    testWidgets('"Want to be an affiliate? REGISTER HERE" opens the '
+        'affiliation form', (tester) async {
+      final opened = <Uri>[];
+      await pump(
+        tester,
+        LoginScreen(
+          api: api(),
+          openLink: (uri) async {
+            opened.add(uri);
+            return true;
+          },
+        ),
+      );
+      expect(find.text('Want to be an affiliate?'), findsOneWidget);
+      await tap(tester, find.text('REGISTER HERE'));
+      expect(opened, [
+        Uri.parse('https://replit-backend-5u9u.vercel.app/register'),
+      ]);
+    });
+
+    testWidgets('no browser to open it: it says where the form is', (
+      tester,
+    ) async {
+      await pump(tester, LoginScreen(api: api(), openLink: (_) async => false));
+      await tap(tester, find.text('REGISTER HERE'));
+      expect(
+        find.text(
+          'Could not open the page. Visit '
+          'replit-backend-5u9u.vercel.app/register.',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('by email, first', (tester) async {

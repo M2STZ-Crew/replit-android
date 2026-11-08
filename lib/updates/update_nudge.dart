@@ -1,134 +1,101 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../api/push_service.dart';
-import '../i18n/i18n.dart';
-import '../theme.dart';
 import 'app_updates.dart';
 
-/// "There's a new update!" (WHAT'S NEXT, 1.1). On Android the app looks for a
-/// newer release by itself — once it is past the splash, and when it comes
-/// back to the front, at most every [every] — and says so in a banner like an
-/// alert's. UPDATE opens Check for updates; closing the banner keeps it away
-/// until a release newer than that one. A banner left to time out comes back
-/// at the next look. iPhones are sideloaded and cannot update themselves, so
-/// nothing happens there ([AppUpdates.supported]).
+/// "There's a new update!" (WHAT'S NEXT, 1.1), on the home screens.
+///
+/// The app looks for a newer release every time it opens, and again whenever
+/// it comes back to the front, at most every [every]: the newest release is a
+/// small file on GitHub's releases, not its rate-limited API. One it finds
+/// waits in [waiting], and the home screens draw it as a banner that stays
+/// (UpdateBanner): the resident's map, the coordinator's Queue, the
+/// responder's Duty. Closing it keeps it away until a release newer than that
+/// one; installing it makes the next look find nothing.
+///
+/// Until v1.12.31 it looked at most every six hours, counting a look that
+/// found nothing, and said so in a pop-up for ten seconds: a release out an
+/// hour after a look went unseen for hours, and a pop-up shown as the home
+/// screen was drawn was easy to miss. And an iPhone never looked. Now one is
+/// told a newer version is out, to install with Sideloadly as before, since
+/// nothing sideloaded can update itself (only Android installs:
+/// [AppUpdates.supported]).
 abstract final class UpdateNudge {
-  /// The longest a look waits for the last one.
-  static const Duration every = Duration(hours: 6);
+  /// Coming back to the front looks again only this long after the last look.
+  static const Duration every = Duration(minutes: 15);
 
-  /// How long the banner stays without a tap, as an alert's does.
-  static const Duration showFor = Duration(seconds: 10);
-
-  static const String _lookedKey = 'update_looked_at_v1';
+  /// The release closed with ×: Android's build number, an iPhone's version
+  /// (an iPhone's builds count apart from Android's).
   static const String _closedKey = 'update_closed_build_v1';
+  static const String _closedVersionKey = 'update_closed_version_v1';
 
-  /// While the splash is up, looks wait: the banner belongs on the screen
-  /// after it. The splash lets go as it hands over, and looks then.
-  static bool hold = false;
+  /// The newer release the home screens' banner shows, or null.
+  static final ValueNotifier<AvailableRelease?> waiting = ValueNotifier(null);
 
+  static DateTime? _lookedAt;
   static bool _looking = false;
 
   @visibleForTesting
   static DateTime Function() now = DateTime.now;
 
-  /// Look for a newer release, unless one looked in the last [every], and
-  /// show the banner for one this phone has not closed it for.
+  /// Look as the app opens, however recent the last look was.
+  static Future<void> start() => _look();
+
+  /// Look on coming back to the front, unless one looked in the last [every].
   static Future<void> maybeCheck() async {
-    if (!AppUpdates.supported || hold || _looking) return;
+    final last = _lookedAt;
+    if (last != null && now().difference(last) < every) return;
+    await _look();
+  }
+
+  static Future<void> _look() async {
+    if (!AppUpdates.canTell || _looking) return;
     _looking = true;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final last = prefs.getInt(_lookedKey);
-      final at = now();
-      if (last != null &&
-          at.difference(DateTime.fromMillisecondsSinceEpoch(last)) < every) {
-        return;
-      }
       final found = await AppUpdates.check();
-      // No answer (offline, GitHub down): look again next time instead.
+      // No answer (offline, GitHub down): what is shown stays, and the next
+      // look tries again.
       if (found is UpdateCheckFailed) return;
-      await prefs.setInt(_lookedKey, at.millisecondsSinceEpoch);
-      if (found is! UpdateAvailable || hold) return;
-      final closed = prefs.getInt(_closedKey);
-      if (closed != null && found.release.build <= closed) return;
-      _show(found.release, prefs);
+      _lookedAt = now();
+      final release = found is UpdateAvailable ? found.release : null;
+      waiting.value = release == null || await _closedFor(release)
+          ? null
+          : release;
     } finally {
       _looking = false;
     }
   }
 
-  static void _show(AvailableRelease release, SharedPreferences prefs) {
-    final messenger = PushService.messengerKey.currentState;
-    if (messenger == null) return;
-    final shown = messenger.showSnackBar(
-      banner(
-        release,
-        onUpdate: () {
-          final navigator = PushService.navigatorKey.currentState;
-          final context = navigator?.overlay?.context ?? navigator?.context;
-          if (context != null) unawaited(showUpdateSheet(context));
-        },
-      ),
-    );
-    unawaited(
-      shown.closed.then((reason) async {
-        // Closed by hand: not again until a newer release.
-        if (reason == SnackBarClosedReason.dismiss ||
-            reason == SnackBarClosedReason.swipe) {
-          await prefs.setInt(_closedKey, release.build);
-        }
-      }),
-    );
+  static Future<bool> _closedFor(AvailableRelease release) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (AppUpdates.supported) {
+      final closed = prefs.getInt(_closedKey);
+      return closed != null && release.build <= closed;
+    }
+    final closed = prefs.getString(_closedVersionKey);
+    return closed != null && !isNewerVersion(release.version, than: closed);
   }
 
-  /// The banner, in the in-app alerts' manner: a title, a line, UPDATE, and
-  /// a close button.
-  @visibleForTesting
-  static SnackBar banner(
-    AvailableRelease release, {
-    required VoidCallback onUpdate,
-  }) {
-    return SnackBar(
-      backgroundColor: AppColors.gradientEnd,
-      duration: showFor,
-      persist: false,
-      showCloseIcon: true,
-      closeIconColor: Colors.white,
-      action: SnackBarAction(
-        label: t('UPDATE'),
-        textColor: Colors.white,
-        onPressed: onUpdate,
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t("There's a new update!"),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            t('RepLiT {version} is ready to install.', {
-              'version': release.version,
-            }),
-            style: const TextStyle(color: Colors.white),
-          ),
-        ],
-      ),
-    );
+  /// The banner's ×: not again until a release newer than this one.
+  static Future<void> close() async {
+    final release = waiting.value;
+    if (release == null) return;
+    waiting.value = null;
+    final prefs = await SharedPreferences.getInstance();
+    if (AppUpdates.supported) {
+      await prefs.setInt(_closedKey, release.build);
+    } else {
+      await prefs.setString(_closedVersionKey, release.version);
+    }
   }
 
-  /// For tests: forget what was looked at and closed.
+  /// For tests: forget what was looked at and found.
   @visibleForTesting
   static void reset() {
-    hold = false;
+    waiting.value = null;
+    _lookedAt = null;
     _looking = false;
     now = DateTime.now;
   }

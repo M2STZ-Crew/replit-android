@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
 import '../api/api_config.dart';
@@ -31,9 +32,12 @@ import '../i18n/i18n.dart';
 /// which is the delay people see at sign-in. So the screen starts waking it as
 /// it opens, while they type, and says what is happening if they still wait.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.api});
+  const LoginScreen({super.key, this.api, this.openLink});
 
   final ApiClient? api;
+
+  /// Opens a page in the phone's browser; a test's stand-in.
+  final Future<bool> Function(Uri uri)? openLink;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -137,6 +141,28 @@ class _LoginScreenState extends State<LoginScreen> {
   void _hotlines() => Navigator.of(context).push(
     MaterialPageRoute<void>(builder: (_) => const CallScreen(guest: true)),
   );
+
+  /// "Want to be an affiliate?": the Admin console's public affiliation
+  /// form, in the phone's browser (8 November).
+  Future<void> _registerAffiliate() async {
+    final url = Uri.parse(ApiConfig.affiliateRegisterUrl);
+    var opened = false;
+    try {
+      opened = await (widget.openLink ?? _openInBrowser)(url);
+    } catch (_) {
+      // No browser to hand it to: say where it is instead.
+    }
+    if (!opened && mounted) {
+      _showError(
+        t('Could not open the page. Visit {url}.', {
+          'url': '${url.host}${url.path}',
+        }),
+      );
+    }
+  }
+
+  static Future<bool> _openInBrowser(Uri uri) =>
+      launchUrl(uri, mode: LaunchMode.externalApplication);
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -363,17 +389,38 @@ class _LoginScreenState extends State<LoginScreen> {
           // Wrap, not Row: the two halves of this line together are wider
           // than the screen at a large system font scale, and a sign-up link
           // that has run off the edge is a dead end for a new user.
-          footer: Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
+          footer: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(t('New to the app?'), style: context.type.detail),
-              TextLink(
-                t('Create account').toUpperCase(),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                ),
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  Text(t('New to the app?'), style: context.type.detail),
+                  TextLink(
+                    t('Create account').toUpperCase(),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                    ),
+                  ),
+                ],
+              ),
+              // An organisation applies to join in the Admin console.
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  Text(
+                    t('Want to be an affiliate?'),
+                    style: context.type.detail,
+                  ),
+                  TextLink(
+                    t('Register here').toUpperCase(),
+                    onTap: _registerAffiliate,
+                  ),
+                ],
               ),
             ],
           ),

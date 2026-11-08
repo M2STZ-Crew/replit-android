@@ -25,6 +25,7 @@ void main() {
     AppUpdates.installOverride = null;
     AppUpdates.clientOverride = null;
     AppUpdates.installedBuildOverride = null;
+    AppUpdates.installedVersionOverride = null;
   });
 
   group('the sheet', () {
@@ -228,6 +229,21 @@ void main() {
     tearDown(() {
       messenger.setMockMethodCallHandler(channel, null);
       if (downloads.existsSync()) downloads.deleteSync(recursive: true);
+    });
+
+    // 8 November: an iPhone is told of a newer version too. Its build
+    // numbers count apart from Android's (8 to Android's 52), so the version
+    // decides, and there is nothing to download.
+    test('an iPhone compares versions, and downloads nothing', () async {
+      AppUpdates.supportedOverride = false;
+      serve(latest: manifest());
+      AppUpdates.installedVersionOverride = '1.12.25';
+      final found = await AppUpdates.check();
+      expect(found, isA<UpdateAvailable>());
+      expect((found as UpdateAvailable).release.version, '1.12.26');
+      AppUpdates.installedVersionOverride = '1.12.26';
+      expect(await AppUpdates.check(), isA<UpToDate>());
+      expect(calls, isEmpty);
     });
 
     test('a newer build in the latest release is offered', () async {

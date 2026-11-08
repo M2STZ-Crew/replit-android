@@ -11,6 +11,7 @@ import 'map_tab.dart';
 import 'profile_tab.dart';
 import 'queue_tab.dart';
 import '../../i18n/i18n.dart';
+import '../../updates/update_banner.dart';
 
 /// The coordinator's five destinations (REPLIT (MAIN) 06 · Coordinator
 /// Experience): Queue, Map, the raised LIVE disc, Codes, Profile.
@@ -142,15 +143,21 @@ class CoordinatorShellState extends State<CoordinatorShell> {
         backgroundColor: context.pal.background,
         // The map and LIVE draw under the bar's raised disc.
         extendBody: true,
-        body: IndexedStack(
-          index: _tab.index,
-          children: [
-            for (final t in CoordinatorTab.values)
-              TickerMode(
-                enabled: t == _tab,
-                child: _built.contains(t) ? _build(t) : const SizedBox.shrink(),
-              ),
-          ],
+        // "There's a new update!" above the home tab, while one is waiting.
+        body: UpdateBannerSlot(
+          visible: _tab == CoordinatorTab.queue,
+          child: IndexedStack(
+            index: _tab.index,
+            children: [
+              for (final t in CoordinatorTab.values)
+                TickerMode(
+                  enabled: t == _tab,
+                  child: _built.contains(t)
+                      ? _build(t)
+                      : const SizedBox.shrink(),
+                ),
+            ],
+          ),
         ),
         bottomNavigationBar: NavBarShell(
           disc: t('LIVE'),
