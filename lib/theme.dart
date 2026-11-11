@@ -317,22 +317,22 @@ class AppPalette extends ThemeExtension<AppPalette> {
   Color get outline =>
       isLight ? const Color(0x33000000) : const Color(0x33FFFFFF);
 
-  /// Informational blue — never a status on its own, only a marker tint.
-  Color get info => isLight ? const Color(0xFF2B6CB0) : AppColors.info;
+  /// Informational blue — never a status on its own, only a marker tint
+  /// (color/status/info).
+  Color get info => isLight ? const Color(0xFF5386DF) : AppColors.info;
 
   /// Agency colours. The dark values are the DAWI design's 500s; the light
-  /// ones are those same hues taken down until they carry as ink on a pale
-  /// ground — derived, like `warn`, because the design has no light frames.
+  /// ones are the Figma's light mode (color/agency/*), where it has them.
   Color get fire => live;
-  Color get medical => isLight ? const Color(0xFF0F766E) : AppColors.medical;
-  Color get police => isLight ? const Color(0xFF6D28D9) : AppColors.police;
-  Color get barangay => isLight ? const Color(0xFF8A5308) : AppColors.barangay;
+  Color get medical => isLight ? const Color(0xFF0B655B) : AppColors.medical;
+  Color get police => isLight ? const Color(0xFF6341AF) : AppColors.police;
+  Color get barangay => isLight ? const Color(0xFF8C6112) : AppColors.barangay;
   Color get coastguard =>
       isLight ? const Color(0xFF0E6E66) : const Color(0xFF2DD4BF);
   Color get crime => police;
 
-  /// Water on the map — hydrants, cisterns, bodies of water (MAP LAYERS/WATER).
-  Color get water => isLight ? const Color(0xFF1E4FA8) : AppColors.markerWater;
+  /// Water on the map — hydrants, cisterns, bodies of water (color/map/water).
+  Color get water => isLight ? const Color(0xFF4168AE) : AppColors.markerWater;
 
   /// The well behind a white glyph in a list row, for a row tinted [tint].
   ///
@@ -340,9 +340,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// solid brown behind fire, violet behind police — rather than a wash of the
   /// accent, and draws the glyph white on it. A tint the colour sheet has no
   /// 900 for gets the same depth by laying the accent over the card colour.
-  /// The light theme keeps the wash: its glyphs are drawn in the tint.
+  /// The light theme draws its glyphs in the tint, on the Figma's light
+  /// plates where it has one (color/agency/*-plate), else a wash.
   Color wellFor(Color tint) {
-    if (isLight) return tint.withValues(alpha: 0.16);
+    if (isLight) {
+      if (tint == accent || tint == accentInk) return const Color(0xFFFFDDD0);
+      if (tint == police) return const Color(0xFFDBCCFC);
+      if (tint == medical) return const Color(0xFFB6E9E3);
+      return tint.withValues(alpha: 0.16);
+    }
     if (tint == accent || tint == accentInk) return AppColors.wellFire;
     if (tint == police) return AppColors.wellPolice;
     if (tint == medical) return AppColors.wellMedical;
@@ -375,15 +381,15 @@ class AppPalette extends ThemeExtension<AppPalette> {
 
   // Materials (03 · pass 2). Glass is for floating map UI with short bold
   // labels; Glass strong for anything over a map that carries body text.
-  // The light ground has no Figma frames; its glass is the light surface.
+  // Light: color/surface/glass, glass-strong and scrim in light mode.
   Color get glassOverlay =>
-      isLight ? const Color(0xDBF3F3F1) : AppColors.glassOverlay;
+      isLight ? const Color(0xD6FFFFFF) : AppColors.glassOverlay;
   Color get glassStrong =>
-      isLight ? const Color(0xF0F3F3F1) : AppColors.glassStrong;
-  Color get scrim => AppColors.scrim;
+      isLight ? const Color(0xF0FFFFFF) : AppColors.glassStrong;
+  Color get scrim => isLight ? const Color(0x7A17140F) : AppColors.scrim;
 
   /// The viewer's own position on a map (color/map/you).
-  Color get you => isLight ? const Color(0xFFC2410C) : AppColors.markerYou;
+  Color get you => isLight ? const Color(0xFFE8835D) : AppColors.markerYou;
 
   /// Which agency an incident asked for.
   Color forAgency(String? agency) => switch (agency) {
@@ -440,38 +446,40 @@ class AppPalette extends ThemeExtension<AppPalette> {
     pressed: Color(0x1FFFFFFF),
   );
 
+  /// The light ground, from REPLIT (MAIN)'s light-mode variables (pass 7,
+  /// 3 November 2026; read 12 November off the "· LIGHT" frames, where
+  /// mode/is-light is true). It used to be sampled off rendered pixels,
+  /// before the Figma had a light mode of its own.
   static const AppPalette light = AppPalette(
     brightness: Brightness.light,
     // A viewfinder stays dark on the light ground — the design's light Report
     // frame draws the photo area in the dark ground colour.
     canvas: Color(0xFF131313),
-    background: Color(0xFFEEEDEA),
-    surfaceSolid: Color(0xFFF3F3F1),
-    surface: Color(0xFFFCFCFC),
-    glass: Color(0xFFFCFCFC),
-    glassDim: Color(0xFFF8F7F6),
+    background: Color(0xFFF6F5F3), // color/background/ground
+    surfaceSolid: Color(0xFFF6F5F3), // the ground, as dark's surfaceSolid is
+    surface: Color(0xFFFFFFFF), // color/surface/default
+    glass: Color(0xFFFFFFFF), // every card and row
+    glassDim: Color(0xFFF0EEEB), // color/surface/subtle
     raised: Color(0xFFE5E4E1),
-    inputBg: Color(0xFFFCFCFC),
-    line: Color(0xFFDDDCDB),
-    lineStrong: Color(0xFFD0D0CC),
-    onBackground: Color(0xFF17140F),
-    textSoft: Color(0xFF423C35),
-    label: Color(0xFF5B534A),
-    muted: Color(0xFF6E665C),
-    placeholder: Color(0xBF5B534A),
-    faint: Color(0xFF918B84),
-    // On a pale ground the coral is the ink, not the fill: every accent pixel
-    // in the light frames reads #A63A0A. The fill survives only where the
-    // gradient is drawn — a primary button, the SOS disc — and that gradient
-    // is shared between the themes.
-    accent: Color(0xFFA63A0A),
-    accentInk: Color(0xFFA63A0A),
-    live: Color(0xFFB01712),
-    ok: Color(0xFF106633),
-    // Not sampled: no light frame shows a pending state. Darkened to the same
-    // degree as live and settled were, so it carries on a pale ground.
-    warn: Color(0xFF8A6100),
-    lineLight: Color(0x805B534A),
+    inputBg: Color(0xFFECEAE6), // color/surface/inset
+    line: Color(0x1F17140F), // color/border/subtle
+    lineStrong: Color(0xFF8A847E), // color/border/default — 3 : 1 controls
+    onBackground: Color(0xFF1A1817), // color/text/primary
+    textSoft: Color(0xFF45403C), // color/text/secondary
+    label: Color(0xFF5C5752), // color/text/tertiary
+    muted: Color(0xFF66615C), // color/text/muted
+    placeholder: Color(0xFF66615C), // as dark: the muted grey
+    faint: Color(0xFF66615C),
+    // On a pale ground the coral is the ink's job no more: color/text/accent
+    // is a deep brown. The coral fill survives where the gradient is drawn —
+    // a primary button, the SOS disc — and that gradient is shared between
+    // the themes.
+    accent: Color(0xFF8C4F38), // color/text/accent
+    accentInk: Color(0xFF8C4F38),
+    live: Color(0xFFB53C37), // color/text/danger
+    ok: Color(0xFF136C34), // color/text/success
+    warn: Color(0xFF8C6112), // color/text/warning
+    lineLight: Color(0x805C5752),
     hover: Color(0x0F000000),
     pressed: Color(0x1F000000),
   );

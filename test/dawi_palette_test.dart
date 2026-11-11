@@ -46,9 +46,14 @@ void main() {
     expect(dark.wellFor(dark.live).a, 1);
   });
 
-  test('the light theme keeps its washes and tinted glyphs', () {
+  test('the light theme draws tinted glyphs on the Figma light plates', () {
     const light = AppPalette.light;
-    expect(light.wellFor(light.police).a, closeTo(0.16, 0.01));
+    // color/agency/*-plate in the light mode (pass 7).
+    expect(light.wellFor(light.accent), const Color(0xFFFFDDD0));
+    expect(light.wellFor(light.police), const Color(0xFFDBCCFC));
+    expect(light.wellFor(light.medical), const Color(0xFFB6E9E3));
+    // A tint with no plate keeps a wash.
+    expect(light.wellFor(light.barangay).a, closeTo(0.16, 0.01));
     expect(light.glyphOn(light.police), light.police);
   });
 }

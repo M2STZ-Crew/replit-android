@@ -108,8 +108,15 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// The phone went light or dark: with Theme on System, so does the app.
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    ThemeChoice.phoneChanged();
+  }
+
   /// While the app is open its location reaches the server every few minutes,
-  /// so the 150 m alert finds the resident where they are now. Closed, that is
+  /// so the 100 m alert finds the resident where they are now. Closed, that is
   /// WorkManager's job, where the resident allows it (LocationBeacon).
   void _keepLocationFresh() {
     LocationBeacon.startOpen(
@@ -145,9 +152,9 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // Both grounds from the hand-off. Which one shows is the switch in
-    // Profile, not the phone's setting: rebuilt here so one tap repaints
-    // every screen at once.
+    // Both grounds from the hand-off. Which one shows is Profile's Theme:
+    // System (the phone's light or dark), Light or Dark, resolved by
+    // ThemeChoice and rebuilt here so one tap repaints every screen at once.
     // Everything under LanguageScope repaints when the language changes.
     return LanguageScope(
       child: ValueListenableBuilder<bool>(

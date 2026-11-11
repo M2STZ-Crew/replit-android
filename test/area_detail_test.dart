@@ -29,10 +29,10 @@ void main() {
     'reports': [],
   };
 
-  // ~200 m from the centre: inside the 300 m a report can join from. (The
+  // ~30 m from the centre: inside the 50 m a report can join from. (The
   // frame shows the button at "400 m away"; from there a report would open a
   // separate incident, so the screen does not offer it.)
-  const here200m = LatLng(14.5396, 121.0014);
+  const here30m = LatLng(14.54113, 121.0014);
   const here2km = LatLng(14.5234, 121.0014);
 
   ApiClient api({String status = 'en_route', bool mine = false}) => ApiClient(
@@ -81,7 +81,7 @@ void main() {
       (tester) async {
         await pump(
           tester,
-          AreaDetailScreen(areaId: 'a1', here: here200m, api: api()),
+          AreaDetailScreen(areaId: 'a1', here: here30m, api: api()),
           scale: scale,
         );
         expect(tester.takeException(), isNull);
@@ -93,11 +93,11 @@ void main() {
           reason: 'no geocoder',
         );
         expect(find.text('3 REPORTS'), findsOneWidget);
-        // ~200 m on the WGS84 ellipsoid.
-        expect(find.textContaining(RegExp(r'^19\d M AWAY$')), findsOneWidget);
+        // ~30 m on the WGS84 ellipsoid.
+        expect(find.textContaining(RegExp(r'^[23]\d M AWAY$')), findsOneWidget);
         expect(find.text('MEDIUM'), findsOneWidget);
         expect(find.text('3 of 10 reports'), findsOneWidget);
-        expect(find.text('Spread 84 m'), findsOneWidget);
+        expect(find.text('Spread 14 m'), findsOneWidget);
         expect(find.text('Reporters average 42%'), findsOneWidget);
         // The status chip and the progress line both name it.
         expect(find.text('ON THE WAY'), findsNWidgets(2));
@@ -112,7 +112,7 @@ void main() {
       AreaDetailScreen(areaId: 'a1', here: here2km, api: api()),
     );
     expect(find.text('I SEE IT TOO — ADD MY REPORT'), findsNothing);
-    expect(find.textContaining('within 300 m'), findsOneWidget);
+    expect(find.textContaining('within 50 m'), findsOneWidget);
   });
 
   testWidgets('your own area offers to follow it, not to report again', (
@@ -120,7 +120,7 @@ void main() {
   ) async {
     await pump(
       tester,
-      AreaDetailScreen(areaId: 'a1', here: here200m, api: api(mine: true)),
+      AreaDetailScreen(areaId: 'a1', here: here30m, api: api(mine: true)),
     );
     expect(find.text('I SEE IT TOO — ADD MY REPORT'), findsNothing);
     expect(find.text('YOU REPORTED THIS — FOLLOW IT'), findsOneWidget);
@@ -131,7 +131,7 @@ void main() {
       tester,
       AreaDetailScreen(
         areaId: 'a1',
-        here: here200m,
+        here: here30m,
         api: api(status: 'post_incident_report'),
       ),
     );

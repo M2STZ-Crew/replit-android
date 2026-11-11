@@ -293,7 +293,8 @@ void main() {
       expect(find.text('AREA 1.2 · BARANGAY 76'), findsOneWidget);
       expect(find.text('Medium — 0.46'), findsOneWidget);
       expect(find.text('3 of 10 reports'), findsOneWidget);
-      expect(find.text('Spread 84 m'), findsOneWidget);
+      // (1 − 0.72) of the 50 m radius.
+      expect(find.text('Spread 14 m'), findsOneWidget);
       expect(find.text('Reporters average 42%'), findsOneWidget);
       expect(
         find.text('No summary yet. The reports below are the full record.'),

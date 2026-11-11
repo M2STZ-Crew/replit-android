@@ -10,7 +10,7 @@ import 'map_tiles.dart';
 import 'you_are_here.dart';
 
 /// The map extract on an Area's detail (06 · C04, C07): each Area's centre as
-/// a selected incident marker inside its 300 m radius (the shared incident
+/// a selected incident marker inside its 50 m radius (the shared incident
 /// radius, [MapAreas.incidentRadius]), framed to fit. A real map: it pans,
 /// zooms and turns like every other map in the app, shows where you are, and
 /// its location button finds you.
@@ -41,10 +41,11 @@ class _AreaMapPreviewState extends State<AreaMapPreview> {
     super.dispose();
   }
 
-  /// The centres' bounds, grown by a little more than the radius.
+  /// The centres' bounds, grown to three radii: the 50 m circle with the
+  /// streets around it.
   static LatLngBounds _around(List<LatLng> centres) {
     const geo = Distance();
-    const reach = kAreaRadiusMetres * 1.3;
+    const reach = kAreaRadiusMetres * 3;
     final points = [
       for (final c in centres) ...[
         geo.offset(c, reach, 315),

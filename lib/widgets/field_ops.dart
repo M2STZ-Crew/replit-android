@@ -441,7 +441,7 @@ class _SafetyResult extends StatelessWidget {
   }
 }
 
-/// The 150 m neighbourhood card (04 · Safety prompt; PRD v13 §4.2, §12.1):
+/// The 100 m neighbourhood card (04 · Safety prompt; PRD v13 §4.2, §12.1):
 /// "Do you see it too?" — Report or Ignore — and, below a hairline, "Are you
 /// safe?" — I am safe, I need help, Not in the area. An answered state
 /// replaces the three choices with what happened. "I need help" reaches the
@@ -682,7 +682,7 @@ class SafetyRollCallStrip extends StatelessWidget {
 
   final SafetyRollCall rollCall;
 
-  /// "Safety roll call · 150 m" — the radius is the server's, so the caller
+  /// "Safety roll call · 100 m" — the radius is the server's, so the caller
   /// names it.
   final String title;
 
@@ -1005,7 +1005,7 @@ class FireOutSignalCard extends StatelessWidget {
 
   final int votes;
 
-  /// "within 150 m in the last 10 min" — the server's threshold, named by the
+  /// "within 100 m in the last 10 min" — the server's threshold, named by the
   /// caller.
   final String window;
 

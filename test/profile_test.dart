@@ -108,7 +108,7 @@ void main() {
       await pump(tester, ProfileScreen(api: api()));
       for (final (title, icon) in [
         ('Barangay alerts', AppIcons.notificationsActive),
-        ('Light mode', AppIcons.visibility),
+        ('Theme', AppIcons.visibility),
         ('Language', AppIcons.campaign),
         ('Change password', AppIcons.key),
         ('Send a test alert', AppIcons.send),

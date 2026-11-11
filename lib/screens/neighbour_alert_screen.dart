@@ -20,15 +20,15 @@ import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
-import '../widgets/skeleton.dart';
+import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
 
 /// How far from a fire a neighbour is asked about it: the server's
 /// NEIGHBORHOOD_RADIUS_M (app/workers/neighborhood.py; PRD v14 §4.2).
-const double kNeighbourAlertMetres = 150;
+const double kNeighbourAlertMetres = 100;
 
-/// "11 Corroborate" from the REPLIT-OVERHAUL Figma: the 150 m neighbourhood
-/// alert (PRD v13 cut it from 300 m), as a screen rather than v2's dialog.
+/// "11 Corroborate" from the REPLIT-OVERHAUL Figma: the 100 m neighbourhood
+/// alert (PRD v13 cut it from 50 m), as a screen rather than v2's dialog.
 ///
 /// "Yes" is a real report (v10 §2.2): it opens the same photo step as SOS,
 /// with the GPS fix already started when this screen opened. "No, and stop
@@ -397,12 +397,12 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
     );
   }
 
-  /// The reported area, the 150 m its neighbours are asked from, and you.
+  /// The reported area, the 100 m its neighbours are asked from, and you.
   Widget _proximityMap() {
     final c = _centre;
     final me = _me;
     // Shorter with "Are you safe?" below it, so "Yes" and "No" stay on a
-    // phone's screen. The 150 m circle still fits.
+    // phone's screen. The 100 m circle still fits.
     return Container(
       height: _maySaySafe || _answer != null ? 150 : 226,
       clipBehavior: Clip.antiAlias,
@@ -412,14 +412,18 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
         border: Border.all(color: context.pal.line),
       ),
       child: c == null
-          ? SkeletonFill(label: t('Loading the map'))
+          ? LoadingView(
+              label: t('Loading the map'),
+              mark: false,
+              scrollable: false,
+            )
           : Stack(
               children: [
                 FlutterMap(
                   options: MapOptions(
                     initialCenter: c,
-                    // ~3 m a pixel: the 150 m circle is ~95 px across.
-                    initialZoom: 15.5,
+                    // ~2 m a pixel: the 100 m circle is ~95 px across.
+                    initialZoom: 16.1,
                     backgroundColor: context.pal.background,
                     interactionOptions: kMapGestures,
                     onMapEvent: _follow.onMapEvent,

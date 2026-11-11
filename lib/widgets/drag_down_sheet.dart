@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../i18n/i18n.dart';
@@ -20,6 +22,8 @@ class DragDownSheet extends StatefulWidget {
     required this.frame,
     this.onChanged,
     this.subject = 'the list',
+    this.autoFoldAfter,
+    this.moving = false,
   });
 
   /// What stays showing when the sheet is folded down.
@@ -35,6 +39,16 @@ class DragDownSheet extends StatefulWidget {
   /// What folds away, for a screen reader: "Hide the list", "Show the list".
   final String subject;
 
+  /// Fold away by itself this long after it opens or is last touched
+  /// (12 Nov 2026: "the slider drawer in map route navigation
+  /// automatically lowers when the driver is moving or after 3 seconds (can
+  /// be swiped up again)"). Null: it stays as it is left.
+  final Duration? autoFoldAfter;
+
+  /// The vehicle is moving: with [autoFoldAfter], an open sheet folds away
+  /// as the movement starts.
+  final bool moving;
+
   @override
   State<DragDownSheet> createState() => DragDownSheetState();
 }
@@ -49,12 +63,40 @@ class DragDownSheetState extends State<DragDownSheet>
   );
   final GlobalKey _bodyKey = GlobalKey();
   bool _open = true;
+  Timer? _foldTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _armFold();
+  }
+
+  @override
+  void didUpdateWidget(DragDownSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final old = oldWidget;
+    if (widget.autoFoldAfter != old.autoFoldAfter) _armFold();
+    if (widget.autoFoldAfter != null && widget.moving && !old.moving && _open) {
+      _settle(false);
+    }
+  }
+
+  /// Start (again) the wait before the sheet folds itself away.
+  void _armFold() {
+    _foldTimer?.cancel();
+    final after = widget.autoFoldAfter;
+    if (after == null || !_open) return;
+    _foldTimer = Timer(after, () {
+      if (mounted && _open) _settle(false);
+    });
+  }
 
   /// Whether the sheet is (or is settling) open.
   bool get isOpen => _open;
 
   @override
   void dispose() {
+    _foldTimer?.cancel();
     _openness.dispose();
     super.dispose();
   }
@@ -64,6 +106,7 @@ class DragDownSheetState extends State<DragDownSheet>
   double get _travel => _bodyKey.currentContext?.size?.height ?? 0;
 
   void _drag(DragUpdateDetails d) {
+    _foldTimer?.cancel();
     final travel = _travel;
     if (travel <= 0) return;
     _openness.value -= (d.primaryDelta ?? 0) / travel;
@@ -80,46 +123,57 @@ class DragDownSheetState extends State<DragDownSheet>
 
   void _settle(bool open) {
     _openness.animateTo(open ? 1 : 0, curve: Curves.easeOutCubic);
-    if (open == _open) return;
-    setState(() => _open = open);
-    widget.onChanged?.call(open);
+    final changed = open != _open;
+    if (changed) setState(() => _open = open);
+    // Open again — by a drag, a tap, or as it was — the wait starts over.
+    if (open) {
+      _armFold();
+    } else {
+      _foldTimer?.cancel();
+    }
+    if (changed) widget.onChanged?.call(open);
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onVerticalDragUpdate: _drag,
-      onVerticalDragEnd: _release,
-      child: widget.frame(
-        context,
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Semantics(
-              button: true,
-              label: _open
-                  ? t('Hide {what}', {'what': t(widget.subject)})
-                  : t('Show {what}', {'what': t(widget.subject)}),
-              onTap: toggle,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
+    // A finger on the sheet holds it open; lifted, the wait starts over.
+    return Listener(
+      onPointerDown: (_) => _foldTimer?.cancel(),
+      onPointerUp: (_) => _armFold(),
+      child: GestureDetector(
+        onVerticalDragUpdate: _drag,
+        onVerticalDragEnd: _release,
+        child: widget.frame(
+          context,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                button: true,
+                label: _open
+                    ? t('Hide {what}', {'what': t(widget.subject)})
+                    : t('Show {what}', {'what': t(widget.subject)}),
                 onTap: toggle,
-                child: widget.header,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: toggle,
+                  child: widget.header,
+                ),
               ),
-            ),
-            // Folded, the rows are clipped away, out of reach of a tap and
-            // of a screen reader alike.
-            ExcludeSemantics(
-              excluding: !_open,
-              child: SizeTransition(
-                sizeFactor: _openness,
-                // Keep the top of the rows attached to the title as it folds.
-                alignment: Alignment.topCenter,
-                child: KeyedSubtree(key: _bodyKey, child: widget.body),
+              // Folded, the rows are clipped away, out of reach of a tap and
+              // of a screen reader alike.
+              ExcludeSemantics(
+                excluding: !_open,
+                child: SizeTransition(
+                  sizeFactor: _openness,
+                  // Keep the top of the rows attached to the title as it folds.
+                  alignment: Alignment.topCenter,
+                  child: KeyedSubtree(key: _bodyKey, child: widget.body),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

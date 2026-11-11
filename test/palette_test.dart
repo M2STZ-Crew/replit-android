@@ -124,7 +124,7 @@ void main() {
       ),
     );
     expect(captured.pal.isLight, isTrue);
-    expect(captured.pal.background, const Color(0xFFEEEDEA));
-    expect(captured.type.cardTitle.color, const Color(0xFF17140F));
+    expect(captured.pal.background, const Color(0xFFF6F5F3));
+    expect(captured.type.cardTitle.color, const Color(0xFF1A1817));
   });
 }

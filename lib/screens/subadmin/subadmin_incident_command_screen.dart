@@ -22,7 +22,7 @@ import '../responder/responder_status.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../widgets/app_icons.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
@@ -587,7 +587,7 @@ class _SubAdminIncidentCommandScreenState
       page: StaffPage.incidents,
       title: (_incident?['designation'] as String?) ?? t('Incident'),
       body: _loading
-          ? const SkeletonDetail(media: true)
+          ? const LoadingView()
           : Column(
               children: [
                 SizedBox(height: 260, child: _mapHeader()),

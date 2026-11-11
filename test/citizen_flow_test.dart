@@ -308,7 +308,7 @@ void main() {
     });
   });
 
-  group('the 150 m alert', () {
+  group('the 100 m alert', () {
     late List<http.Request> seen;
     late bool answerFails;
     late Map<String, dynamic> answer;
@@ -571,10 +571,10 @@ void main() {
       expect(find.byType(NeighbourAlertScreen), findsNothing);
     });
 
-    testWidgets('it asks from 150 m, as the server does', (tester) async {
+    testWidgets('it asks from 100 m, as the server does', (tester) async {
       await open(tester);
-      expect(kNeighbourAlertMetres, 150);
-      expect(find.textContaining('within 150 metres'), findsOneWidget);
+      expect(kNeighbourAlertMetres, 100);
+      expect(find.textContaining('within 100 metres'), findsOneWidget);
     });
   });
 }

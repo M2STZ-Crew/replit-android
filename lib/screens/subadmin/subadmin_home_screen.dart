@@ -13,7 +13,7 @@ import 'subadmin_incident_command_screen.dart';
 import 'subadmin_incident_report_screen.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 Color get _panel => ThemeChoice.palette.glassDim;
@@ -177,7 +177,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const SkeletonDetail(rows: 4);
+      return const LoadingView();
     }
     if (_error != null) {
       return _centered(AppIcons.cloudOff, _error!, retry: true);

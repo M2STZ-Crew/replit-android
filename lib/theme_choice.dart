@@ -1,49 +1,121 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'theme.dart';
 
+/// System, Light or Dark (12 November 2026: "add 'System' to dark/light mode,
+/// detecting the phone's mode").
+enum ThemePick {
+  system('system', 'System'),
+  light('light', 'Light'),
+  dark('dark', 'Dark');
+
+  const ThemePick(this.wire, this.label);
+
+  /// What is stored on the device.
+  final String wire;
+
+  /// What the Theme picker says (through t()).
+  final String label;
+
+  static ThemePick? parse(String? value) {
+    for (final pick in values) {
+      if (pick.wire == value) return pick;
+    }
+    return null;
+  }
+}
+
 /// Which of the two grounds the app draws in.
 ///
-/// The choice is the resident's, made in the app, not inherited from the
-/// phone: a responder who keeps their handset light all day may still want the
-/// dark ground at three in the morning, and the reverse. It is kept on the
-/// device — nothing about which colours someone prefers belongs on a server.
+/// The person picks in the app: System follows the phone's light or dark,
+/// and changes with it; Light and Dark hold whatever the phone does — a
+/// responder who keeps their handset light all day may still want the dark
+/// ground at three in the morning. It is kept on the device: nothing about
+/// which colours someone prefers belongs on a server.
 ///
-/// Dark is the default. It is the ground the design was drawn on, and the one
-/// that costs least on a screen at night.
+/// System is the default since v1.12.34. Someone who chose Light or Dark
+/// before then keeps it.
 abstract final class ThemeChoice {
-  static const String _key = 'theme_light_v1';
+  static const String _key = 'theme_pick_v2';
 
-  /// True when the light ground is showing. Listened to at the app root, so a
-  /// change repaints every screen at once.
+  /// Before v1.12.34: true for light, false for dark, absent if never chosen.
+  static const String _oldKey = 'theme_light_v1';
+
+  /// What the person picked.
+  static final ValueNotifier<ThemePick> pick = ValueNotifier(ThemePick.system);
+
+  /// True when the light ground is showing — the pick, with System resolved
+  /// against the phone. Listened to at the app root, so a change repaints
+  /// every screen at once.
   static final ValueNotifier<bool> light = ValueNotifier(false);
 
   static AppPalette get palette =>
       light.value ? AppPalette.light : AppPalette.dark;
 
+  /// The phone's own setting; tests set it.
+  @visibleForTesting
+  static Brightness Function() phoneBrightness = () =>
+      SchedulerBinding.instance.platformDispatcher.platformBrightness;
+
   /// Read the saved choice. Called once, before the first frame.
   static Future<void> load() async {
+    var chosen = ThemePick.system;
     try {
       final prefs = await SharedPreferences.getInstance();
-      light.value = prefs.getBool(_key) ?? false;
+      chosen =
+          ThemePick.parse(prefs.getString(_key)) ??
+          switch (prefs.getBool(_oldKey)) {
+            true => ThemePick.light,
+            false => ThemePick.dark,
+            null => ThemePick.system,
+          };
     } catch (_) {
-      // No stored choice, or no storage: the dark ground stands.
+      // No stored choice, or no storage: System stands.
     }
-    unawaited(_tellLaunchScreen(light.value));
+    pick.value = chosen;
+    _resolve();
   }
 
-  static Future<void> set(bool value) async {
-    light.value = value;
-    unawaited(_tellLaunchScreen(value));
+  static Future<void> choose(ThemePick value) async {
+    pick.value = value;
+    _resolve();
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_key, value);
+      await prefs.setString(_key, value.wire);
     } catch (_) {
       // The change still applies to this session.
+    }
+  }
+
+  /// Kept for the switch the staff screens had: on is Light, off is Dark.
+  static Future<void> set(bool lightOn) =>
+      choose(lightOn ? ThemePick.light : ThemePick.dark);
+
+  /// The phone went light or dark (the app root hears it): System follows.
+  static void phoneChanged() {
+    if (pick.value == ThemePick.system) _resolve();
+  }
+
+  static void _resolve() {
+    final isLight = switch (pick.value) {
+      ThemePick.light => true,
+      ThemePick.dark => false,
+      ThemePick.system => _phoneIsLight(),
+    };
+    light.value = isLight;
+    unawaited(_tellLaunchScreen(isLight));
+  }
+
+  static bool _phoneIsLight() {
+    try {
+      return phoneBrightness() == Brightness.light;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -65,5 +137,10 @@ abstract final class ThemeChoice {
 
   /// For tests: forget the choice without touching storage.
   @visibleForTesting
-  static void reset() => light.value = false;
+  static void reset() {
+    pick.value = ThemePick.system;
+    light.value = false;
+    phoneBrightness = () =>
+        SchedulerBinding.instance.platformDispatcher.platformBrightness;
+  }
 }

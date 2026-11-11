@@ -8,7 +8,7 @@ import '../../theme.dart';
 import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// Opens a link outside the app — the phone's browser, which saves the PDF to
@@ -186,7 +186,7 @@ class _AiSummariesScreenState extends State<AiSummariesScreen> {
 
   List<Widget> _list() {
     if (_loading) {
-      return const [SizedBox(height: 8), SkeletonRows(rows: 4)];
+      return const [SizedBox(height: 8), LoadingInline()];
     }
     if (_error != null) {
       return [

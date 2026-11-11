@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:replit/api/session.dart';
 import 'package:replit/location/location_beacon.dart';
 
-/// The 150 m alert only counts a location reported in the last 30 minutes
+/// The 100 m alert only counts a location reported in the last 30 minutes
 /// (backend, same branch), so the phone keeps reporting: every 5 minutes
 /// while open, and every ~15 while closed for a resident who allows location
 /// "All the time" (the 5 November issue list, 2.2).

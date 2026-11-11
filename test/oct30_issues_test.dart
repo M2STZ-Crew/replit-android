@@ -304,13 +304,13 @@ void main() {
   });
 
   group('Issue 02', () {
-    test('the neighbourhood alert reads 150 m wherever it is named', () {
+    test('the neighbourhood alert reads 100 m wherever it is named', () {
       for (final path in [
         'lib/screens/profile_screen.dart',
         'lib/screens/report_status_screen.dart',
       ]) {
         final source = File(path).readAsStringSync();
-        expect(source, contains('within 150 m'), reason: path);
+        expect(source, contains('within 100 m'), reason: path);
         expect(source, isNot(contains('Fires reported within 300')));
         expect(source, isNot(contains('Neighbours within 300')));
       }

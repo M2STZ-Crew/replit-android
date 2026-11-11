@@ -14,11 +14,11 @@ import '../models/verification_state.dart';
 import '../privacy/contact_mask.dart';
 import '../updates/app_updates.dart';
 import '../theme.dart';
-import '../theme_choice.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import '../widgets/notification_bell.dart';
+import '../widgets/theme_picker.dart';
 import 'edit_profile_screen.dart';
 import 'help_center_screen.dart';
 import 'login_screen.dart';
@@ -159,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text(t('Fire alerts with the app closed')),
         content: Text(
           t(
-            'RepLiT tells you about a fire within 150 m of where you are now. '
+            'RepLiT tells you about a fire within 100 m of where you are now. '
             'To know that while the app is closed, it needs your location '
             '"All the time". It sends it to RepLiT about every 15 minutes, '
             'and only for these alerts.',
@@ -350,7 +350,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: AppIcons.notificationsActive,
                   title: t('Barangay alerts'),
                   line: t(
-                    'Fires reported within 150 m, and news on your reports',
+                    'Fires reported within 100 m, and news on your reports',
                   ),
                   value: _alerts,
                   busy: _alertsBusy,
@@ -363,27 +363,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: t('Fire alerts with the app closed'),
                     line: _allTheTime
                         ? t(
-                            'On. Fires within 150 m reach you even when RepLiT '
+                            'On. Fires within 100 m reach you even when RepLiT '
                             'is closed.',
                           )
                         : t(
                             'Allow location "All the time" so fires within '
-                            '150 m reach you when RepLiT is closed.',
+                            '100 m reach you when RepLiT is closed.',
                           ),
                     onTap: _allowAllTheTime,
                   ),
                 ],
                 const SizedBox(height: 8),
-                _Toggle(
-                  icon: AppIcons.visibility,
-                  title: t('Light mode'),
-                  line: t('The pale ground, for daylight'),
-                  value: ThemeChoice.light.value,
-                  onChanged: (on) async {
-                    await ThemeChoice.set(on);
-                    if (mounted) setState(() {});
-                  },
-                ),
+                // System, Light or Dark (Figma 14T, with System).
+                const ThemeRow(),
                 const SizedBox(height: 8),
                 // As on a coordinator's and a responder's Profile.
                 ListRow(

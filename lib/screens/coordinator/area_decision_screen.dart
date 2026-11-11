@@ -15,7 +15,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../directions_screen.dart';
 import 'report_detail_screen.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// An Area and the decision on it (06 · C04): where it is, how sure the
@@ -267,7 +267,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
                     ),
                     Expanded(
                       child: _error == null
-                          ? const SkeletonDetail(media: true)
+                          ? const LoadingView()
                           : Center(
                               child: Text(_error!, style: context.type.body),
                             ),
@@ -685,7 +685,7 @@ class GoSheetState extends State<GoSheet> {
           ),
           const SizedBox(height: 8),
           if (units == null)
-            const SkeletonRows(rows: 2)
+            const LoadingInline()
           else if (units.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),

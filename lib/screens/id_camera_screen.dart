@@ -10,7 +10,7 @@ import '../verification/guide_crop.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
 import '../widgets/map_glass.dart';
-import '../widgets/skeleton.dart';
+import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
 
 /// One photo of the National ID check: what the screen says and the frame it
@@ -377,7 +377,11 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
         c.value.previewSize == null) {
       return ColoredBox(
         color: context.pal.canvas,
-        child: SkeletonFill(label: t('Starting the camera')),
+        child: LoadingView(
+          label: t('Starting the camera'),
+          mark: false,
+          scrollable: false,
+        ),
       );
     }
     final size = c.value.previewSize!;

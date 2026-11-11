@@ -1471,6 +1471,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     }
   }
 
+  /// Faster than this (9 km/h) the vehicle is driving, not inching along.
+  static const double _drivingSpeed = 2.5;
+
   /// C10 — the run panel: where the Area stands, whether this phone is
   /// sharing its location, where it is going, how far and how long, and
   /// Mark arrived for someone who is responding.
@@ -1581,6 +1584,12 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     return DragDownSheet(
       key: const ValueKey('run-panel'),
       subject: t('the trip details'),
+      // While driving to it, the panel gets out of the map's way: 3 s after
+      // it opens, or as soon as the vehicle moves; a swipe brings it back.
+      autoFoldAfter: _nav.navigating && !arrived && !onScene
+          ? const Duration(seconds: 3)
+          : null,
+      moving: (_nav.lastFix?.speed ?? 0) >= _drivingSpeed,
       header: header,
       body: body,
       frame: (context, content) {
