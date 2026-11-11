@@ -6,6 +6,40 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.35 — 12 November 2026 — Every alert vibrates, iPhones ring while open, one phone
+
+With backend v1.12.27, which names the new channels and refuses an older
+sign-in: deploy it after this release reaches phones. Adds the VIBRATE
+permission (a normal one, granted at install; nothing is asked).
+
+### Changes
+
+**Alerts**
+- **Every alert vibrates** ("vibration when notifying, both Android and iOS,
+  every stage and every notif"). With the app closed: new vibrating copies of
+  the report-stage channels, "Report updates" and "Updates" (a channel's
+  settings are fixed once a phone has made it); the old ones stay for a
+  server that still names them. With the app open: every push vibrates too,
+  in the alert channels' rhythm on Android, and twice on an iPhone.
+- **iPhones ring for news while the app is open** ("to make sound work on iOS
+  when the app is open"). The iPhone build has no Apple push, so the open app
+  reads the inbox every 15 seconds and, for anything new, plays the sound the
+  push would have (the report's stage, the agency's alarm, the fire near
+  you), vibrates, and shows the banner. News that is already old when the app
+  opens stays in the Alerts list. Android keeps getting these from Firebase.
+- **One phone per account: the newest sign-in wins** ("single device only
+  policy ... a warning and a button will lead to exit"). Signed in on another
+  phone, this one shows "Opened on another phone" over every screen, with
+  EXIT: it forgets the session here (without signing the newer phone out)
+  and closes the app; an iPhone goes to the sign-in screen.
+
+### Tests
+- `test/v1_12_35_test.dart`: the vibration call, which sound each kind of
+  news plays, the watcher ringing only for new news and once, the refusal
+  telling the app once per sign-in, and the warning's Exit.
+
+---
+
 ## v1.12.34 — 12 November 2026 — What's burning, staff reports, System theme, one loader
 
 With backend v1.12.27 (fire type, 50 m / 100 m, 18+): deploy it first. No new

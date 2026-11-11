@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
+import 'api/api_client.dart';
 import 'api/phone_gate.dart';
 import 'api/push_service.dart';
 import 'app_version.dart';
@@ -23,6 +24,8 @@ import 'models/active_report.dart';
 import 'screens/phone_verify_screen.dart';
 import 'screens/report_status_screen.dart';
 import 'screens/role_gate.dart';
+import 'alerts/inbox_watcher.dart';
+import 'screens/signed_in_elsewhere_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +46,18 @@ Future<void> main() async {
   await ContactMask.load();
   await LanguageChoice.load();
   await LocationBeacon.init();
+  // An iPhone has no push: the open app reads the inbox for news, and rings
+  // and vibrates as a push would (lib/alerts/inbox_watcher.dart).
+  InboxWatcher.instance.start();
+  // One phone per account: a newer sign-in elsewhere puts up the warning
+  // and Exit over every screen (lib/screens/signed_in_elsewhere_screen.dart).
+  ApiClient.onSignedInElsewhere = () =>
+      PushService.navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (_) => const SignedInElsewhereScreen(),
+        ),
+        (_) => false,
+      );
   // "1.11.0 (57)", as App Distribution lists this build.
   await AppVersion.load();
   // A report in progress survives the app being closed: read it now so the

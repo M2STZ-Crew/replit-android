@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_version.dart';
 import '../i18n/i18n.dart';
 import '../location/location_beacon.dart';
+import '../alerts/buzz.dart';
 import '../sound/sound_cues.dart';
 import '../theme.dart';
 import 'api_client.dart';
@@ -171,9 +171,9 @@ class PushService {
 
   void _onForeground(RemoteMessage message) {
     final type = message.data['type'] as String?;
-    if (message.data['silent'] == 'true') {
-      unawaited(HapticFeedback.vibrate());
-    } else {
+    // Every alert vibrates, silent reminders included (v1.12.35).
+    unawaited(Buzz.alert());
+    if (message.data['silent'] != 'true') {
       unawaited(
         SoundCues.instance.playAlert(message.data['sound_category'] as String?),
       );
@@ -209,7 +209,6 @@ class PushService {
   /// OPEN). It goes away by itself after [bannerFor] whether or not OPEN was
   /// tapped: a banner with an action would otherwise stay until tapped
   /// (Flutter keeps those by default). The Alerts list keeps every one.
-  @visibleForTesting
   static SnackBar inAppBanner({
     required String title,
     required String body,

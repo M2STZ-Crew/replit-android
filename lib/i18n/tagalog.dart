@@ -2206,4 +2206,11 @@ const Map<String, String> kTagalog = {
   'Fire type set: {label}.': 'Naitakda ang uri ng sunog: {label}.',
   'Could not save the fire type. Check your connection.':
       'Hindi na-save ang uri ng sunog. Tingnan ang koneksyon mo.',
+
+  // v1.12.35: one phone per account.
+  'OPENED ON ANOTHER PHONE': 'BINUKSAN SA IBANG PHONE',
+  'Your RepLiT account was just signed in on another phone. One phone can use it at a time, so it has been signed out here.':
+      'Kaka-sign in lang ng RepLiT account mo sa ibang phone. Isang phone lang ang puwedeng gumamit nito, kaya na-sign out ito rito.',
+  'If that was not you, sign in again and change your password.':
+      'Kung hindi ikaw iyon, mag-sign in ulit at palitan ang password mo.',
 };
