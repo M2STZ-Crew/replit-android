@@ -21,6 +21,9 @@
          release to Android's installer, which asks once to allow it. RepLiT is
          not on Google Play, whose policy limits this permission. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- Every alert vibrates with the app open too (lib/alerts/buzz.dart).
+         A normal permission: granted at install, nothing is asked. -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <application
         android:label="RepLiT"
         android:name="${applicationName}"
@@ -70,7 +73,7 @@
              made in MainActivity.kt. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="updates" />
+            android:value="updates_v2" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_replit" />

@@ -11,6 +11,9 @@ import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
@@ -73,6 +76,11 @@ class MainActivity : FlutterActivity() {
                     "openMailApp" -> result.success(
                         openMailApp(gmailFirst = call.argument<Boolean>("gmail") == true)
                     )
+                    // lib/alerts/buzz.dart: every alert vibrates with the
+                    // app open too, in the alert channels' rhythm (v1.12.35).
+                    "vibrate" -> result.success(
+                        vibrate(call.argument<List<Number>>("pattern"))
+                    )
                     else -> result.notImplemented()
                 }
             }
@@ -92,6 +100,29 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    /** Vibrate once through [pattern] (off, on, off, on … in milliseconds).
+     *  False when the phone has no vibrator. */
+    private fun vibrate(pattern: List<Number>?): Boolean {
+        val timings = (pattern ?: listOf(0, 600, 250, 600, 250, 600))
+            .map { it.toLong() }
+            .toLongArray()
+        val vibrator: Vibrator? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                getSystemService(VibratorManager::class.java)?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(VIBRATOR_SERVICE) as? Vibrator
+            }
+        if (vibrator == null || !vibrator.hasVibrator()) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createWaveform(timings, -1))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(timings, -1)
+        }
+        return true
     }
 
     /** Where a downloaded update waits: cache/updates, the one folder the
@@ -293,11 +324,17 @@ class MainActivity : FlutterActivity() {
                 "Updates about a fire incident you reported."
 
             setSound(sound(raw), attributes)
+
+            enableVibration(true)
+
+            vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
         }
 
-        // Existing citizen notification channel.
-        val citizen = NotificationChannel(
-            "citizen_updates",
+        // Citizen general updates. Before v1.12.35 "citizen_updates", which
+        // did not vibrate; a channel's settings are fixed once made, so the
+        // vibrating one is new ("vibration when notifying ... every notif").
+        fun citizenChannel(id: String) = NotificationChannel(
+            id,
             "Report updates",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
@@ -305,6 +342,10 @@ class MainActivity : FlutterActivity() {
                 "News about the reports you made and fires near you."
 
             setSound(sound(R.raw.sound_citizen), attributes)
+
+            enableVibration(true)
+
+            vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
         }
 
         // Existing silent reminder channel.
@@ -325,13 +366,17 @@ class MainActivity : FlutterActivity() {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
 
-        // Existing general updates channel.
-        val updates = NotificationChannel(
-            "updates",
+        // General updates; "updates_v2" vibrates (v1.12.35).
+        fun updatesChannel(id: String) = NotificationChannel(
+            id,
             "Updates",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Other news about incidents."
+
+            enableVibration(true)
+
+            vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
         }
 
         // Register all existing and new notification channels.
@@ -370,8 +415,10 @@ class MainActivity : FlutterActivity() {
                     R.raw.sound_barangay
                 ),
 
-                // EXISTING: Citizen general updates
-                citizen,
+                // Citizen general updates: the vibrating one, and the old one
+                // for a server that still names it.
+                citizenChannel("citizen_updates_v2"),
+                citizenChannel("citizen_updates"),
 
                 // NEW: Incident Verified
                 citizenStage(
@@ -409,11 +456,22 @@ class MainActivity : FlutterActivity() {
                     R.raw.sound_rejected
                 ),
 
+                // v1.12.35: the same stages, vibrating. A channel's settings
+                // are fixed once it exists, so they are new channels; backend
+                // v1.12.27 names these, and the ones above stay for a server
+                // that does not yet.
+                citizenStage("citizen_verified_v3", "Incident verified", R.raw.sound_verified),
+                citizenStage("citizen_on_route_v2", "Responders on route", R.raw.sound_on_route),
+                citizenStage("citizen_on_scene_v2", "Responders on scene", R.raw.sound_on_scene),
+                citizenStage("citizen_fire_out_v2", "Fire out", R.raw.sound_fire_out),
+                citizenStage("citizen_rejected_v2", "Report rejected", R.raw.sound_rejected),
+
                 // EXISTING: Silent reminders
                 silent,
 
-                // EXISTING: General notifications
-                updates
+                // General notifications: the vibrating one, and the old one.
+                updatesChannel("updates_v2"),
+                updatesChannel("updates")
             )
         )
     }

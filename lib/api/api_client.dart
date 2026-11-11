@@ -48,6 +48,22 @@ class ApiClient {
   /// and the request replayed, whichever call it was ([_RenewingClient]).
   late final http.Client _client = _RenewingClient(_raw, _refreshSession);
 
+  /// The account was signed in on another phone (backend v1.12.27,
+  /// app/services/one_device.py: the newest sign-in wins). main.dart sets
+  /// this to put up the warning and Exit; it is called once per sign-in.
+  static void Function()? onSignedInElsewhere;
+  static bool _toldElsewhere = false;
+
+  /// A response said `signed_in_elsewhere`: tell the app, once.
+  static void signedInElsewhere() {
+    if (_toldElsewhere) return;
+    _toldElsewhere = true;
+    onSignedInElsewhere?.call();
+  }
+
+  /// A new sign-in on this phone: the next refusal is news again.
+  static void signedInHere() => _toldElsewhere = false;
+
   /// A refresh already under way, shared by every caller that hits a 401.
   static Future<bool>? _refreshing;
 
@@ -93,6 +109,7 @@ class ApiClient {
         )
         .timeout(signInTimeout);
     _storeSession(_decode(resp));
+    signedInHere();
   }
 
   Future<void> signup({
@@ -117,6 +134,7 @@ class ApiClient {
       }),
     );
     _storeSession(_decode(resp));
+    signedInHere();
   }
 
   /// Update the caller's editable profile fields: PATCH /auth/me/profile.
@@ -1434,6 +1452,23 @@ class _RenewingClient extends http.BaseClient {
         ? _copy(request)
         : null;
     final first = await _inner.send(request);
+    if (first.statusCode == 403 && authorised) {
+      // Signed in on another phone: whichever call hears it first, every
+      // screen gives way to the warning (SignedInElsewhereScreen).
+      final body = await first.stream.toBytes();
+      if (utf8
+          .decode(body, allowMalformed: true)
+          .contains('"signed_in_elsewhere"')) {
+        ApiClient.signedInElsewhere();
+      }
+      return http.StreamedResponse(
+        Stream.value(body),
+        403,
+        headers: first.headers,
+        request: first.request,
+        reasonPhrase: first.reasonPhrase,
+      );
+    }
     if (first.statusCode != 401 || !authorised) return first;
     final body = await first.stream.toBytes();
     final again = http.StreamedResponse(
