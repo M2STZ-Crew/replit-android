@@ -5,11 +5,12 @@ import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import '../../widgets/report_fire_button.dart';
 import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
 import 'responder_shell.dart';
 import 'responder_status.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// Duty (REPLIT (MAIN) 07 · R01, R02): what needs this unit now.
@@ -58,6 +59,8 @@ class DutyTab extends StatelessWidget {
             TabHeader(
               eyebrow: '${feed.unit} — ${agencyLabel(feed.agency)}',
               title: t('Duty'),
+              // R20: staff report a fire the way residents do.
+              trailing: const ReportFireButton(),
             ),
             Expanded(child: _body(context)),
           ],
@@ -69,7 +72,7 @@ class DutyTab extends StatelessWidget {
   Widget _body(BuildContext context) {
     if (!feed.loaded) {
       return feed.error == null
-          ? const SkeletonList(rows: 4, trailing: true)
+          ? const LoadingView()
           : EmptyState(
               icon: AppIcons.cloudOff,
               tone: context.pal.live,

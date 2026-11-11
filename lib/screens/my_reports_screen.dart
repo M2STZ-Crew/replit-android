@@ -9,7 +9,7 @@ import '../widgets/design.dart';
 import 'live_update_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
-import '../widgets/skeleton.dart';
+import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
 
 /// What each agency a report asked for is called on its card, and its glyph.
@@ -99,7 +99,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
       builder: (_) => const Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 40),
-          child: SkeletonRows(rows: 1),
+          child: LoadingInline(),
         ),
       ),
     );
@@ -203,7 +203,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const SkeletonList(rows: 5, trailing: true);
+      return const LoadingView();
     }
     if (_error != null && _reports == null) {
       return EmptyState(

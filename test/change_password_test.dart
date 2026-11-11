@@ -169,11 +169,16 @@ void main() {
       );
       expect(find.text('Language'), findsOneWidget);
       expect(find.text('Tagalog'), findsOneWidget);
-      expect(find.text('Light mode'), findsOneWidget);
+      expect(find.text('Theme'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
-      await tester.tap(find.text('Light mode'));
-      await tester.pump();
+      // Theme opens the picker: System, Light, Dark.
+      await tester.tap(find.text('Theme'));
+      await tester.pumpAndSettle();
+      expect(find.text('THEME'), findsOneWidget);
+      await tester.tap(find.text('Light'));
+      await tester.pumpAndSettle();
+      expect(ThemeChoice.pick.value, ThemePick.light);
       expect(ThemeChoice.light.value, isTrue);
 
       await tester.tap(find.text('Change password'));

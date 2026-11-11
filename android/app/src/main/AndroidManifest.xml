@@ -48,6 +48,22 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- "Open RepLiT" on the page an emailed link lands on (backend
+                 v1.12.27, reportwhatslit://email-confirmed): it only brings
+                 the app forward, where the waiting sheet sees the address
+                 confirmed. "replit" belongs to another company's app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="reportwhatslit"/>
+            </intent-filter>
+            <!-- The link opens the app as it is; Flutter is not to read it as
+                 a page to push. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
         </activity>
         <!-- How a push is shown when the server names no channel, and the
              icon and tint every RepLiT notification uses. The channels are

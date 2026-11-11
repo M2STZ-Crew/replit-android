@@ -55,6 +55,12 @@ enum StaffPage { dashboard, incidents, reports, team, summaries, alarms }
 /// (the pending-report tray, the alarm queue). Set when a staff console opens.
 abstract final class StaffAccount {
   static Map<String, dynamic>? current;
+
+  /// A Coordinator or Responder is signed in on this phone.
+  static bool get isStaff {
+    final role = current?['role'];
+    return role == 'sub_admin' || role == 'response_team';
+  }
 }
 
 /// The frame of every staff screen: [StaffTopBar] over [body], the

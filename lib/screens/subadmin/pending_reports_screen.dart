@@ -6,7 +6,7 @@ import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/app_icons.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// The "pending report" tray (Master Context v10 §10.2): incidents whose fire
@@ -144,7 +144,7 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const SkeletonList(rows: 5, trailing: true);
+      return const LoadingView();
     }
     if (_error != null) {
       return Center(

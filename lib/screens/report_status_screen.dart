@@ -22,7 +22,7 @@ import '../i18n/i18n.dart';
 ///
 ///   1. received — the photo and fix are stored (the 201 itself);
 ///   2. matched — clustered into an area, joined or first;
-///   3. notified — responders have it, and neighbours within 150 m were asked;
+///   3. notified — responders have it, and neighbours within 100 m were asked;
 ///   4. accepted — a coordinator or agency accepted it and responders are on
 ///      the way, then on scene (v11: one Accept sends everyone);
 ///   5. fire out — and then it says so, plainly, and the report is done.
@@ -340,9 +340,9 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
         (_area?['designation'] as String?) ?? widget.designation;
     final reports = _reports;
     final matchLine = reports == null
-        ? t('Grouped with reports within 300 m')
+        ? t('Grouped with reports within 50 m')
         : reports > 1
-        ? t('Within 300 m of an active area')
+        ? t('Within 50 m of an active area')
         : t('A new area — the first report here');
 
     final (String phase, double fraction) = switch (_stage) {
@@ -425,7 +425,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
             _StepRow(
               state: _Step.done,
               title: t('Responders notified'),
-              line: t('Neighbours within 150 m were alerted too'),
+              line: t('Neighbours within 100 m were alerted too'),
             ),
             const SizedBox(height: 8),
             _StepRow(

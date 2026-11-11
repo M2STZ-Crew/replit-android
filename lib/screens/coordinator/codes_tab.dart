@@ -10,7 +10,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import 'coordinator_feed.dart';
 import 'live_incident.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// The Codes tab (06 · C11b): the fire codes, pressed on the incident LIVE
@@ -142,7 +142,7 @@ class _CodesTabState extends State<CodesTab> {
     final codes = _codes;
     if (codes == null) {
       return _error == null
-          ? const SkeletonList(rows: 6)
+          ? const LoadingView()
           : EmptyState(
               title: t('Codes unavailable'),
               body: _error!,

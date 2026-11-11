@@ -598,7 +598,7 @@ class _Fact extends StatelessWidget {
 
 /// Reports join an Area only from within this distance of its centre
 /// (clustering, Master Context §3.4).
-const double kAreaRadiusMetres = 300;
+const double kAreaRadiusMetres = 50;
 
 /// Area confidence (§4.3): 0.4·N + 0.3·S + 0.3·V, banded. Three segments
 /// filled to the band, the band word and the score — the bar is never the
@@ -626,7 +626,7 @@ class ConfidenceMeter extends StatelessWidget {
     final spread = reports < 2
         ? t('One report, no spread yet')
         : s <= 0
-        ? t('Spread over 300 m')
+        ? t('Spread over 50 m')
         : t('Spread {value} m', {
             'value': ((1 - s) * kAreaRadiusMetres).round(),
           });

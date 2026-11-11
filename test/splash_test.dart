@@ -16,7 +16,7 @@ import 'package:replit/screens/splash_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/design.dart';
 import 'package:replit/widgets/launch_mark.dart';
-import 'package:replit/widgets/skeleton.dart';
+import 'package:replit/widgets/loading.dart';
 
 /// "01 Splash" in two states (WHAT'S NEXT, 2.1). The trigger: the
 /// flame-and-pin mark alone, where and as big as the phone's own launch screen
@@ -287,7 +287,7 @@ void main() {
         tester.widget<RoleGate>(find.byType(RoleGate)).initialMe?['id'],
         'u1',
       );
-      expect(find.byType(SkeletonRows), findsNothing);
+      expect(find.byType(LoadingInline), findsNothing);
       expect(find.byType(PhoneVerifyScreen), findsOneWidget);
     });
 
@@ -325,7 +325,7 @@ void main() {
       expect(find.text('Connecting to RepLiT'), findsOneWidget);
       await handOff(tester);
       expect(find.byType(PhoneVerifyScreen), findsOneWidget);
-      expect(find.byType(SkeletonRows), findsNothing);
+      expect(find.byType(LoadingInline), findsNothing);
     });
 
     testWidgets('Sign in again drops the stored session', (tester) async {

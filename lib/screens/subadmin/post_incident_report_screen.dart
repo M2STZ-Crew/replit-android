@@ -9,7 +9,7 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import 'report_filed_screen.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 export '../../models/post_incident_report.dart' show kCommonEquipment;
@@ -541,7 +541,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
             ),
             Expanded(
               child: _loading
-                  ? const SkeletonDetail(rows: 4)
+                  ? const LoadingView()
                   : ScrollFade(
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(

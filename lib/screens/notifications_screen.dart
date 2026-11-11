@@ -5,7 +5,7 @@ import '../api/notification_router.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
-import '../widgets/skeleton.dart';
+import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
 
 /// Opens what an Alerts row is about; [NotificationRouter] unless a test
@@ -225,7 +225,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const SkeletonList(rows: 6);
+      return const LoadingView();
     }
     if (_error != null) {
       return EmptyState(

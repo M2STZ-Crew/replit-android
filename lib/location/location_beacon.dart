@@ -9,7 +9,7 @@ import 'package:workmanager/workmanager.dart';
 import '../api/api_client.dart';
 import '../api/session.dart';
 
-/// Keeps the server's idea of where this phone is fresh, for the 150 m
+/// Keeps the server's idea of where this phone is fresh, for the 100 m
 /// neighbour alert.
 ///
 /// The server alerts a resident only if the location their phone last

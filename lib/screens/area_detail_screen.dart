@@ -17,12 +17,12 @@ import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import 'live_update_screen.dart';
 import '../widgets/you_are_here.dart';
-import '../widgets/skeleton.dart';
+import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
 
 /// Reports join an area only from within this distance of its centre
 /// (clustering, Master Context §3.4) — the circle on the map extract.
-const double kClusterRadiusMetres = 300;
+const double kClusterRadiusMetres = 50;
 
 /// "06 Area detail" from the REPLIT-OVERHAUL Figma: one incident area, what
 /// the system believes about it, how far it has got, and — for someone close
@@ -30,7 +30,7 @@ const double kClusterRadiusMetres = 300;
 ///
 /// Everything comes from GET /areas/{id}. The three confidence bars are the
 /// server's own terms (clustering.py): corroboration is reports ÷ 10,
-/// spatial agreement is 1 − spread ÷ 300 m, credibility is the reporters'
+/// spatial agreement is 1 − spread ÷ 50 m, credibility is the reporters'
 /// average verification. Two things the frame shows are absent on purpose:
 /// the incident kind in the title (an area carries no type, so it is named by
 /// its street), and which engine is coming (dispatch detail is staff-only).
@@ -237,10 +237,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
             const SizedBox(height: 20),
             if (_area == null)
               _error == null
-                  ? const SkeletonDetail(
-                      scrollable: false,
-                      padding: EdgeInsets.only(top: 16),
-                    )
+                  ? const LoadingInline()
                   : Padding(
                       padding: const EdgeInsets.only(top: 40),
                       child: Text(_error!, style: context.type.body),
@@ -283,7 +280,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     ];
   }
 
-  /// The area's centre and the 300 m it gathers reports from.
+  /// The area's centre and the 50 m it gathers reports from.
   Widget _mapExtract() {
     final c = _centre!;
     return Container(
@@ -297,8 +294,8 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       child: FlutterMap(
         options: MapOptions(
           initialCenter: c,
-          // ~5 m a pixel here, so the 300 m circle is ~120 px across.
-          initialZoom: 14.9,
+          // ~1 m a pixel here, so the 50 m circle is ~100 px across.
+          initialZoom: 17.2,
           backgroundColor: context.pal.background,
           interactionOptions: kMapGestures,
           onMapEvent: _follow.onMapEvent,
@@ -360,7 +357,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     final spread = _reports < 2
         ? t('One report — no spread yet')
         : s <= 0
-        ? t('Spread over 300 m')
+        ? t('Spread over 50 m')
         : t('Spread {m} m', {'m': ((1 - s) * kClusterRadiusMetres).round()});
     return Panel(
       padding: const EdgeInsets.all(18),
@@ -464,12 +461,12 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     }
     final away = _metresAway;
     if (away != null && away > kClusterRadiusMetres) {
-      // A report joins an area only from within 300 m. From farther off it
+      // A report joins an area only from within 50 m. From farther off it
       // would open a new incident where the reporter stands — not this one.
       return Text(
         t(
           "You're {distance} away. A report joins this area only from "
-          'within 300 m — if you can see something where you are, use SOS.',
+          'within 50 m — if you can see something where you are, use SOS.',
           {'distance': _distance(away)},
         ),
         textAlign: TextAlign.center,

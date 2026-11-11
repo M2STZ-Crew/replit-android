@@ -18,11 +18,12 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/area_map_preview.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import '../../widgets/fire_type_row.dart';
 import '../../widgets/staff_shell.dart' show StaffAccount;
 import '../coordinator/area_decision_screen.dart' show openRouteToArea;
 import '../coordinator/report_detail_screen.dart';
 import 'responder_status.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// One Area, as a responder sees it (REPLIT (MAIN) 07).
@@ -198,6 +199,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       });
       _syncStreaming();
       _computeEta();
+      _maybeAskFireType();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -210,6 +212,33 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         }
       });
     }
+  }
+
+  /// "What's burning?" has been asked on this screen: it opens by itself
+  /// once, and after that the red row asks.
+  bool _askedFireType = false;
+
+  /// On scene with nobody yet saying what is burning: ask this responder,
+  /// once (PRD v14 §4.5.3, R08b — mandatory on arrival).
+  void _maybeAskFireType() {
+    final area = _area;
+    if (_askedFireType || area == null || !_hasActiveDispatch) return;
+    if (!area.asksFireType || !area.onScene || area.fireType != null) return;
+    _askedFireType = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ModalRoute.of(context)?.isCurrent != false) {
+        _pickFireType();
+      }
+    });
+  }
+
+  /// R08b: what is burning, asked and saved.
+  Future<void> _pickFireType() async {
+    final area = _area;
+    if (area == null) return;
+    _askedFireType = true;
+    await askFireType(context, api: _api, area: area);
+    if (mounted) await _load(silent: true);
   }
 
   Future<void> _loadStatics() async {
@@ -543,7 +572,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           _header(title: t('Area')),
           Expanded(
             child: _loading
-                ? const SkeletonDetail(media: true)
+                ? const LoadingView()
                 : EmptyState(
                     icon: AppIcons.cloudOff,
                     tone: context.pal.live,
@@ -767,6 +796,16 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             )
           else
             LifecycleRail(status: _status),
+          // On scene: what is burning, asked until answered.
+          if (area.onScene &&
+              area.asksFireType &&
+              (_hasActiveDispatch || area.fireType != null)) ...[
+            const SizedBox(height: 16),
+            FireTypeRow(
+              area: area,
+              onPick: _hasActiveDispatch ? _pickFireType : null,
+            ),
+          ],
           const SizedBox(height: 16),
           _sharingAlert(over),
           if (_status == 'en_route') ...[

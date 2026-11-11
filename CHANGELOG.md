@@ -6,6 +6,57 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.34 — 12 November 2026 — What's burning, staff reports, System theme, one loader
+
+With backend v1.12.27 (fire type, 50 m / 100 m, 18+): deploy it first. No new
+permission or dependency.
+
+### Changes
+
+**Field**
+- **"What's burning?" on arrival** (PRD v14 §4.5.3; Figma C18 / R08b). Once
+  a unit is on scene and nobody has said, the picker opens by itself for the
+  Coordinator or Responder who went; until it is answered a red row on LIVE
+  and on the Responder's run asks for it. Six types, with the subtypes of
+  Structural (no Agricultural), Electrical and Vehicular. Answered, the row
+  names it ("Structural — Residential"), and a tap corrects it.
+- **Coordinators and Responders report a fire** (PRD v14 §4.6.3; Figma C23 /
+  R20): a **REPORT A FIRE** button on the Queue and Duty headers opens the
+  same camera and report residents use. The report says "You report as …,
+  counted as fully trusted", and after sending they stay in their own app.
+- **The navigation panel gets out of the way**: while driving to a fire it
+  folds down 3 seconds after it opens, or as soon as the vehicle moves; a
+  swipe or a tap brings it back.
+
+**Everyone**
+- **50 m incident, 100 m corroboration**: every place that said 300 m (what
+  joins an Area) now says 50 m, and every 150 m (who is asked "Is there a fire
+  near you?") now says 100 m, in English and Tagalog; the Area circles and the
+  maps that frame them follow.
+- **Theme: System, Light or Dark** (Figma 14T, with System added). System
+  follows the phone's light or dark and changes with it; it is the default.
+  Whoever chose Light or Dark before keeps it.
+- **One loading look**: every skeleton placeholder is gone. A screen that is
+  loading shows the splash's mark and coral loader with what is loading; part
+  of a screen shows the loader alone.
+- **The light theme follows the Figma's light mode** (pass 7 variables):
+  ground #F6F5F3, white cards, the 3 : 1 control border #8A847E, the deep
+  brown accent #8C4F38, and the light danger, success, warning, police,
+  medical, water and map colours.
+- **18 and over**: the date of birth calendar ends 18 years back, and the
+  server's refusal reads "You must be 18 or older to use RepLiT."
+- **Back to the app after confirming an email**: the page the link opens has
+  an Open RepLiT button (`reportwhatslit://`), which brings the app forward.
+
+### Tests
+- `test/v1_12_34_test.dart`: fire types to and from the server, the red row,
+  the staff button, the Theme picker, the panel folding (3 s, moving, not
+  asked), 18+. `test/loading_test.dart` replaces the skeleton tests;
+  `test/theme_choice_test.dart` covers System. Older tests follow the new
+  radii and the Theme row.
+
+---
+
 ## v1.12.33 — 9 November 2026 — The En route sound, and a Rejected one
 
 With backend v1.12.25, which names the new channels: deploy it first. No new

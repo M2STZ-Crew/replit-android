@@ -17,6 +17,7 @@ import '../../widgets/alarm_ask_sheet.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import '../../widgets/fire_type_row.dart';
 import '../../widgets/map_marker.dart';
 import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
@@ -27,7 +28,7 @@ import '../responder/responder_status.dart';
 import '../subadmin/post_incident_report_screen.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// A unit within this distance of the Area's centre is on scene.
@@ -92,7 +93,7 @@ class LiveTab extends StatelessWidget {
                             'has what is waiting on you.',
                           ),
                         )
-                      : const SkeletonList(rows: 3, trailing: true),
+                      : const LoadingView(),
                 ),
               ],
             ),
@@ -181,6 +182,10 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
   List<AlarmRequest> _asks = const [];
   bool _busy = false;
 
+  /// "What's burning?" has been asked on this screen: it opens by itself
+  /// once, and after that waits for the red row to be tapped.
+  bool _askedFireType = false;
+
   String get _myId => widget.me['id'] as String? ?? '';
   String? get _agency => widget.me['agency_type'] as String?;
   CoordinatorPowers get _powers => CoordinatorPowers.of(widget.me);
@@ -246,9 +251,38 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         ];
       });
       _syncSharing();
+      _maybeAskFireType();
     } catch (_) {
       // Keep the last good picture; the next poll tries again.
     }
+  }
+
+  /// On scene with nobody yet saying what is burning, and this coordinator
+  /// is one of the units there: ask, once (PRD v14 §4.5.3, mandatory on
+  /// arrival). The red row asks again for as long as it is unanswered.
+  void _maybeAskFireType() {
+    final area = _area;
+    if (_askedFireType || !widget.active || area == null) return;
+    if (!area.asksFireType || !area.onScene) return;
+    if (area.fireType != null || _mine == null) return;
+    if (!_powers.responds) return;
+    _askedFireType = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ModalRoute.of(context)?.isCurrent != false) {
+        _pickFireType();
+      }
+    });
+  }
+
+  /// C18: what is burning, asked and saved.
+  Future<void> _pickFireType() async {
+    final area = _area;
+    if (area == null) return;
+    _askedFireType = true;
+    if (await askFireType(context, api: _api, area: area)) {
+      await widget.onChanged?.call();
+    }
+    await _load();
   }
 
   /// The alarm requests the Alarm level row speaks of ([_asks]). Asked,
@@ -549,7 +583,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     final centre = area?.centre;
     if (area == null || centre == null) {
       // The map's place, then the sheet's, as they will be.
-      return const SkeletonDetail(media: true, rows: 2);
+      return const LoadingView(scrollable: false);
     }
     final units = _units();
     return Stack(
@@ -603,13 +637,14 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
   }
 
   Widget _map(LatLng centre, List<_Unit> units) {
-    // Framed on the Area's radius in the strip the sheet leaves open, so the
-    // fire is in view rather than under the sheet.
+    // Framed 300 m around the Area in the strip the sheet leaves open, so
+    // the fire and the units nearing it are in view rather than under the
+    // sheet (six radii since the radius became 50 m).
     final size = MediaQuery.sizeOf(context);
     const geo = Distance();
     final area = LatLngBounds(
-      geo.offset(centre, kAreaRadiusMetres * 3, 315),
-      geo.offset(centre, kAreaRadiusMetres * 3, 135),
+      geo.offset(centre, kAreaRadiusMetres * 6, 315),
+      geo.offset(centre, kAreaRadiusMetres * 6, 135),
     );
     return FlutterMap(
       options: MapOptions(
@@ -763,6 +798,14 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                     const SizedBox(height: 12),
                     LifecycleRail(status: area.status),
                     const SizedBox(height: 12),
+                    // On scene: what is burning, asked until answered.
+                    if (area.onScene && area.asksFireType) ...[
+                      FireTypeRow(
+                        area: area,
+                        onPick: _powers.responds ? _pickFireType : null,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     for (final u in units) ...[
                       _unitRow(u, area),
                       const SizedBox(height: 12),

@@ -30,7 +30,7 @@ class SosLocation {
   static const Duration sendableAge = Duration(minutes: 2);
 
   /// How old the device's cached position may be to stand in, indoors, when a
-  /// fresh fix times out. The report carries its accuracy, and the 300 m
+  /// fresh fix times out. The report carries its accuracy, and the 50 m
   /// cluster radius absorbs indoor error (§10.1) — a report with a slightly
   /// stale position beats no report.
   static const Duration fallbackAge = Duration(minutes: 10);

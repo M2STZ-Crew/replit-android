@@ -12,6 +12,12 @@ const List<String> _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
 /// Edit the citizen's profile fields (full name / mobile / DOB / gender) →
 /// PATCH /auth/me/profile. Pops with `true` on a successful save.
+/// 18 and over (12 Nov 2026: "don't accept 17 y/o and below"): the date
+/// of birth calendar ends on the last birthday that makes someone 18
+/// [today]; the server refuses anything later too (a 400 `underage`).
+DateTime latestBirthday(DateTime today) =>
+    DateTime(today.year - 18, today.month, today.day);
+
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
     super.key,
@@ -68,12 +74,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _pretty(DateTime d) => '${_two(d.month)}/${_two(d.day)}/${d.year}';
 
   Future<void> _pickDob() async {
-    final now = DateTime.now();
+    final latest = latestBirthday(DateTime.now());
+    final dob = _dob;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dob ?? DateTime(now.year - 18, now.month, now.day),
+      initialDate: dob != null && !dob.isAfter(latest) ? dob : latest,
       firstDate: DateTime(1900),
-      lastDate: now,
+      lastDate: latest,
+      helpText: t('Date of birth · 18 or older'),
     );
     if (picked != null) setState(() => _dob = picked);
   }

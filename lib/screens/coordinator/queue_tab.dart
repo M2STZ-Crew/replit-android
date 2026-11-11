@@ -6,6 +6,7 @@ import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
+import '../../widgets/report_fire_button.dart';
 import '../bfp/bfp_alarm_requests_screen.dart';
 import '../responder/responder_status.dart';
 import '../subadmin/post_incident_report_screen.dart';
@@ -13,7 +14,7 @@ import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
 import 'coordinator_shell.dart';
 import 'overlap_screen.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// Which part of the queue is showing.
@@ -107,7 +108,12 @@ class _QueueTabState extends State<QueueTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TabHeader(eyebrow: _team, title: t('Queue')),
+            TabHeader(
+              eyebrow: _team,
+              title: t('Queue'),
+              // C23: staff report a fire the way residents do.
+              trailing: const ReportFireButton(),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
               child: _segments(),
@@ -152,7 +158,7 @@ class _QueueTabState extends State<QueueTab> {
   Widget _body() {
     if (!_feed.loaded) {
       return _feed.error == null
-          ? const SkeletonList(rows: 5, trailing: true)
+          ? const LoadingView()
           : EmptyState(
               title: t('Queue unavailable'),
               body: _feed.error!,

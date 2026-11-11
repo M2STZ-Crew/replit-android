@@ -5,10 +5,10 @@ import '../i18n/i18n.dart';
 import '../i18n/language_switch.dart';
 import '../screens/change_password_screen.dart';
 import '../theme.dart';
-import '../theme_choice.dart';
 import 'app_icons.dart';
 import 'coordinator_kit.dart';
 import 'design.dart';
+import 'theme_picker.dart';
 
 /// The account rows of a staff Profile, the same for coordinators and
 /// responders: the language the app and their alerts come in, light mode, the
@@ -102,16 +102,8 @@ class _StaffAccountSectionState extends State<StaffAccountSection> {
         const SizedBox(height: 8),
         LanguageSwitch(api: widget.api),
         gap,
-        ValueListenableBuilder<bool>(
-          valueListenable: ThemeChoice.light,
-          builder: (context, light, _) => ListRow(
-            leading: const IconPlate(AppIcons.visibility),
-            title: t('Light mode'),
-            subtitle: t('The pale ground, for daylight'),
-            trailing: Switch(value: light, onChanged: ThemeChoice.set),
-            onTap: () => ThemeChoice.set(!light),
-          ),
-        ),
+        // System, Light or Dark (Figma 14T, with System).
+        const ThemeRow(),
         gap,
         ListRow(
           leading: const IconPlate(AppIcons.key),

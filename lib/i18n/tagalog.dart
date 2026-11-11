@@ -75,7 +75,7 @@ const Map<String, String> kTagalog = {
   'Incident area': 'Area ng insidente',
   'Pasay City': 'Lungsod ng Pasay',
   'One report — no spread yet': 'Isang report pa lang — wala pang pagkalat',
-  'Spread over 300 m': 'Kumalat nang higit 300 m',
+  'Spread over 50 m': 'Kumalat nang higit 50 m',
   'Spread {m} m': 'Kumalat nang {m} m',
   'Confidence': 'Katiyakan',
   'Spatial agreement': 'Pagtutugma ng lokasyon',
@@ -84,8 +84,8 @@ const Map<String, String> kTagalog = {
   'Progress': 'Progreso',
   'Step {n} of {of}': 'Hakbang {n} sa {of}',
   'You reported this — follow it': 'Ikaw ang nag-report nito — sundan ito',
-  'You\'re {distance} away. A report joins this area only from within 300 m — if you can see something where you are, use SOS.':
-      '{distance} ang layo mo. Sumasali lang ang report sa area na ito kung nasa loob ka ng 300 m — kung may nakikita ka kung nasaan ka, gamitin ang SOS.',
+  'You\'re {distance} away. A report joins this area only from within 50 m — if you can see something where you are, use SOS.':
+      '{distance} ang layo mo. Sumasali lang ang report sa area na ito kung nasa loob ka ng 50 m — kung may nakikita ka kung nasaan ka, gamitin ang SOS.',
   'I see it too — add my report': 'Nakikita ko rin — idagdag ang report ko',
   'Could not open the dialler for {number}.':
       'Hindi mabuksan ang dialer para sa {number}.',
@@ -271,7 +271,7 @@ const Map<String, String> kTagalog = {
   'Status': 'Status',
   'What happens next': 'Ano ang susunod',
   'No neighbours have confirmed yet': 'Wala pang kapitbahay na kumumpirma',
-  'Asked within 150 m of the area': 'Tinanong sa loob ng 150 m mula sa area',
+  'Asked within 100 m of the area': 'Tinanong sa loob ng 100 m mula sa area',
   'Nearest open shelter': 'Pinakamalapit na bukas na shelter',
   'WAY': 'DAAN',
   'Seen and being checked': 'Nakita na at sinusuri',
@@ -504,8 +504,8 @@ const Map<String, String> kTagalog = {
   'Area confidence': 'Katiyakan ng area',
   'Medium': 'Katamtaman',
   'You may be asked to confirm': 'Baka tanungin ka para kumpirmahin',
-  'When something is reported within 150 metres of you, RepLiT asks one question. Answering makes the report more certain.':
-      'Kapag may na-report sa loob ng 150 metro mula sa iyo, isang tanong ang itatanong ng RepLiT. Kapag sumagot ka, mas tiyak ang report.',
+  'When something is reported within 100 metres of you, RepLiT asks one question. Answering makes the report more certain.':
+      'Kapag may na-report sa loob ng 100 metro mula sa iyo, isang tanong ang itatanong ng RepLiT. Kapag sumagot ka, mas tiyak ang report.',
   'Do you see it too?': 'Nakikita mo rin ba?',
   'Fire reported 180 m from you': 'May sunog na na-report 180 m mula sa iyo',
   'Yes, report it': 'Oo, i-report ito',
@@ -542,8 +542,8 @@ const Map<String, String> kTagalog = {
       'Ginagamit namin ang number mo para masigurong totoong tao ka, at para makontak ka tungkol sa mga report mo. Hindi namin hihingin ang code na ito sa tawag o chat. Huwag itong ibigay kahit kanino.',
   'RepLiT user': 'RepLiT user',
   'Fire alerts with the app closed': 'Mga alerto sa sunog kahit sarado ang app',
-  'RepLiT tells you about a fire within 150 m of where you are now. To know that while the app is closed, it needs your location "All the time". It sends it to RepLiT about every 15 minutes, and only for these alerts.':
-      'Sinasabihan ka ng RepLiT tungkol sa sunog sa loob ng 150 m mula sa kinaroroonan mo ngayon. Para malaman iyon kahit sarado ang app, kailangan nito ang location mo nang "Palagi" ("All the time"). Ipinapadala ito sa RepLiT mga bawat 15 minuto, at para lang sa mga alertong ito.',
+  'RepLiT tells you about a fire within 100 m of where you are now. To know that while the app is closed, it needs your location "All the time". It sends it to RepLiT about every 15 minutes, and only for these alerts.':
+      'Sinasabihan ka ng RepLiT tungkol sa sunog sa loob ng 100 m mula sa kinaroroonan mo ngayon. Para malaman iyon kahit sarado ang app, kailangan nito ang location mo nang "Palagi" ("All the time"). Ipinapadala ito sa RepLiT mga bawat 15 minuto, at para lang sa mga alertong ito.',
   'Not now': 'Hindi muna',
   'Allow': 'Payagan',
   'ABOUT REPLIT': 'TUNGKOL SA REPLIT',
@@ -557,12 +557,12 @@ const Map<String, String> kTagalog = {
   'Edit': 'I-edit',
   'Settings': 'Settings',
   'Barangay alerts': 'Mga alerto ng barangay',
-  'Fires reported within 150 m, and news on your reports':
-      'Mga sunog na na-report sa loob ng 150 m, at balita sa mga report mo',
-  'On. Fires within 150 m reach you even when RepLiT is closed.':
-      'Naka-on. Aabot sa iyo ang mga sunog sa loob ng 150 m kahit sarado ang RepLiT.',
-  'Allow location "All the time" so fires within 150 m reach you when RepLiT is closed.':
-      'Payagan ang location nang "Palagi" ("All the time") para umabot sa iyo ang mga sunog sa loob ng 150 m kahit sarado ang RepLiT.',
+  'Fires reported within 100 m, and news on your reports':
+      'Mga sunog na na-report sa loob ng 100 m, at balita sa mga report mo',
+  'On. Fires within 100 m reach you even when RepLiT is closed.':
+      'Naka-on. Aabot sa iyo ang mga sunog sa loob ng 100 m kahit sarado ang RepLiT.',
+  'Allow location "All the time" so fires within 100 m reach you when RepLiT is closed.':
+      'Payagan ang location nang "Palagi" ("All the time") para umabot sa iyo ang mga sunog sa loob ng 100 m kahit sarado ang RepLiT.',
   'Light mode': 'Light mode',
   'The pale ground, for daylight': 'Maliwanag na kulay, para sa araw',
   'Your alerts come in the same language':
@@ -694,8 +694,8 @@ const Map<String, String> kTagalog = {
       'May report ka pang tumatakbo. Bukas ito hanggang mapatay ang sunog.',
   'Your report is saved on this phone. It sends itself when the signal is back.':
       'Naka-save sa phone na ito ang report mo. Kusa itong ipapadala pagbalik ng signal.',
-  'Grouped with reports within 300 m': 'Isinama sa mga report sa loob ng 300 m',
-  'Within 300 m of an active area': 'Nasa loob ng 300 m ng isang aktibong area',
+  'Grouped with reports within 50 m': 'Isinama sa mga report sa loob ng 50 m',
+  'Within 50 m of an active area': 'Nasa loob ng 50 m ng isang aktibong area',
   'A new area — the first report here': 'Bagong area — ang unang report dito',
   'Report done': 'Tapos na ang report',
   'Report closed': 'Sarado na ang report',
@@ -712,8 +712,8 @@ const Map<String, String> kTagalog = {
   'Report received': 'Natanggap ang report',
   'Photo and GPS stored': 'Naka-save ang litrato at GPS',
   'Responders notified': 'Naabisuhan ang mga responder',
-  'Neighbours within 150 m were alerted too':
-      'Inalerto rin ang mga kapitbahay sa loob ng 150 m',
+  'Neighbours within 100 m were alerted too':
+      'Inalerto rin ang mga kapitbahay sa loob ng 100 m',
   'Waiting to be accepted': 'Naghihintay na tanggapin',
   'Closed by a coordinator': 'Isinara ng isang coordinator',
   'Responders reached the scene': 'Nakarating na sa lugar ang mga responder',
@@ -1114,8 +1114,8 @@ const Map<String, String> kTagalog = {
       'Tumataas ang trust level mo kapag na-verify ang email mo (+10%), phone (+40%), at National ID (+50%), kaya mas pinaniniwalaan ng mga responder ang mga report mo. Ayusin ito sa Profile → Verification.',
   'What are the \'fire near you\' alerts?':
       'Ano ang mga alertong \'may sunog malapit sa iyo\'?',
-  'If someone reports a fire within 150 m of you, you receive a push alert. Tap it to confirm there is a fire (which files a corroborating report) or to ignore it. Manage alerts in Profile → Notifications.':
-      'Kapag may nag-report ng sunog sa loob ng 150 m mula sa iyo, makakatanggap ka ng alerto. I-tap ito para kumpirmahing may sunog (magiging dagdag na report ito) o para i-ignore. Ayusin ang mga alerto sa Profile → Notifications.',
+  'If someone reports a fire within 100 m of you, you receive a push alert. Tap it to confirm there is a fire (which files a corroborating report) or to ignore it. Manage alerts in Profile → Notifications.':
+      'Kapag may nag-report ng sunog sa loob ng 100 m mula sa iyo, makakatanggap ka ng alerto. I-tap ito para kumpirmahing may sunog (magiging dagdag na report ito) o para i-ignore. Ayusin ang mga alerto sa Profile → Notifications.',
   'How do I find a safe area?': 'Paano ako makakahanap ng ligtas na lugar?',
   'On the live tracking screen the nearest evacuation site is shown. Tap SHOW ME THE WAY for in-app directions to it.':
       'Ipinapakita sa live tracking screen ang pinakamalapit na evacuation site. I-tap ang DAAN para sa direksiyon papunta roon sa loob ng app.',
@@ -2174,4 +2174,36 @@ const Map<String, String> kTagalog = {
   'Water level': 'Antas ng tubig',
   'Unit not recorded': 'Hindi nakatala ang unit',
   'Coordinator': 'Coordinator',
+
+  // v1.12.34: the loader, and Theme with System.
+  'Loading': 'Naglo-load',
+  'Theme': 'Tema',
+  'THEME': 'TEMA',
+  'System': 'Sistema',
+  'Light': 'Maliwanag',
+  'Dark': 'Madilim',
+  'Follows your phone, light or dark':
+      'Sumusunod sa phone mo, maliwanag man o madilim',
+  'Light or dark screens': 'Maliwanag o madilim na screen',
+  'Light or dark screens. The map keeps its own style.':
+      'Maliwanag o madilim na screen. May sariling istilo ang mapa.',
+
+  // v1.12.34: 18 and over, staff reports, what is burning.
+  'You must be 18 or older to use RepLiT.':
+      'Kailangang 18 taong gulang ka pataas para magamit ang RepLiT.',
+  'Date of birth · 18 or older': 'Petsa ng kapanganakan · 18 pataas',
+  'You report as staff — counted as fully trusted.':
+      'Nag-uulat ka bilang staff — buong pinagkakatiwalaan ang report mo.',
+  'You report as {who} — counted as fully trusted.':
+      'Nag-uulat ka bilang {who} — buong pinagkakatiwalaan ang report mo.',
+  'REPORT A FIRE': 'MAG-REPORT NG SUNOG',
+  'Report a fire': 'Mag-report ng sunog',
+  'Waiting for the unit on scene to say':
+      'Hinihintay ang sasabihin ng unit na nasa lugar',
+  'Required on scene. Pick the fire type.':
+      'Kailangan pagdating sa lugar. Piliin ang uri ng sunog.',
+  'Fire type': 'Uri ng sunog',
+  'Fire type set: {label}.': 'Naitakda ang uri ng sunog: {label}.',
+  'Could not save the fire type. Check your connection.':
+      'Hindi na-save ang uri ng sunog. Tingnan ang koneksyon mo.',
 };

@@ -471,7 +471,7 @@ void main() {
       );
       // The Account rows every staff Profile has.
       expect(find.text('Language'), findsOneWidget);
-      expect(find.text('Light mode'), findsOneWidget);
+      expect(find.text('Theme'), findsOneWidget);
       final more = find.widgetWithText(ListRow, 'What you can do');
       await tester.scrollUntilVisible(
         more,

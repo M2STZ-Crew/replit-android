@@ -9,7 +9,7 @@ import '../models/active_report.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/incident_map.dart';
-import '../widgets/skeleton.dart';
+import '../widgets/loading.dart';
 import 'sos_report_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
@@ -341,7 +341,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         color: Colors.black,
         child: Theme(
           data: buildAppTheme(),
-          child: SkeletonFill(label: t('Starting the camera')),
+          child: LoadingView(
+            label: t('Starting the camera'),
+            mark: false,
+            scrollable: false,
+          ),
         ),
       );
     }

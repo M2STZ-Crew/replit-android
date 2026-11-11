@@ -7,7 +7,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
-import '../../widgets/skeleton.dart';
+import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
 /// The kinds of decision a coordinator makes, as the audit log names them.
@@ -165,7 +165,7 @@ class _MyDecisionsScreenState extends State<MyDecisionsScreen> {
     final entries = _entries;
     if (entries == null) {
       return _error == null
-          ? const SkeletonList(rows: 6)
+          ? const LoadingView()
           : EmptyState(
               title: t('Decisions unavailable'),
               body: _error!,

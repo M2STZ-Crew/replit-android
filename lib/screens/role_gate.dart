@@ -17,7 +17,7 @@ import 'responder/responder_shell.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/launch_mark.dart';
-import '../widgets/skeleton.dart';
+import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
 
 /// Decides which home screen to show after authentication, based on the user's
@@ -166,7 +166,7 @@ class _RoleGateState extends State<RoleGate> {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 300),
-                child: const SkeletonRows(rows: 3),
+                child: const LoadingInline(),
               ),
             ),
             if (_slow) ...[
