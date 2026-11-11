@@ -24,7 +24,7 @@ import 'session.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 /// Owns the device's FCM lifecycle: registers the token with the backend
-/// (POST /devices), pushes the user's location for 150 m neighborhood alerts,
+/// (POST /devices), pushes the user's location for 100 m neighborhood alerts,
 /// surfaces foreground pushes in-app, and unregisters on logout.
 ///
 /// v1.12.6: every push opens what it is about when tapped — in the shade, or
@@ -179,7 +179,7 @@ class PushService {
       );
     }
     // A fire near them, with the app open: straight to "Do you see it too?"
-    // ("11 Corroborate", 150 m) — or, for staff, the incident.
+    // ("11 Corroborate", 100 m) — or, for staff, the incident.
     if (type == 'neighborhood_alert') {
       _onOpened(message);
       return;

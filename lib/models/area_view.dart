@@ -1,5 +1,6 @@
 import 'package:latlong2/latlong.dart';
 import '../i18n/i18n.dart';
+import 'field_ops.dart';
 
 /// One incident Area as the coordinator screens read it, from a GET
 /// /incidents row (IncidentSummary) or GET /incidents/{id} (IncidentDetail).
@@ -47,6 +48,20 @@ class AreaView {
       (raw['active_dispatch_count'] as num?)?.toInt() ?? 0;
 
   String? get alarmLevel => raw['alarm_level'] as String?;
+
+  /// What is burning, once someone on scene has said (PRD v14 §4.5.3).
+  FireClassification? get fireType => FireClassification.fromIncident(raw);
+
+  /// The server asks "What's burning?" (backend v1.12.27 and later send
+  /// `fire_type`, null until it is answered). An older server never says,
+  /// and the app does not ask what it could not save.
+  bool get asksFireType => raw.containsKey('fire_type');
+
+  /// On scene, or after: when "What's burning?" can be answered.
+  bool get onScene =>
+      status == 'arrived' ||
+      status == 'fire_out' ||
+      status == 'post_incident_report';
 
   DateTime? at(String key) => parseTime(raw[key]);
 

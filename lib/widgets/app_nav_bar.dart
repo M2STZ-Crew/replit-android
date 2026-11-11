@@ -10,6 +10,7 @@ import '../screens/report_status_screen.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'design.dart';
+import 'staff_shell.dart' show StaffAccount;
 import '../i18n/i18n.dart';
 
 /// The five slots of the REPLIT-OVERHAUL tab bar: Map, Hotlines, SOS, Guides,
@@ -182,6 +183,12 @@ class AppNavBar extends StatelessWidget {
 
   /// Switch to [tab] from anywhere — the header avatars use this for Profile.
   static void switchTo(BuildContext context, AppTab tab) {
+    // A Coordinator or Responder who reported a fire (C23 / R20) goes back
+    // to their own app, not to a resident's tab.
+    if (StaffAccount.isStaff) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder<void>(
         pageBuilder: (_, _, _) => tab.build(),

@@ -52,7 +52,22 @@ enum FireType {
   final List<String> subtypes;
 
   bool get hasSubtypes => subtypes.isNotEmpty;
+
+  static FireType? fromWire(Object? wire) {
+    for (final type in values) {
+      if (type.wire == wire) return type;
+    }
+    return null;
+  }
 }
+
+/// A subtype as the server says it: "High-tension wire" is
+/// `high_tension_wire`, "E-bike" is `e_bike`, "SUV" is `suv`
+/// (app/services/fire_type.py).
+String fireSubtypeWire(String label) => label
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+    .replaceAll(RegExp(r'^_+|_+$'), '');
 
 /// A fire type, and its subtype when it has them.
 class FireClassification {
@@ -64,6 +79,28 @@ class FireClassification {
 
   final FireType type;
   final String? subtype;
+
+  /// What an incident from the server says is burning (`fire_type`,
+  /// `fire_subtype`), or null while nobody has said. A subtype this app does
+  /// not list is kept as the server's words.
+  static FireClassification? fromIncident(Map<String, dynamic> raw) {
+    final type = FireType.fromWire(raw['fire_type']);
+    if (type == null) return null;
+    final wire = raw['fire_subtype'] as String?;
+    if (wire == null || wire.isEmpty) return FireClassification(type);
+    for (final label in type.subtypes) {
+      if (fireSubtypeWire(label) == wire) {
+        return FireClassification(type, label);
+      }
+    }
+    return FireClassification(type, wire.replaceAll('_', ' '));
+  }
+
+  /// The body of POST /incidents/{id}/fire-type.
+  Map<String, dynamic> toJson() => {
+    'fire_type': type.wire,
+    'fire_subtype': subtype == null ? null : fireSubtypeWire(subtype!),
+  };
 
   /// "Structural — Residential", or "Rubbish".
   String get label => subtype == null ? type.label : '${type.label} — $subtype';

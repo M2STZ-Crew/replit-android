@@ -12,6 +12,7 @@ import '../models/active_report.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
+import '../widgets/staff_shell.dart' show StaffAccount;
 import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
@@ -269,6 +270,26 @@ class _SosReportScreenState extends State<SosReportScreen> {
     ReportStatusScreen.showOverMap(context, report);
   }
 
+  /// "You report as Capt. R. Alonzo, Pasay Fire Volunteers — counted as
+  /// fully trusted." (C23): a staff account's report carries V = 1.0
+  /// (PRD v14 §4.1). Null for a resident.
+  String? _staffLine() {
+    final me = StaffAccount.current;
+    final role = me?['role'];
+    if (me == null || (role != 'sub_admin' && role != 'response_team')) {
+      return null;
+    }
+    final name = (me['full_name'] as String?)?.trim();
+    final org = (me['organization_name'] as String?)?.trim();
+    final who = [
+      if (name != null && name.isNotEmpty) name,
+      if (org != null && org.isNotEmpty) org,
+    ].join(', ');
+    return who.isEmpty
+        ? t('You report as staff — counted as fully trusted.')
+        : t('You report as {who} — counted as fully trusted.', {'who': who});
+  }
+
   // -------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
@@ -291,8 +312,16 @@ class _SosReportScreenState extends State<SosReportScreen> {
               ],
             ),
             const SizedBox(height: 28),
-            Text(t('WHAT ARE WE SENDING?'), style: context.type.heading1),
-            const SizedBox(height: 32),
+            if (_staffLine() case final staff?) ...[
+              // C23 / R20: a Coordinator or Responder reporting.
+              Text(t('REPORT A FIRE'), style: context.type.heading1),
+              const SizedBox(height: 8),
+              Text(staff, style: context.type.body),
+              const SizedBox(height: 24),
+            ] else ...[
+              Text(t('WHAT ARE WE SENDING?'), style: context.type.heading1),
+              const SizedBox(height: 32),
+            ],
             Eyebrow(t('Who should respond'), color: context.pal.muted),
             const SizedBox(height: 10),
             _agencyGrid(),

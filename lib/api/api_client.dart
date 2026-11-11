@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/field_ops.dart';
 import 'api_config.dart';
 import 'phone_gate.dart';
 import 'session.dart';
@@ -369,7 +370,7 @@ class ApiClient {
     return jsonDecode(resp.body) as List<dynamic>;
   }
 
-  /// The caller's answer to a 150 m alert, and whether "I am safe" is open to
+  /// The caller's answer to a 100 m alert, and whether "I am safe" is open to
   /// them: GET /notifications/respond/{areaId}.
   Future<Map<String, dynamic>> getAlertAnswer(String areaId) async {
     final resp = await _client.get(
@@ -379,7 +380,7 @@ class ApiClient {
     return _decode(resp);
   }
 
-  /// Respond to a 150 m neighborhood alert: POST /notifications/respond.
+  /// Respond to a 100 m neighborhood alert: POST /notifications/respond.
   /// [response] is 'report' (confirm a fire nearby), 'ignore' (dismiss) or
   /// 'safe' (the resident says they are safe). Throws [ApiException] when the
   /// server did not record it — then the alerts for this Area keep coming, and
@@ -444,7 +445,7 @@ class ApiClient {
 
   /// Update the caller's last-known location: POST /auth/me/location.
   ///
-  /// Sets users.location so the 150 m neighborhood-alert worker can reach this
+  /// Sets users.location so the 100 m neighborhood-alert worker can reach this
   /// device. Best-effort — a failure must not block the app.
   Future<void> updateMyLocation(double lat, double lng) async {
     try {
@@ -840,6 +841,20 @@ class ApiClient {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/incidents/$id/arrived'),
       headers: _auth,
+    );
+    return _decode(resp);
+  }
+
+  /// Say what is burning, on scene (PRD v14 §4.5.3):
+  /// POST /incidents/{id}/fire-type. Returns the incident.
+  Future<Map<String, dynamic>> setFireType(
+    String id,
+    FireClassification fire,
+  ) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/incidents/$id/fire-type'),
+      headers: _jsonAuth,
+      body: jsonEncode(fire.toJson()),
     );
     return _decode(resp);
   }
@@ -1359,13 +1374,17 @@ class ApiClient {
       // A burner email address (backend v1.12.23), refused at sign-up, for a
       // responder or as a personal email: the server names the service in
       // English, so every screen says it in the app's own words instead.
-      final message = code == 'disposable_email'
-          ? t(
-              "Temporary email addresses can't be used. Use an email that will "
-              'last, like your Gmail.',
-            )
-          : (body['message'] as String?) ??
-                'Request failed (${resp.statusCode}).';
+      final message = switch (code) {
+        'disposable_email' => t(
+          "Temporary email addresses can't be used. Use an email that will "
+          'last, like your Gmail.',
+        ),
+        // 18 and over (v1.12.27, app/services/age.py).
+        'underage' => t('You must be 18 or older to use RepLiT.'),
+        _ =>
+          (body['message'] as String?) ??
+              'Request failed (${resp.statusCode}).',
+      };
       final details = body['details'] is Map<String, dynamic>
           ? body['details'] as Map<String, dynamic>
           : null;
