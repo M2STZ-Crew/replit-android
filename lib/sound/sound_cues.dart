@@ -1,6 +1,8 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../i18n/i18n.dart';
+
 /// The app's sounds: the alert recordings (v1.12.9: the recordings chosen for
 /// the pilot), for a push that arrives while the app is open. The push names
 /// its sound in `sound_category` — fire, police, medical, barangay, citizen,
@@ -33,6 +35,20 @@ class SoundCues {
     'on_scene',
     'fire_out',
     'rejected',
+  };
+
+  /// "New Update!": not an incident's sound but its own recording, in the
+  /// app's language (12 November 2026: "update notification sound is in my
+  /// downloads ... so put it"; answered: by language). English accounts
+  /// hear one, Tagalog accounts the other, from [updateSounds].
+  static const String update = 'update';
+
+  /// The update recordings by language: `assets/sounds/<name>.mp3` in the
+  /// open app, and `res/raw/<name>.mp3` for the push's channels
+  /// (app_update_en_v1, app_update_tl_v1).
+  static const Map<AppLanguage, String> updateSounds = {
+    AppLanguage.en: 'update_en',
+    AppLanguage.tl: 'update_tl',
   };
 
   /// The staff member's own agency's sound: fire for Fire Volunteers and BFP.
@@ -80,11 +96,17 @@ class SoundCues {
     await prefs.setDouble(_fireVolumeKey, value.clamp(0, 1).toDouble());
   }
 
-  /// Play one category's recording, unless alert sounds are turned off or at
-  /// zero. An unknown category plays nothing. Never throws: a sound that
-  /// fails to play must not stop the alert from showing.
+  /// Play one category's recording ([update]: the update's, in the app's
+  /// language), unless alert sounds are turned off or at zero. An unknown
+  /// category plays nothing. Never throws: a sound that fails to play must
+  /// not stop the alert from showing.
   Future<void> playAlert(String? category) async {
-    if (!categories.contains(category)) return;
+    final file = category == update
+        ? updateSounds[LanguageChoice.current.value]
+        : categories.contains(category)
+        ? 'sound_$category'
+        : null;
+    if (file == null) return;
     try {
       if (!await fireAlarmEnabled()) return;
       final volume = await fireAlarmVolume();
@@ -92,10 +114,7 @@ class SoundCues {
       final player = _firePlayer ??= AudioPlayer(playerId: 'alert');
       await player.stop();
       await player.setVolume(volume);
-      await player.play(
-        AssetSource('sounds/sound_$category.mp3'),
-        ctx: _asNotification,
-      );
+      await player.play(AssetSource('sounds/$file.mp3'), ctx: _asNotification);
     } catch (_) {
       // No audio focus, missing codec — the banner still shows.
     }

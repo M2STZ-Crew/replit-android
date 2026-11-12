@@ -175,7 +175,12 @@ class PushService {
     unawaited(Buzz.alert());
     if (message.data['silent'] != 'true') {
       unawaited(
-        SoundCues.instance.playAlert(message.data['sound_category'] as String?),
+        SoundCues.instance.playAlert(
+          // "New Update!" names no category: it has its own recording.
+          type == 'app_update'
+              ? SoundCues.update
+              : message.data['sound_category'] as String?,
+        ),
       );
     }
     // A fire near them, with the app open: straight to "Do you see it too?"

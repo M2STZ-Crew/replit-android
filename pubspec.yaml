@@ -23,7 +23,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # The +1 here is only a placeholder: CI passes --build-number=<github run
 # number>, which is what becomes the Android versionCode. That has to rise on
 # every build or Android refuses the install, and a run number always does.
-version: 1.12.37+1
+version: 1.12.38+1
 
 environment:
   sdk: ^3.11.1
@@ -103,6 +103,9 @@ flutter:
     - assets/tutorial/lit/
     - assets/tutorial/voice/en/
     - assets/tutorial/voice/tl/
+    # The practice photo for a phone whose camera will not start, drawn by
+    # tool/tutorial/render_practice_photo_test.dart.
+    - assets/tutorial/practice_photo.png
 
   # The design's one icon family (Material Symbols Rounded, Fill 1), cut down
   # to the icons the app uses. Built by tool/symbols/build_font.py; drawn

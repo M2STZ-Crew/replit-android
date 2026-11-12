@@ -13,7 +13,10 @@ import '../api/session.dart';
 import '../models/verification_state.dart';
 import '../privacy/contact_mask.dart';
 import '../updates/app_updates.dart';
+import '../models/active_report.dart';
+import '../api/report_queue.dart';
 import '../theme.dart';
+import '../tutorial/practice.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
@@ -250,6 +253,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _push(Widget screen) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 
+  /// The LIT tutorial again, on the real screens: never over a report in
+  /// progress or one waiting to send, which those screens belong to.
+  void _replayTutorial() {
+    if (ActiveReportStore.mine != null ||
+        ReportQueue.instance.pending.value.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t(
+              'You have a report in progress. Replay the tutorial once it is '
+              'done.',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    LitPractice.open(
+      context,
+      account: Session.instance.email ?? '',
+      replay: true,
+    );
+  }
+
   void _about() {
     showAppSheet<void>(
       context: context,
@@ -415,6 +442,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: t('Notifications'),
                   line: t('Alerts and updates sent to you'),
                   onTap: () => _push(const NotificationsScreen()),
+                ),
+                const SizedBox(height: 8),
+                // The LIT tutorial, watched again (12 November 2026: "put
+                // the replay tutorial in profile"; answered: Profile
+                // only).
+                _Link(
+                  icon: AppIcons.restartAlt,
+                  title: t('Replay the tutorial'),
+                  line: t('Practice a report with Lit. Nothing is sent.'),
+                  onTap: _replayTutorial,
                 ),
                 const SizedBox(height: 8),
                 _Link(

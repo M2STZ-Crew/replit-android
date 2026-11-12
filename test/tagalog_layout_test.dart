@@ -25,7 +25,8 @@ import 'package:replit/screens/register_screen.dart';
 import 'package:replit/screens/sos_report_screen.dart';
 import 'package:replit/screens/verification_screen.dart';
 import 'package:replit/theme.dart';
-import 'package:replit/tutorial/lit_tutorial_screen.dart';
+import 'package:replit/tutorial/lit_welcome_screen.dart';
+import 'package:replit/tutorial/practice.dart';
 
 import 'fake_narration.dart';
 
@@ -71,9 +72,8 @@ void main() {
   );
 
   final screens = <String, Widget Function()>{
-    'tutorial': () => LitTutorialScreen(
-      account: 'm.reyes@gmail.com',
-      player: FakeNarrationPlayer(),
+    'tutorial': () => LitWelcomeScreen(
+      practice: LitPractice.forTest(player: FakeNarrationPlayer()),
     ),
     'login': () => LoginScreen(api: api()),
     'register': () => RegisterScreen(api: api()),

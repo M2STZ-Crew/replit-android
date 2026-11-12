@@ -7,6 +7,76 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.38 — 12 November 2026 — Lit's practice on the real screens, "New Update!" in its own voice
+
+With backend v1.12.30 (the update push's recordings); against v1.12.29
+everything works as before, and "New Update!" plays the phone's tone. Adds
+the two update recordings and the practice photo (about 170 KB). No new
+permission.
+
+### Changes
+
+**The LIT tutorial, on the real screens** ("the system or the real
+reporting phase is in the tutorial (but it will not report officially)")
+- Lit leads a practice report on the app's own screens, from the map: tap
+  SOS in the bar, hold the real SOS button for two seconds, take a photo with
+  the real camera, check the location the real GPS found, choose who
+  responds, check the details, then Submit Practice Report. "Getting you
+  help" then plays the stages a few seconds apart: waiting to be accepted,
+  on the way, on scene, fire out.
+- **Nothing is reported.** Send reads "Submit Practice Report" and sends
+  nothing; no report, queue, history or timing is kept; the practice photo
+  is deleted from the phone as soon as it is read, and the location never
+  leaves it. On a phone whose camera will not start, the shutter takes a
+  drawing instead.
+- One control is lit at a time, and brought into view when its screen has
+  scrolled it away; Lit's panel sits on the side with more room. The phone's
+  Back is the tutorial's Back.
+- **The language is chosen once**, on the first screen, for Lit and the
+  whole app (the app's own English | Tagalog switch); the lessons have no
+  switch.
+- **Continue and Finish** are the full-width coral button under Lit, with
+  Back as a link above it, the same on every lesson.
+- **"Replay the tutorial" is on Profile** (More), and only there; not while
+  a report is in progress. Offered once more to everyone, since it is new.
+
+**"New Update!" in its own voice** ("update notification sound is in my
+downloads (replit tutorial). so put it"; answered: by language)
+- English accounts hear the English recording and Tagalog accounts the
+  Tagalog one: on the push (new channels "App updates (English)" and "App
+  updates (Tagalog)", still vibrating) and in the open app.
+
+**Fixed**
+- **"Retry camera" could not be pressed**: the camera's dark shade took
+  every touch. At a large text size its message also sat under the location
+  card; it now has the room the viewfinder had, and scrolls in it.
+
+### Lit's lesson 02, to record
+Lesson 02 is three steps on the real screens now; they are captioned without
+a voice until recorded (03 stays as listed under v1.12.37):
+- **Tap SOS** — "This is your home screen. When you need to report a fire,
+  tap SOS at the bottom." / "Ito ang home screen mo. Kapag may sunog kang
+  ire-report, i-tap ang SOS sa ibaba."
+- **Hold SOS** — "This is the SOS screen. Press and hold the SOS button for
+  two seconds. For practice, hold it now." / "Ito ang SOS screen. Pindutin
+  nang matagal ang SOS button nang dalawang segundo. Para sa practice,
+  pindutin ito nang matagal ngayon."
+- **The photo** — "RepLiT asks for one photo of the scene. For practice,
+  take a photo of anything around you. It is never sent." / "Isang litrato
+  ng lugar ang hinihingi ng RepLiT. Para sa practice, kunan ng litrato ang
+  kahit ano sa paligid mo. Hindi ito ipapadala."
+
+### Tests
+- `test/lit_tutorial_test.dart`: the whole practice on the real map, SOS,
+  camera, form and "Getting you help", by its real gestures, with nothing
+  reported or kept; the language chosen once; Back by the link and by the
+  phone; Skip; a replay; mute; a failed clip; the background; a double tap;
+  360 × 640 and 402 × 874 at large text sizes, never over what is lit.
+- `test/sound_files_test.dart`, `test/new_update_test.dart`: the update's
+  recordings in the app and for the phone, and their channels.
+
+---
+
 ## v1.12.37 — 12 November 2026 — Lit's tutorial, National ID as designed, screens that fit
 
 With backend v1.12.29 ("New Update!" and the fire-type rule); against

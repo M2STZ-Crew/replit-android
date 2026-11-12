@@ -11,10 +11,9 @@ enum LitOutcome { completed, skipped }
 /// viewers too. The old tour's own flags (tour_seen_v1, map_coach_seen_v1)
 /// are left as they were.
 abstract final class LitTutorial {
-  /// Raise to offer a new version of the tutorial to everyone again.
-  static const int version = 1;
-
-  static const String _languageKey = 'lit_tutorial_language';
+  /// Raise to offer a new version of the tutorial to everyone again: 2 is
+  /// the practice on the real screens (v1.12.38), after v1.12.37's drawn one.
+  static const int version = 2;
 
   static String _key(String account) =>
       'lit_tutorial_v${version}_${account.trim().toLowerCase()}';
@@ -50,19 +49,8 @@ abstract final class LitTutorial {
     );
   }
 
-  /// The narration's language: the last one chosen in the tutorial, else the
-  /// app's own.
-  static Future<LitLanguage> language() async {
-    final saved = (await SharedPreferences.getInstance()).getString(
-      _languageKey,
-    );
-    return LitLanguage.values.where((l) => l.name == saved).firstOrNull ??
-        (LanguageChoice.tagalog ? LitLanguage.tl : LitLanguage.en);
-  }
-
-  static Future<void> setLanguage(LitLanguage language) async =>
-      (await SharedPreferences.getInstance()).setString(
-        _languageKey,
-        language.name,
-      );
+  /// Lit's language: the app's own, which the first screen of the tutorial
+  /// sets for both (12 November 2026: chosen once, for the whole app).
+  static LitLanguage get language =>
+      LanguageChoice.tagalog ? LitLanguage.tl : LitLanguage.en;
 }

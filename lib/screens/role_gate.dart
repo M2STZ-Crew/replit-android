@@ -14,8 +14,8 @@ import 'map_screen.dart';
 import 'report_status_screen.dart';
 import 'phone_verify_screen.dart';
 import 'responder/responder_shell.dart';
-import '../tutorial/lit_tutorial_screen.dart';
 import '../tutorial/lit_tutorial_state.dart';
+import '../tutorial/practice.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/launch_mark.dart';
@@ -306,7 +306,7 @@ class _ResumeReportState extends State<_ResumeReport> {
         ReportQueue.instance.pending.value.isEmpty &&
         !ReportStatusScreen.isShowing &&
         (ModalRoute.of(context)?.isCurrent ?? true);
-    if (idle) await LitTutorialScreen.open(context, account: account);
+    if (idle) await LitPractice.open(context, account: account);
   }
 
   @override
