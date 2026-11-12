@@ -13,7 +13,6 @@ import 'package:replit/screens/id_camera_screen.dart';
 import 'package:replit/screens/national_id_screen.dart';
 import 'package:replit/screens/verification_screen.dart';
 import 'package:replit/theme.dart';
-import 'package:replit/widgets/design.dart';
 
 /// The real screen, with no stand-in for the camera.
 Future<void> pumpIdScreenWithoutStandIn(
@@ -32,8 +31,11 @@ Future<void> pumpIdScreenWithoutStandIn(
   await tester.pump();
 }
 
-/// National ID: three live photos and the holder's consent, for an
-/// administrator's PhilSys Check, and the answer coming back to the resident.
+/// National ID, as the Figma frames take it (12 November 2026: "the national
+/// id verification screen (based on figma) is not consistent in the system
+/// itself so fix it based on figma"): 16 Start, the three photos (20, 20C,
+/// 20B), 20D Check your photos, 21 Sent for review. Then the answer coming
+/// back to the resident.
 void main() {
   // A one-pixel PNG: enough for Image.memory to draw something.
   final photo = base64Decode(
@@ -57,8 +59,19 @@ void main() {
     }),
   );
 
-  Future<void> pumpIdScreen(WidgetTester tester, ApiClient client) async {
-    tester.view.physicalSize = const Size(402, 1400);
+  /// The photos asked of the camera stand-in, in order.
+  late List<IdShot> asked;
+
+  /// Opens the screen with a camera that answers [answer] for each photo
+  /// (null: closed without one).
+  Future<void> pumpIdScreen(
+    WidgetTester tester,
+    ApiClient client, {
+    Uint8List? Function(IdShot shot)? answer,
+    int? percent,
+  }) async {
+    asked = [];
+    tester.view.physicalSize = const Size(402, 874);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -66,62 +79,154 @@ void main() {
         theme: buildAppTheme(),
         home: NationalIdScreen(
           api: client,
-          camera: () async => Uint8List.fromList(photo),
+          percent: percent,
+          camera: (shot) async {
+            asked.add(shot);
+            return answer == null ? Uint8List.fromList(photo) : answer(shot);
+          },
         ),
       ),
     );
     await tester.pump();
   }
 
-  Finder submit() => find.byType(AppButton);
+  Future<void> tap(WidgetTester tester, String text) async {
+    await tester.ensureVisible(find.text(text));
+    await tester.tap(find.text(text));
+    // Each photo is a round trip to the camera stand-in.
+    for (var i = 0; i < 8; i++) {
+      await tester.pump();
+    }
+  }
 
-  bool enabled(WidgetTester tester) =>
-      tester.widget<AppButton>(submit()).onPressed != null;
+  http.Response ok(http.BaseRequest _) => http.Response(
+    jsonEncode({'verified': false, 'verified_percent': 50, 'badge': 'yellow'}),
+    200,
+  );
 
   group('the National ID screen', () {
-    testWidgets('asks for the PhilSys ID, not any government ID', (
+    testWidgets('starts as 16 does: what it takes, for the PhilSys ID', (
       tester,
     ) async {
-      await pumpIdScreen(tester, api((_) => http.Response('{}', 200)));
+      await pumpIdScreen(tester, api(ok));
+      expect(tester.takeException(), isNull);
+      expect(find.text('NATIONAL ID · +50%'), findsOneWidget);
+      expect(find.text('VERIFY WITH YOUR ID'), findsOneWidget);
+      expect(find.text('WHAT YOU NEED'), findsOneWidget);
+      for (final need in [
+        'Your National ID card',
+        'Good light',
+        'About two minutes',
+      ]) {
+        expect(find.text(need), findsOneWidget);
+      }
       expect(find.textContaining('PhilID card or ePhilID'), findsOneWidget);
       expect(find.textContaining('government ID'), findsNothing);
-      expect(find.text('QR CODE'), findsOneWidget);
+      expect(find.text('TAKE ID PHOTO'), findsOneWidget);
+      expect(find.text('Not now'), findsOneWidget);
+      expect(asked, isEmpty, reason: 'nothing is taken until asked');
     });
 
-    testWidgets('submits only with all three photos and the consent', (
+    testWidgets('takes the front, the back and the face, then shows them', (
       tester,
     ) async {
+      await pumpIdScreen(tester, api(ok));
+      await tap(tester, 'TAKE ID PHOTO');
+      expect(asked, [IdShot.front, IdShot.back, IdShot.face]);
+      expect(find.text('CHECK YOUR PHOTOS'), findsOneWidget);
+      for (final shot in IdShot.values) {
+        await tester.ensureVisible(
+          find.byKey(ValueKey('preview-${shot.name}')),
+        );
+        expect(find.text(shot.title), findsOneWidget);
+      }
+      expect(find.text('Retake'), findsNWidgets(3));
+      expect(find.text('SEND FOR REVIEW'), findsOneWidget);
+      expect(sent, isEmpty, reason: 'nothing is sent until asked');
+    });
+
+    testWidgets('closing a camera keeps what was taken for the next go', (
+      tester,
+    ) async {
+      var closeOnBack = true;
       await pumpIdScreen(
         tester,
-        api(
-          (_) => http.Response(
-            jsonEncode({
-              'verified': false,
-              'verified_percent': 10,
-              'badge': 'yellow',
-            }),
-            200,
-          ),
-        ),
+        api(ok),
+        answer: (shot) => shot == IdShot.back && closeOnBack
+            ? null
+            : Uint8List.fromList(photo),
       );
-      expect(enabled(tester), isFalse);
+      await tap(tester, 'TAKE ID PHOTO');
+      expect(asked, [IdShot.front, IdShot.back]);
+      expect(find.text('VERIFY WITH YOUR ID'), findsOneWidget);
 
-      for (final slot in [
-        'Tap to photograph the side with your picture',
-        'On the back of the card. Tap to photograph it.',
-        'Tap to take a selfie',
-      ]) {
-        await tester.tap(find.text(slot));
-        await tester.pump();
-      }
-      expect(enabled(tester), isFalse, reason: 'no consent yet');
+      closeOnBack = false;
+      asked.clear();
+      await tap(tester, 'TAKE ID PHOTO');
+      expect(asked, [IdShot.back, IdShot.face], reason: 'the front is kept');
+      expect(find.text('CHECK YOUR PHOTOS'), findsOneWidget);
+    });
 
-      await tester.tap(find.textContaining('I agree to an administrator'));
+    testWidgets('Retake replaces only that photo', (tester) async {
+      await pumpIdScreen(tester, api(ok));
+      await tap(tester, 'TAKE ID PHOTO');
+      asked.clear();
+      final back = find.descendant(
+        of: find.byKey(const ValueKey('preview-back')),
+        matching: find.text('Retake'),
+      );
+      await tester.ensureVisible(back);
+      await tester.tap(back);
       await tester.pump();
-      expect(enabled(tester), isTrue);
+      expect(asked, [IdShot.back]);
+      expect(find.text('CHECK YOUR PHOTOS'), findsOneWidget);
+    });
 
-      await tester.tap(submit());
-      await tester.pumpAndSettle();
+    testWidgets('the face shows mirrored, as the camera showed it', (
+      tester,
+    ) async {
+      await pumpIdScreen(tester, api(ok));
+      await tap(tester, 'TAKE ID PHOTO');
+      final face = find.byKey(const ValueKey('framed-face'));
+      final flip = tester.widget<Transform>(
+        find.descendant(of: face, matching: find.byType(Transform)).first,
+      );
+      expect(flip.transform.entry(0, 0), -1);
+      for (final shot in [IdShot.front, IdShot.back]) {
+        expect(
+          find.descendant(
+            of: find.byKey(ValueKey('framed-${shot.name}')),
+            matching: find.byType(Transform),
+          ),
+          findsNothing,
+          reason: '${shot.name} is shown as it is',
+        );
+      }
+    });
+
+    testWidgets('says what sending agrees to, and that the photos go', (
+      tester,
+    ) async {
+      await pumpIdScreen(tester, api(ok));
+      await tap(tester, 'TAKE ID PHOTO');
+      final consent = find.textContaining("PSA's PhilSys Check, where PSA");
+      await tester.ensureVisible(consent);
+      expect(consent, findsOneWidget);
+      expect(
+        find.textContaining('your first name and the result'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('deleted once it is decided'), findsOneWidget);
+    });
+
+    testWidgets('sends the three photos, then says it is in review', (
+      tester,
+    ) async {
+      await pumpIdScreen(tester, api(ok), percent: 50);
+      await tap(tester, 'TAKE ID PHOTO');
+      await tester.tap(find.text('SEND FOR REVIEW'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(sent, hasLength(1));
       expect(
@@ -133,15 +238,38 @@ void main() {
         expect(body, contains('name="$part"'));
       }
       expect(body, contains('name="philsys_consent"'));
+
+      // 21 · Sent for review.
+      expect(find.text('NATIONAL ID · IN REVIEW'), findsOneWidget);
+      expect(find.text('SENT FOR REVIEW'), findsOneWidget);
+      expect(find.textContaining('stays at 50% until then'), findsOneWidget);
+      expect(find.text('Photo of your ID'), findsOneWidget);
+      expect(find.text('Live selfie'), findsOneWidget);
+      expect(find.text('Waiting for an admin'), findsOneWidget);
+      expect(find.text('BACK TO PROFILE'), findsOneWidget);
     });
 
-    testWidgets('says what PSA keeps and that the photos go', (tester) async {
-      await pumpIdScreen(tester, api((_) => http.Response('{}', 200)));
-      expect(
-        find.textContaining('my first name and the result'),
-        findsOneWidget,
+    testWidgets('a refused send says why and keeps the photos', (tester) async {
+      await pumpIdScreen(
+        tester,
+        api(
+          (_) => http.Response(
+            jsonEncode({
+              'error': 'already_submitted',
+              'message': 'Your National ID is already waiting for review.',
+            }),
+            409,
+          ),
+        ),
       );
-      expect(find.textContaining('deleted once the review'), findsOneWidget);
+      await tap(tester, 'TAKE ID PHOTO');
+      await tester.tap(find.text('SEND FOR REVIEW'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Not sent'), findsOneWidget);
+      expect(find.textContaining('already waiting for review'), findsOneWidget);
+      expect(find.text('CHECK YOUR PHOTOS'), findsOneWidget);
+      expect(find.byKey(const ValueKey('preview-face')), findsOneWidget);
     });
   });
 
@@ -153,6 +281,7 @@ void main() {
     Future<void> pumpCamera(
       WidgetTester tester,
       IdShot shot, {
+      Set<IdShot> taken = const {},
       Size size = figma,
       EdgeInsets safe = notch,
       double scale = 1,
@@ -173,6 +302,7 @@ void main() {
               ),
               child: IdCameraScreen(
                 shot: shot,
+                taken: taken,
                 preview: const ColoredBox(color: Colors.blueGrey),
               ),
             ),
@@ -183,43 +313,55 @@ void main() {
     }
 
     test('the guides are the design\'s, where the design put them', () {
-      final card = IdShot.card.guideIn(figma, notch);
-      expect(card.width, 330);
-      expect(card.height, 208);
-      expect(card.left, 36);
-      expect(card.tlRadiusX, 16);
-      expect(card.top, closeTo(300, 12));
-
-      final face = IdShot.selfie.guideIn(figma, notch);
+      for (final shot in [IdShot.front, IdShot.back]) {
+        final card = shot.guideIn(figma, notch);
+        expect(card.width, 330);
+        expect(card.height, closeTo(208, 0.5));
+        expect(card.left, 36);
+        expect(card.top, closeTo(306, 1));
+      }
+      final face = IdShot.face.guideIn(figma, notch);
       expect(face.width, 240);
       expect(face.height, 300);
       expect(face.left, 81);
-      expect(face.tlRadiusX, 120);
-      expect(face.top, closeTo(250, 12));
+      expect(face.top, closeTo(260, 1));
     });
 
     test(
-      'the guides shrink on a small phone and stay clear of the shutter',
+      'the card is the width less 36 each side; the oval 60% when narrower',
+      () {
+        const safe = EdgeInsets.only(top: 54, bottom: 34);
+        final small = IdShot.front.guideIn(const Size(360, 800), safe);
+        expect(small.width, 288);
+        expect(small.height, closeTo(182, 0.5));
+        final large = IdShot.front.guideIn(const Size(430, 932), safe);
+        expect(large.width, 358);
+        expect(large.height, closeTo(226, 0.5));
+        final face = IdShot.face.guideIn(const Size(360, 800), safe);
+        expect(face.width, 216);
+        expect(face.height, 270);
+      },
+    );
+
+    test(
+      'the guides shrink on a short phone and stay clear of the shutter',
       () {
         const small = Size(320, 568);
         for (final shot in IdShot.values) {
           final guide = shot.guideIn(small, EdgeInsets.zero);
           expect(guide.left, greaterThanOrEqualTo(36));
           expect(guide.right, lessThanOrEqualTo(small.width - 36));
-          expect(guide.top, greaterThanOrEqualTo(116));
-          expect(guide.bottom, lessThan(small.height - 164));
-          expect(
-            guide.width / guide.height,
-            closeTo(shot.guide.aspectRatio, 0.01),
-          );
+          expect(guide.top, greaterThanOrEqualTo(118));
+          expect(guide.bottom, lessThan(small.height - 140));
+          expect(guide.width / guide.height, closeTo(shot.aspect, 0.01));
         }
       },
     );
 
     for (final (shot, title, step) in [
-      (IdShot.card, 'PHOTO OF YOUR ID', 'STEP 1 OF 3'),
-      (IdShot.qr, 'PHOTO OF YOUR QR', 'STEP 2 OF 3'),
-      (IdShot.selfie, 'LIVE SELFIE', 'STEP 3 OF 3'),
+      (IdShot.front, 'ID FRONT', 'STEP 1 OF 3'),
+      (IdShot.back, 'ID BACK', 'STEP 2 OF 3'),
+      (IdShot.face, 'YOUR FACE', 'STEP 3 OF 3'),
     ]) {
       testWidgets('$title says what to do and how to leave', (tester) async {
         await pumpCamera(tester, shot);
@@ -232,6 +374,15 @@ void main() {
       });
     }
 
+    testWidgets('the chips tick what is taken and mark what is being taken', (
+      tester,
+    ) async {
+      await pumpCamera(tester, IdShot.back, taken: {IdShot.front});
+      expect(find.bySemanticsLabel('ID front, taken'), findsOneWidget);
+      expect(find.bySemanticsLabel('ID back, now'), findsOneWidget);
+      expect(find.bySemanticsLabel('Your face'), findsOneWidget);
+    });
+
     testWidgets('nothing overflows on a small phone at large text', (
       tester,
     ) async {
@@ -239,6 +390,7 @@ void main() {
         await pumpCamera(
           tester,
           shot,
+          taken: {IdShot.front},
           size: const Size(360, 640),
           safe: const EdgeInsets.only(top: 24),
           scale: 1.5,
@@ -248,8 +400,8 @@ void main() {
     });
 
     testWidgets('stays dark on the light ground', (tester) async {
-      await pumpCamera(tester, IdShot.card, ground: AppPalette.light);
-      final title = tester.widget<Text>(find.text('PHOTO OF YOUR ID'));
+      await pumpCamera(tester, IdShot.front, ground: AppPalette.light);
+      final title = tester.widget<Text>(find.text('ID FRONT'));
       expect(title.style?.color, AppPalette.dark.onBackground);
     });
 
@@ -257,7 +409,7 @@ void main() {
       tester,
     ) async {
       await pumpIdScreenWithoutStandIn(tester, api);
-      await tester.tap(find.text('Tap to take a selfie'));
+      await tester.tap(find.text('TAKE ID PHOTO'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       // Its spinner never settles, so wait out the failing plugin call itself.
@@ -265,12 +417,12 @@ void main() {
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
       );
       await tester.pump();
-      expect(find.text('LIVE SELFIE'), findsOneWidget);
+      expect(find.text('ID FRONT'), findsOneWidget);
       expect(find.textContaining('could not start'), findsOneWidget);
       await tester.tap(find.bySemanticsLabel('Close camera'));
       await tester.pumpAndSettle();
-      expect(find.text('LIVE SELFIE'), findsNothing);
-      expect(find.text('Tap to take a selfie'), findsOneWidget);
+      expect(find.text('ID FRONT'), findsNothing);
+      expect(find.text('VERIFY WITH YOUR ID'), findsOneWidget);
     });
   });
 
@@ -327,7 +479,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Take the QR photo again.'), findsOneWidget);
+      expect(find.text('+50% · Take the QR photo again.'), findsOneWidget);
     });
 
     test('the notification opens the verification screen, for anyone', () {
@@ -336,6 +488,11 @@ void main() {
         NotificationTarget.verification,
       );
       expect(canOpen('national_id_reviewed', const {}), isTrue);
+    });
+
+    test('a verified address shows masked, as 15 does', () {
+      expect(maskEmail('m.reyes@gmail.com'), 'm•••@gmail.com');
+      expect(maskEmail(null), isNull);
     });
   });
 }

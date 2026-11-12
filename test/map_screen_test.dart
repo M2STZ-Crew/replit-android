@@ -18,7 +18,6 @@ import 'package:replit/screens/map_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/updates/app_updates.dart';
 import 'package:replit/updates/update_nudge.dart';
-import 'package:replit/widgets/map_coach_marks.dart';
 
 /// The citizen map ("04 Map" and "05 Map — offline queue"): what the sheet
 /// says with signal, and what it says without.
@@ -289,39 +288,6 @@ void main() {
     await tester.drag(title, const Offset(0, -300));
     await settle(tester);
     expect(row.hitTestable(), findsOneWidget);
-  });
-
-  Finder named(String type) =>
-      find.byWidgetPredicate((w) => w.runtimeType.toString() == type);
-
-  testWidgets('the coach marks ring an Area on the map and the SOS disc', (
-    tester,
-  ) async {
-    await pump(tester);
-    await tester.pump(const Duration(milliseconds: 50));
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(tester.takeException(), isNull);
-
-    final rings = named('_Halo');
-    expect(rings, findsNWidgets(2), reason: 'an Area is on screen');
-    final centres = [for (var i = 0; i < 2; i++) tester.getCenter(rings.at(i))];
-    bool ringed(Offset target) =>
-        centres.any((c) => (c - target).distance < 1.5);
-
-    final area = tester.getCenter(
-      find
-          .byWidgetPredicate(
-            (w) => w is MapMarker && w.kind == MapMarkerKind.incident,
-          )
-          .first,
-    );
-    expect(ringed(area), isTrue, reason: 'ring $centres, marker $area');
-    final disc = tester.getCenter(named('_Disc'));
-    expect(ringed(disc), isTrue, reason: 'ring $centres, disc $disc');
-
-    await tester.tap(find.text('Got it'));
-    await tester.pump();
-    expect(find.byType(MapCoachMarks), findsNothing);
   });
 
   // v1.12.23: signing in showed "Area 50.4" and "Area 50.3" under "Active

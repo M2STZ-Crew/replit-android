@@ -165,6 +165,9 @@ class InboxWatcher with WidgetsBindingObserver {
         'incident_rejected' => 'rejected',
         _ => 'citizen',
       },
+      // "New Update!" has no recording of its own yet: the push plays the
+      // phone's tone, and the open app only vibrates.
+      'app_update' => 'none',
       _ => 'citizen',
     };
   }

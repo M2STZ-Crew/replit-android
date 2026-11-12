@@ -26,6 +26,12 @@ import '../i18n/i18n.dart';
 /// the location goes "immediately — details come after"; the server takes no
 /// report without a photo, so the line says the photo comes first. And its
 /// pill is fixed text; this one reports the real location and signal state.
+
+/// How long the SOS button is held to start a report (12 Nov 2026: "changed
+/// the 3-seconds hold to 2-seconds hold of SOS button. 3-seconds are too
+/// long"). The LIT tutorial's practice dial holds for the same.
+const Duration kSosHold = Duration(seconds: 2);
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -38,7 +44,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _hold =
-      AnimationController(vsync: this, duration: const Duration(seconds: 3))
+      AnimationController(vsync: this, duration: kSosHold)
         ..addStatusListener((status) {
           if (status == AnimationStatus.completed) _triggerSos();
         });
@@ -128,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen>
   void _startHold() {
     if (ReportStatusScreen.redirectIfReporting(context)) return;
     HapticFeedback.selectionClick();
-    // The three seconds of the hold are free time for the GPS: start the fix
+    // The two seconds of the hold are free time for the GPS: start the fix
     // now rather than when the camera opens (v10 §6). Without asking for
     // permission — a dialog here would cancel the hold under the thumb.
     ReportTiming.instance.start('sos');
@@ -260,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _sosDial() {
     return Semantics(
       button: true,
-      label: t('SOS. Press and hold for three seconds to start a report.'),
+      label: t('SOS. Press and hold for two seconds to start a report.'),
       child: GestureDetector(
         onTapDown: (_) => _startHold(),
         onTapUp: (_) => _cancelHold(),
@@ -340,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen>
       animation: _hold,
       builder: (context, _) {
         final label = _hold.value == 0
-            ? t('Hold 3 seconds to send')
+            ? t('Hold 2 seconds to send')
             : _hold.value < 1
             ? t('Keep holding')
             : t('Release');

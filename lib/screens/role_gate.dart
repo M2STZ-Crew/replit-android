@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../api/report_queue.dart';
 import '../api/session.dart';
 import '../theme.dart';
 import 'call_screen.dart';
@@ -10,10 +11,11 @@ import 'coordinator/coordinator_shell.dart';
 import 'login_screen.dart';
 import '../models/active_report.dart';
 import 'map_screen.dart';
-import 'onboarding_screen.dart';
 import 'report_status_screen.dart';
 import 'phone_verify_screen.dart';
 import 'responder/responder_shell.dart';
+import '../tutorial/lit_tutorial_screen.dart';
+import '../tutorial/lit_tutorial_state.dart';
 import '../widgets/staff_shell.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/launch_mark.dart';
@@ -247,37 +249,25 @@ class _RoleGateState extends State<RoleGate> {
   }
 }
 
-/// The resident's way in: the tour the first time, the map ever after.
-///
-/// The splash reads the flag on the way in, so the map is the first frame;
-/// otherwise reading it takes a frame or two, and the wait is the app's own
-/// ground rather than a spinner — a resident opening the app should never see
-/// a loading state before the map they came for.
+/// The resident's way in: the map, always the first frame. Over it, their
+/// report in progress if they have one, and otherwise, once, the LIT
+/// tutorial (12 November 2026, in place of the old tour, which came before
+/// the map).
 class _CitizenEntry extends StatelessWidget {
   const _CitizenEntry();
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      // Read by the splash on the way in, so the first frame is the map.
-      initialData: Tour.lastSeen,
-      future: Tour.seen(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Scaffold(backgroundColor: context.pal.background);
-        }
-        return snapshot.data!
-            ? const _ResumeReport(child: MapScreen())
-            : const OnboardingScreen();
-      },
-    );
-  }
+  Widget build(BuildContext context) => const _ResumeReport(child: MapScreen());
 }
 
 /// Opens the resident's report in progress over the map, if they have one.
 ///
 /// Over the map rather than instead of it, so Back from the report is the map
 /// — the app's home — and not the end of the app.
+///
+/// With none, it offers the LIT tutorial: once for each Citizen account
+/// (those who saw the old tour too), and only on an idle home — never over a
+/// report in progress, one waiting to send, or anything open over the map.
 class _ResumeReport extends StatefulWidget {
   const _ResumeReport({required this.child});
 
@@ -296,10 +286,27 @@ class _ResumeReportState extends State<_ResumeReport> {
       // track of — a reinstall, cleared data, a second phone.
       final report =
           ActiveReportStore.mine ?? await ActiveReportStore.recover();
-      if (mounted && report != null && !ReportStatusScreen.isShowing) {
-        ReportStatusScreen.open(context, report);
+      if (!mounted) return;
+      if (report != null) {
+        if (!ReportStatusScreen.isShowing) {
+          ReportStatusScreen.open(context, report);
+        }
+        return;
       }
+      await _offerTutorial();
     });
+  }
+
+  Future<void> _offerTutorial() async {
+    final account = Session.instance.email;
+    if (account == null || !await LitTutorial.shouldOffer(account)) return;
+    if (!mounted) return;
+    final idle =
+        ActiveReportStore.mine == null &&
+        ReportQueue.instance.pending.value.isEmpty &&
+        !ReportStatusScreen.isShowing &&
+        (ModalRoute.of(context)?.isCurrent ?? true);
+    if (idle) await LitTutorialScreen.open(context, account: account);
   }
 
   @override

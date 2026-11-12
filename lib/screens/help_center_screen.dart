@@ -5,6 +5,9 @@ import '../widgets/design.dart';
 import 'call_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../api/session.dart';
+import '../tutorial/lit_tutorial_screen.dart';
+import '../widgets/coordinator_kit.dart' show IconPlate, ListRow;
 
 class _Faq {
   const _Faq(this.question, this.answer);
@@ -15,7 +18,7 @@ class _Faq {
 const List<_Faq> _faqs = [
   _Faq(
     'How do I report an emergency?',
-    'On the ALERT tab, press and hold the SOS button for 3 seconds. Take a photo '
+    'On the ALERT tab, press and hold the SOS button for 2 seconds. Take a photo '
         'of the scene, choose the responders you need (Fire, Police, Medical, '
         'Barangay), add optional notes, then tap REQUEST HELP NOW.',
   ),
@@ -70,6 +73,23 @@ class HelpCenterScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _topBar(context),
+              const SizedBox(height: 20),
+              // Replay Tutorial (the LIT tutorial): the new one, watched again,
+              // with nothing it saved undone.
+              ListRow(
+                title: t('Replay the tutorial'),
+                subtitle: t('Practice a report with Lit. Nothing is sent.'),
+                leading: IconPlate(
+                  AppIcons.restartAlt,
+                  tint: context.pal.accent,
+                ),
+                chevron: true,
+                onTap: () => LitTutorialScreen.open(
+                  context,
+                  account: Session.instance.email ?? '',
+                  replay: true,
+                ),
+              ),
               const SizedBox(height: 20),
               Text(
                 t('Frequently asked'),

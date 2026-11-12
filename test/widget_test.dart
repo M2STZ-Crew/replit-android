@@ -94,7 +94,7 @@ void main() {
       testWidgets('national ID at ${scale}x', (tester) async {
         await pump(tester, const NationalIdScreen(), textScale: scale);
         expect(tester.takeException(), isNull);
-        expect(find.text('VERIFY YOUR IDENTITY'), findsOneWidget);
+        expect(find.text('VERIFY WITH YOUR ID'), findsOneWidget);
         // Camera-only, deliberately: a gallery pick is how someone submits
         // an ID that is not theirs. Nothing on this screen may offer one.
         expect(

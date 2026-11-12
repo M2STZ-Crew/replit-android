@@ -294,7 +294,7 @@ void main() {
       // Popped back to the report — not a second copy pushed on top of it.
       expect(pops.landedOn, [ReportStatusScreen.routeName]);
       expect(find.byType(ReportStatusScreen), findsOneWidget);
-      expect(find.text('ON THE WAY'), findsOneWidget);
+      expect(find.text('Responders are on the way'), findsOneWidget);
     });
   });
 }

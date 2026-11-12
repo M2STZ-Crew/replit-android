@@ -1241,5 +1241,274 @@ class _RenderFootedLayout extends RenderBox
       defaultHitTestChildren(result, position: position);
 }
 
+/// A page that fits its screen instead of scrolling (12 November 2026: "the
+/// "what are we sending", "getting you help", and "fire out" screen is still
+/// scrollable … make it responsive"). [top], [bottom] and [footer] keep
+/// their own height; [flex], the part that can give (the progress ring, the
+/// photo), takes the room left between [top] and [bottom], up to [flexMax].
+/// With less room than [flexMin] it is left out, or held at [flexMin] when
+/// [keepFlex]; only when even that does not fit (the keyboard up, a very
+/// large font) does the page scroll. Room the page does not need goes above
+/// the footer, which sits at the foot of the screen.
+///
+/// Laid out for real, like [FootedScroll] with room above, rather than from
+/// intrinsic heights.
+class FitPage extends StatelessWidget {
+  const FitPage({
+    super.key,
+    required this.top,
+    required this.flex,
+    required this.bottom,
+    required this.footer,
+    this.padding = EdgeInsets.zero,
+    this.gap = 24,
+    this.flexMin = 0,
+    this.flexMax = double.infinity,
+    this.keepFlex = false,
+  });
+
+  final Widget top;
+  final Widget flex;
+  final Widget bottom;
+  final Widget footer;
+  final EdgeInsets padding;
+
+  /// The least space kept between [bottom] and [footer].
+  final double gap;
+  final double flexMin;
+  final double flexMax;
+  final bool keepFlex;
+
+  /// How roomy a page of [height] is, from 0 on a short phone (680 or less)
+  /// to 1 on a tall one (840 or more), for a page to ease its spacing
+  /// between the two. A larger font counts as less room; the keyboard does
+  /// not count, so the page keeps its spacing while it is up (and scrolls).
+  static double roominess(BuildContext context, double height) {
+    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final screen = height + MediaQuery.viewInsetsOf(context).bottom;
+    final room = screen / math.max(1.0, scale);
+    return ((room - 680) / 160).clamp(0.0, 1.0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: padding,
+        child: _FitLayout(
+          minHeight: math.max(0.0, constraints.maxHeight - padding.vertical),
+          gap: gap,
+          flexMin: flexMin,
+          flexMax: flexMax,
+          keepFlex: keepFlex,
+          children: [top, flex, bottom, footer],
+        ),
+      ),
+    );
+  }
+}
+
+/// [FitPage]'s four parts: top, flex, bottom and footer.
+class _FitLayout extends MultiChildRenderObjectWidget {
+  const _FitLayout({
+    required this.minHeight,
+    required this.gap,
+    required this.flexMin,
+    required this.flexMax,
+    required this.keepFlex,
+    required super.children,
+  });
+
+  final double minHeight;
+  final double gap;
+  final double flexMin;
+  final double flexMax;
+  final bool keepFlex;
+
+  @override
+  _RenderFitLayout createRenderObject(BuildContext context) => _RenderFitLayout(
+    minHeight: minHeight,
+    gap: gap,
+    flexMin: flexMin,
+    flexMax: flexMax,
+    keepFlex: keepFlex,
+  );
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderFitLayout renderObject) {
+    renderObject
+      ..minHeight = minHeight
+      ..gap = gap
+      ..flexMin = flexMin
+      ..flexMax = flexMax
+      ..keepFlex = keepFlex;
+  }
+}
+
+class _RenderFitLayout extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _FootedParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _FootedParentData> {
+  _RenderFitLayout({
+    required double minHeight,
+    required double gap,
+    required double flexMin,
+    required double flexMax,
+    required bool keepFlex,
+  }) : _minHeight = minHeight,
+       _gap = gap,
+       _flexMin = flexMin,
+       _flexMax = flexMax,
+       _keepFlex = keepFlex;
+
+  double _minHeight;
+  set minHeight(double value) {
+    if (value == _minHeight) return;
+    _minHeight = value;
+    markNeedsLayout();
+  }
+
+  double _gap;
+  set gap(double value) {
+    if (value == _gap) return;
+    _gap = value;
+    markNeedsLayout();
+  }
+
+  double _flexMin;
+  set flexMin(double value) {
+    if (value == _flexMin) return;
+    _flexMin = value;
+    markNeedsLayout();
+  }
+
+  double _flexMax;
+  set flexMax(double value) {
+    if (value == _flexMax) return;
+    _flexMax = value;
+    markNeedsLayout();
+  }
+
+  bool _keepFlex;
+  set keepFlex(bool value) {
+    if (value == _keepFlex) return;
+    _keepFlex = value;
+    markNeedsLayout();
+  }
+
+  /// Whether the flex part made it onto the page at the last layout.
+  bool _flexShown = true;
+
+  RenderBox get _top => firstChild!;
+  RenderBox get _flex => childAfter(_top)!;
+  RenderBox get _bottom => childAfter(_flex)!;
+  RenderBox get _footer => childAfter(_bottom)!;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _FootedParentData) {
+      child.parentData = _FootedParentData();
+    }
+  }
+
+  /// The flex part's height, with [room] left for it.
+  double _flexHeight(double room) {
+    if (room >= _flexMin) return math.min(room, _flexMax);
+    return _keepFlex ? _flexMin : 0;
+  }
+
+  double _height(BoxConstraints constraints, double needed) =>
+      constraints.constrainHeight(math.max(needed, _minHeight));
+
+  void _place(RenderBox child, double y) =>
+      (child.parentData! as _FootedParentData).offset = Offset(0, y);
+
+  @override
+  void performLayout() {
+    final width = constraints.maxWidth;
+    final inner = BoxConstraints.tightFor(width: width);
+    _top.layout(inner, parentUsesSize: true);
+    _bottom.layout(inner, parentUsesSize: true);
+    _footer.layout(inner, parentUsesSize: true);
+    final fixed =
+        _top.size.height + _bottom.size.height + _gap + _footer.size.height;
+    final flex = _flexHeight(_minHeight - fixed);
+    _flexShown = flex > 0;
+    _flex.layout(BoxConstraints.tightFor(width: width, height: flex));
+    final height = _height(constraints, fixed + flex);
+    _place(_top, 0);
+    _place(_flex, _top.size.height);
+    _place(_bottom, _top.size.height + flex);
+    _place(_footer, height - _footer.size.height);
+    size = Size(width, height);
+  }
+
+  @override
+  Size computeDryLayout(covariant BoxConstraints constraints) {
+    final inner = BoxConstraints.tightFor(width: constraints.maxWidth);
+    final fixed =
+        _top.getDryLayout(inner).height +
+        _bottom.getDryLayout(inner).height +
+        _gap +
+        _footer.getDryLayout(inner).height;
+    final flex = _flexHeight(_minHeight - fixed);
+    return Size(constraints.maxWidth, _height(constraints, fixed + flex));
+  }
+
+  double _fixed(double Function(RenderBox child) measure) =>
+      measure(_top) + measure(_bottom) + _gap + measure(_footer);
+
+  double _widest(double Function(RenderBox child) measure) {
+    var widest = 0.0;
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      widest = math.max(widest, measure(child));
+    }
+    return widest;
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) => math.max(
+    _minHeight,
+    _fixed((c) => c.getMinIntrinsicHeight(width)) + (_keepFlex ? _flexMin : 0),
+  );
+
+  @override
+  double computeMaxIntrinsicHeight(double width) => math.max(
+    _minHeight,
+    _fixed((c) => c.getMaxIntrinsicHeight(width)) + (_keepFlex ? _flexMin : 0),
+  );
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      _widest((c) => c.getMinIntrinsicWidth(height));
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      _widest((c) => c.getMaxIntrinsicWidth(height));
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      if (child == _flex && !_flexShown) continue;
+      context.paintChild(
+        child,
+        (child.parentData! as _FootedParentData).offset + offset,
+      );
+    }
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
+
+  @override
+  void visitChildrenForSemantics(RenderObjectVisitor visitor) {
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      if (child == _flex && !_flexShown) continue;
+      visitor(child);
+    }
+  }
+}
+
 /// Standard page padding: 24px sides, matching the 402px design frame.
 const EdgeInsets kPagePadding = EdgeInsets.symmetric(horizontal: 24);

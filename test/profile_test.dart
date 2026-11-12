@@ -174,7 +174,11 @@ void main() {
       expect(find.text('Language'), findsOneWidget);
     });
 
-    testWidgets('shows the build as App Distribution lists it', (tester) async {
+    // 12 Nov 2026: "remove the build number. it is just the version of app
+    // will be remain seen in any platforms, no build number".
+    testWidgets('shows the version alone, with no build number', (
+      tester,
+    ) async {
       // What CI stamps on a release: pubspec's name, the run number as build.
       PackageInfo.setMockInitialValues(
         appName: 'RepLiT',
@@ -185,10 +189,10 @@ void main() {
       );
       await AppVersion.load();
       addTearDown(() => AppVersion.label = '');
-      expect(AppVersion.label, '1.11.0 (57)');
+      expect(AppVersion.label, '1.11.0');
 
       await pump(tester, ProfileScreen(api: api()));
-      final footer = find.text('REPLIT · PASAY CITY · V1.11.0 (57)');
+      final footer = find.text('REPLIT · PASAY CITY · V1.11.0');
       await tester.scrollUntilVisible(
         footer,
         200,
@@ -219,12 +223,12 @@ void main() {
         expect(find.text('60%'), findsOneWidget);
         expect(find.text('LIGHT GREEN'), findsOneWidget);
         expect(
-          find.text('Coming soon'),
+          find.text('+40% · Coming soon'),
           findsOneWidget,
           reason: 'phone verification is paused (§10.3)',
         );
         expect(
-          find.text('Submitted — an administrator is checking it'),
+          find.text('+50% · Submitted — an administrator is checking it'),
           findsOneWidget,
         );
         // Below the fold at a large font scale.
@@ -236,14 +240,18 @@ void main() {
             matching: find.byType(Scrollable),
           ),
         );
-        expect(find.text('m.reyes@gmail.com'), findsOneWidget);
+        // 15 · Verification: a verified address, masked.
+        expect(find.text('+10% · m•••@gmail.com'), findsOneWidget);
         expect(find.text('UNDER 50'), findsOneWidget);
       });
     }
 
     testWidgets('a refused ID can be taken again', (tester) async {
       await pump(tester, VerificationScreen(api: api(idStatus: 'rejected')));
-      expect(find.text('Not accepted — take the photos again'), findsOneWidget);
+      expect(
+        find.text('+50% · Not accepted — take the photos again'),
+        findsOneWidget,
+      );
     });
 
     test('the paused phone channel is never the next step', () {

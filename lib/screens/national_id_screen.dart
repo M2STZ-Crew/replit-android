@@ -4,126 +4,132 @@ import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
 import '../theme.dart';
-import '../widgets/coordinator_kit.dart' show CheckRow;
+import '../widgets/coordinator_kit.dart'
+    show
+        AlertTone,
+        IconPlate,
+        InlineAlert,
+        ListRow,
+        ProgressState,
+        ProgressStep,
+        SectionHeader;
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
 import 'id_camera_screen.dart';
 import '../i18n/i18n.dart';
 
-Color _safeGreen = AppColors.ok;
-
-/// National ID verification (+50%) via the manual-review path.
+/// National ID verification (+50%), as the Figma frames take it (12 November
+/// 2026: "the national id verification screen (based on figma) is not
+/// consistent in the system itself so fix it based on figma"):
 ///
-/// The backend's Didit auto-KYC has no credits, so this uses
-/// POST /verification/national-id/manual: the user supplies a photo of their
-/// PhilID or ePhilID, its QR code and a matching selfie. An administrator runs
-/// the QR code through PSA's PhilSys Check, which takes the holder's consent,
-/// compares the result with the other two, and awards +50%.
+/// - "16 · Start": what it takes, then Take ID photo.
+/// - "20 · ID front", "20C · ID back" and "20B · Face" ([IdCameraScreen]),
+///   one after the other, each chip ticked as its photo is taken.
+/// - "20D · Check your photos": each as it was framed; any one retaken
+///   without losing the others; Send for review.
+/// - "21 · Sent for review".
 ///
-/// All three images must be taken with the camera. There is no gallery option,
-/// by design: attaching a saved picture is how someone submits an ID that
-/// is not theirs, and the whole value of the selfie is that it was taken at
-/// the same time as the document.
+/// Didit's automatic check (16's "Continue to Didit", 17 and 18) has no
+/// credits, so every National ID takes the manual path,
+/// POST /verification/national-id/manual: an administrator reads the QR code
+/// on the card's back on PSA's PhilSys Check, which takes the holder's
+/// consent, compares the photos, and awards +50%.
+///
+/// All three photos are taken with the camera. There is no gallery option,
+/// by design: attaching a saved picture is how someone submits an ID that is
+/// not theirs, and the whole value of the face photo is that it was taken at
+/// the same time as the card.
 class NationalIdScreen extends StatefulWidget {
-  const NationalIdScreen({super.key, this.api, this.camera});
+  const NationalIdScreen({super.key, this.api, this.camera, this.percent});
 
   final ApiClient? api;
 
-  /// Stands in for the phone's camera in a test.
-  final Future<Uint8List?> Function()? camera;
+  /// Stands in for the phone's camera in a test: the photo asked for in,
+  /// its bytes out.
+  final Future<Uint8List?> Function(IdShot shot)? camera;
+
+  /// The resident's score now, for "Your score stays at 50% until then".
+  final int? percent;
 
   @override
   State<NationalIdScreen> createState() => _NationalIdScreenState();
 }
 
+enum _Stage { start, check, sent }
+
 class _NationalIdScreenState extends State<NationalIdScreen> {
   late final ApiClient _api = widget.api ?? ApiClient();
 
-  Uint8List? _idBytes;
-  Uint8List? _qrBytes;
-  Uint8List? _selfieBytes;
-  bool _consent = false;
+  final Map<IdShot, Uint8List> _photos = {};
+  _Stage _stage = _Stage.start;
   bool _submitting = false;
   String? _error;
 
-  bool get _ready =>
-      _idBytes != null && _qrBytes != null && _selfieBytes != null && _consent;
-
-  /// Take one photo with the camera.
-  ///
-  /// Deliberately camera-only: there is no gallery option on either slot.
-  /// Letting someone attach a saved picture makes it trivial to submit an ID
-  /// that is not theirs — a screenshot of somebody else's card, or a photo
-  /// lifted off social media. Requiring a live capture forces them to at least
-  /// physically hold the document, which is the whole point of asking for a
-  /// matching selfie alongside it.
-  ///
-  /// Null means they closed the camera, which is not an error. A camera that
-  /// cannot start says so on its own screen.
+  /// Take one photo with the camera. Null means they closed it, which is not
+  /// an error; a camera that cannot start says so on its own screen.
   Future<Uint8List?> _capture(IdShot shot) async {
     final camera = widget.camera;
-    if (camera != null) return camera();
+    if (camera != null) return camera(shot);
     return Navigator.of(context).push<Uint8List>(
-      MaterialPageRoute(builder: (_) => IdCameraScreen(shot: shot)),
+      MaterialPageRoute(
+        builder: (_) => IdCameraScreen(shot: shot, taken: _photos.keys.toSet()),
+      ),
     );
   }
 
-  Future<void> _pickId() async {
-    final bytes = await _capture(IdShot.card);
-    if (bytes == null || !mounted) return;
+  /// Take ID photo: the three in turn, then Check your photos. Closing a
+  /// camera stops there; what was taken is kept for the next go.
+  Future<void> _takePhotos() async {
+    for (final shot in IdShot.values) {
+      if (_photos.containsKey(shot)) continue;
+      final bytes = await _capture(shot);
+      if (bytes == null || !mounted) return;
+      setState(() => _photos[shot] = bytes);
+    }
+    if (!mounted) return;
     setState(() {
-      _idBytes = bytes;
+      _stage = _Stage.check;
       _error = null;
     });
   }
 
-  Future<void> _pickQr() async {
-    final bytes = await _capture(IdShot.qr);
+  /// Retake replaces only that photo.
+  Future<void> _retake(IdShot shot) async {
+    final bytes = await _capture(shot);
     if (bytes == null || !mounted) return;
     setState(() {
-      _qrBytes = bytes;
+      _photos[shot] = bytes;
       _error = null;
     });
   }
 
-  Future<void> _pickSelfie() async {
-    final bytes = await _capture(IdShot.selfie);
-    if (bytes == null || !mounted) return;
-    setState(() {
-      _selfieBytes = bytes;
-      _error = null;
-    });
-  }
-
-  Future<void> _submit() async {
-    if (!_ready) return;
+  Future<void> _send() async {
+    if (_submitting || _photos.length < IdShot.values.length) return;
     setState(() {
       _submitting = true;
       _error = null;
     });
     try {
       await _api.submitNationalIdManual(
-        idBytes: _idBytes!,
-        qrBytes: _qrBytes!,
-        selfieBytes: _selfieBytes!,
+        idBytes: _photos[IdShot.front]!,
+        // The back carries the QR code PSA's PhilSys Check reads.
+        qrBytes: _photos[IdShot.back]!,
+        selfieBytes: _photos[IdShot.face]!,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            t('Submitted for review. An admin will award +50% once approved.'),
-          ),
-          backgroundColor: _safeGreen,
-        ),
-      );
-      Navigator.of(context).pop(true);
+      setState(() {
+        _stage = _Stage.sent;
+        // Sent: the photos are the server's now, not this phone's.
+        _photos.clear();
+      });
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
       if (mounted) {
         setState(
-          () =>
-              _error = 'Could not submit. Check your connection and try again.',
+          () => _error = t(
+            'Could not send. Check your connection and try again.',
+          ),
         );
       }
     } finally {
@@ -136,263 +142,292 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
     return Scaffold(
       backgroundColor: context.pal.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _topBar(),
-              const SizedBox(height: 26),
-              IconWell(
-                tint: context.pal.accent,
-                icon: AppIcons.badge,
-                size: 56,
-                glyph: 28,
-              ),
-              const SizedBox(height: 18),
-              Text(t('VERIFY YOUR IDENTITY'), style: context.type.title),
-              const SizedBox(height: 10),
-              Text(
-                t(
-                  'Photograph your PhilID card or ePhilID and its QR code, then '
-                  'take a matching selfie. All three must be taken now with the '
-                  'camera — saved pictures are not accepted. An administrator '
-                  "checks the QR code on PSA's PhilSys Check and awards +50%.",
-                ),
-                style: context.type.body,
-              ),
-              const SizedBox(height: 26),
-              _uploadSlot(
-                shot: IdShot.card,
-                label: t('National ID'),
-                hint: t('Tap to photograph the side with your picture'),
-                icon: AppIcons.badge,
-                bytes: _idBytes,
-                onTap: _pickId,
-              ),
-              const SizedBox(height: 12),
-              _uploadSlot(
-                shot: IdShot.qr,
-                label: t('QR code'),
-                hint: t('On the back of the card. Tap to photograph it.'),
-                icon: AppIcons.photoCamera,
-                bytes: _qrBytes,
-                onTap: _pickQr,
-              ),
-              const SizedBox(height: 12),
-              _uploadSlot(
-                shot: IdShot.selfie,
-                label: t('Selfie'),
-                hint: t('Tap to take a selfie'),
-                icon: AppIcons.face,
-                bytes: _selfieBytes,
-                onTap: _pickSelfie,
-              ),
-              const SizedBox(height: 14),
-              CheckRow(
-                label: t(
-                  "I agree to an administrator checking my QR code on PSA's "
-                  'PhilSys Check. PSA records the date, my first name and '
-                  'the result.',
-                ),
-                checked: _consent,
-                onTap: () => setState(() => _consent = !_consent),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 14),
-                Panel(
-                  radius: AppRadius.control,
-                  color: context.pal.live.withValues(alpha: 0.09),
-                  border: context.pal.live.withValues(alpha: 0.4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(AppIcons.error, size: 17, color: context.pal.live),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: context.type.meta.copyWith(
-                            fontSize: 12,
-                            height: 16 / 12,
-                            color: context.pal.textSoft,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              _submitButton(),
-              const SizedBox(height: 16),
-              _privacyNote(),
-            ],
-          ),
-        ),
+        child: switch (_stage) {
+          _Stage.start => _start(),
+          _Stage.check => _check(),
+          _Stage.sent => _sent(),
+        },
       ),
     );
   }
 
-  Widget _topBar() {
-    return Row(
+  /// "16 · Start", on the manual path: what it takes, then the camera.
+  Widget _start() {
+    final pal = context.pal;
+    return FootedScroll(
+      padding: const EdgeInsets.fromLTRB(24, 26, 24, 28),
+      content: [
+        Row(
+          children: [
+            const BackWell(),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Eyebrow(t('National ID · +50%'), color: pal.accentInk),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(t('VERIFY WITH YOUR ID'), style: context.type.heading1),
+        const SizedBox(height: 12),
+        Text(
+          t(
+            'Take three photos with your camera: both sides of your National '
+            "ID card, then your face. An admin checks them, and the card's QR "
+            "code on PSA's PhilSys Check.",
+          ),
+          style: context.type.body,
+        ),
+        const SizedBox(height: 32),
+        SectionHeader(t('What you need')),
+        const SizedBox(height: 8),
+        ListRow(
+          title: t('Your National ID card'),
+          subtitle: t('Your PhilID card or ePhilID, not a photo of it'),
+          leading: const IconPlate(AppIcons.localPolice),
+        ),
+        const SizedBox(height: 8),
+        ListRow(
+          title: t('Good light'),
+          subtitle: t('Your face and the card clearly visible'),
+          leading: const IconPlate(AppIcons.photoCamera),
+        ),
+        const SizedBox(height: 8),
+        ListRow(
+          title: t('About two minutes'),
+          subtitle: t('You can stop and start again later'),
+          leading: const IconPlate(AppIcons.schedule),
+        ),
+        const SizedBox(height: 16),
+        InlineAlert(
+          body: t(
+            'Verification never blocks a report. It only tells responders '
+            'how much weight to give yours.',
+          ),
+        ),
+      ],
+      footer: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppButton(t('Take ID photo'), height: 56, onPressed: _takePhotos),
+          const SizedBox(height: 12),
+          Center(
+            child: TextLink(
+              t('Not now'),
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// "20D · Check your photos", with Send for review held at the foot.
+  Widget _check() {
+    final pal = context.pal;
+    return Column(
       children: [
-        const BackWell(),
-        const SizedBox(width: 16),
-        // The title takes what the back button leaves and wraps there: at
-        // large text, or in Tagalog, it ran off the screen.
         Expanded(
-          child: Text(
-            t('National ID').toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: context.type.screenTitle,
+          // A column, not a lazy list: five children, all of them read.
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Align(alignment: Alignment.centerLeft, child: BackWell()),
+                const SizedBox(height: 20),
+                Text(t('CHECK YOUR PHOTOS'), style: context.type.heading1),
+                const SizedBox(height: 12),
+                Text(
+                  t(
+                    'Each photo shows exactly what was inside the guide. Retake '
+                    'one without losing the others.',
+                  ),
+                  style: context.type.body,
+                ),
+                const SizedBox(height: 20),
+                for (final shot in IdShot.values) ...[
+                  if (shot != IdShot.front) const SizedBox(height: 12),
+                  _CapturePreview(
+                    shot: shot,
+                    bytes: _photos[shot]!,
+                    onRetake: _submitting ? null : () => _retake(shot),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                InlineAlert(
+                  body: t(
+                    "Sending them means you agree to an admin checking your "
+                    "card's QR code on PSA's PhilSys Check, where PSA records "
+                    'the date, your first name and the result. The photos stay '
+                    'private and are deleted once it is decided.',
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  InlineAlert(
+                    tone: AlertTone.danger,
+                    title: t('Not sent'),
+                    body: _error!,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        ColoredBox(
+          color: pal.background,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
+            child: SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                t('Send for review'),
+                height: 56,
+                busy: _submitting,
+                onPressed: _submitting ? null : _send,
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _uploadSlot({
-    required IdShot shot,
-    required String label,
-    required String hint,
-    required IconData icon,
-    required Uint8List? bytes,
-    required VoidCallback onTap,
-  }) {
-    final filled = bytes != null;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        // Taken, the photo shows in its frame's own shape, which needs a
-        // little more height than the empty slot's prompt.
-        height: filled ? _filledHeight : 150,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: context.pal.glassDim,
-          borderRadius: BorderRadius.circular(AppRadius.panel),
-          border: Border.all(
-            color: filled ? _safeGreen : context.pal.lineStrong,
-          ),
+  /// "21 · Sent for review".
+  Widget _sent() {
+    final percent = widget.percent;
+    return FootedScroll(
+      padding: const EdgeInsets.fromLTRB(24, 66, 24, 28),
+      content: [
+        Eyebrow(t('National ID · in review'), color: context.pal.warn),
+        const SizedBox(height: 16),
+        Text(t('SENT FOR REVIEW'), style: context.type.heading1),
+        const SizedBox(height: 12),
+        Text(
+          percent == null
+              ? t(
+                  "An admin checks your ID and your selfie, with the QR code on "
+                  "PSA's PhilSys Check. You'll get a notification when it's "
+                  'done. Your score stays as it is until then.',
+                )
+              : t(
+                  "An admin checks your ID and your selfie, with the QR code on "
+                  "PSA's PhilSys Check. You'll get a notification when it's "
+                  'done. Your score stays at {n}% until then.',
+                  {'n': percent},
+                ),
+          style: context.type.body,
         ),
-        child: filled
-            ? Stack(
-                fit: StackFit.expand,
-                children: [
-                  Center(child: _framed(shot, bytes)),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      height: 24,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        color: context.pal.canvas.withValues(alpha: 0.85),
-                        borderRadius: BorderRadius.circular(AppRadius.chip),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            AppIcons.checkCircle,
-                            color: _safeGreen,
-                            size: 13,
-                          ),
-                          const SizedBox(width: 7),
-                          Text(
-                            t('TAP TO RETAKE'),
-                            style: context.type.tag.copyWith(
-                              color: context.pal.onBackground,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconWell(
-                    tint: context.pal.accent,
-                    icon: icon,
-                    size: 44,
-                    glyph: 22,
-                  ),
-                  const SizedBox(height: 12),
-                  Eyebrow(label, color: context.pal.accent),
-                  const SizedBox(height: 6),
-                  Text(hint, style: context.type.meta),
-                ],
-              ),
+        const SizedBox(height: 32),
+        ProgressStep(
+          state: ProgressState.done,
+          title: t('Photo of your ID'),
+          detail: t('Captured'),
+        ),
+        const SizedBox(height: 8),
+        ProgressStep(
+          state: ProgressState.done,
+          title: t('Live selfie'),
+          detail: t('Captured'),
+        ),
+        const SizedBox(height: 8),
+        ProgressStep(
+          state: ProgressState.current,
+          title: t('Admin review'),
+          detail: t('Waiting for an admin'),
+        ),
+        const SizedBox(height: 16),
+        InlineAlert(
+          body: t('Verification never blocks a report. Send one any time.'),
+        ),
+      ],
+      footer: AppButton(
+        t('Back to profile'),
+        height: 56,
+        onPressed: () => Navigator.of(context).pop(true),
       ),
     );
   }
+}
 
-  static const double _filledHeight = 196;
+/// One photo on Check your photos (Capture preview, 1171:3874): its name and
+/// Retake, then exactly what was inside the guide at its own shape, fitted
+/// in the dark box and never cropped a second time. The face shows mirrored,
+/// as the camera showed it; the file sent is not.
+class _CapturePreview extends StatelessWidget {
+  const _CapturePreview({
+    required this.shot,
+    required this.bytes,
+    required this.onRetake,
+  });
 
-  /// The photo in the shape of the guide it was taken in — the card, the
-  /// square, the oval — as large as the slot allows. The camera has already
-  /// cut it to that guide, so nothing more is cropped away here and the tile
-  /// shows what the resident lined up in the box.
-  Widget _framed(IdShot shot, Uint8List bytes) {
-    return LayoutBuilder(
-      builder: (context, box) {
-        final ratio = shot.guide.width / shot.guide.height;
-        var height = _filledHeight - 28;
-        var width = height * ratio;
-        final room = box.maxWidth - 28;
-        if (width > room) {
-          width = room;
-          height = width / ratio;
-        }
-        final radius = shot.radius * (width / shot.guide.width);
-        return ClipRRect(
-          key: ValueKey('framed-${shot.name}'),
-          borderRadius: BorderRadius.circular(radius),
-          child: SizedBox(
-            width: width,
-            height: height,
-            // Smaller than the photo: the QR one is a 4K frame.
-            child: Image.memory(bytes, fit: BoxFit.cover, cacheWidth: 1000),
-          ),
-        );
-      },
-    );
-  }
+  final IdShot shot;
+  final Uint8List bytes;
+  final VoidCallback? onRetake;
 
-  Widget _submitButton() {
-    return AppButton(
-      t('Submit for review'),
-      busy: _submitting,
-      onPressed: (_ready && !_submitting) ? _submit : null,
-    );
-  }
+  static const double _box = 208;
 
-  Widget _privacyNote() {
-    return Panel(
-      radius: AppRadius.control,
-      color: context.pal.glassDim,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    // Smaller than the photo: the back's is a 4K frame.
+    final image = Image.memory(bytes, fit: BoxFit.cover, cacheWidth: 1000);
+    return Container(
+      key: ValueKey('preview-${shot.name}'),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+      decoration: BoxDecoration(
+        color: pal.surface,
+        borderRadius: BorderRadius.circular(AppRadius.panel),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(AppIcons.lock, size: 16, color: context.pal.accent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              t(
-                'Your photos are held in private storage, seen only by the '
-                'reviewing administrator, and deleted once the review is '
-                'decided. The +50% applies once it is approved.',
+          Row(
+            children: [
+              Expanded(
+                child: Text(t(shot.title), style: context.type.listTitle),
               ),
-              style: context.type.meta.copyWith(height: 16 / 11),
+              if (onRetake != null) TextLink(t('Retake'), onTap: onRetake!),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: _box,
+            width: double.infinity,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: pal.canvas,
+              borderRadius: BorderRadius.circular(10),
             ),
+            alignment: Alignment.center,
+            child: shot.oval
+                ? SizedBox(
+                    key: ValueKey('framed-${shot.name}'),
+                    height: _box,
+                    width: _box * shot.aspect,
+                    child: ClipOval(
+                      child: Transform.flip(flipX: true, child: image),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: AspectRatio(
+                      key: ValueKey('framed-${shot.name}'),
+                      aspectRatio: shot.aspect,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: image,
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            shot.oval
+                ? t('Mirrored, as you saw it')
+                : t('All four corners should be visible'),
+            style: context.type.caption.copyWith(color: pal.label),
           ),
         ],
       ),

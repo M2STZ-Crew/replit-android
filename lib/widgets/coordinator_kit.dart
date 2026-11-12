@@ -867,6 +867,7 @@ class ListRow extends StatefulWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.subtitleColor,
     this.leading,
     this.trailing,
     this.chevron = false,
@@ -875,6 +876,10 @@ class ListRow extends StatefulWidget {
 
   final String title;
   final String? subtitle;
+
+  /// The subtitle in a tone (a channel in review, or refused); the tertiary
+  /// text colour otherwise.
+  final Color? subtitleColor;
   final Widget? leading;
   final Widget? trailing;
   final bool chevron;
@@ -978,7 +983,12 @@ class _ListRowState extends State<ListRow> {
                           ),
                           if (subtitle != null) ...[
                             const SizedBox(height: 2),
-                            Text(subtitle, style: context.type.bodySm),
+                            Text(
+                              subtitle,
+                              style: context.type.bodySm.copyWith(
+                                color: widget.subtitleColor,
+                              ),
+                            ),
                           ],
                         ],
                       ),

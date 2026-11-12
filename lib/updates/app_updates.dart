@@ -29,8 +29,9 @@ class AvailableRelease {
   final String version;
   final int build;
 
-  /// The release's tag ("android-v1.12.26-48") and the APK's file name in it
-  /// ("RepLiT-1.12.26-48.apk").
+  /// The release's tag ("android-v1.12.37") and the APK's file name in it
+  /// ("RepLiT-1.12.37.apk"); releases before 1.12.37 carried the build
+  /// number in both.
   final String tag;
   final String apk;
 
@@ -39,8 +40,8 @@ class AvailableRelease {
   final String sha256;
   final String? notes;
 
-  /// "1.12.24 (91)", the way Profile writes a build.
-  String get label => '$version ($build)';
+  /// "1.12.37": the version alone, the way Profile writes it.
+  String get label => version;
 
   /// "72 MB".
   String get sizeLabel => '${(size / (1024 * 1024)).ceil()} MB';
@@ -189,11 +190,9 @@ abstract final class AppUpdates {
   static Future<void> Function(ValueChanged<double?> onProgress)?
   installOverride;
 
-  /// For tests: the HTTP client, and this build's number.
+  /// For tests: the HTTP client, and the version installed.
   @visibleForTesting
   static http.Client Function()? clientOverride;
-  @visibleForTesting
-  static int? installedBuildOverride;
   @visibleForTesting
   static String? installedVersionOverride;
 
@@ -223,16 +222,18 @@ abstract final class AppUpdates {
         jsonDecode(utf8.decode(response.bodyBytes)),
       );
       if (release == null) return const UpdateCheckFailed('BAD_RELEASE');
+      // The version decides, on both phones (12 Nov 2026: "remove the build
+      // number. it is just the version of app will be remain seen in any
+      // platforms"): a rebuild of the version installed is not offered, as
+      // it would read "1.12.37 is ready" on 1.12.37.
+      final installed = installedVersionOverride ?? AppVersion.version;
+      final newer =
+          installed.isEmpty || isNewerVersion(release.version, than: installed);
       if (!supported) {
-        // An iPhone: its build numbers count apart from Android's, so the
-        // version decides, and there is nothing to download.
-        final installed = installedVersionOverride ?? AppVersion.version;
-        return isNewerVersion(release.version, than: installed)
-            ? UpdateAvailable(release)
-            : const UpToDate();
+        // An iPhone: nothing to download.
+        return newer ? UpdateAvailable(release) : const UpToDate();
       }
-      final installed = installedBuildOverride ?? AppVersion.build;
-      if (installed != null && release.build <= installed) {
+      if (!newer) {
         // Installed already: an APK still waiting in the cache is not
         // needed any more.
         await _clearDownloads();

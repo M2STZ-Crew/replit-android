@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -384,137 +385,178 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
     return Scaffold(
       backgroundColor: context.pal.background,
       body: SafeArea(
-        child: FootedScroll(
-          padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
-          content: [
-            Eyebrow(eyebrow, color: eyebrowTone),
-            const SizedBox(height: 10),
-            Text(
-              heading,
-              textAlign: TextAlign.center,
-              style: context.type.heading1,
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: SizedBox(
-                width: 290,
-                child: Text(
-                  lead,
-                  textAlign: TextAlign.center,
-                  style: context.type.body,
-                ),
-              ),
-            ),
-            const SizedBox(height: 36),
-            Center(child: _ring(fraction, phase)),
-            const SizedBox(height: 36),
-            _StepRow(
-              state: _Step.done,
-              title: t('Report received'),
-              line: t('Photo and GPS stored'),
-            ),
-            const SizedBox(height: 8),
-            _StepRow(
-              state: _Step.done,
-              title: reports == 1
-                  ? '$designation opened'
-                  : 'Matched to $designation',
-              line: matchLine,
-            ),
-            const SizedBox(height: 8),
-            _StepRow(
-              state: _Step.done,
-              title: t('Responders notified'),
-              line: t('Neighbours within 100 m were alerted too'),
-            ),
-            const SizedBox(height: 8),
-            _StepRow(
-              state: _refused || _accepted ? _Step.done : _Step.now,
-              title: _refused
-                  ? t('Not confirmed')
-                  : _accepted
-                  ? t('Accepted')
-                  : t('Waiting to be accepted'),
-              line: _refused
-                  ? t('Closed by a coordinator')
-                  : _onScene
-                  ? t('Responders reached the scene')
-                  : _accepted
-                  ? t('Responders are on the way')
-                  : _areaId == null
-                  ? t('Open it from Your reports to follow it')
-                  : t('Now'),
-              refused: _refused,
-            ),
-            if (!_refused) ...[
-              const SizedBox(height: 8),
-              _StepRow(
-                state: _fireOut
-                    ? _Step.done
-                    : _onScene
-                    ? _Step.now
-                    : _Step.later,
-                title: t('Fire out'),
-                line: _fireOut
-                    ? t('Your report is done')
-                    : _onScene
-                    ? t('Responders are working on it')
-                    : t('Once responders are on scene'),
-              ),
-            ],
-          ],
-          footer: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_over)
-                AppButton(t('Done'), height: 54, onPressed: _done)
-              else ...[
-                if (_areaId != null)
-                  AppButton(t('Track it live'), height: 54, onPressed: _follow),
-                TextButton(
-                  onPressed: _callHotline,
-                  style: TextButton.styleFrom(
-                    foregroundColor: context.pal.label,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: Text(
-                    t('Something else? Call a hotline'),
-                    style: context.type.label.copyWith(
-                      color: context.pal.label,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // 12 Nov 2026: the page fits the screen, with no scrolling. Its
+            // spacing eases from a short phone to a tall one, the ring takes
+            // the room that is left (and steps aside when there is too
+            // little: the steps say the same), and the line about
+            // encryption is gone.
+            final roomy = FitPage.roominess(context, box.maxHeight);
+            double ease(double short, double tall) =>
+                short + (tall - short) * roomy;
+            final stepGap = SizedBox(height: ease(6, 8));
+            return FitPage(
+              padding: EdgeInsets.fromLTRB(24, ease(16, 40), 24, ease(16, 28)),
+              gap: ease(16, 32),
+              flexMin: _ringLeast,
+              flexMax: _ringMost,
+              top: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(AppIcons.lock, size: 14, color: context.pal.muted),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      t('ENCRYPTED, SHARED ONLY WITH RESPONDERS'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.9,
-                        color: context.pal.muted,
+                  Eyebrow(eyebrow, color: eyebrowTone),
+                  SizedBox(height: ease(8, 10)),
+                  Text(
+                    heading,
+                    textAlign: TextAlign.center,
+                    style: context.type.heading1,
+                  ),
+                  SizedBox(height: ease(8, 10)),
+                  Center(
+                    child: SizedBox(
+                      width: 300,
+                      child: Text(
+                        lead,
+                        textAlign: TextAlign.center,
+                        style: context.type.body,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
                 ],
               ),
-            ],
-          ),
+              flex: _ringSlot(fraction, phase),
+              bottom: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _StepRow(
+                    state: _Step.done,
+                    title: t('Report received'),
+                    line: t('Photo and GPS stored'),
+                    roomy: roomy,
+                  ),
+                  stepGap,
+                  _StepRow(
+                    state: _Step.done,
+                    title: reports == 1
+                        ? '$designation opened'
+                        : 'Matched to $designation',
+                    line: matchLine,
+                    roomy: roomy,
+                  ),
+                  stepGap,
+                  _StepRow(
+                    state: _Step.done,
+                    title: t('Responders notified'),
+                    line: t('Neighbours within 100 m were alerted too'),
+                    roomy: roomy,
+                  ),
+                  stepGap,
+                  _StepRow(
+                    state: _refused || _accepted ? _Step.done : _Step.now,
+                    title: _refused
+                        ? t('Not confirmed')
+                        : _accepted
+                        ? t('Accepted')
+                        : t('Waiting to be accepted'),
+                    line: _refused
+                        ? t('Closed by a coordinator')
+                        : _onScene
+                        ? t('Responders reached the scene')
+                        : _accepted
+                        ? t('Responders are on the way')
+                        : _areaId == null
+                        ? t('Open it from Your reports to follow it')
+                        : t('Now'),
+                    refused: _refused,
+                    roomy: roomy,
+                  ),
+                  if (!_refused) ...[
+                    stepGap,
+                    _StepRow(
+                      state: _fireOut
+                          ? _Step.done
+                          : _onScene
+                          ? _Step.now
+                          : _Step.later,
+                      title: t('Fire out'),
+                      line: _fireOut
+                          ? t('Your report is done')
+                          : _onScene
+                          ? t('Responders are working on it')
+                          : t('Once responders are on scene'),
+                      roomy: roomy,
+                    ),
+                  ],
+                ],
+              ),
+              footer: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_over)
+                    AppButton(t('Done'), height: 54, onPressed: _done)
+                  else ...[
+                    if (_areaId != null)
+                      AppButton(
+                        t('Track it live'),
+                        height: 54,
+                        onPressed: _follow,
+                      ),
+                    TextButton(
+                      onPressed: _callHotline,
+                      style: TextButton.styleFrom(
+                        foregroundColor: context.pal.label,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(
+                        t('Something else? Call a hotline'),
+                        style: context.type.label.copyWith(
+                          color: context.pal.label,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  /// The 144px ring: how far the report has come, and the stage it is at.
-  Widget _ring(double fraction, String phase) {
+  /// The ring's room on the page, below the 16 under the lead: at most a
+  /// 160 ring with 12 more above it and 28 below (the frame's spacing), and
+  /// at least an 80 ring with 14 below. With less, it steps aside.
+  static const double _ringMost = 12 + 160 + 28;
+  static const double _ringLeast = 80 + 14;
+
+  /// The ring in the room the page leaves it: the more room, the bigger the
+  /// ring and the more air around it.
+  Widget _ringSlot(double fraction, String phase) => LayoutBuilder(
+    builder: (context, box) {
+      final room = box.maxHeight;
+      if (room < _ringLeast) return const SizedBox.shrink();
+      final grown = ((room - _ringLeast) / (_ringMost - _ringLeast)).clamp(
+        0.0,
+        1.0,
+      );
+      final above = 12 * grown;
+      final below = 14 + 14 * grown;
+      return Padding(
+        padding: EdgeInsets.only(top: above, bottom: below),
+        child: Center(
+          child: _ring(fraction, phase, math.min(160, room - above - below)),
+        ),
+      );
+    },
+  );
+
+  /// The ring, [size] across (160 in the frame): how far the report has
+  /// come, and the stage it is at, named under the figure when the ring is
+  /// big enough to hold it (the steps name it too).
+  Widget _ring(double fraction, String phase, double size) {
     final tone = _fireOut
         ? context.pal.ok
         : _refused
@@ -524,14 +566,14 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
       label: '${(fraction * 100).round()} percent. $phase.',
       excludeSemantics: true,
       child: SizedBox(
-        width: 160,
-        height: 160,
+        width: size,
+        height: size,
         child: Stack(
           alignment: Alignment.center,
           children: [
             SizedBox(
-              width: 144,
-              height: 144,
+              width: size * 0.9,
+              height: size * 0.9,
               child: CircularProgressIndicator(
                 value: fraction,
                 strokeWidth: 3,
@@ -540,24 +582,32 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                 color: tone,
               ),
             ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_fireOut)
-                  Icon(AppIcons.check, size: 40, color: tone)
-                else
-                  Text(
-                    '${(fraction * 100).round()}%',
-                    style: context.type.numeralXl,
-                  ),
-                const SizedBox(height: 4),
-                Text(
-                  phase.toUpperCase(),
-                  style: context.type.tag.copyWith(
-                    color: _fireOut ? tone : context.pal.muted,
-                  ),
+            SizedBox(
+              width: size * 0.62,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_fireOut)
+                      Icon(AppIcons.check, size: 40, color: tone)
+                    else
+                      Text(
+                        '${(fraction * 100).round()}%',
+                        style: context.type.numeralXl,
+                      ),
+                    if (size >= 120) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        phase.toUpperCase(),
+                        style: context.type.tag.copyWith(
+                          color: _fireOut ? tone : context.pal.muted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -574,12 +624,17 @@ class _StepRow extends StatelessWidget {
     required this.title,
     required this.line,
     this.refused = false,
+    this.roomy = 1,
   });
 
   final _Step state;
   final String title;
   final String line;
   final bool refused;
+
+  /// How roomy the page is ([FitPage.roominess]): a row is 58 tall on a
+  /// tall phone, as in the frame, and 48 on a short one.
+  final double roomy;
 
   @override
   Widget build(BuildContext context) {
@@ -619,8 +674,8 @@ class _StepRow extends StatelessWidget {
       ),
     };
     return Container(
-      constraints: const BoxConstraints(minHeight: 58),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      constraints: BoxConstraints(minHeight: 48 + 10 * roomy),
+      padding: EdgeInsets.symmetric(horizontal: 18, vertical: 7 + 3 * roomy),
       decoration: BoxDecoration(
         color: context.pal.glass,
         borderRadius: BorderRadius.circular(AppRadius.card),

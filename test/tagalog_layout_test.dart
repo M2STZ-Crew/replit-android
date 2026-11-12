@@ -19,13 +19,15 @@ import 'package:replit/screens/login_screen.dart';
 import 'package:replit/screens/my_reports_screen.dart';
 import 'package:replit/screens/national_id_screen.dart';
 import 'package:replit/screens/notifications_screen.dart';
-import 'package:replit/screens/onboarding_screen.dart';
 import 'package:replit/screens/phone_verify_screen.dart';
 import 'package:replit/screens/profile_screen.dart';
 import 'package:replit/screens/register_screen.dart';
 import 'package:replit/screens/sos_report_screen.dart';
 import 'package:replit/screens/verification_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/tutorial/lit_tutorial_screen.dart';
+
+import 'fake_narration.dart';
 
 /// Tagalog runs longer than English. Every resident screen is drawn in
 /// Tagalog on the smallest phone the app supports at the larger text sizes
@@ -69,14 +71,17 @@ void main() {
   );
 
   final screens = <String, Widget Function()>{
-    'onboarding': () => const OnboardingScreen(),
+    'tutorial': () => LitTutorialScreen(
+      account: 'm.reyes@gmail.com',
+      player: FakeNarrationPlayer(),
+    ),
     'login': () => LoginScreen(api: api()),
     'register': () => RegisterScreen(api: api()),
     'phone verification': () => PhoneVerifyScreen(api: api()),
     'report': () => SosReportScreen(photoBytes: pixel, api: api()),
     'national ID': () => NationalIdScreen(
       api: api(),
-      camera: () async => Uint8List.fromList(pixel),
+      camera: (_) async => Uint8List.fromList(pixel),
     ),
     'verification': () => VerificationScreen(api: api()),
     'profile': () => ProfileScreen(api: api()),

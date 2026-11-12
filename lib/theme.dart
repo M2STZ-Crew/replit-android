@@ -509,13 +509,20 @@ class AppRadius {
   static const double sheet = 20; // bottom sheets, screen frame
 }
 
+/// The design's typeface, bundled with the app (assets/fonts/Inter-*.ttf,
+/// made by tool/fonts/build_inter.py from the console's own Inter): every
+/// phone sets the same letters, rather than its own Roboto or San Francisco.
+const String kAppFont = 'Inter';
+
 /// The type ramp. Weights carry more meaning than sizes here: w900 uppercase
 /// names a thing, w300 is prose, and a 10px w700 uppercase "eyebrow" labels
-/// every section.
+/// every section. Each style names [kAppFont] itself, so it holds where a
+/// widget sets a style of its own rather than merging with the theme's.
 class AppText {
   AppText._();
 
   static const TextStyle display = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 32,
     height: 34 / 32,
     fontWeight: FontWeight.w900,
@@ -523,6 +530,7 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle title = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 24,
     height: 26 / 24,
     fontWeight: FontWeight.w900,
@@ -530,12 +538,14 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle screenTitle = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 15,
     fontWeight: FontWeight.w900,
     letterSpacing: -0.4,
     color: AppColors.onBackground,
   );
   static const TextStyle cardTitle = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 14,
     height: 1,
     fontWeight: FontWeight.w900,
@@ -543,6 +553,7 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle rowTitle = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 12,
     height: 1,
     fontWeight: FontWeight.w800,
@@ -550,18 +561,21 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle body = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 14,
     height: 20 / 14,
     fontWeight: FontWeight.w300,
     color: AppColors.label,
   );
   static const TextStyle meta = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 11,
     height: 1,
     fontWeight: FontWeight.w400,
     color: AppColors.muted,
   );
   static const TextStyle eyebrow = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 10,
     fontWeight: FontWeight.w700,
     letterSpacing: 1,
@@ -571,18 +585,21 @@ class AppText {
   /// Type/Label small — status badges and chips. 11 px is the floor for
   /// anything a person reads (pass 4 retired the 9 px eyebrow small).
   static const TextStyle tag = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w700,
     letterSpacing: 0.2,
   );
   static const TextStyle action = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 12,
     fontWeight: FontWeight.w900,
     letterSpacing: 1.2,
     color: AppColors.accentText,
   );
   static const TextStyle numeral = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 26,
     height: 1,
     fontWeight: FontWeight.w900,
@@ -596,6 +613,7 @@ class AppText {
   // across. The design sets everything in Inter; until the font is bundled
   // these fall back to the platform face at the same size and weight.
   static const TextStyle heading1 = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 28,
     height: 32 / 28,
     fontWeight: FontWeight.w900,
@@ -603,6 +621,7 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle heading2 = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 26,
     height: 28 / 26,
     fontWeight: FontWeight.w900,
@@ -612,6 +631,7 @@ class AppText {
 
   /// "Type/Title" — 17px, the sheet and card-header size.
   static const TextStyle headline = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 17,
     height: 20 / 17,
     fontWeight: FontWeight.w900,
@@ -619,6 +639,7 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle subtitle = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 15,
     height: 18 / 15,
     fontWeight: FontWeight.w900,
@@ -626,6 +647,7 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle cardTitleSm = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 13,
     height: 15 / 13,
     fontWeight: FontWeight.w900,
@@ -635,6 +657,7 @@ class AppText {
 
   /// "Type/Row title" — the 13px list-row name ([rowTitle] is the 12px one).
   static const TextStyle rowTitleLg = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 13,
     height: 16 / 13,
     fontWeight: FontWeight.w800,
@@ -644,6 +667,7 @@ class AppText {
 
   /// "Type/Row title large" — the 15px name on a list item or an Area card.
   static const TextStyle listTitle = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 15,
     height: 20 / 15,
     fontWeight: FontWeight.w800,
@@ -654,6 +678,7 @@ class AppText {
   /// "Type/Instruction" — the next turn on the navigation banner, read in a
   /// moving vehicle ("Turn right onto Taft Avenue").
   static const TextStyle instruction = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 24,
     height: 30 / 24,
     fontWeight: FontWeight.w800,
@@ -663,6 +688,7 @@ class AppText {
 
   /// A bottom sheet's question — "Accept Area 1.2?", "Reject Area 2.1?".
   static const TextStyle sheetTitle = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 22,
     height: 28 / 22,
     fontWeight: FontWeight.w900,
@@ -673,6 +699,7 @@ class AppText {
   /// "Type/Button large" — the 56px run-screen action (Accept, Mark arrived,
   /// Mark fire out), uppercase like every other button label.
   static const TextStyle actionRun = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 15,
     height: 20 / 15,
     fontWeight: FontWeight.w900,
@@ -680,6 +707,7 @@ class AppText {
     color: AppColors.accentText,
   );
   static const TextStyle rowValue = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 13,
     height: 16 / 13,
     fontWeight: FontWeight.w600,
@@ -687,6 +715,7 @@ class AppText {
     color: AppColors.textSoft,
   );
   static const TextStyle bodySm = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 13,
     height: 18 / 13,
     fontWeight: FontWeight.w400,
@@ -695,12 +724,14 @@ class AppText {
 
   /// "Type/Meta" — 12px secondary line. ([meta] above is the 11px caption.)
   static const TextStyle detail = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 12,
     height: 16 / 12,
     fontWeight: FontWeight.w400,
     color: AppColors.muted,
   );
   static const TextStyle caption = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
@@ -709,12 +740,14 @@ class AppText {
 
   /// Was 10 px; pass 4 retired Caption small for Caption (11 px).
   static const TextStyle captionSm = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w400,
     color: AppColors.muted,
   );
   static const TextStyle label = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 12,
     height: 16 / 12,
     fontWeight: FontWeight.w700,
@@ -723,6 +756,7 @@ class AppText {
   );
 
   static const TextStyle labelSm = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 11,
     height: 14 / 11,
     fontWeight: FontWeight.w700,
@@ -730,6 +764,7 @@ class AppText {
     color: AppColors.textSoft,
   );
   static const TextStyle numeralSm = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 17,
     height: 1,
     fontWeight: FontWeight.w900,
@@ -737,6 +772,7 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle numeralXl = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 34,
     height: 1,
     fontWeight: FontWeight.w900,
@@ -744,6 +780,7 @@ class AppText {
     color: AppColors.onBackground,
   );
   static const TextStyle dial = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 22,
     height: 1,
     fontWeight: FontWeight.w900,
@@ -753,6 +790,7 @@ class AppText {
 
   /// Type/Onboarding heading — the one line that names each tour step.
   static const TextStyle tourHeading = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 26,
     height: 31 / 26,
     fontWeight: FontWeight.w900,
@@ -762,6 +800,7 @@ class AppText {
 
   /// Type/Body large — tour prose, a size up from the rest of the app.
   static const TextStyle bodyLarge = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 16,
     height: 24 / 16,
     fontWeight: FontWeight.w300,
@@ -770,6 +809,7 @@ class AppText {
 
   /// Type/Button large — the tour's full-width call to action.
   static const TextStyle actionLarge = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 16,
     height: 20 / 16,
     fontWeight: FontWeight.w900,
@@ -779,6 +819,7 @@ class AppText {
 
   /// Type/Input — 16 px, so a phone keyboard does not zoom the field.
   static const TextStyle input = TextStyle(
+    fontFamily: kAppFont,
     fontSize: 16,
     height: 22 / 16,
     fontWeight: FontWeight.w500,
@@ -886,9 +927,11 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
       error: pal.live,
     ),
     textTheme: base.textTheme.apply(
+      fontFamily: kAppFont,
       bodyColor: pal.onBackground,
       displayColor: pal.onBackground,
     ),
+    primaryTextTheme: base.primaryTextTheme.apply(fontFamily: kAppFont),
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
@@ -903,6 +946,7 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
       filled: true,
       fillColor: pal.inputBg,
       hintStyle: TextStyle(
+        fontFamily: kAppFont,
         fontSize: 16,
         fontWeight: FontWeight.w500,
         color: pal.placeholder,
@@ -917,6 +961,7 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
       errorBorder: fieldBorder(pal.live, 1.5),
       focusedErrorBorder: fieldBorder(pal.live, 1.5),
       errorStyle: TextStyle(
+        fontFamily: kAppFont,
         fontSize: 11,
         fontWeight: FontWeight.w600,
         color: pal.live,
@@ -926,6 +971,7 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
       behavior: SnackBarBehavior.floating,
       backgroundColor: pal.raised,
       contentTextStyle: TextStyle(
+        fontFamily: kAppFont,
         fontSize: 12.5,
         fontWeight: FontWeight.w600,
         color: pal.onBackground,

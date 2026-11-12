@@ -9,9 +9,11 @@ import 'coordinator_kit.dart';
 import 'field_ops.dart';
 
 /// "What's burning?" on a live incident (PRD v14 §4.5.3; Figma C11 / R09,
-/// C18 / R08b): once a unit is on scene it is asked, and it stays asked —
-/// a red row at the top of the sheet — until someone answers; then the row
-/// names the fire type, and a tap corrects it.
+/// C18 / R08b): once a fire team is on scene it is asked, and it stays asked
+/// — a red row at the top of the sheet — until a fire team answers; then the
+/// row names the fire type and the team that said, and a tap by that team
+/// corrects it (12 November 2026: the first fire team answers, the next
+/// ones do not). Everyone else reads it.
 class FireTypeRow extends StatelessWidget {
   const FireTypeRow({super.key, required this.area, this.onPick});
 
@@ -30,7 +32,7 @@ class FireTypeRow extends StatelessWidget {
         leading: IconPlate(AppIcons.localFireDepartment, tint: pal.live),
         title: t('What’s burning?'),
         subtitle: onPick == null
-            ? t('Waiting for the unit on scene to say')
+            ? t('Waiting for the fire team on scene to say')
             : t('Required on scene. Pick the fire type.'),
         chevron: onPick != null,
         onTap: onPick,
@@ -40,7 +42,9 @@ class FireTypeRow extends StatelessWidget {
       key: const ValueKey('fire-type-set'),
       leading: const IconPlate(AppIcons.localFireDepartment),
       title: t('Fire type'),
-      subtitle: fire.label,
+      subtitle: area.fireTypeOrgName == null
+          ? fire.label
+          : '${fire.label} · ${area.fireTypeOrgName}',
       chevron: onPick != null,
       onTap: onPick,
     );

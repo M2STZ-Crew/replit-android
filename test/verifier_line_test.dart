@@ -17,10 +17,16 @@ void main() {
 
   test('falls back to the agency, then to Admin', () {
     expect(
-      verifierLine({'verified_by_name': 'Ana Cruz', 'verified_by_agency': 'bfp'}),
+      verifierLine({
+        'verified_by_name': 'Ana Cruz',
+        'verified_by_agency': 'bfp',
+      }),
       'Ana Cruz · BFP',
     );
-    expect(verifierLine({'verified_by_name': 'Admin One'}), 'Admin One · Admin');
+    expect(
+      verifierLine({'verified_by_name': 'Admin One'}),
+      'Admin One · Admin',
+    );
   });
 
   test('says nothing until someone has verified it', () {

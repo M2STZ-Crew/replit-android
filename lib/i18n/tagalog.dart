@@ -229,10 +229,10 @@ const Map<String, String> kTagalog = {
   'Location off — tap to turn on': 'Naka-off ang location — i-tap para i-on',
   'No signal — reports will wait': 'Walang signal — maghihintay ang mga report',
   'Connected, location on': 'Konektado, naka-on ang location',
-  'SOS. Press and hold for three seconds to start a report.':
-      'SOS. Pindutin nang tatlong segundo para magsimula ng report.',
+  'SOS. Press and hold for two seconds to start a report.':
+      'SOS. Pindutin nang dalawang segundo para magsimula ng report.',
   'SOS': 'SOS',
-  'Hold 3 seconds to send': 'Pindutin nang 3 segundo para i-send',
+  'Hold 2 seconds to send': 'Pindutin nang 2 segundo para i-send',
   'Keep holding': 'Huwag bitawan',
   'Only for real emergencies. Every false alert takes a truck away from someone who needs it.':
       'Para lang sa totoong emergency. Bawat maling alerto ay naglalayo ng trak sa taong talagang nangangailangan.',
@@ -487,7 +487,7 @@ const Map<String, String> kTagalog = {
       'Alitaptap ako. Ipapakita ko sa iyo kung paano mag-report ng emergency dito — mga isang minuto lang.',
   'Show me around': 'Ipakita mo sa akin',
   'Skip for now': 'Laktawan muna',
-  'Hold SOS for three seconds': 'Pindutin nang tatlong segundo ang SOS',
+  'Hold SOS for two seconds': 'Pindutin nang dalawang segundo ang SOS',
   'A tap sends nothing. Holding is what starts a report, so it can\'t happen by accident in your pocket.':
       'Walang naipapadala sa isang tap. Ang matagal na pagpindot ang nagsisimula ng report, kaya hindi ito mangyayari nang hindi sinasadya sa bulsa mo.',
   'Next': 'Susunod',
@@ -510,8 +510,8 @@ const Map<String, String> kTagalog = {
   'Fire reported 180 m from you': 'May sunog na na-report 180 m mula sa iyo',
   'Yes, report it': 'Oo, i-report ito',
   'Practice — nothing is sent': 'Practice — walang ipapadala',
-  'Practice SOS dial. Hold for three seconds. Nothing is sent.':
-      'Practice na SOS. Pindutin nang tatlong segundo. Walang ipapadala.',
+  'Practice SOS dial. Hold for two seconds. Nothing is sent.':
+      'Practice na SOS. Pindutin nang dalawang segundo. Walang ipapadala.',
   'That\'s it. Nothing was sent — this was practice.':
       'Iyon na iyon. Walang naipadala — practice lang ito.',
   'Keep your finger down until the ring closes.':
@@ -724,9 +724,8 @@ const Map<String, String> kTagalog = {
   'Responders are working on it': 'Inaasikaso na ito ng mga responder',
   'Once responders are on scene': 'Kapag nasa lugar na ang mga responder',
   'Track it live': 'Sundan nang live',
+  'New update': 'Bagong update',
   'Something else? Call a hotline': 'May iba pa? Tumawag sa hotline',
-  'ENCRYPTED, SHARED ONLY WITH RESPONDERS':
-      'NAKA-ENCRYPT, SA MGA RESPONDER LANG IBINABAHAGI',
   'Retry': 'Subukan ulit',
   'Sign in again': 'Mag-sign in ulit',
   'Could not load your account.': 'Hindi ma-load ang account mo.',
@@ -867,8 +866,8 @@ const Map<String, String> kTagalog = {
   'Three neighbours reporting the same fire show up here as one incident, not three.':
       'Kapag tatlong kapitbahay ang nag-report ng iisang sunog, lalabas ito rito bilang isang insidente, hindi tatlo.',
   'SOS lives here': 'Nandito ang SOS',
-  'Hold it for three seconds from any screen. A tap does nothing.':
-      'Pindutin ito nang tatlong segundo mula sa kahit anong screen. Walang mangyayari sa isang tap.',
+  'Hold it for two seconds from any screen. A tap does nothing.':
+      'Pindutin ito nang dalawang segundo mula sa kahit anong screen. Walang mangyayari sa isang tap.',
   'Got it': 'Sige',
   'Map tilt {n} degrees. Tap for {next} degrees':
       'Nakatagilid ang mapa nang {n} degrees. I-tap para gawing {next} degrees',
@@ -1099,8 +1098,8 @@ const Map<String, String> kTagalog = {
   'National disaster operations center for typhoons, floods, earthquakes, and large-scale emergencies.':
       'Pambansang sentro ng operasyon sa sakuna para sa bagyo, baha, lindol, at malalaking emergency.',
   'How do I report an emergency?': 'Paano ako magre-report ng emergency?',
-  'On the ALERT tab, press and hold the SOS button for 3 seconds. Take a photo of the scene, choose the responders you need (Fire, Police, Medical, Barangay), add optional notes, then tap REQUEST HELP NOW.':
-      'Pindutin nang 3 segundo ang SOS button. Kunan ng litrato ang lugar, piliin ang mga responder na kailangan mo (Sunog, Pulis, Medikal, Barangay), magdagdag ng notes kung gusto, saka i-tap ang IPADALA ANG REPORT.',
+  'On the ALERT tab, press and hold the SOS button for 2 seconds. Take a photo of the scene, choose the responders you need (Fire, Police, Medical, Barangay), add optional notes, then tap REQUEST HELP NOW.':
+      'Pindutin nang 2 segundo ang SOS button. Kunan ng litrato ang lugar, piliin ang mga responder na kailangan mo (Sunog, Pulis, Medikal, Barangay), magdagdag ng notes kung gusto, saka i-tap ang IPADALA ANG REPORT.',
   'What happens after I report?':
       'Ano ang mangyayari pagkatapos kong mag-report?',
   'Your report is localized into an incident area and sent to command for verification. Tap TRACK RESPONSE LIVE to follow the status — pending, verified, dispatched, en route, arrived, or resolved.':
@@ -2219,4 +2218,70 @@ const Map<String, String> kTagalog = {
       'Suspendido ang access ng organisasyon mo sa RepLiT. Tanungin ang central hub (Barangay 76) kung bakit, at kung kailan ito maibabalik.',
   'Your organization has been removed from RepLiT. Ask the central hub (Barangay 76) if you think this is a mistake.':
       'Inalis na ang organisasyon mo sa RepLiT. Tanungin ang central hub (Barangay 76) kung sa tingin mo ay pagkakamali ito.',
+
+  // v1.12.37: National ID as the Figma frames take it (16, 20, 20B, 20C,
+  // 20D, 21) and the Verification channels (15).
+  'National ID · +50%': 'National ID · +50%',
+  'VERIFY WITH YOUR ID': 'MAG-VERIFY GAMIT ANG ID MO',
+  "Take three photos with your camera: both sides of your National ID card, then your face. An admin checks them, and the card's QR code on PSA's PhilSys Check.":
+      'Kumuha ng tatlong litrato gamit ang camera: ang magkabilang panig ng National ID card mo, saka ang mukha mo. Susuriin ito ng admin, pati ang QR code ng card sa PhilSys Check ng PSA.',
+  'What you need': 'Ang kailangan mo',
+  'Your National ID card': 'Ang National ID card mo',
+  'Your PhilID card or ePhilID, not a photo of it':
+      'Ang PhilID card o ePhilID mo, hindi litrato nito',
+  'Good light': 'Maliwanag na lugar',
+  'Your face and the card clearly visible':
+      'Malinaw na kita ang mukha mo at ang card',
+  'About two minutes': 'Mga dalawang minuto',
+  'You can stop and start again later': 'Puwede kang tumigil at bumalik mamaya',
+  'Verification never blocks a report. It only tells responders how much weight to give yours.':
+      'Hindi kailanman haharangin ng verification ang isang report. Sinasabi lang nito sa mga responder kung gaano kabigat ang sa iyo.',
+  'Take ID photo': 'Kunan ang ID',
+  'ID front': 'Harap ng ID',
+  'ID back': 'Likod ng ID',
+  'Your face': 'Ang mukha mo',
+  'Fit all four corners of the card inside the frame.':
+      'Ipasok sa frame ang apat na sulok ng card.',
+  'Turn the card over. Fit all four corners inside the frame.':
+      'Baligtarin ang card. Ipasok sa frame ang apat na sulok nito.',
+  'Keep your face inside the oval. Look straight at the camera.':
+      'Panatilihin ang mukha mo sa loob ng oval. Tumingin nang diretso sa camera.',
+  '{photo}, taken': '{photo}, nakuha na',
+  '{photo}, now': '{photo}, ngayon',
+  'CHECK YOUR PHOTOS': 'TINGNAN ANG MGA LITRATO MO',
+  'Each photo shows exactly what was inside the guide. Retake one without losing the others.':
+      'Ipinapakita ng bawat litrato ang eksaktong nasa loob ng gabay. Kunan ulit ang isa nang hindi nawawala ang iba.',
+  'All four corners should be visible': 'Dapat kita ang apat na sulok',
+  'Mirrored, as you saw it': 'Nakasalamin, gaya ng nakita mo',
+  "Sending them means you agree to an admin checking your card's QR code on PSA's PhilSys Check, where PSA records the date, your first name and the result. The photos stay private and are deleted once it is decided.":
+      'Sa pagpapadala, pumapayag kang suriin ng admin ang QR code ng card mo sa PhilSys Check ng PSA, kung saan itinatala ng PSA ang petsa, ang first name mo at ang resulta. Pribado ang mga litrato at buburahin kapag napagpasyahan na.',
+  'Not sent': 'Hindi naipadala',
+  'Send for review': 'Ipadala para suriin',
+  'Could not send. Check your connection and try again.':
+      'Hindi naipadala. Tingnan ang koneksyon mo at subukan ulit.',
+  'National ID · in review': 'National ID · sinusuri',
+  'SENT FOR REVIEW': 'NAIPADALA PARA SURIIN',
+  "An admin checks your ID and your selfie, with the QR code on PSA's PhilSys Check. You'll get a notification when it's done. Your score stays as it is until then.":
+      'Susuriin ng admin ang ID at selfie mo, kasama ang QR code sa PhilSys Check ng PSA. Makakatanggap ka ng notification kapag tapos na. Mananatili ang score mo hanggang doon.',
+  "An admin checks your ID and your selfie, with the QR code on PSA's PhilSys Check. You'll get a notification when it's done. Your score stays at {n}% until then.":
+      'Susuriin ng admin ang ID at selfie mo, kasama ang QR code sa PhilSys Check ng PSA. Makakatanggap ka ng notification kapag tapos na. Mananatili sa {n}% ang score mo hanggang doon.',
+  'Captured': 'Nakuha na',
+  'Admin review': 'Pagsusuri ng admin',
+  'Waiting for an admin': 'Naghihintay sa admin',
+  'Verification never blocks a report. Send one any time.':
+      'Hindi haharangin ng verification ang isang report. Magpadala anumang oras.',
+  'Back to profile': 'Bumalik sa profile',
+  'Verified by SMS code': 'Na-verify sa SMS code',
+  'Checked by an administrator': 'Nasuri na ng administrator',
+  'Camera only — the photo and selfie must be live':
+      'Camera lang — dapat live ang litrato at selfie',
+
+  // v1.12.37: the LIT tutorial, replayed from Help.
+  'Replay the tutorial': 'Ulitin ang tutorial',
+  'Practice a report with Lit. Nothing is sent.':
+      'Mag-practice ng report kasama si Lit. Walang naipapadala.',
+
+  // v1.12.37: only the first fire team says what is burning.
+  'Waiting for the fire team on scene to say':
+      'Hinihintay ang fire team na nasa lugar na magsabi',
 };

@@ -13,42 +13,37 @@ import '../widgets/map_glass.dart';
 import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
 
-/// One photo of the National ID check: what the screen says and the frame it
-/// holds up. The sizes are the design's, on its 402 px wide phone.
+/// One photo of the National ID check, in the order they are taken: what the
+/// screen says and the guide it holds up (Figma 20, 20C and 20B).
 enum IdShot {
-  /// "20 National ID · ID photo" (460:4632).
-  card(
-    title: 'Photo of your ID',
+  /// "20 National ID · ID front" (460:4632).
+  front(
+    title: 'ID front',
     step: 'Step 1 of 3',
-    hint: 'Fit the whole card inside the frame. Avoid glare.',
-    guide: Size(330, 208),
-    radius: 16,
+    hint: 'Fit all four corners of the card inside the frame.',
+    oval: false,
     lens: CameraLensDirection.back,
     resolution: ResolutionPreset.veryHigh,
   ),
 
-  /// Not in Figma, which predates PhilSys Check: frame 20 with a square guide.
-  /// It keeps the most detail: PSA's reader needs every square of the code,
-  /// and an ePhilID's are small.
-  qr(
-    title: 'Photo of your QR',
+  /// "20C National ID · ID back" (1177:1673). The back carries the QR code
+  /// the administrator reads on PSA's PhilSys Check, so it keeps the most
+  /// detail: the reader needs every square of the code.
+  back(
+    title: 'ID back',
     step: 'Step 2 of 3',
-    hint:
-        'Fit the whole QR code inside the frame. It is on the back of the '
-        'card.',
-    guide: Size(260, 260),
-    radius: 16,
+    hint: 'Turn the card over. Fit all four corners inside the frame.',
+    oval: false,
     lens: CameraLensDirection.back,
     resolution: ResolutionPreset.ultraHigh,
   ),
 
-  /// "20B National ID · Selfie" (464:1209).
-  selfie(
-    title: 'Live selfie',
+  /// "20B National ID · Face" (464:1209).
+  face(
+    title: 'Your face',
     step: 'Step 3 of 3',
-    hint: 'Look straight at the camera. Remove glasses or a cap if you can.',
-    guide: Size(240, 300),
-    radius: 120,
+    hint: 'Keep your face inside the oval. Look straight at the camera.',
+    oval: true,
     lens: CameraLensDirection.front,
     resolution: ResolutionPreset.veryHigh,
   );
@@ -57,52 +52,57 @@ enum IdShot {
     required this.title,
     required this.step,
     required this.hint,
-    required this.guide,
-    required this.radius,
+    required this.oval,
     required this.lens,
     required this.resolution,
   });
 
+  /// The photo's name: the screen's title, and its chip and card after.
   final String title;
   final String step;
   final String hint;
-  final Size guide;
-  final double radius;
+
+  /// The face oval, rather than the card's frame.
+  final bool oval;
   final CameraLensDirection lens;
   final ResolutionPreset resolution;
 
-  /// Room the guide leaves above and below: the header, then the shutter and
-  /// its note. Two lines of hint sit under the guide.
-  static const double _clearTop = 116;
-  static const double _clearBottom = 164;
+  /// The guide's width to its height (Capture guide, 1171:3772): an ID-1
+  /// card, 1.586 : 1, and the face oval, 4 : 5.
+  double get aspect => oval ? 0.8 : 1.586;
+
+  /// Room the guide leaves above and below: the header with its chips, then
+  /// the shutter and its note. Two lines of hint sit under the guide.
+  static const double _clearTop = 118;
+  static const double _clearBottom = 140;
   static const double hintGap = 16;
   static const double _hintRoom = hintGap + 36;
 
-  /// Where the guide sits on [screen], at the design's size where it fits and
-  /// smaller on a phone that has less room.
-  RRect guideIn(Size screen, EdgeInsets safe) {
+  /// Where the guide sits on [screen] (Capture guide): the card the screen's
+  /// width less 36 each side (330 × 208 on the 402 frame, 288 × 182 at 360,
+  /// 358 × 226 at 430), the oval 240 × 300 or 60% of the width when that is
+  /// narrower; centred between the header and the shutter, and smaller on a
+  /// phone without the height for it.
+  Rect guideIn(Size screen, EdgeInsets safe) {
     final top = safe.top + _clearTop;
     final bottom = screen.height - safe.bottom - _clearBottom;
     final room = math.max(bottom - top - _hintRoom, 120.0);
-    final scale = math.min(
-      1.0,
-      math.min((screen.width - 72) / guide.width, room / guide.height),
-    );
-    final width = guide.width * scale;
-    final height = guide.height * scale;
-    return RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        (screen.width - width) / 2,
-        top + (room - height) / 2,
-        width,
-        height,
-      ),
-      Radius.circular(radius * scale),
+    var width = oval ? math.min(240.0, screen.width * 0.6) : screen.width - 72;
+    var height = width / aspect;
+    if (height > room) {
+      height = room;
+      width = height * aspect;
+    }
+    return Rect.fromLTWH(
+      (screen.width - width) / 2,
+      top + (room - height) / 2,
+      width,
+      height,
     );
   }
 }
 
-/// The National ID camera: "20 National ID · ID photo" and "20B · Selfie".
+/// The National ID camera: "20 · ID front", "20C · ID back", "20B · Face".
 ///
 /// Pops with the JPEG cut to the guide (see [GuideCrop]) — what the resident
 /// framed, not the whole sensor frame — or with nothing when closed. It is an in-app camera so
@@ -112,9 +112,17 @@ enum IdShot {
 /// A viewfinder stays dark on the light ground too, so the screen always
 /// draws from the dark palette.
 class IdCameraScreen extends StatelessWidget {
-  const IdCameraScreen({super.key, required this.shot, this.preview});
+  const IdCameraScreen({
+    super.key,
+    required this.shot,
+    this.taken = const {},
+    this.preview,
+  });
 
   final IdShot shot;
+
+  /// The photos already taken, ticked in the chips under the title.
+  final Set<IdShot> taken;
 
   /// Stands in for the live camera in a test.
   final Widget? preview;
@@ -123,15 +131,16 @@ class IdCameraScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Theme(
       data: buildAppTheme(),
-      child: _IdCamera(shot: shot, preview: preview),
+      child: _IdCamera(shot: shot, taken: taken, preview: preview),
     );
   }
 }
 
 class _IdCamera extends StatefulWidget {
-  const _IdCamera({required this.shot, this.preview});
+  const _IdCamera({required this.shot, required this.taken, this.preview});
 
   final IdShot shot;
+  final Set<IdShot> taken;
   final Widget? preview;
 
   @override
@@ -283,7 +292,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     final shot = widget.shot;
     final guide = shot.guideIn(box.biggest, MediaQuery.paddingOf(context));
     _viewfinder = box.biggest;
-    _guide = guide.outerRect;
+    _guide = guide;
     final live = _error == null;
     return Stack(
       fit: StackFit.expand,
@@ -293,14 +302,15 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
           CustomPaint(
             painter: _GuidePainter(
               guide: guide,
+              oval: shot.oval,
               scrim: pal.scrim,
               edge: pal.accent,
             ),
           ),
           Positioned(
             top: guide.bottom + IdShot.hintGap,
-            left: 51,
-            right: 51,
+            left: 24,
+            right: 24,
             child: Text(
               t(shot.hint),
               textAlign: TextAlign.center,
@@ -345,18 +355,23 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
         SizedBox(
           width: double.infinity,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(56, 12, 56, 0),
+            padding: const EdgeInsets.only(top: 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  t(widget.shot.title).toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.type.headline,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 56),
+                  child: Text(
+                    t(widget.shot.title).toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.type.headline,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Eyebrow(t(widget.shot.step), color: context.pal.label),
+                const SizedBox(height: 16),
+                _CaptureSlots(current: widget.shot, taken: widget.taken),
               ],
             ),
           ),
@@ -417,39 +432,157 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
 }
 
 /// Darkens the viewfinder around the guide, so the words stay readable over
-/// any scene, and draws the guide's 2 px edge.
+/// any scene, and draws the guide (Capture guide): the card's four coral
+/// corners, 28 long and 4 thick, or the face oval's coral edge.
 class _GuidePainter extends CustomPainter {
   const _GuidePainter({
     required this.guide,
+    required this.oval,
     required this.scrim,
     required this.edge,
   });
 
-  final RRect guide;
+  final Rect guide;
+  final bool oval;
   final Color scrim;
   final Color edge;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final hole = Path();
+    if (oval) {
+      hole.addOval(guide);
+    } else {
+      hole.addRect(guide);
+    }
     canvas.drawPath(
       Path()
         ..fillType = PathFillType.evenOdd
         ..addRect(Offset.zero & size)
-        ..addRRect(guide),
+        ..addPath(hole, Offset.zero),
       Paint()..color = scrim,
     );
-    canvas.drawRRect(
-      guide.deflate(1),
-      Paint()
-        ..color = edge
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
+    final paint = Paint()..color = edge;
+    if (oval) {
+      canvas.drawOval(
+        guide.deflate(1),
+        paint
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      return;
+    }
+    const long = 28.0;
+    const thick = 4.0;
+    const round = Radius.circular(2);
+    void bar(double left, double top, double width, double height) =>
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(left, top, width, height),
+            round,
+          ),
+          paint,
+        );
+    final g = guide;
+    for (final (x, y, dx, dy) in [
+      (g.left, g.top, 0.0, 0.0),
+      (g.right, g.top, -1.0, 0.0),
+      (g.left, g.bottom, 0.0, -1.0),
+      (g.right, g.bottom, -1.0, -1.0),
+    ]) {
+      bar(x + dx * long, y + dy * thick, long, thick);
+      bar(x + dx * thick, y + dy * long, thick, long);
+    }
   }
 
   @override
   bool shouldRepaint(_GuidePainter old) =>
-      old.guide != guide || old.scrim != scrim || old.edge != edge;
+      old.guide != guide ||
+      old.oval != oval ||
+      old.scrim != scrim ||
+      old.edge != edge;
+}
+
+/// The three photos as chips under the title (Capture slots): ticked green
+/// once taken, coral for the one being taken, glass for the ones to come.
+class _CaptureSlots extends StatelessWidget {
+  const _CaptureSlots({required this.current, required this.taken});
+
+  final IdShot current;
+  final Set<IdShot> taken;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final shot in IdShot.values)
+          if (shot == current)
+            _slot(
+              context,
+              shot,
+              fill: pal.accent.withValues(alpha: 0.16),
+              edge: pal.accent,
+              ink: pal.accent,
+            )
+          else if (taken.contains(shot))
+            _slot(
+              context,
+              shot,
+              fill: pal.statusTint(pal.ok),
+              ink: pal.ok,
+              done: true,
+            )
+          else
+            _slot(
+              context,
+              shot,
+              fill: AppColors.glassOverlay,
+              ink: pal.textSoft,
+            ),
+      ],
+    );
+  }
+
+  Widget _slot(
+    BuildContext context,
+    IdShot shot, {
+    required Color fill,
+    required Color ink,
+    Color? edge,
+    bool done = false,
+  }) {
+    final name = t(shot.title);
+    return Semantics(
+      label: done
+          ? t('{photo}, taken', {'photo': name})
+          : shot == current
+          ? t('{photo}, now', {'photo': name})
+          : name,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.circular(12),
+          border: edge == null ? null : Border.all(color: edge),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (done) ...[
+              Icon(AppIcons.check, size: 12, color: ink),
+              const SizedBox(width: 4),
+            ],
+            Text(name, style: context.type.tag.copyWith(color: ink)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// "Close camera": the Icon button's Overlay style, translucent with a blur.

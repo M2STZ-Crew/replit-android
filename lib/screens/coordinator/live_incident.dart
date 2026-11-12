@@ -22,6 +22,7 @@ import '../../widgets/map_marker.dart';
 import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/sheet_grip.dart';
+import '../../widgets/staff_shell.dart' show StaffAccount;
 import '../../widgets/you_are_here.dart';
 import '../bfp/bfp_alarm_requests_screen.dart';
 import '../responder/responder_status.dart';
@@ -266,6 +267,8 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     if (!area.asksFireType || !area.onScene) return;
     if (area.fireType != null || _mine == null) return;
     if (!_powers.responds) return;
+    // Only a fire team answers; a later one finds it answered.
+    if (!area.mayAnswerFireType(StaffAccount.current)) return;
     _askedFireType = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && ModalRoute.of(context)?.isCurrent != false) {
@@ -802,7 +805,11 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                     if (area.onScene && area.asksFireType) ...[
                       FireTypeRow(
                         area: area,
-                        onPick: _powers.responds ? _pickFireType : null,
+                        onPick:
+                            _powers.responds &&
+                                area.mayAnswerFireType(StaffAccount.current)
+                            ? _pickFireType
+                            : null,
                       ),
                       const SizedBox(height: 12),
                     ],
