@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:replit/i18n/i18n.dart';
 import 'package:replit/sound/sound_cues.dart';
 
 /// The recordings as files: what an open app plays (assets/sounds, through
@@ -26,6 +27,29 @@ void main() {
         reason: '$forPhone must be the same file as $inApp',
       );
     }
+  });
+
+  test('the update has one recording per language, in the app and for '
+      'the phone', () {
+    expect(SoundCues.updateSounds.keys.toSet(), AppLanguage.values.toSet());
+    for (final name in SoundCues.updateSounds.values) {
+      final inApp = '$assets/$name.mp3';
+      final forPhone = '$raw/$name.mp3';
+      expect(File(inApp).existsSync(), isTrue, reason: inApp);
+      expect(
+        listEquals(bytes(inApp), bytes(forPhone)),
+        isTrue,
+        reason: '$forPhone must be the same file as $inApp',
+      );
+    }
+    expect(
+      listEquals(
+        bytes('$assets/update_en.mp3'),
+        bytes('$assets/update_tl.mp3'),
+      ),
+      isFalse,
+      reason: 'English and Tagalog are two recordings',
+    );
   });
 
   test('the stages of an incident are the five the server names', () {
@@ -63,6 +87,9 @@ void main() {
       'sound_police.mp3',
       'sound_rejected.mp3',
       'sound_verified.mp3',
+      // v1.12.38, after every older file: nothing above moves.
+      'update_en.mp3',
+      'update_tl.mp3',
     ]);
   });
 

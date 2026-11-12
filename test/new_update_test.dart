@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:replit/alerts/inbox_watcher.dart';
 import 'package:replit/api/api_client.dart';
 import 'package:replit/api/notification_router.dart';
+import 'package:replit/i18n/i18n.dart';
 import 'package:replit/sound/sound_cues.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/updates/app_updates.dart';
@@ -70,10 +71,41 @@ void main() {
     expect(find.text('You have the latest version.'), findsOneWidget);
   });
 
-  test('the open app only vibrates for it: no recording of its own yet', () {
+  test('the open app plays its own recording, in the app\'s language', () {
     final item = {'type': 'app_update', 'data': <String, dynamic>{}};
-    final sound = InboxWatcher.soundFor(item);
-    expect(SoundCues.categories.contains(sound), isFalse);
+    expect(InboxWatcher.soundFor(item), SoundCues.update);
+    expect(SoundCues.updateSounds[AppLanguage.en], 'update_en');
+    expect(SoundCues.updateSounds[AppLanguage.tl], 'update_tl');
+  });
+
+  test('Android has a channel for each language, with its recording', () {
+    final activity = File(
+      'android/app/src/main/kotlin/com/m2stz/replit/MainActivity.kt',
+    ).readAsStringSync();
+    // The ids backend v1.12.30 names (app/integrations/fcm.py).
+    expect(
+      activity,
+      contains(
+        'appUpdate("app_update_en_v1", "App updates (English)", '
+        'R.raw.update_en)',
+      ),
+    );
+    expect(
+      activity,
+      contains(
+        'appUpdate("app_update_tl_v1", "App updates (Tagalog)", '
+        'R.raw.update_tl)',
+      ),
+    );
+    final channel = activity.substring(activity.indexOf('fun appUpdate('));
+    final body = channel.substring(0, channel.indexOf('}'));
+    expect(body, contains('setSound(sound(raw), attributes)'));
+    expect(body, contains('enableVibration(true)'));
+    final keep = File(
+      'android/app/src/main/res/raw/keep.xml',
+    ).readAsStringSync();
+    expect(keep, contains('@raw/update_en'));
+    expect(keep, contains('@raw/update_tl'));
   });
 
   test('Android has its channel: the phone\'s tone, vibrating', () {
@@ -86,6 +118,6 @@ void main() {
     final body = channel.substring(0, channel.indexOf('}'));
     expect(body, contains('enableVibration(true)'));
     expect(body, isNot(contains('setSound(')), reason: "the phone's own tone");
-    expect(activity, contains('appUpdates\n'));
+    expect(activity, contains('appUpdates,\n'));
   });
 }

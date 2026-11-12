@@ -395,6 +395,28 @@ class MainActivity : FlutterActivity() {
             vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
         }
 
+        // v1.12.38: "New Update!" with its own recording, in the account's
+        // language (backend v1.12.30 names these for an app this new, and
+        // app_updates_v1 for an older one). A channel's sound is fixed once
+        // it exists, so these are new ids.
+        fun appUpdate(
+            id: String,
+            name: String,
+            raw: Int
+        ) = NotificationChannel(
+            id,
+            name,
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "A new version of RepLiT is ready to install."
+
+            setSound(sound(raw), attributes)
+
+            enableVibration(true)
+
+            vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
+        }
+
         // Register all existing and new notification channels.
         manager.createNotificationChannels(
             listOf(
@@ -489,8 +511,11 @@ class MainActivity : FlutterActivity() {
                 updatesChannel("updates_v2"),
                 updatesChannel("updates"),
 
-                // A new version of the app.
-                appUpdates
+                // A new version of the app: the phone's tone (backend
+                // v1.12.29), and the recordings by language (v1.12.30).
+                appUpdates,
+                appUpdate("app_update_en_v1", "App updates (English)", R.raw.update_en),
+                appUpdate("app_update_tl_v1", "App updates (Tagalog)", R.raw.update_tl)
             )
         )
     }
