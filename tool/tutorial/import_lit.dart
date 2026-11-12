@@ -19,7 +19,10 @@
 //   match the app (02 "Tap Report Incident" where the app's SOS is held; 03
 //   "may be different from where you are" where a report carries the phone's
 //   own location): those lessons show their captions without a clip until
-//   new recordings are made (lit_lessons.dart).
+//   new recordings are made (lit_lessons.dart). Those came on 13 November
+//   2026 ("NEW UPDATE"), with the report's receipt, and were copied in as
+//   02_tap_sos, 02_hold_sos, 02_photo, 03_check_location and
+//   06_report_received.
 // - The animated WebP, the previews and the generation notes stay out.
 
 import 'dart:convert';

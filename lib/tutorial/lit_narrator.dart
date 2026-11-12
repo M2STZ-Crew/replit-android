@@ -126,6 +126,16 @@ class LitNarrator {
   /// Replay: the current clip again, from the start.
   Future<void> replay() => say(_clip);
 
+  /// Make [clip] the one Replay plays, without playing it now: the app is
+  /// away, and Lit waits for the resident to come back.
+  Future<void> cue(String? clip) async {
+    _request++;
+    _clip = clip;
+    talking.value = false;
+    failed.value = false;
+    await _stopPlayer();
+  }
+
   /// Stop the clip, keeping it as the one to replay.
   Future<void> stop() async {
     _request++;
