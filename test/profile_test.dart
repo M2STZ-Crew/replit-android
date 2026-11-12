@@ -174,7 +174,11 @@ void main() {
       expect(find.text('Language'), findsOneWidget);
     });
 
-    testWidgets('shows the build as App Distribution lists it', (tester) async {
+    // 12 Nov 2026: "remove the build number. it is just the version of app
+    // will be remain seen in any platforms, no build number".
+    testWidgets('shows the version alone, with no build number', (
+      tester,
+    ) async {
       // What CI stamps on a release: pubspec's name, the run number as build.
       PackageInfo.setMockInitialValues(
         appName: 'RepLiT',
@@ -185,10 +189,10 @@ void main() {
       );
       await AppVersion.load();
       addTearDown(() => AppVersion.label = '');
-      expect(AppVersion.label, '1.11.0 (57)');
+      expect(AppVersion.label, '1.11.0');
 
       await pump(tester, ProfileScreen(api: api()));
-      final footer = find.text('REPLIT · PASAY CITY · V1.11.0 (57)');
+      final footer = find.text('REPLIT · PASAY CITY · V1.11.0');
       await tester.scrollUntilVisible(
         footer,
         200,

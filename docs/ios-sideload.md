@@ -1,6 +1,6 @@
 # Building and installing the iPhone app without a Mac
 
-GitHub's Macs build the iPhone app. It comes out **unsigned**: each tester signs and
+GitHub's Macs build the iPhone app. It comes out **unsigned**: each iPhone user signs and
 installs it from a **Windows PC** with **Sideloadly** and their own **free Apple ID**.
 No MacBook, no paid Apple developer account.
 
@@ -17,7 +17,7 @@ The workflow is `.github/workflows/ios-unsigned-ipa.yml`. It runs on every push 
 | **3 sideloaded apps per iPhone** | Counts every sideloaded app, not only Replit |
 | **No push notifications** | Apple doesn't give free accounts the push permission, so nothing reaches the phone while Replit is closed |
 | **Location only while Replit is on screen** | The iPhone build stops sharing a responder's location when Replit goes to the background or the phone locks. The Android app keeps sharing |
-| **Each tester signs their own copy** | With their own Apple ID, for their own iPhone |
+| **Each iPhone user signs their own copy** | With their own Apple ID, for their own iPhone |
 
 A paid Apple Developer Program membership, $99 a year, is what removes these: no
 weekly re-sign, push notifications, and TestFlight.
@@ -47,7 +47,7 @@ $b = New-Object byte[] 18; [Security.Cryptography.RandomNumberGenerator]::Create
 ```
 
 Paste it into **New repository secret**, and keep it in the team's password manager:
-GitHub secrets cannot be read back. Give it to testers privately, never anywhere
+GitHub secrets cannot be read back. Give it to iPhone users privately, never anywhere
 public.
 
 ---
@@ -66,7 +66,7 @@ public.
 
 ---
 
-## For each tester — Windows
+## For each iPhone user — Windows
 
 ### 1. Install the tools (once)
 
@@ -118,7 +118,7 @@ the password.
 ## Things that will bite
 
 **"The App ID is not available".** A bundle ID can belong to only one Apple account,
-and another tester's free account most likely registered `com.m2stz.replit` first. In
+and another user's free account most likely registered `com.m2stz.replit` first. In
 Sideloadly open **Advanced options**, set a custom **Bundle ID** such as
 `com.m2stz.replit.yourname`, and use that same one every time. A different ID
 installs as a second, empty copy of the app.

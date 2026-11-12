@@ -297,95 +297,121 @@ class _SosReportScreenState extends State<SosReportScreen> {
     return Scaffold(
       backgroundColor: context.pal.background,
       body: SafeArea(
-        child: FootedScroll(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 30),
-          content: [
-            Row(
-              children: [
-                BackWell(
-                  onTap: _submitting
-                      ? () {}
-                      : () => Navigator.of(context).pop(),
-                ),
-                const SizedBox(width: 16),
-                Flexible(child: _locationChip()),
-              ],
-            ),
-            const SizedBox(height: 28),
-            if (_staffLine() case final staff?) ...[
-              // C23 / R20: a Coordinator or Responder reporting.
-              Text(t('REPORT A FIRE'), style: context.type.heading1),
-              const SizedBox(height: 8),
-              Text(staff, style: context.type.body),
-              const SizedBox(height: 24),
-            ] else ...[
-              Text(t('WHAT ARE WE SENDING?'), style: context.type.heading1),
-              const SizedBox(height: 32),
-            ],
-            Eyebrow(t('Who should respond'), color: context.pal.muted),
-            const SizedBox(height: 10),
-            _agencyGrid(),
-            const SizedBox(height: 28),
-            Row(
-              children: [
-                Expanded(
-                  child: Eyebrow(
-                    t('Photo of the scene'),
-                    color: context.pal.muted,
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // 12 Nov 2026: the page fits the screen, with no scrolling. Its
+            // spacing eases from a short phone to a tall one, and the photo
+            // takes the room that is left: 214 tall as in the frame, and
+            // never under 88. With the keyboard up, the page scrolls.
+            final roomy = FitPage.roominess(context, box.maxHeight);
+            double ease(double short, double tall) =>
+                short + (tall - short) * roomy;
+            return FitPage(
+              padding: EdgeInsets.fromLTRB(24, ease(8, 16), 24, ease(14, 30)),
+              gap: ease(14, 32),
+              flexMin: 88,
+              flexMax: 214,
+              keepFlex: true,
+              top: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      BackWell(
+                        onTap: _submitting
+                            ? () {}
+                            : () => Navigator.of(context).pop(),
+                      ),
+                      const SizedBox(width: 16),
+                      Flexible(child: _locationChip()),
+                    ],
                   ),
-                ),
-                Eyebrow(t('Required'), color: context.pal.accent),
-              ],
-            ),
-            const SizedBox(height: 10),
-            _viewfinder(),
-            const SizedBox(height: 24),
-            Eyebrow(t('Anything else'), color: context.pal.muted),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _notes,
-              minLines: 1,
-              maxLines: 4,
-              style: context.type.bodySm.copyWith(
-                color: context.pal.onBackground,
-              ),
-              decoration: InputDecoration(
-                hintText: t('Optional — what responders should know'),
-                hintStyle: context.type.bodySm.copyWith(
-                  color: context.pal.label.withValues(alpha: 0.45),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
-            ),
-          ],
-          footer: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_waitingForFix) ...[
-                Text(
-                  t(
-                    'Pinpointing your location — your report sends the moment '
-                    'it is found.',
+                  SizedBox(height: ease(12, 28)),
+                  if (_staffLine() case final staff?) ...[
+                    // C23 / R20: a Coordinator or Responder reporting.
+                    Text(t('REPORT A FIRE'), style: context.type.heading1),
+                    const SizedBox(height: 8),
+                    Text(staff, style: context.type.body),
+                    SizedBox(height: ease(12, 24)),
+                  ] else ...[
+                    Text(
+                      t('WHAT ARE WE SENDING?'),
+                      style: context.type.heading1,
+                    ),
+                    SizedBox(height: ease(14, 32)),
+                  ],
+                  Eyebrow(t('Who should respond'), color: context.pal.muted),
+                  const SizedBox(height: 10),
+                  _agencyGrid(roomy),
+                  SizedBox(height: ease(14, 28)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Eyebrow(
+                          t('Photo of the scene'),
+                          color: context.pal.muted,
+                        ),
+                      ),
+                      Eyebrow(t('Required'), color: context.pal.accent),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
-                  style: context.type.caption.copyWith(
-                    color: context.pal.accent,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              AppButton(
-                chosen == 0 ? t('Choose who to call') : t('Send report'),
-                height: 54,
-                busy: _submitting,
-                onPressed: _submitting || chosen == 0 ? null : _requestHelp,
+                  const SizedBox(height: 10),
+                ],
               ),
-            ],
-          ),
+              flex: _viewfinder(),
+              bottom: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: ease(12, 24)),
+                  Eyebrow(t('Anything else'), color: context.pal.muted),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _notes,
+                    minLines: 1,
+                    maxLines: 4,
+                    style: context.type.bodySm.copyWith(
+                      color: context.pal.onBackground,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: t('Optional — what responders should know'),
+                      hintStyle: context.type.bodySm.copyWith(
+                        color: context.pal.label.withValues(alpha: 0.45),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              footer: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_waitingForFix) ...[
+                    Text(
+                      t(
+                        'Pinpointing your location — your report sends the '
+                        'moment it is found.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: context.type.caption.copyWith(
+                        color: context.pal.accent,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  AppButton(
+                    chosen == 0 ? t('Choose who to call') : t('Send report'),
+                    height: 54,
+                    busy: _submitting,
+                    onPressed: _submitting || chosen == 0 ? null : _requestHelp,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -425,12 +451,14 @@ class _SosReportScreenState extends State<SosReportScreen> {
     );
   }
 
-  Widget _agencyGrid() {
+  /// The four agencies, two by two: cards 68 tall as in the frame on a tall
+  /// phone, 56 on a short one ([FitPage.roominess]).
+  Widget _agencyGrid(double roomy) {
     Widget row(_Agency a, _Agency b) => Row(
       children: [
-        Expanded(child: _agencyCard(a)),
+        Expanded(child: _agencyCard(a, roomy)),
         const SizedBox(width: 8),
-        Expanded(child: _agencyCard(b)),
+        Expanded(child: _agencyCard(b, roomy)),
       ],
     );
     return Column(
@@ -442,7 +470,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
     );
   }
 
-  Widget _agencyCard(_Agency a) {
+  Widget _agencyCard(_Agency a, double roomy) {
     final locked = a.key == _lockedAgency;
     final on = locked || (_selected[a.key] ?? false);
     final shape = BorderRadius.circular(AppRadius.card);
@@ -468,8 +496,11 @@ class _SosReportScreenState extends State<SosReportScreen> {
                 )
               : () => setState(() => _selected[a.key] = !on),
           child: Container(
-            constraints: const BoxConstraints(minHeight: 68),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            constraints: BoxConstraints(minHeight: 56 + 12 * roomy),
+            padding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8 + 2 * roomy,
+            ),
             decoration: BoxDecoration(
               color: on
                   ? context.pal.forAgency(a.key).withValues(alpha: 0.16)
@@ -567,8 +598,8 @@ class _SosReportScreenState extends State<SosReportScreen> {
       label: t('Photo of the scene. Tap to take it again.'),
       child: GestureDetector(
         onTap: _submitting ? null : _retake,
+        // As tall as the page leaves it: 214 in the frame.
         child: Container(
-          height: 214,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: context.pal.canvas,

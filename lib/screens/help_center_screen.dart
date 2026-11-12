@@ -15,7 +15,7 @@ class _Faq {
 const List<_Faq> _faqs = [
   _Faq(
     'How do I report an emergency?',
-    'On the ALERT tab, press and hold the SOS button for 3 seconds. Take a photo '
+    'On the ALERT tab, press and hold the SOS button for 2 seconds. Take a photo '
         'of the scene, choose the responders you need (Fire, Police, Medical, '
         'Barangay), add optional notes, then tap REQUEST HELP NOW.',
   ),

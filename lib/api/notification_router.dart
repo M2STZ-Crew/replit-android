@@ -8,6 +8,7 @@ import '../screens/neighbour_alert_screen.dart';
 import '../screens/responder/responder_incident_screen.dart';
 import '../screens/subadmin/coordinator_nav.dart';
 import '../screens/verification_screen.dart';
+import '../updates/app_updates.dart' show showUpdateSheet;
 import 'api_client.dart';
 
 /// Where a notification leads (v1.12.6).
@@ -30,6 +31,10 @@ enum NotificationTarget {
 
   /// Where a resident's verification stands, and why an ID came back.
   verification,
+
+  /// Check for updates: "New Update!", a new version is out (backend
+  /// v1.12.29). For anyone, signed in or not.
+  appUpdate,
 
   /// Nothing to open: a test push, or a phone whose work is on the web.
   none,
@@ -87,17 +92,22 @@ NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
     // The hub's answer about a National ID.
     case 'national_id_reviewed':
       return NotificationTarget.verification;
+    // A new version of the app.
+    case 'app_update':
+      return NotificationTarget.appUpdate;
     default:
       return NotificationTarget.none;
   }
 }
 
 /// Whether a notification has anything to open, before knowing who is asking:
-/// it names an incident, or it is an alarm request or a National ID answer.
+/// it names an incident, or it is an alarm request, a National ID answer or
+/// a new version of the app.
 bool canOpen(String? type, Map<String, dynamic>? data) =>
     data?['area_id'] is String ||
     type == 'alarm_request' ||
-    type == 'national_id_reviewed';
+    type == 'national_id_reviewed' ||
+    type == 'app_update';
 
 /// Opens what a notification is about.
 class NotificationRouter {
@@ -114,6 +124,12 @@ class NotificationRouter {
     required String? type,
     required Map<String, dynamic> data,
   }) async {
+    // A new version: Check for updates, which needs no account.
+    if (targetFor(type, null) == NotificationTarget.appUpdate) {
+      if (!nav.mounted) return false;
+      unawaited(showUpdateSheet(nav.context));
+      return true;
+    }
     try {
       final me = await _api.getMe();
       final target = targetFor(type, me);
@@ -166,6 +182,7 @@ class NotificationRouter {
               builder: (_) => VerificationScreen(api: _api),
             ),
           );
+        case NotificationTarget.appUpdate:
         case NotificationTarget.none:
           return false;
       }

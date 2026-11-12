@@ -84,7 +84,7 @@ class MapCoachMarks extends StatelessWidget {
               width: 300,
               title: t('SOS lives here'),
               body: t(
-                'Hold it for three seconds from any screen. A tap does '
+                'Hold it for two seconds from any screen. A tap does '
                 'nothing.',
               ),
               pointsDown: true,

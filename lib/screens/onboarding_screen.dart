@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme.dart';
 import '../widgets/design.dart';
+import 'home_screen.dart' show kSosHold;
 import 'map_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
@@ -43,7 +44,7 @@ abstract final class Tour {
 /// SOS — and through the three ideas that make the rest of the app legible:
 /// who comes, how reports become one Area, and why a neighbour gets asked.
 ///
-/// Every claim here is one the system keeps: the hold really is three seconds,
+/// Every claim here is one the system keeps: the hold really is two seconds,
 /// the photo really is required, 100 m really is the corroboration radius.
 /// The practice step sends nothing, and says so twice.
 class OnboardingScreen extends StatefulWidget {
@@ -426,12 +427,12 @@ class _HoldSos extends StatefulWidget {
 
 class _HoldSosState extends State<_HoldSos>
     with SingleTickerProviderStateMixin {
-  // The demo dial fills over the same three seconds the real one takes, then
+  // The demo dial fills over the same two seconds the real one takes, then
   // rests a moment and repeats — the point of the step is the duration.
   late final AnimationController _hold = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 3000),
-  )..repeat(period: const Duration(milliseconds: 4200));
+    duration: kSosHold,
+  )..repeat(period: kSosHold + const Duration(milliseconds: 1200));
 
   @override
   void dispose() {
@@ -445,7 +446,7 @@ class _HoldSosState extends State<_HoldSos>
       step: widget.step,
       onBack: widget.onBack,
       onSkip: widget.onSkip,
-      title: t('Hold SOS for three seconds'),
+      title: t('Hold SOS for two seconds'),
       body: t(
         'A tap sends nothing. Holding is what starts a report, so it '
         "can't happen by accident in your pocket.",
@@ -1046,11 +1047,11 @@ class _Practice extends StatefulWidget {
 
 class _PracticeState extends State<_Practice>
     with SingleTickerProviderStateMixin {
-  // Three seconds, the same as the real dial (lib/screens/home_screen.dart).
+  // Two seconds, the same as the real dial (kSosHold, home_screen.dart).
   late final AnimationController _hold =
       AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 3000),
+        duration: kSosHold,
       )..addStatusListener((s) {
         if (s == AnimationStatus.completed && !_done) {
           setState(() => _done = true);
@@ -1133,7 +1134,7 @@ class _PracticeState extends State<_Practice>
                     child: Semantics(
                       button: true,
                       label: t(
-                        'Practice SOS dial. Hold for three seconds. '
+                        'Practice SOS dial. Hold for two seconds. '
                         'Nothing is sent.',
                       ),
                       child: AnimatedBuilder(
@@ -1203,7 +1204,7 @@ class _Ready extends StatelessWidget {
   final VoidCallback onDone;
 
   static const List<String> _recap = [
-    'Hold SOS for three seconds',
+    'Hold SOS for two seconds',
     'One photo goes with every report',
     'Answer when a report lands near you',
   ];

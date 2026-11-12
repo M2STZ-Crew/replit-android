@@ -24,7 +24,6 @@ void main() {
     AppUpdates.checkOverride = null;
     AppUpdates.installOverride = null;
     AppUpdates.clientOverride = null;
-    AppUpdates.installedBuildOverride = null;
     AppUpdates.installedVersionOverride = null;
   });
 
@@ -76,7 +75,8 @@ void main() {
         return progress.future;
       };
       await open(tester);
-      expect(find.text('Version 1.12.26 (50) is ready.'), findsOneWidget);
+      // The version alone: no build number shows anywhere (12 Nov 2026).
+      expect(find.text('Version 1.12.26 is ready.'), findsOneWidget);
       expect(find.text('Download: 72 MB. Wi-Fi is best.'), findsOneWidget);
       expect(
         find.text('The splash says "Connecting to RepLiT".'),
@@ -135,7 +135,7 @@ void main() {
       );
       await open(tester);
       expect(
-        find.text('Version 1.12.27 (51) is downloaded and ready to install.'),
+        find.text('Version 1.12.27 is downloaded and ready to install.'),
         findsOneWidget,
       );
       expect(find.textContaining('Wi-Fi'), findsNothing);
@@ -184,14 +184,19 @@ void main() {
     late List<MethodCall> calls;
     late List<Uri> fetched;
 
-    Map<String, Object?> manifest({int build = 50}) => {
-      'version': '1.12.26',
+    Map<String, Object?> manifest({
+      String version = '1.12.26',
+      int build = 50,
+    }) => {
+      'version': version,
       'build': build,
-      'tag': 'android-v1.12.26-$build',
-      'apk': 'RepLiT-1.12.26-$build.apk',
+      'tag': 'android-v$version-$build',
+      'apk': 'RepLiT-$version-$build.apk',
       'size': 6,
       'sha256': sha,
-      'notes': 'Build $build (abc1234)\n\nNew for testers.',
+      'notes':
+          'v$version: the splash says "Connecting to RepLiT"\n\n'
+          "What's new:\n- The splash says what it is doing.",
     };
 
     void serve({
@@ -215,7 +220,7 @@ void main() {
       downloads = Directory.systemTemp.createTempSync('replit_updates_');
       calls = [];
       fetched = [];
-      AppUpdates.installedBuildOverride = 47;
+      AppUpdates.installedVersionOverride = '1.12.25';
       messenger.setMockMethodCallHandler(channel, (call) async {
         calls.add(call);
         return switch (call.method) {
@@ -251,8 +256,8 @@ void main() {
       final found = await AppUpdates.check();
       expect(found, isA<UpdateAvailable>());
       final release = (found as UpdateAvailable).release;
-      expect(release.label, '1.12.26 (50)');
-      expect(release.notes, startsWith('Build 50'));
+      expect(release.label, '1.12.26');
+      expect(release.notes, startsWith('v1.12.26: '));
       expect(
         fetched.single.toString(),
         'https://github.com/M2STZ-Crew/replit-android/releases/latest/'
@@ -265,10 +270,13 @@ void main() {
       );
     });
 
-    test('the same build, or an older one, is up to date', () async {
-      serve(latest: manifest(build: 47));
+    // The version decides, as it is all that shows: a rebuild of the
+    // version installed, with a newer build number, is not "1.12.25 is
+    // ready" on 1.12.25.
+    test('the same version, or an older one, is up to date', () async {
+      serve(latest: manifest(version: '1.12.25', build: 51));
       expect(await AppUpdates.check(), isA<UpToDate>());
-      serve(latest: manifest(build: 46));
+      serve(latest: manifest(version: '1.12.24', build: 46));
       expect(await AppUpdates.check(), isA<UpToDate>());
     });
 
@@ -340,7 +348,7 @@ void main() {
       await AppUpdates.install((_) {});
       expect(downloads.listSync(), hasLength(1));
 
-      AppUpdates.installedBuildOverride = 50;
+      AppUpdates.installedVersionOverride = '1.12.26';
       expect(await AppUpdates.check(), isA<UpToDate>());
       expect(downloads.listSync(), isEmpty);
     });

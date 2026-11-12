@@ -93,7 +93,7 @@ void main() {
       expect(find.text("Hi, I'm Lit."), findsOneWidget);
       await next(tester, 'Show me around');
 
-      expect(find.text('Hold SOS for three seconds'), findsOneWidget);
+      expect(find.text('Hold SOS for two seconds'), findsOneWidget);
       expect(
         find.textContaining('A tap sends nothing'),
         findsOneWidget,
@@ -124,7 +124,7 @@ void main() {
       await next(tester, "I've got it");
 
       expect(find.text("You're ready"), findsOneWidget);
-      expect(find.text('Hold SOS for three seconds'), findsOneWidget);
+      expect(find.text('Hold SOS for two seconds'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await next(tester, 'Open the map');
@@ -147,7 +147,7 @@ void main() {
       findsOneWidget,
     );
 
-    // Hold the dial for its full three seconds.
+    // Hold the dial for its full two seconds.
     final dial = find.text('hold');
     expect(dial, findsOneWidget);
     final gesture = await tester.startGesture(tester.getCenter(dial));

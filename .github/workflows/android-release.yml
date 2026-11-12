@@ -186,9 +186,11 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$GOOGLE_APPLICATION_CREDENTIALS"
           # Written to a file, never interpolated into the command, so a commit
           # message cannot inject shell. The whole message, not only its first
-          # line: a release merge carries what changed, in testers' words. The
-          # co-author trailer is for the history, not for testers.
-          git log -1 --pretty='Build ${{ github.run_number }} (%h)%n%n%B' |
+          # line: a release merge carries what changed, under "What's new:".
+          # The co-author trailer is for the history, not for the notes, and
+          # no build number shows anywhere (12 Nov 2026: "it is just the
+          # version of app will be remain seen in any platforms").
+          git log -1 --pretty='%B' |
             grep -v '^Co-Authored-By:' > "$RUNNER_TEMP/release-notes.txt"
           npx --yes firebase-tools@15.30.0 appdistribution:distribute \
             build/app/outputs/flutter-apk/app-release.apk \
@@ -200,16 +202,22 @@ jobs:
       # newest release's latest.json and downloads the APK beside it, so people
       # without a Firebase tester invitation get updates too. The APK holds no
       # secret: the Mapbox token is a public pk. token, and the Firebase config
-      # is made to ship inside apps. A re-run keeps its run number, so it
-      # replaces the files on its own release rather than failing.
+      # is made to ship inside apps.
+      #
+      # One release per version, named for the version alone (no build
+      # number shows anywhere): a rebuild of a version (a re-run, the Run
+      # workflow button) replaces the files on that version's release rather
+      # than failing. The app offers only a newer version, so a change goes
+      # out to phones with a new version in pubspec.yaml. latest.json keeps
+      # the build number for apps before 1.12.37, which compare it.
       - name: Publish on GitHub Releases, for "Check for updates"
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(sed -nE 's/^version: *([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' pubspec.yaml)
           build="${{ github.run_number }}"
-          tag="android-v$version-$build"
-          apk="RepLiT-$version-$build.apk"
+          tag="android-v$version"
+          apk="RepLiT-$version.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/$apk"
           size=$(stat -c %s "$RUNNER_TEMP/$apk")
           sha256=$(sha256sum "$RUNNER_TEMP/$apk" | cut -d ' ' -f 1)
@@ -227,7 +235,7 @@ jobs:
             gh release create "$tag" "$RUNNER_TEMP/$apk" "$RUNNER_TEMP/latest.json" \
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
-              --title "RepLiT $version ($build)" \
+              --title "RepLiT $version" \
               --notes-file "$RUNNER_TEMP/release-notes.txt" \
               --latest
           fi

@@ -229,10 +229,10 @@ const Map<String, String> kTagalog = {
   'Location off — tap to turn on': 'Naka-off ang location — i-tap para i-on',
   'No signal — reports will wait': 'Walang signal — maghihintay ang mga report',
   'Connected, location on': 'Konektado, naka-on ang location',
-  'SOS. Press and hold for three seconds to start a report.':
-      'SOS. Pindutin nang tatlong segundo para magsimula ng report.',
+  'SOS. Press and hold for two seconds to start a report.':
+      'SOS. Pindutin nang dalawang segundo para magsimula ng report.',
   'SOS': 'SOS',
-  'Hold 3 seconds to send': 'Pindutin nang 3 segundo para i-send',
+  'Hold 2 seconds to send': 'Pindutin nang 2 segundo para i-send',
   'Keep holding': 'Huwag bitawan',
   'Only for real emergencies. Every false alert takes a truck away from someone who needs it.':
       'Para lang sa totoong emergency. Bawat maling alerto ay naglalayo ng trak sa taong talagang nangangailangan.',
@@ -487,7 +487,7 @@ const Map<String, String> kTagalog = {
       'Alitaptap ako. Ipapakita ko sa iyo kung paano mag-report ng emergency dito — mga isang minuto lang.',
   'Show me around': 'Ipakita mo sa akin',
   'Skip for now': 'Laktawan muna',
-  'Hold SOS for three seconds': 'Pindutin nang tatlong segundo ang SOS',
+  'Hold SOS for two seconds': 'Pindutin nang dalawang segundo ang SOS',
   'A tap sends nothing. Holding is what starts a report, so it can\'t happen by accident in your pocket.':
       'Walang naipapadala sa isang tap. Ang matagal na pagpindot ang nagsisimula ng report, kaya hindi ito mangyayari nang hindi sinasadya sa bulsa mo.',
   'Next': 'Susunod',
@@ -510,8 +510,8 @@ const Map<String, String> kTagalog = {
   'Fire reported 180 m from you': 'May sunog na na-report 180 m mula sa iyo',
   'Yes, report it': 'Oo, i-report ito',
   'Practice — nothing is sent': 'Practice — walang ipapadala',
-  'Practice SOS dial. Hold for three seconds. Nothing is sent.':
-      'Practice na SOS. Pindutin nang tatlong segundo. Walang ipapadala.',
+  'Practice SOS dial. Hold for two seconds. Nothing is sent.':
+      'Practice na SOS. Pindutin nang dalawang segundo. Walang ipapadala.',
   'That\'s it. Nothing was sent — this was practice.':
       'Iyon na iyon. Walang naipadala — practice lang ito.',
   'Keep your finger down until the ring closes.':
@@ -724,9 +724,8 @@ const Map<String, String> kTagalog = {
   'Responders are working on it': 'Inaasikaso na ito ng mga responder',
   'Once responders are on scene': 'Kapag nasa lugar na ang mga responder',
   'Track it live': 'Sundan nang live',
+  'New update': 'Bagong update',
   'Something else? Call a hotline': 'May iba pa? Tumawag sa hotline',
-  'ENCRYPTED, SHARED ONLY WITH RESPONDERS':
-      'NAKA-ENCRYPT, SA MGA RESPONDER LANG IBINABAHAGI',
   'Retry': 'Subukan ulit',
   'Sign in again': 'Mag-sign in ulit',
   'Could not load your account.': 'Hindi ma-load ang account mo.',
@@ -867,8 +866,8 @@ const Map<String, String> kTagalog = {
   'Three neighbours reporting the same fire show up here as one incident, not three.':
       'Kapag tatlong kapitbahay ang nag-report ng iisang sunog, lalabas ito rito bilang isang insidente, hindi tatlo.',
   'SOS lives here': 'Nandito ang SOS',
-  'Hold it for three seconds from any screen. A tap does nothing.':
-      'Pindutin ito nang tatlong segundo mula sa kahit anong screen. Walang mangyayari sa isang tap.',
+  'Hold it for two seconds from any screen. A tap does nothing.':
+      'Pindutin ito nang dalawang segundo mula sa kahit anong screen. Walang mangyayari sa isang tap.',
   'Got it': 'Sige',
   'Map tilt {n} degrees. Tap for {next} degrees':
       'Nakatagilid ang mapa nang {n} degrees. I-tap para gawing {next} degrees',
@@ -1099,8 +1098,8 @@ const Map<String, String> kTagalog = {
   'National disaster operations center for typhoons, floods, earthquakes, and large-scale emergencies.':
       'Pambansang sentro ng operasyon sa sakuna para sa bagyo, baha, lindol, at malalaking emergency.',
   'How do I report an emergency?': 'Paano ako magre-report ng emergency?',
-  'On the ALERT tab, press and hold the SOS button for 3 seconds. Take a photo of the scene, choose the responders you need (Fire, Police, Medical, Barangay), add optional notes, then tap REQUEST HELP NOW.':
-      'Pindutin nang 3 segundo ang SOS button. Kunan ng litrato ang lugar, piliin ang mga responder na kailangan mo (Sunog, Pulis, Medikal, Barangay), magdagdag ng notes kung gusto, saka i-tap ang IPADALA ANG REPORT.',
+  'On the ALERT tab, press and hold the SOS button for 2 seconds. Take a photo of the scene, choose the responders you need (Fire, Police, Medical, Barangay), add optional notes, then tap REQUEST HELP NOW.':
+      'Pindutin nang 2 segundo ang SOS button. Kunan ng litrato ang lugar, piliin ang mga responder na kailangan mo (Sunog, Pulis, Medikal, Barangay), magdagdag ng notes kung gusto, saka i-tap ang IPADALA ANG REPORT.',
   'What happens after I report?':
       'Ano ang mangyayari pagkatapos kong mag-report?',
   'Your report is localized into an incident area and sent to command for verification. Tap TRACK RESPONSE LIVE to follow the status — pending, verified, dispatched, en route, arrived, or resolved.':

@@ -1,5 +1,5 @@
 # Build the iPhone app on GitHub's Macs, unsigned, so nobody needs a MacBook.
-# Each tester signs it on Windows with their own free Apple ID (Sideloadly).
+# Each iPhone user signs it on Windows with their own free Apple ID (Sideloadly).
 # One-time setup and the Windows steps: docs/ios-sideload.md
 name: iOS unsigned IPA
 
@@ -72,7 +72,7 @@ jobs:
       - name: Install packages
         run: flutter pub get
 
-      # The Android release's gate too: testers never get a build whose tests fail.
+      # The Android release's gate too: nobody gets a build whose tests fail.
       - name: Analyze
         run: flutter analyze
 
@@ -97,7 +97,7 @@ jobs:
             > env.json
 
       - name: Build the app without signing
-        # Each tester's Sideloadly signs it with their own Apple ID.
+        # Each iPhone user's Sideloadly signs it with their own Apple ID.
         run: >-
           flutter build ios --release --no-codesign
           --dart-define-from-file=env.json
@@ -127,9 +127,10 @@ jobs:
             fi
           done
 
-          # "Replit-1.12.23-57": the version and build number the phone shows.
+          # "Replit-1.12.37": the version alone, as the app shows it (no
+          # build number anywhere since 1.12.37).
           version=$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")
-          name="Replit-$version-${{ github.run_number }}"
+          name="Replit-$version"
           echo "IPA_NAME=$name" >> "$GITHUB_ENV"
 
           # An .ipa is only Payload/Runner.app, zipped.
@@ -149,14 +150,14 @@ jobs:
           command -v 7z >/dev/null || brew install p7zip
           archive="$RUNNER_TEMP/$IPA_NAME.7z"
           7z a -t7z -mx=0 -mhe=on -p"$IPA_ZIP_PASSWORD" "$archive" "$RUNNER_TEMP/$IPA_NAME.ipa" >/dev/null
-          # Testers open it with the same secret, so prove that works first.
+          # iPhone users open it with the same secret, so prove that works first.
           7z t -p"$IPA_ZIP_PASSWORD" "$archive" >/dev/null
           echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v7
         with:
           path: ${{ env.ARCHIVE }}
-          # Uploaded as it is, so testers download the .7z itself, not a zip of it.
+          # Uploaded as it is, so people download the .7z itself, not a zip of it.
           archive: false
           retention-days: 14
           if-no-files-found: error

@@ -72,12 +72,18 @@ void main() {
     Session.instance.email = me;
   });
 
+  /// A phone with room for the ring even in the test font, which draws every
+  /// letter as a square; on a shorter one the ring steps aside, and the
+  /// steps say the same (screen_fit_test.dart measures it in Inter).
+  const roomForTheRing = Size(402, 1400);
+
   Future<void> pump(
     WidgetTester tester,
     ApiClient client, {
     double scale = 1,
+    Size size = const Size(402, 874),
   }) async {
-    tester.view.physicalSize = const Size(402, 874);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -106,11 +112,16 @@ void main() {
 
   for (final scale in <double>[1.0, 1.5]) {
     testWidgets('waiting to be accepted, at ${scale}x', (tester) async {
-      await pump(tester, api(), scale: scale);
+      await pump(tester, api(), scale: scale, size: roomForTheRing);
       expect(tester.takeException(), isNull);
       expect(find.text('GETTING YOU HELP'), findsOneWidget);
       expect(find.text('60%'), findsOneWidget);
-      expect(find.text('CONFIRMING'), findsOneWidget);
+      // The stage goes under the figure when the ring is big enough to hold
+      // it; at 1.5x the larger steps leave it a smaller ring.
+      expect(
+        find.text('CONFIRMING'),
+        scale == 1 ? findsOneWidget : findsNothing,
+      );
       await see(tester, find.text('Waiting to be accepted'));
       expect(find.text('Now'), findsOneWidget);
       await see(tester, find.text('Fire out'));
@@ -130,7 +141,7 @@ void main() {
   });
 
   testWidgets('accepted: responders are on the way', (tester) async {
-    await pump(tester, api(status: 'en_route'));
+    await pump(tester, api(status: 'en_route'), size: roomForTheRing);
     expect(find.text('80%'), findsOneWidget);
     expect(find.text('ON THE WAY'), findsOneWidget);
     await see(tester, find.text('Accepted'));
@@ -138,7 +149,7 @@ void main() {
   });
 
   testWidgets('on scene: fire out is the open step', (tester) async {
-    await pump(tester, api(status: 'arrived'));
+    await pump(tester, api(status: 'arrived'), size: roomForTheRing);
     expect(find.text('ON SCENE'), findsOneWidget);
     await see(tester, find.text('Responders are working on it'));
     expect(find.text('Responders reached the scene'), findsOneWidget);
@@ -222,7 +233,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.text('Matched to Area 1.3'), findsOneWidget);
-    expect(find.text('ON THE WAY'), findsOneWidget);
+    expect(find.text('Responders are on the way'), findsOneWidget);
     expect(
       ActiveReportStore.mine?.areaId,
       'a2',

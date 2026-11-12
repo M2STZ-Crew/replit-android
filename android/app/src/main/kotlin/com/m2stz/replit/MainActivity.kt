@@ -379,6 +379,22 @@ class MainActivity : FlutterActivity() {
             vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
         }
 
+        // v1.12.37: "New Update!" (backend v1.12.29) has a channel of its
+        // own, so it can be quieted apart from the rest: the phone's own tone
+        // for now (no setSound: the default), and vibration. The update's
+        // recording, when it is chosen, gets a new id.
+        val appUpdates = NotificationChannel(
+            "app_updates_v1",
+            "App updates",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "A new version of RepLiT is ready to install."
+
+            enableVibration(true)
+
+            vibrationPattern = longArrayOf(0, 600, 250, 600, 250, 600)
+        }
+
         // Register all existing and new notification channels.
         manager.createNotificationChannels(
             listOf(
@@ -471,7 +487,10 @@ class MainActivity : FlutterActivity() {
 
                 // General notifications: the vibrating one, and the old one.
                 updatesChannel("updates_v2"),
-                updatesChannel("updates")
+                updatesChannel("updates"),
+
+                // A new version of the app.
+                appUpdates
             )
         )
     }

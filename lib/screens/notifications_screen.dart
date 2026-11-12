@@ -165,6 +165,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       AppIcons.badge,
       context.pal.accent,
     ),
+    // "New Update!" (backend v1.12.29): opens Check for updates.
+    'app_update' => (t('New update'), AppIcons.download, context.pal.ok),
     _ => ('Notification', AppIcons.notifications, context.pal.info),
   };
 
