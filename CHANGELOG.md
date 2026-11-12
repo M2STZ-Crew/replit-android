@@ -7,6 +7,35 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.39 — 13 November 2026 — Lit speaks every step; the tutorial on a tablet
+
+Works with backend v1.12.30 as it is. Adds Lit's ten new clips (about
+1.4 MB). No new permission.
+
+### Changes
+
+**The LIT tutorial**
+- **Lit speaks every step**: the recordings of 13 November for tapping
+  SOS, holding it, the photo, checking the location and the report's
+  receipt, in English and Tagalog. No step is captioned only any more.
+- **Step 6 waits for Lit** ("it appears faster so it looks like a bug ...
+  lit needs to stop speaking first and pause for 1sec before you go to step
+  7"): "Practice report received. Nothing was sent." is said to the end,
+  then a second's pause, then step 7. With Lit's voice off, the words stay
+  a moment instead.
+- **On a tablet, the lit control is where it is drawn.** The app is a
+  column in the middle of a tablet's screen, and Lit's ring, with the place
+  a finger reaches through, sat one margin to the right of SOS, over Guides.
+- Lit stops only when the app goes to the background, not for a dialog
+  over it (the camera's permission, asked as the photo step begins).
+
+### Tests
+- `test/lit_tutorial_test.dart`: every step's clip and the receipt's, each
+  its own recording; step 6 timed with Lit talking and with his voice off;
+  a tablet's column, where a tap on Guides waits and SOS is lit.
+
+---
+
 ## v1.12.38 — 12 November 2026 — Lit's practice on the real screens, "New Update!" in its own voice
 
 With backend v1.12.30 (the update push's recordings); against v1.12.29
