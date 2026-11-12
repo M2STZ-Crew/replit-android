@@ -2,7 +2,94 @@
 
 Versions follow `MAJOR.MINOR.PATCH` and match the backend (`replit-backend`):
 MINOR tracks the Master Context generation, so 1.12.x implements Master
-Context v12. The build number after `+` is the CI run number.
+Context v12. The build number after `+` is the CI run number; since 1.12.37
+nothing shows it — the version alone names a release everywhere.
+
+---
+
+## v1.12.37 — 12 November 2026 — Lit's tutorial, National ID as designed, screens that fit
+
+With backend v1.12.29 ("New Update!" and the fire-type rule); against
+v1.12.28 everything works as before there. Bundles the Inter typeface and
+the LIT tutorial's art and voice (about 5 MB). No new permission.
+
+### Changes
+
+**Reporting**
+- **SOS is held for two seconds**, not three ("3-seconds are too long"), on
+  the SOS screen and in the tutorial.
+- **"What are we sending?", "Getting you help" and "Fire out" fit the screen
+  without scrolling**, and the "Encrypted, shared only with responders" line
+  is gone. Their spacing eases from a short phone to a tall one, and the
+  progress ring and the photo take the room that is left; only a very small
+  phone or a very large text size still scrolls, rather than cut anything
+  off.
+
+**The LIT tutorial** (in place of the old tour)
+- Lit leads a practice report one action at a time, in the real report's
+  order: hold SOS, take the photo, check the location, choose who responds,
+  check the details, Submit Practice Report, follow the updates. One control
+  is lit at a time and the lesson waits for it; Continue for the rest.
+- English and Tagalog voice and captions, switchable mid-lesson; mute,
+  replay, Back and Skip; Lit talks only while his voice plays.
+- Nothing in it is real: no report, no upload, no alert, no GPS or camera.
+- Offered once to each resident on the home screen (those who saw the old
+  tour too), never over a report in progress; "Replay the tutorial" in Help.
+- Lessons 02 and 03 are captioned without a voice until their clips are
+  re-recorded (see below).
+
+**National ID and verification** (as the Figma frames draw them)
+- National ID is a guided flow: what it takes, then the camera for the ID's
+  front, its back and your face in turn, Check your photos (retake any one
+  alone), Send for review, and Sent for review with its steps.
+- The camera's guides are the design's: the card's four corners, the face
+  oval, and chips for the three photos.
+- Verify your account lists its channels with their icons, "+N% · status"
+  and Verified; a verified email shows masked.
+
+**Staff**
+- **Only the first fire team says what is burning.** Fire Volunteer or BFP,
+  the first to answer; after that only that team corrects it, and the next
+  teams, police, medical and barangay read it, with the team's name.
+- **Lit's face** in the "Writing the CIAR" circle.
+
+**The app**
+- **"New Update!"**: when a new version is released, a push on a channel of
+  its own ("App updates", the phone's tone for now, and vibration); tapping
+  it opens Check for updates.
+- **The version alone**, everywhere: Profile, Check for updates, the release
+  and its files. Check for updates compares versions.
+- **Inter**, the design's typeface, on every phone.
+- No "tester" wording left.
+
+### Lit's two clips to re-record
+The supplied 02 says "Tap Report Incident" (a report starts by holding SOS)
+and 03 says the location "may be different from where you are" (a report
+carries the phone's own location). Their lessons show these captions until
+new recordings replace them:
+- **02** — "This is the SOS screen: tap SOS at the bottom of any screen to
+  open it. When you need to report a fire, press and hold the SOS button for
+  two seconds. For practice, hold it now." / "Ito ang SOS screen: i-tap ang
+  SOS sa ibaba ng kahit anong screen para mabuksan ito. Kapag may sunog kang
+  ire-report, pindutin nang matagal ang SOS button nang dalawang segundo.
+  Para sa practice, pindutin ito nang matagal ngayon."
+- **03** — "Check your location at the top. Your report carries where your
+  phone is, found on its own, so responders can find you. Tap Continue." /
+  "Tingnan ang lokasyon mo sa itaas. Dala ng report mo kung nasaan ang phone
+  mo, na kusang nahanap, para mahanap ka ng mga responder. I-tap ang
+  Continue."
+
+### Tests
+- `test/screen_fit_test.dart`: the three screens fit phones from 360 × 600
+  to the 402 × 874 frame, measured in Inter.
+- `test/lit_tutorial_test.dart`: every lesson's clip, caption and pose in
+  both languages; the whole practice by its real gestures with nothing real
+  changed; Back, Skip, Finish, replay, mute, a failed clip, the background,
+  a double tap, small screens and large text, reduced motion; offered once
+  per account.
+- `test/national_id_test.dart`: the flow, the guides, the previews.
+- `test/new_update_test.dart`, `test/v1_12_37_test.dart`: "New Update!",
+  the fire-type rule, Lit in the CIAR card.
 
 ---
 

@@ -224,6 +224,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
     final area = _area;
     if (_askedFireType || area == null || !_hasActiveDispatch) return;
     if (!area.asksFireType || !area.onScene || area.fireType != null) return;
+    // Only a fire team answers; a later one finds it answered.
+    if (!area.mayAnswerFireType(StaffAccount.current)) return;
     _askedFireType = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && ModalRoute.of(context)?.isCurrent != false) {
@@ -803,7 +805,11 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             const SizedBox(height: 16),
             FireTypeRow(
               area: area,
-              onPick: _hasActiveDispatch ? _pickFireType : null,
+              onPick:
+                  _hasActiveDispatch &&
+                      area.mayAnswerFireType(StaffAccount.current)
+                  ? _pickFireType
+                  : null,
             ),
           ],
           const SizedBox(height: 16),

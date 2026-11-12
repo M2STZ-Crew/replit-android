@@ -2280,4 +2280,8 @@ const Map<String, String> kTagalog = {
   'Replay the tutorial': 'Ulitin ang tutorial',
   'Practice a report with Lit. Nothing is sent.':
       'Mag-practice ng report kasama si Lit. Walang naipapadala.',
+
+  // v1.12.37: only the first fire team says what is burning.
+  'Waiting for the fire team on scene to say':
+      'Hinihintay ang fire team na nasa lugar na magsabi',
 };

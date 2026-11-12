@@ -14,6 +14,7 @@
 //   of the weight. Scaled, never redrawn or cropped, so every pose keeps the
 //   same canvas, size and foot line.
 // - timing.json comes along with its frame names changed to the copies'.
+// - face.png: Lit's head, cut from the resting frame, for small round places.
 // - The voice clips are copied as they are, except the two whose words do not
 //   match the app (02 "Tap Report Incident" where the app's SOS is held; 03
 //   "may be different from where you are" where a report carries the phone's
@@ -94,6 +95,21 @@ void main(List<String> args) {
   _poses.forEach((from, to) => scale('$poses/$from', to));
   final talking = '${source.path}/POSES/LIT-Talking-Animation';
   _frames.forEach((from, to) => scale('$talking/frames/$from', to));
+
+  // Lit's face, for a small round place (the coordinator's "Writing the
+  // CIAR"): his head and helmet from the resting frame, cut square and drawn
+  // at 192 px, three times the 64 px circle.
+  final resting = img.decodePng(
+    File('$talking/frames/lit_idle_closed.png').readAsBytesSync(),
+  )!;
+  final face = img.copyResize(
+    img.copyCrop(resting, x: 340, y: 90, width: 600, height: 600),
+    width: 192,
+    height: 192,
+    interpolation: img.Interpolation.average,
+  );
+  File('${lit.path}/face.png').writeAsBytesSync(img.encodePng(face, level: 9));
+  stdout.writeln('lit/face.png');
 
   final timing =
       jsonDecode(File('$talking/timing.json').readAsStringSync())

@@ -57,6 +57,24 @@ class AreaView {
   /// and the app does not ask what it could not save.
   bool get asksFireType => raw.containsKey('fire_type');
 
+  /// The team that said what is burning, and its name (backend v1.12.29);
+  /// null before anyone has, or from an older server.
+  String? get fireTypeOrgId => raw['fire_type_org_id'] as String?;
+  String? get fireTypeOrgName => raw['fire_type_org_name'] as String?;
+
+  /// Whether [me] may say, or correct, what is burning (12 November 2026:
+  /// "the first fire organization will fill out so that the second or next
+  /// fire organization arrived will not fill that out"): a fire team only,
+  /// Fire Volunteer or BFP, the first to answer; after that, only that team.
+  /// Police, medical and barangay see the answer.
+  bool mayAnswerFireType(Map<String, dynamic>? me) {
+    const fire = {'fire_volunteer', 'bfp'};
+    if (!fire.contains(me?['agency_type'])) return false;
+    if (fireType == null) return true;
+    final answeredBy = fireTypeOrgId;
+    return answeredBy == null || answeredBy == me?['primary_org_id'];
+  }
+
   /// On scene, or after: when "What's burning?" can be answered.
   bool get onScene =>
       status == 'arrived' ||

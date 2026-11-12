@@ -1068,10 +1068,14 @@ class FireOutSignalCard extends StatelessWidget {
   }
 }
 
-/// The reserved slot for Lit, the mascot (04 · Lit placeholder): its artwork
-/// is "final design TBD", so no character is drawn.
+/// Lit in his slot (04 · Lit placeholder): the dashed coral circle, with his
+/// face in it (12 November 2026: "put the face of lit inside of it"), cut
+/// from the tutorial's art (assets/tutorial/lit/face.png, by
+/// tool/tutorial/import_lit.dart). Still: he is writing, not talking.
 class LitPlaceholder extends StatelessWidget {
   const LitPlaceholder({super.key});
+
+  static const String face = 'assets/tutorial/lit/face.png';
 
   @override
   Widget build(BuildContext context) {
@@ -1082,14 +1086,19 @@ class LitPlaceholder extends StatelessWidget {
         child: Container(
           width: 64,
           height: 64,
+          padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             color: pal.accent.withValues(alpha: 0.16),
             shape: BoxShape.circle,
           ),
-          alignment: Alignment.center,
-          child: Text(
-            t('Lit'),
-            style: context.type.label.copyWith(color: pal.accentInk),
+          child: ClipOval(
+            child: Image.asset(
+              face,
+              key: const ValueKey('lit-face'),
+              fit: BoxFit.cover,
+              // A small circle: no need to decode it any bigger.
+              cacheWidth: 192,
+            ),
           ),
         ),
       ),
