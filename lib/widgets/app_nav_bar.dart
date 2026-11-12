@@ -8,6 +8,8 @@ import '../models/active_report.dart';
 import '../screens/profile_screen.dart';
 import '../screens/report_status_screen.dart';
 import '../theme.dart';
+import '../tutorial/lit_lessons.dart';
+import '../tutorial/practice.dart';
 import 'app_icons.dart';
 import 'design.dart';
 import 'staff_shell.dart' show StaffAccount;
@@ -76,6 +78,7 @@ class NavBarShell extends StatelessWidget {
     required this.onDisc,
     this.discLabel,
     this.discSlot = 2,
+    this.discTarget,
   });
 
   final List<NavBarItem> items;
@@ -92,6 +95,10 @@ class NavBarShell extends StatelessWidget {
   /// Which slot the disc covers.
   final int discSlot;
 
+  /// The name the LIT tutorial lights the disc by ([PracticeTarget]), if
+  /// it does.
+  final String? discTarget;
+
   /// How far the disc rises above the bar. The widget is this much taller
   /// than the visible bar; the strip above is transparent and lets taps
   /// through. Screens that draw under it (a map) set `extendBody`.
@@ -102,6 +109,11 @@ class NavBarShell extends StatelessWidget {
 
   /// The 4 px the design keeps above the tab row.
   static const double _top = 4;
+
+  Widget _discLit(Widget disc) {
+    final id = discTarget;
+    return id == null ? disc : PracticeTarget(id: id, round: true, child: disc);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,11 +164,13 @@ class NavBarShell extends StatelessWidget {
           ),
           Positioned(
             top: 0,
-            child: _Disc(
-              label: disc,
-              semantics: discLabel ?? disc,
-              active: discActive,
-              onTap: onDisc,
+            child: _discLit(
+              _Disc(
+                label: disc,
+                semantics: discLabel ?? disc,
+                active: discActive,
+                onTap: onDisc,
+              ),
             ),
           ),
         ],
@@ -216,11 +230,18 @@ class AppNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // In the LIT tutorial, Back on the map and the SOS screen is the
+    // tutorial's, and SOS is the disc Lit lights first.
+    return PracticeBack(child: _bar(context));
+  }
+
+  Widget _bar(BuildContext context) {
     return NavBarShell(
       disc: 'SOS',
       discLabel: t('SOS — hold to report'),
       discActive: active == AppTab.sos,
       onDisc: () => _go(context, AppTab.sos),
+      discTarget: LitTargets.sosDisc,
       items: [
         for (final tab in AppTab.values)
           (

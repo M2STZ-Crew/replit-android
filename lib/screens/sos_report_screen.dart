@@ -10,6 +10,8 @@ import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
 import '../models/active_report.dart';
 import '../theme.dart';
+import '../tutorial/lit_lessons.dart';
+import '../tutorial/practice.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import '../widgets/staff_shell.dart' show StaffAccount;
@@ -87,6 +89,10 @@ class _SosReportScreenState extends State<SosReportScreen> {
   /// True while a pressed "Send" is still waiting on the GPS fix.
   bool _waitingForFix = false;
 
+  /// Opened in the LIT tutorial's practice report: Send is "Submit
+  /// Practice Report", and sends nothing.
+  final bool _practice = Practice.active;
+
   Position? get _position => _location.position.value;
 
   @override
@@ -94,11 +100,16 @@ class _SosReportScreenState extends State<SosReportScreen> {
     super.initState();
     ReportComposer.enter();
     _location.position.addListener(_rebuild);
+    if (_practice) {
+      Practice.resets.addListener(_resetChoices);
+      Practice.tell(PracticeEvent.reportOpened);
+    }
   }
 
   @override
   void dispose() {
     ReportComposer.leave();
+    Practice.resets.removeListener(_resetChoices);
     _location.position.removeListener(_rebuild);
     _notes.dispose();
     super.dispose();
@@ -106,6 +117,24 @@ class _SosReportScreenState extends State<SosReportScreen> {
 
   void _rebuild() {
     if (mounted) setState(() {});
+  }
+
+  /// The practice's choice of who responds, back to Fire alone.
+  void _resetChoices() {
+    if (!mounted) return;
+    setState(() => _selected.updateAll((key, _) => key == _lockedAgency));
+  }
+
+  /// Submit Practice Report: nothing is sent, kept or timed. "Getting you
+  /// help" opens on the practice report, over this form.
+  void _practiceSend() {
+    final at = _position;
+    Navigator.of(context).push(
+      ReportStatusScreen.practiceRoute(
+        lat: at?.latitude ?? 0,
+        lng: at?.longitude ?? 0,
+      ),
+    );
   }
 
   void _toast(String message) {
@@ -292,7 +321,9 @@ class _SosReportScreenState extends State<SosReportScreen> {
 
   // -------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PracticeBack(child: _page(context));
+
+  Widget _page(BuildContext context) {
     final chosen = _selected.values.where((v) => v).length;
     return Scaffold(
       backgroundColor: context.pal.background,
@@ -323,7 +354,15 @@ class _SosReportScreenState extends State<SosReportScreen> {
                             : () => Navigator.of(context).pop(),
                       ),
                       const SizedBox(width: 16),
-                      Flexible(child: _locationChip()),
+                      Flexible(
+                        child: PracticeTarget(
+                          id: LitTargets.location,
+                          child: PracticeTarget(
+                            id: LitTargets.form,
+                            child: _locationChip(),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: ease(12, 28)),
@@ -342,7 +381,10 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   ],
                   Eyebrow(t('Who should respond'), color: context.pal.muted),
                   const SizedBox(height: 10),
-                  _agencyGrid(roomy),
+                  PracticeTarget(
+                    id: LitTargets.form,
+                    child: _agencyGrid(roomy),
+                  ),
                   SizedBox(height: ease(14, 28)),
                   Row(
                     children: [
@@ -358,7 +400,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   const SizedBox(height: 10),
                 ],
               ),
-              flex: _viewfinder(),
+              flex: PracticeTarget(id: LitTargets.form, child: _viewfinder()),
               bottom: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -402,11 +444,22 @@ class _SosReportScreenState extends State<SosReportScreen> {
                     ),
                     const SizedBox(height: 12),
                   ],
-                  AppButton(
-                    chosen == 0 ? t('Choose who to call') : t('Send report'),
-                    height: 54,
-                    busy: _submitting,
-                    onPressed: _submitting || chosen == 0 ? null : _requestHelp,
+                  PracticeTarget(
+                    id: LitTargets.send,
+                    child: AppButton(
+                      _practice
+                          ? Practice.sendLabel
+                          : chosen == 0
+                          ? t('Choose who to call')
+                          : t('Send report'),
+                      height: 54,
+                      busy: _submitting,
+                      onPressed: _practice
+                          ? _practiceSend
+                          : _submitting || chosen == 0
+                          ? null
+                          : _requestHelp,
+                    ),
                   ),
                 ],
               ),
@@ -474,7 +527,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
     final locked = a.key == _lockedAgency;
     final on = locked || (_selected[a.key] ?? false);
     final shape = BorderRadius.circular(AppRadius.card);
-    return Semantics(
+    final card = Semantics(
       button: !locked,
       checked: on,
       label: locked
@@ -494,7 +547,12 @@ class _SosReportScreenState extends State<SosReportScreen> {
               ? () => _note(
                   t('Fire is always included. Add any other help you need.'),
                 )
-              : () => setState(() => _selected[a.key] = !on),
+              : () {
+                  setState(() => _selected[a.key] = !on);
+                  if (_practice) {
+                    Practice.tell(PracticeEvent.agencyChanged, (a.key, !on));
+                  }
+                },
           child: Container(
             constraints: BoxConstraints(minHeight: 56 + 12 * roomy),
             padding: EdgeInsets.symmetric(
@@ -580,6 +638,10 @@ class _SosReportScreenState extends State<SosReportScreen> {
         ),
       ),
     );
+    // The agency the LIT tutorial's practice chooses.
+    return a.key == LitTargets.medicalAgency
+        ? PracticeTarget(id: LitTargets.medical, child: card)
+        : card;
   }
 
   /// The photo in the frame's viewfinder: coral brackets, the geotag, and a

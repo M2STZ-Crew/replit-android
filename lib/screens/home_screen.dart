@@ -8,6 +8,8 @@ import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
 import '../models/active_report.dart';
 import '../theme.dart';
+import '../tutorial/lit_lessons.dart';
+import '../tutorial/practice.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'camera_capture_screen.dart';
@@ -58,13 +60,21 @@ class _HomeScreenState extends State<HomeScreen>
   /// platform will not say.
   bool? _locationOk;
 
+  /// Opened in the LIT tutorial's practice report: the hold is the real
+  /// one, and opens the real camera, but nothing is timed or redirected.
+  final bool _practice = Practice.active;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ReportQueue.instance.offline.addListener(_rebuild);
     _checkLocation();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkReporting());
+    if (_practice) {
+      Practice.tell(PracticeEvent.sosOpened);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkReporting());
+    }
   }
 
   /// One report at a time: with one already out, the dial is not where the
@@ -132,12 +142,12 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _startHold() {
-    if (ReportStatusScreen.redirectIfReporting(context)) return;
+    if (!_practice && ReportStatusScreen.redirectIfReporting(context)) return;
     HapticFeedback.selectionClick();
     // The two seconds of the hold are free time for the GPS: start the fix
     // now rather than when the camera opens (v10 §6). Without asking for
     // permission — a dialog here would cancel the hold under the thumb.
-    ReportTiming.instance.start('sos');
+    if (!_practice) ReportTiming.instance.start('sos');
     SosLocation.instance.warmUp(requestPermission: false);
     _hold.forward();
   }
@@ -148,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _triggerSos() async {
     HapticFeedback.heavyImpact();
-    ReportTiming.instance.mark('hold_complete');
+    if (!_practice) ReportTiming.instance.mark('hold_complete');
     _hold.reset();
     await Navigator.of(
       context,
@@ -298,17 +308,22 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
               ),
-              SizedBox(
-                width: 230,
-                height: 230,
-                child: AnimatedBuilder(
-                  animation: _hold,
-                  builder: (context, _) => CircularProgressIndicator(
-                    value: _hold.value,
-                    strokeWidth: 3,
-                    strokeCap: StrokeCap.round,
-                    backgroundColor: context.pal.lineStrong,
-                    valueColor: AlwaysStoppedAnimation(context.pal.accent),
+              // The ring is what the LIT tutorial lights to hold.
+              PracticeTarget(
+                id: LitTargets.sosDial,
+                round: true,
+                child: SizedBox(
+                  width: 230,
+                  height: 230,
+                  child: AnimatedBuilder(
+                    animation: _hold,
+                    builder: (context, _) => CircularProgressIndicator(
+                      value: _hold.value,
+                      strokeWidth: 3,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: context.pal.lineStrong,
+                      valueColor: AlwaysStoppedAnimation(context.pal.accent),
+                    ),
                   ),
                 ),
               ),

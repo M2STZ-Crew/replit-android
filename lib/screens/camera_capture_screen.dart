@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart' as geo;
@@ -7,6 +10,8 @@ import '../diagnostics/report_timing.dart';
 import '../location/sos_location.dart';
 import '../models/active_report.dart';
 import '../theme.dart';
+import '../tutorial/lit_lessons.dart';
+import '../tutorial/practice.dart';
 import '../widgets/design.dart';
 import '../widgets/incident_map.dart';
 import '../widgets/loading.dart';
@@ -58,6 +63,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
   Position? get _position => _location.position.value;
 
+  /// Opened in the LIT tutorial's practice report: the real camera, but the
+  /// photo is deleted from the phone as soon as it is read, nothing is
+  /// timed, and a drawing can stand in when the camera will not start.
+  final bool _practice = Practice.active;
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +76,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     _location.position.addListener(_onPosition);
     _location.problem.addListener(_onPosition);
     _initCamera();
+    if (_practice) Practice.tell(PracticeEvent.cameraOpened);
     // Joins the fix the SOS hold started, or starts one (asking for permission
     // here if it was never granted).
     _location.warmUp();
@@ -146,7 +157,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
       await prev?.dispose();
       await controller.initialize();
       _torch = false;
-      ReportTiming.instance.mark('camera_ready');
+      if (!_practice) ReportTiming.instance.mark('camera_ready');
       if (mounted) {
         setState(() {
           _camReady = true;
@@ -209,15 +220,25 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
   // ------------------------------------------------------------ actions ---
   Future<void> _capture() async {
+    if (_capturing) return;
     final c = _controller;
-    if (c == null || !c.value.isInitialized || _capturing) return;
+    if (c == null || !c.value.isInitialized) {
+      // No camera to take it with: in the practice, a drawing will do.
+      if (_practice && _camError != null) await _usePracticePhoto();
+      return;
+    }
     // No waiting on the GPS here any more: the fix finishes while the
     // resident picks who to call, and the send waits for it only if it must.
     setState(() => _capturing = true);
     try {
       final shot = await c.takePicture();
       final bytes = await shot.readAsBytes();
-      ReportTiming.instance.mark('photo_taken');
+      if (_practice) {
+        // A practice photo is never kept: only its bytes, for the screens.
+        unawaited(_discard(shot.path));
+      } else {
+        ReportTiming.instance.mark('photo_taken');
+      }
       if (!mounted) return;
       _goToReport(bytes);
     } catch (_) {
@@ -253,28 +274,55 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     );
   }
 
+  /// The practice photo's file, gone from the phone.
+  static Future<void> _discard(String path) async {
+    try {
+      await File(path).delete();
+    } catch (_) {
+      // Never written, or already gone: nothing is kept either way.
+    }
+  }
+
+  /// The practice report on a phone whose camera will not start: a
+  /// drawing of a scene in place of the photo, taken with the shutter.
+  Future<void> _usePracticePhoto() async {
+    setState(() => _capturing = true);
+    try {
+      final bytes = await Practice.loadSamplePhoto();
+      if (mounted) _goToReport(bytes);
+    } finally {
+      if (mounted) setState(() => _capturing = false);
+    }
+  }
+
   // ------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PracticeBack(child: _page(context));
+
+  Widget _page(BuildContext context) {
     return Scaffold(
       backgroundColor: context.pal.canvas,
       body: Stack(
         fit: StackFit.expand,
         children: [
           _previewLayer(),
-          // Dark gradient for control legibility, top and bottom.
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xB3000000),
-                  Colors.transparent,
-                  Colors.transparent,
-                  Color(0xD9000000),
-                ],
-                stops: [0, 0.22, 0.5, 1],
+          // Dark gradient for control legibility, top and bottom. Only a
+          // shade: it took every touch, so "Retry camera" under it could
+          // not be pressed.
+          const IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xB3000000),
+                    Colors.transparent,
+                    Colors.transparent,
+                    Color(0xD9000000),
+                  ],
+                  stops: [0, 0.22, 0.5, 1],
+                ),
               ),
             ),
           ),
@@ -310,7 +358,13 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
                     ],
                   ),
                 ),
-                const Spacer(),
+                // Without a camera, what went wrong fills the room the
+                // viewfinder had, and scrolls in it: behind the location
+                // card, a large text size hid its button.
+                if (_camError != null)
+                  Expanded(child: _cameraErrorRoom())
+                else
+                  const Spacer(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
                   child: _locationCard(),
@@ -329,7 +383,7 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   Widget _previewLayer() {
     final c = _controller;
     if (_camError != null) {
-      return _cameraError();
+      return ColoredBox(color: context.pal.canvas);
     }
     if (c == null ||
         !_camReady ||
@@ -362,23 +416,35 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     );
   }
 
+  /// The camera's trouble, centred in [_cameraError]'s room, scrolling
+  /// when it is taller.
+  Widget _cameraErrorRoom() => LayoutBuilder(
+    builder: (context, box) => SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: box.maxHeight),
+        child: _cameraError(),
+      ),
+    ),
+  );
+
   Widget _cameraError() {
-    return ColoredBox(
-      color: context.pal.canvas,
-      child: EmptyState(
-        icon: AppIcons.noPhotography,
-        tone: context.pal.live,
-        title: t('Camera unavailable'),
-        body:
-            '$_camError\n\n${t('A live photo of the scene is required to send '
-            'a report — it is what proves where and when this was taken.')}',
-        action: AppButton.secondary(
-          t('Retry camera'),
-          onPressed: () {
-            setState(() => _camError = null);
-            _initCamera();
-          },
-        ),
+    return EmptyState(
+      icon: AppIcons.noPhotography,
+      tone: context.pal.live,
+      title: t('Camera unavailable'),
+      // In the practice, the shutter takes a drawing instead.
+      body: _practice
+          ? '$_camError\n\n${t('For practice, tap the shutter to use a '
+            'drawing instead.')}'
+          : '$_camError\n\n${t('A live photo of the scene is required to '
+            'send a report — it is what proves where and when this was '
+            'taken.')}',
+      action: AppButton.secondary(
+        t('Retry camera'),
+        onPressed: () {
+          setState(() => _camError = null);
+          _initCamera();
+        },
       ),
     );
   }
@@ -486,7 +552,12 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
             _toggleFlash,
             active: _torch,
           ),
-          _shutter(),
+          // What the LIT tutorial lights for its photo.
+          PracticeTarget(
+            id: LitTargets.shutter,
+            round: true,
+            child: _shutter(),
+          ),
           _circleButton(
             AppIcons.cameraswitch,
             _cameras.length < 2 ? null : _flip,

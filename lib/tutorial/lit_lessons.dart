@@ -1,6 +1,6 @@
-/// The LIT tutorial's lessons: what each one teaches, the clip Lit says it
-/// with in each language, its caption, and the pose Lit holds once the clip
-/// is over.
+/// The LIT tutorial's lessons: what each one teaches, the real control it
+/// lights, the clip Lit says it with in each language, its caption, and the
+/// pose Lit holds once the clip is over.
 ///
 /// Lessons are named by a stable id ("01".."08"), never by their place on
 /// screen or their title: a clip stays with its lesson whatever the order.
@@ -8,7 +8,8 @@
 /// tool/tutorial/import_lit.dart.
 library;
 
-/// The tutorial's two languages: narration and captions switch together.
+/// The tutorial's two languages, the app's own: chosen once, on the first
+/// screen, for Lit's voice, his captions and the app together.
 enum LitLanguage {
   en('English'),
   tl('Tagalog');
@@ -42,10 +43,13 @@ enum LitAction {
   /// Start Tutorial (the welcome).
   start,
 
-  /// Hold the practice SOS button for its two seconds.
+  /// Tap SOS in the bar at the bottom of the map.
+  tapSos,
+
+  /// Hold the SOS button for its two seconds.
   holdSos,
 
-  /// Take the practice photo.
+  /// Take the photo.
   shutter,
 
   /// Tap the highlighted agency.
@@ -61,7 +65,24 @@ enum LitAction {
   finish,
 }
 
-/// One lesson (or a part of one: the photo is the second half of 02).
+/// The real controls a lesson lights, by the name their screens give them
+/// ([PracticeTarget], lib/tutorial/practice.dart).
+abstract final class LitTargets {
+  static const String sosDisc = 'sos_disc';
+  static const String sosDial = 'sos_dial';
+  static const String shutter = 'shutter';
+  static const String location = 'location_chip';
+  static const String medical = 'agency_medical';
+  static const String form = 'report_form';
+  static const String send = 'send_button';
+  static const String updates = 'status_steps';
+
+  /// The agency [medical] lights: the one the practice chooses.
+  static const String medicalAgency = 'medical';
+}
+
+/// One lesson (or a part of one: 02 is tapping SOS, holding it, and the
+/// photo).
 class LitLesson {
   const LitLesson({
     required this.id,
@@ -70,6 +91,7 @@ class LitLesson {
     required this.pose,
     required this.captionEn,
     required this.captionTl,
+    this.target,
     this.clip,
     this.part = false,
   });
@@ -85,14 +107,17 @@ class LitLesson {
   final String name;
   final LitAction action;
 
+  /// The real control it lights ([LitTargets]), if it has one.
+  final String? target;
+
   /// Lit's pose once the clip is over (or at once, without one). A pointing
-  /// lesson turns this to the side its target is on.
+  /// lesson turns this to the side its control is on.
   final LitPose pose;
 
   final String captionEn;
   final String captionTl;
 
-  /// The second part of a lesson, sharing its number (the photo, in 02).
+  /// A later part of a lesson, sharing its number.
   final bool part;
 
   String caption(LitLanguage language) =>
@@ -101,10 +126,21 @@ class LitLesson {
   /// The clip for [language], or null when this lesson has none.
   String? clipAsset(LitLanguage language) =>
       clip == null ? null : 'tutorial/voice/${language.name}/$clip.mp3';
+
+  /// Whether the lesson waits for a touch on its real control (the rest
+  /// are read, then Continue).
+  bool get touches => const {
+    LitAction.tapSos,
+    LitAction.holdSos,
+    LitAction.shutter,
+    LitAction.chooseAgency,
+    LitAction.submit,
+  }.contains(action);
 }
 
-/// The lessons, in the order the real report goes: SOS held, the photo, the
-/// location, who should respond, the details, send, the updates.
+/// The lessons, in the order a real report goes, on the real screens: SOS on
+/// the map, the hold, the photo, the location, who should respond, the
+/// details, send, the updates.
 ///
 /// The captions are the supplied scripts, except where a clip is left out.
 const List<LitLesson> kLitLessons = [
@@ -124,36 +160,51 @@ const List<LitLesson> kLitLessons = [
   ),
   LitLesson(
     id: '02',
-    name: 'start_report',
-    action: LitAction.holdSos,
-    pose: LitPose.pointUpperLeft,
+    name: 'tap_sos',
+    action: LitAction.tapSos,
+    target: LitTargets.sosDisc,
+    pose: LitPose.present,
     captionEn:
-        'This is the SOS screen: tap SOS at the bottom of any screen to open '
-        'it. When you need to report a fire, press and hold the SOS button '
-        'for two seconds. For practice, hold it now.',
+        'This is your home screen. When you need to report a fire, tap SOS '
+        'at the bottom.',
     captionTl:
-        'Ito ang SOS screen: i-tap ang SOS sa ibaba ng kahit anong screen '
-        'para mabuksan ito. Kapag may sunog kang ire-report, pindutin nang '
-        'matagal ang SOS button nang dalawang segundo. Para sa practice, '
-        'pindutin ito nang matagal ngayon.',
+        'Ito ang home screen mo. Kapag may sunog kang ire-report, i-tap ang '
+        'SOS sa ibaba.',
+  ),
+  LitLesson(
+    id: '02',
+    name: 'hold_sos',
+    part: true,
+    action: LitAction.holdSos,
+    target: LitTargets.sosDial,
+    pose: LitPose.present,
+    captionEn:
+        'This is the SOS screen. Press and hold the SOS button for two '
+        'seconds. For practice, hold it now.',
+    captionTl:
+        'Ito ang SOS screen. Pindutin nang matagal ang SOS button nang '
+        'dalawang segundo. Para sa practice, pindutin ito nang matagal '
+        'ngayon.',
   ),
   LitLesson(
     id: '02',
     name: 'photo',
     part: true,
     action: LitAction.shutter,
-    pose: LitPose.pointUpperLeft,
+    target: LitTargets.shutter,
+    pose: LitPose.present,
     captionEn:
-        'RepLiT asks for one photo of the scene. Tap the shutter to take a '
-        'practice photo.',
+        'RepLiT asks for one photo of the scene. For practice, take a photo '
+        'of anything around you. It is never sent.',
     captionTl:
-        'Isang litrato ng lugar ang hinihingi ng RepLiT. I-tap ang shutter '
-        'para kumuha ng practice na litrato.',
+        'Isang litrato ng lugar ang hinihingi ng RepLiT. Para sa practice, '
+        'kunan ng litrato ang kahit ano sa paligid mo. Hindi ito ipapadala.',
   ),
   LitLesson(
     id: '03',
     name: 'check_location',
     action: LitAction.read,
+    target: LitTargets.location,
     pose: LitPose.pointUpperLeft,
     captionEn:
         'Check your location at the top. Your report carries where your '
@@ -169,8 +220,7 @@ const List<LitLesson> kLitLessons = [
     name: 'select_organization',
     clip: '04_select_organization',
     action: LitAction.chooseAgency,
-    // Medical is in the right-hand column: Lit stands left and points up
-    // to the right.
+    target: LitTargets.medical,
     pose: LitPose.pointUpperRight,
     captionEn:
         'Next, choose the organization that will receive your report. For '
@@ -184,6 +234,7 @@ const List<LitLesson> kLitLessons = [
     name: 'review_details',
     clip: '05_review_details',
     action: LitAction.read,
+    target: LitTargets.form,
     pose: LitPose.review,
     captionEn:
         'Our sample report is ready. Check the location, selected '
@@ -199,7 +250,8 @@ const List<LitLesson> kLitLessons = [
     name: 'practice_submit',
     clip: '06_practice_submit',
     action: LitAction.submit,
-    pose: LitPose.pointUpperLeft,
+    target: LitTargets.send,
+    pose: LitPose.present,
     captionEn:
         'Now, tap Submit Practice Report. Remember, this is a demo. No real '
         'alert will be sent.',
@@ -212,6 +264,7 @@ const List<LitLesson> kLitLessons = [
     name: 'follow_updates',
     clip: '07_follow_updates',
     action: LitAction.read,
+    target: LitTargets.updates,
     pose: LitPose.present,
     captionEn:
         'Here, you can follow status updates. Reported means your report was '
@@ -237,7 +290,7 @@ const List<LitLesson> kLitLessons = [
   ),
 ];
 
-/// How many lessons there are, for "2 of 8": the photo is part of 02.
+/// How many lessons there are, for "2 of 8": 02 has three parts.
 final int kLitLessonCount = kLitLessons.where((l) => !l.part).length;
 
 /// The supplied clips left out, and why: each says what the app does not.
@@ -245,7 +298,7 @@ final int kLitLessonCount = kLitLessons.where((l) => !l.part).length;
 const Map<String, String> kMissingClips = {
   '02':
       'The clip says "Tap Report Incident". RepLiT has no such button: a '
-      'report starts by holding SOS for two seconds.',
+      'report starts with SOS, tapped on the map and held for two seconds.',
   '03':
       'The clip says the location "may be different from where you are". A '
       "report carries the phone's own location; there is no other to set.",

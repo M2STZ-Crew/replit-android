@@ -2284,4 +2284,23 @@ const Map<String, String> kTagalog = {
   // v1.12.37: only the first fire team says what is burning.
   'Waiting for the fire team on scene to say':
       'Hinihintay ang fire team na nasa lugar na magsabi',
+
+  // v1.12.38: the LIT tutorial's practice report, on the real screens.
+  'For practice, tap the shutter to use a drawing instead.':
+      'Para sa practice, i-tap ang shutter para gumamit ng drawing.',
+  'Practice area': 'Practice na lugar',
+  'Practice report': 'Practice na report',
+  'Practice done. A real report ends here, when responders say the fire is out.':
+      'Tapos na ang practice. Dito nagtatapos ang totoong report, kapag '
+      'sinabi ng responders na patay na ang sunog.',
+  'A practice: nothing was sent. This is how a real report moves until the fire is out.':
+      'Practice lang ito: walang naipadala. Ganito umuusad ang totoong '
+      'report hanggang mapatay ang sunog.',
+  'Nothing was sent or stored': 'Walang naipadala o naitago',
+  'In a real report, neighbours within 100 m are alerted too':
+      'Sa totoong report, inaalertuhan din ang mga kapitbahay sa loob ng '
+      '100 m',
+  'You have a report in progress. Replay the tutorial once it is done.':
+      'May report kang kasalukuyang inaasikaso. Ulitin ang tutorial kapag '
+      'tapos na ito.',
 };

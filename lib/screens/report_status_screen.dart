@@ -8,6 +8,8 @@ import '../api/report_queue.dart';
 import '../models/active_report.dart';
 import '../models/resident_status.dart';
 import '../theme.dart';
+import '../tutorial/lit_lessons.dart';
+import '../tutorial/practice.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'live_update_screen.dart';
@@ -46,6 +48,7 @@ class ReportStatusScreen extends StatefulWidget {
     this.selectedAgencies = const [],
     this.status,
     this.api,
+    this.practice = false,
   });
 
   /// The screen for a report in progress.
@@ -83,6 +86,11 @@ class ReportStatusScreen extends StatefulWidget {
   final String? status;
   final ApiClient? api;
 
+  /// The LIT tutorial's practice report: nothing was sent, so nothing is
+  /// read or followed. Its stages play by themselves, a few seconds apart,
+  /// and nothing on it leads anywhere real.
+  final bool practice;
+
   static int _showing = 0;
 
   /// A status heard elsewhere (Track It Live) for the screen on the stack.
@@ -101,6 +109,20 @@ class ReportStatusScreen extends StatefulWidget {
   }) => MaterialPageRoute(
     settings: const RouteSettings(name: routeName),
     builder: (_) => ReportStatusScreen.of(report, status: status, api: api),
+  );
+
+  /// "Getting you help" for the LIT tutorial's practice report.
+  static MaterialPageRoute<void> practiceRoute({
+    required double lat,
+    required double lng,
+  }) => MaterialPageRoute(
+    builder: (_) => ReportStatusScreen(
+      designation: t('Practice area'),
+      lat: lat,
+      lng: lng,
+      submittedAt: DateTime.now(),
+      practice: true,
+    ),
   );
 
   /// The report is over — the fire is out, or it was not confirmed — while
@@ -199,6 +221,10 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.practice) {
+      _playPractice();
+      return;
+    }
     ReportStatusScreen._showing++;
     WidgetsBinding.instance.addObserver(this);
     ReportStatusScreen._heard.addListener(_onHeard);
@@ -212,11 +238,40 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
 
   @override
   void dispose() {
-    ReportStatusScreen._showing--;
-    WidgetsBinding.instance.removeObserver(this);
-    ReportStatusScreen._heard.removeListener(_onHeard);
     _poll?.cancel();
+    if (!widget.practice) {
+      ReportStatusScreen._showing--;
+      WidgetsBinding.instance.removeObserver(this);
+      ReportStatusScreen._heard.removeListener(_onHeard);
+    }
     super.dispose();
+  }
+
+  /// The practice report's stages, one every [_practiceBeat] (12 November
+  /// 2026, answered: "play the stages"): waiting to be accepted, on the
+  /// way, on scene, fire out.
+  static const List<String> _practiceStages = [
+    'reported',
+    'en_route',
+    'arrived',
+    'fire_out',
+  ];
+  static const Duration _practiceBeat = Duration(seconds: 3);
+
+  void _playPractice() {
+    var at = 0;
+    _area = {
+      'status': _practiceStages[at],
+      'report_count': 1,
+      'designation': widget.designation,
+    };
+    _poll = Timer.periodic(_practiceBeat, (timer) {
+      if (!mounted) return;
+      at++;
+      setState(() => _area = {...?_area, 'status': _practiceStages[at]});
+      if (at == _practiceStages.length - 1) timer.cancel();
+    });
+    Practice.tell(PracticeEvent.statusOpened);
   }
 
   /// Track It Live saw the report finish: show it now, not on the next read.
@@ -336,7 +391,9 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
   void _callHotline() => AppNavBar.switchTo(context, AppTab.hotlines);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PracticeBack(child: _page(context));
+
+  Widget _page(BuildContext context) {
     final designation =
         (_area?['designation'] as String?) ?? widget.designation;
     final reports = _reports;
@@ -355,7 +412,9 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
       _ => ('Confirming', 0.6),
     };
 
-    final (String eyebrow, Color eyebrowTone) = _fireOut
+    final (String eyebrow, Color eyebrowTone) = widget.practice
+        ? (t('Practice report'), context.pal.warn)
+        : _fireOut
         ? (t('Report done'), context.pal.ok)
         : _refused
         ? (t('Report closed'), context.pal.muted)
@@ -367,7 +426,17 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
         ? t('NOT CONFIRMED')
         : t('GETTING YOU HELP');
 
-    final lead = _fireOut
+    final lead = widget.practice
+        ? _fireOut
+              ? t(
+                  'Practice done. A real report ends here, when responders '
+                  'say the fire is out.',
+                )
+              : t(
+                  'A practice: nothing was sent. This is how a real report '
+                  'moves until the fire is out.',
+                )
+        : _fireOut
         ? t(
             'Responders have put the fire out. Thank you for reporting — your '
             'report is done.',
@@ -426,99 +495,112 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                 ],
               ),
               flex: _ringSlot(fraction, phase),
-              bottom: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _StepRow(
-                    state: _Step.done,
-                    title: t('Report received'),
-                    line: t('Photo and GPS stored'),
-                    roomy: roomy,
-                  ),
-                  stepGap,
-                  _StepRow(
-                    state: _Step.done,
-                    title: reports == 1
-                        ? '$designation opened'
-                        : 'Matched to $designation',
-                    line: matchLine,
-                    roomy: roomy,
-                  ),
-                  stepGap,
-                  _StepRow(
-                    state: _Step.done,
-                    title: t('Responders notified'),
-                    line: t('Neighbours within 100 m were alerted too'),
-                    roomy: roomy,
-                  ),
-                  stepGap,
-                  _StepRow(
-                    state: _refused || _accepted ? _Step.done : _Step.now,
-                    title: _refused
-                        ? t('Not confirmed')
-                        : _accepted
-                        ? t('Accepted')
-                        : t('Waiting to be accepted'),
-                    line: _refused
-                        ? t('Closed by a coordinator')
-                        : _onScene
-                        ? t('Responders reached the scene')
-                        : _accepted
-                        ? t('Responders are on the way')
-                        : _areaId == null
-                        ? t('Open it from Your reports to follow it')
-                        : t('Now'),
-                    refused: _refused,
-                    roomy: roomy,
-                  ),
-                  if (!_refused) ...[
-                    stepGap,
+              bottom: PracticeTarget(
+                id: LitTargets.updates,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     _StepRow(
-                      state: _fireOut
-                          ? _Step.done
-                          : _onScene
-                          ? _Step.now
-                          : _Step.later,
-                      title: t('Fire out'),
-                      line: _fireOut
-                          ? t('Your report is done')
-                          : _onScene
-                          ? t('Responders are working on it')
-                          : t('Once responders are on scene'),
+                      state: _Step.done,
+                      title: t('Report received'),
+                      line: widget.practice
+                          ? t('Nothing was sent or stored')
+                          : t('Photo and GPS stored'),
                       roomy: roomy,
                     ),
-                  ],
-                ],
-              ),
-              footer: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_over)
-                    AppButton(t('Done'), height: 54, onPressed: _done)
-                  else ...[
-                    if (_areaId != null)
-                      AppButton(
-                        t('Track it live'),
-                        height: 54,
-                        onPressed: _follow,
-                      ),
-                    TextButton(
-                      onPressed: _callHotline,
-                      style: TextButton.styleFrom(
-                        foregroundColor: context.pal.label,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: Text(
-                        t('Something else? Call a hotline'),
-                        style: context.type.label.copyWith(
-                          color: context.pal.label,
-                        ),
-                      ),
+                    stepGap,
+                    _StepRow(
+                      state: _Step.done,
+                      title: reports == 1
+                          ? '$designation opened'
+                          : 'Matched to $designation',
+                      line: matchLine,
+                      roomy: roomy,
                     ),
+                    stepGap,
+                    _StepRow(
+                      state: _Step.done,
+                      title: t('Responders notified'),
+                      line: widget.practice
+                          ? t(
+                              'In a real report, neighbours within 100 m are '
+                              'alerted too',
+                            )
+                          : t('Neighbours within 100 m were alerted too'),
+                      roomy: roomy,
+                    ),
+                    stepGap,
+                    _StepRow(
+                      state: _refused || _accepted ? _Step.done : _Step.now,
+                      title: _refused
+                          ? t('Not confirmed')
+                          : _accepted
+                          ? t('Accepted')
+                          : t('Waiting to be accepted'),
+                      line: _refused
+                          ? t('Closed by a coordinator')
+                          : _onScene
+                          ? t('Responders reached the scene')
+                          : _accepted
+                          ? t('Responders are on the way')
+                          : _areaId == null && !widget.practice
+                          ? t('Open it from Your reports to follow it')
+                          : t('Now'),
+                      refused: _refused,
+                      roomy: roomy,
+                    ),
+                    if (!_refused) ...[
+                      stepGap,
+                      _StepRow(
+                        state: _fireOut
+                            ? _Step.done
+                            : _onScene
+                            ? _Step.now
+                            : _Step.later,
+                        title: t('Fire out'),
+                        line: _fireOut
+                            ? t('Your report is done')
+                            : _onScene
+                            ? t('Responders are working on it')
+                            : t('Once responders are on scene'),
+                        roomy: roomy,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
+              // Nothing to follow or call from a practice.
+              footer: widget.practice
+                  ? const SizedBox.shrink()
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_over)
+                          AppButton(t('Done'), height: 54, onPressed: _done)
+                        else ...[
+                          if (_areaId != null)
+                            AppButton(
+                              t('Track it live'),
+                              height: 54,
+                              onPressed: _follow,
+                            ),
+                          TextButton(
+                            onPressed: _callHotline,
+                            style: TextButton.styleFrom(
+                              foregroundColor: context.pal.label,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              t('Something else? Call a hotline'),
+                              style: context.type.label.copyWith(
+                                color: context.pal.label,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
             );
           },
         ),

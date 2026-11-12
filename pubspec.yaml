@@ -103,6 +103,9 @@ flutter:
     - assets/tutorial/lit/
     - assets/tutorial/voice/en/
     - assets/tutorial/voice/tl/
+    # The practice photo for a phone whose camera will not start, drawn by
+    # tool/tutorial/render_practice_photo_test.dart.
+    - assets/tutorial/practice_photo.png
 
   # The design's one icon family (Material Symbols Rounded, Fill 1), cut down
   # to the icons the app uses. Built by tool/symbols/build_font.py; drawn
