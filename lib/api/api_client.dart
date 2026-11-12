@@ -33,6 +33,12 @@ class ApiException implements Exception {
 /// "the network is down" and react differently. A retry cannot fix this one —
 /// only signing in can — so anything that catches it should send the user to
 /// the login screen rather than offering a button that will fail again.
+/// The account's organisation is suspended or revoked (backend v1.12.28):
+/// say so where the account would have loaded, not "could not load".
+bool frozenOrganization(Object e) =>
+    e is ApiException &&
+    (e.code == 'organization_suspended' || e.code == 'organization_revoked');
+
 class SessionExpiredException extends ApiException {
   SessionExpiredException()
     : super(401, t('Your session has ended. Please sign in again.'));
@@ -1399,6 +1405,16 @@ class ApiClient {
         ),
         // 18 and over (v1.12.27, app/services/age.py).
         'underage' => t('You must be 18 or older to use RepLiT.'),
+        // An organisation the central hub suspended or revoked (backend
+        // v1.12.28): nobody of it signs in until it is restored.
+        'organization_suspended' => t(
+          "Your organization's RepLiT access is suspended. Ask the central "
+          'hub (Barangay 76) why, and when it will be restored.',
+        ),
+        'organization_revoked' => t(
+          'Your organization has been removed from RepLiT. Ask the central '
+          'hub (Barangay 76) if you think this is a mistake.',
+        ),
         _ =>
           (body['message'] as String?) ??
               'Request failed (${resp.statusCode}).',
