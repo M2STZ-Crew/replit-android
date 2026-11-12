@@ -12,7 +12,6 @@ import '../updates/update_nudge.dart';
 import '../widgets/launch_mark.dart';
 import 'call_screen.dart';
 import 'login_screen.dart';
-import 'onboarding_screen.dart';
 import 'role_gate.dart';
 
 /// "01 Splash" (the Figma archive's 01 — Existing Design Archive), in two
@@ -116,9 +115,6 @@ class _SplashScreenState extends State<SplashScreen>
       final me = await _api.getMe().timeout(ApiClient.signInTimeout);
       // The account's language, as the console or another phone left it.
       await LanguageChoice.adopt(me['language']);
-      // A resident's home is the tour the first time, the map after: read
-      // which now, so the first frame after the splash is the right one.
-      await Tour.seen();
       next = RoleGate(initialMe: me);
     } on SessionExpiredException {
       // The stored session was too old to renew and the client has cleared

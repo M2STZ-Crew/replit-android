@@ -17,14 +17,12 @@ import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import '../widgets/drag_down_sheet.dart';
-import '../widgets/map_coach_marks.dart';
 import '../widgets/map_glass.dart';
 import '../widgets/map_layers.dart';
 import '../widgets/map_marker.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
 import '../widgets/you_are_here.dart';
-import 'onboarding_screen.dart' show Tour;
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../updates/update_banner.dart';
@@ -193,21 +191,6 @@ class _MapScreenState extends State<MapScreen> {
   Timer? _poll;
   bool _loading = true;
 
-  /// The map's one pass of coach marks (ONBOARDING T8), shown once.
-  bool _coachMarks = false;
-
-  /// What the coach marks point at, read from the last layout: an Area
-  /// marker in the open map, and where the areas sheet begins.
-  Offset? _coachArea;
-  double? _coachSheetTop;
-
-  /// The map has laid out once, so its camera can place a point on screen.
-  bool _mapReady = false;
-
-  final GlobalKey _stackKey = GlobalKey();
-  final GlobalKey _controlsKey = GlobalKey();
-  final GlobalKey _sheetKey = GlobalKey();
-
   /// The last /areas call could not reach the server.
   bool _offline = false;
   bool _retrying = false;
@@ -255,11 +238,6 @@ class _MapScreenState extends State<MapScreen> {
     _live.start();
     _bootstrap();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _pollTick());
-    unawaited(
-      Tour.coachMarksSeen().then((seen) {
-        if (mounted && !seen) setState(() => _coachMarks = true);
-      }),
-    );
   }
 
   @override
@@ -672,52 +650,6 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  // -------------------------------------------------------- coach marks ---
-  /// Finds what the coach marks ring: the nearest Area whose marker is in
-  /// the open map, between the top controls and the sheet, clear of both by
-  /// the ring's radius. Reads the last layout, so it runs after a frame.
-  void _placeCoachMarks() {
-    if (!mounted || !_coachMarks || !_mapReady) return;
-    final stack = _stackKey.currentContext?.findRenderObject();
-    final controls = _controlsKey.currentContext?.findRenderObject();
-    final sheet = _sheetKey.currentContext?.findRenderObject();
-    if (stack is! RenderBox || controls is! RenderBox || sheet is! RenderBox) {
-      return;
-    }
-    if (!stack.hasSize || !controls.hasSize || !sheet.hasSize) return;
-
-    final sheetTop = sheet.localToGlobal(Offset.zero, ancestor: stack).dy;
-    final openTop = controls
-        .localToGlobal(Offset(0, controls.size.height), ancestor: stack)
-        .dy;
-    const reach = 48.0; // the ring's radius
-    Offset? area;
-    if (_on.contains('incidents')) {
-      final camera = _map.camera;
-      for (final a in [for (final e in _nearbyAreas()) e.area, ..._areas]) {
-        final p = camera.latLngToScreenOffset(
-          LatLng(
-            (a['centroid_lat'] as num).toDouble(),
-            (a['centroid_lng'] as num).toDouble(),
-          ),
-        );
-        if (p.dx >= reach &&
-            p.dx <= stack.size.width - reach &&
-            p.dy >= openTop + reach &&
-            p.dy <= sheetTop - reach) {
-          area = p;
-          break;
-        }
-      }
-    }
-    if (area != _coachArea || sheetTop != _coachSheetTop) {
-      setState(() {
-        _coachArea = area;
-        _coachSheetTop = sheetTop;
-      });
-    }
-  }
-
   // -------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
@@ -732,13 +664,7 @@ class _MapScreenState extends State<MapScreen> {
           // read here, below the Scaffold, not from the State's context.
           builder: (context) {
             final clearance = MediaQuery.paddingOf(context).bottom;
-            if (_coachMarks) {
-              WidgetsBinding.instance.addPostFrameCallback(
-                (_) => _placeCoachMarks(),
-              );
-            }
             return Stack(
-              key: _stackKey,
               children: [
                 Positioned.fill(child: _mapLayer()),
                 const Positioned.fill(child: IgnorePointer(child: _Vignette())),
@@ -746,28 +672,9 @@ class _MapScreenState extends State<MapScreen> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: KeyedSubtree(key: _sheetKey, child: _sheet(clearance)),
+                  child: _sheet(clearance),
                 ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: KeyedSubtree(key: _controlsKey, child: _topControls()),
-                ),
-                if (_coachMarks)
-                  Positioned.fill(
-                    child: MapCoachMarks(
-                      // The disc rises half its height above the bar, so its
-                      // centre sits on the bar's top edge.
-                      sosLift: clearance - AppNavBar.overhang,
-                      area: _coachArea,
-                      sheetTop: _coachSheetTop,
-                      onDismiss: () {
-                        setState(() => _coachMarks = false);
-                        unawaited(Tour.markCoachMarksSeen());
-                      },
-                    ),
-                  ),
+                Positioned(top: 0, left: 0, right: 0, child: _topControls()),
                 if (_loading)
                   const Positioned(
                     top: 0,
@@ -800,12 +707,6 @@ class _MapScreenState extends State<MapScreen> {
         backgroundColor: context.pal.background,
         interactionOptions: kMapGestures,
         onMapEvent: _follow.onMapEvent,
-        onMapReady: () {
-          _mapReady = true;
-          _placeCoachMarks();
-        },
-        // The map recentres on the fix after the marks are up; follow it.
-        onPositionChanged: (_, _) => _placeCoachMarks(),
       ),
       children: [
         MapTiles.layer(light: context.pal.isLight),

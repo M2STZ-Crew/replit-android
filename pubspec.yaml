@@ -97,6 +97,12 @@ flutter:
     # The alert and incident-stage recordings an open app plays (SoundCues);
     # android/app/src/main/res/raw holds the same files for a closed one.
     - assets/sounds/
+    # The LIT tutorial (lib/tutorial): Lit's poses and talking frames, and
+    # the supplied English and Tagalog narration, brought in by
+    # tool/tutorial/import_lit.dart.
+    - assets/tutorial/lit/
+    - assets/tutorial/voice/en/
+    - assets/tutorial/voice/tl/
 
   # The design's one icon family (Material Symbols Rounded, Fill 1), cut down
   # to the icons the app uses. Built by tool/symbols/build_font.py; drawn

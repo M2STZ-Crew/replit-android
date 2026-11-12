@@ -1,0 +1,163 @@
+{
+  "frame_width": 1254,
+  "frame_height": 1254,
+  "animation_width": 512,
+  "animation_height": 512,
+  "duration_ms": 3570,
+  "loop_forever": true,
+  "audio": false,
+  "description": "Reusable speaking loop with one blink; not aligned to a specific voice recording.",
+  "idle_frame": "talk_idle_closed.png",
+  "sequence": [
+    {
+      "file": "talk_idle_closed.png",
+      "start_ms": 0,
+      "duration_ms": 180
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 180,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_wide.png",
+      "start_ms": 300,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 400,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_o.png",
+      "start_ms": 520,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 640,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_idle_closed.png",
+      "start_ms": 740,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 840,
+      "duration_ms": 110
+    },
+    {
+      "file": "talk_wide.png",
+      "start_ms": 950,
+      "duration_ms": 130
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 1080,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_idle_closed.png",
+      "start_ms": 1180,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_blink.png",
+      "start_ms": 1300,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_idle_closed.png",
+      "start_ms": 1400,
+      "duration_ms": 80
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 1480,
+      "duration_ms": 130
+    },
+    {
+      "file": "talk_o.png",
+      "start_ms": 1610,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 1730,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_wide.png",
+      "start_ms": 1830,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 1950,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_idle_closed.png",
+      "start_ms": 2050,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 2150,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_wide.png",
+      "start_ms": 2270,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_o.png",
+      "start_ms": 2390,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 2490,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_idle_closed.png",
+      "start_ms": 2610,
+      "duration_ms": 150
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 2760,
+      "duration_ms": 110
+    },
+    {
+      "file": "talk_wide.png",
+      "start_ms": 2870,
+      "duration_ms": 130
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 3000,
+      "duration_ms": 110
+    },
+    {
+      "file": "talk_o.png",
+      "start_ms": 3110,
+      "duration_ms": 120
+    },
+    {
+      "file": "talk_mid.png",
+      "start_ms": 3230,
+      "duration_ms": 100
+    },
+    {
+      "file": "talk_idle_closed.png",
+      "start_ms": 3330,
+      "duration_ms": 240
+    }
+  ]
+}

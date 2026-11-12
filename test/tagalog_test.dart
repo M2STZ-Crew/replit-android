@@ -46,7 +46,6 @@ void main() {
         for (final s in IdShot.values) ...[s.title, s.step, s.hint],
         // Private lists, read from their source.
         ..._literalsIn('lib/screens/help_center_screen.dart', '_faqs = ['),
-        ..._literalsIn('lib/screens/onboarding_screen.dart', '_recap = ['),
         ..._literalsIn('lib/screens/sos_report_screen.dart', '_agencies = ['),
         ..._literalsIn('lib/screens/my_reports_screen.dart', '_months = ['),
         ..._literalsIn(

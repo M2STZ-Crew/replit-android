@@ -78,7 +78,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      MaterialApp(theme: buildAppTheme(), home: SplashScreen(api: api)),
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: SplashScreen(api: api),
+      ),
     );
     await tester.pump(SplashScreen.shownAtLeast);
     await tester.pump(const Duration(seconds: 1));

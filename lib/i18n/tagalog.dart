@@ -2275,4 +2275,9 @@ const Map<String, String> kTagalog = {
   'Checked by an administrator': 'Nasuri na ng administrator',
   'Camera only — the photo and selfie must be live':
       'Camera lang — dapat live ang litrato at selfie',
+
+  // v1.12.37: the LIT tutorial, replayed from Help.
+  'Replay the tutorial': 'Ulitin ang tutorial',
+  'Practice a report with Lit. Nothing is sent.':
+      'Mag-practice ng report kasama si Lit. Walang naipapadala.',
 };

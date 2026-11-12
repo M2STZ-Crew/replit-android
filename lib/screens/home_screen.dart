@@ -29,7 +29,7 @@ import '../i18n/i18n.dart';
 
 /// How long the SOS button is held to start a report (12 Nov 2026: "changed
 /// the 3-seconds hold to 2-seconds hold of SOS button. 3-seconds are too
-/// long"). The practice dial in the tour holds for the same.
+/// long"). The LIT tutorial's practice dial holds for the same.
 const Duration kSosHold = Duration(seconds: 2);
 
 class HomeScreen extends StatefulWidget {
