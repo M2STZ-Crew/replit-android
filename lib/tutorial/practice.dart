@@ -308,6 +308,7 @@ class LitPractice with WidgetsBindingObserver {
     Practice._session = practice;
     WidgetsBinding.instance.addObserver(practice);
     LanguageChoice.current.addListener(practice._onLanguage);
+    practice.narrator.talking.addListener(practice._onTalking);
     practice._say();
     await nav.push(
       MaterialPageRoute<void>(
@@ -365,9 +366,26 @@ class LitPractice with WidgetsBindingObserver {
     _changed();
   }
 
-  void _say() {
-    if (!_ended) narrator.say(lesson.clipAsset(language));
+  void _say() => unawaited(_sayClip(lesson.clipAsset(language)));
+
+  /// Lit says [clip] now; with the app away (hidden, in the background) it
+  /// waits for Replay rather than play to nobody.
+  Future<void> _sayClip(String? clip) async {
+    if (_ended) return;
+    if (clip != null && _away(WidgetsBinding.instance.lifecycleState)) {
+      interrupted = true;
+      await narrator.cue(clip);
+      return;
+    }
+    await narrator.say(clip);
   }
+
+  /// Away from the app: hidden or in the background, not a dialog over it
+  /// (the camera's permission, asked as the photo lesson begins).
+  static bool _away(AppLifecycleState? state) =>
+      state == AppLifecycleState.hidden ||
+      state == AppLifecycleState.paused ||
+      state == AppLifecycleState.detached;
 
   void _changed() => changes.value++;
 
@@ -394,14 +412,52 @@ class LitPractice with WidgetsBindingObserver {
         _beat?.cancel();
         _beat = Timer(const Duration(milliseconds: 450), () => _nextFrom(at));
       case PracticeEvent.statusOpened when action == LitAction.submit:
-        // A practice report "received": Lit approves for a moment.
-        narrator.stop();
+        // A practice report "received": Lit approves and says so, to the
+        // end; a second later, the updates.
         received = true;
+        _receivedHeard = false;
         _changed();
-        _beat = Timer(const Duration(milliseconds: 1400), () => _nextFrom(at));
+        unawaited(_sayReceived(at));
       default:
         break;
     }
+  }
+
+  /// Whether Lit's receipt has been heard playing, so that its end means the
+  /// pause before the updates.
+  bool _receivedHeard = false;
+
+  /// The report's receipt, said to the end (13 November 2026: "lit needs to
+  /// stop speaking first and pause for 1sec before you go to step 7"). A clip
+  /// that does not play (muted, no sound, away) is not waited for: the words
+  /// stay a moment instead.
+  Future<void> _sayReceived(int at) async {
+    _beat?.cancel();
+    await _sayClip(litClipAsset(kReceivedClip, language));
+    if (!received || _step != at || !started) return;
+    if (!_receivedHeard && !narrator.talking.value) {
+      _beat = Timer(const Duration(milliseconds: 1500), _receivedQuiet);
+    }
+  }
+
+  /// Lit's voice started or stopped. During the receipt its end starts the
+  /// second's pause before the updates; while it plays, nothing moves on.
+  void _onTalking() {
+    if (!received || !started) return;
+    if (narrator.talking.value) {
+      _receivedHeard = true;
+      _beat?.cancel();
+    } else if (_receivedHeard) {
+      _receivedQuiet();
+    }
+  }
+
+  /// Quiet after the receipt: a second, then the updates.
+  void _receivedQuiet() {
+    if (!received || !started) return;
+    final at = _step;
+    _beat?.cancel();
+    _beat = Timer(const Duration(seconds: 1), () => _nextFrom(at));
   }
 
   /// Continue, on a lesson that is read.
@@ -474,6 +530,7 @@ class LitPractice with WidgetsBindingObserver {
       coach.dispose();
     }
     if (Practice._session == this) Practice._session = null;
+    narrator.talking.removeListener(_onTalking);
     unawaited(narrator.dispose());
     final nav = _nav;
     if (nav == null || !nav.mounted) return;
@@ -507,8 +564,9 @@ class LitPractice with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed || _ended) return;
-    // Away from the app: stop talking now, and wait for Replay on return.
+    // Away from the app (not a dialog over it): stop talking now, and wait
+    // for Replay on return.
+    if (_ended || !_away(state)) return;
     if (narrator.talking.value || narrator.clip != null) {
       narrator.stop();
       interrupted = true;
@@ -556,33 +614,50 @@ class _CoachLayerState extends State<_CoachLayer> {
     if (!mounted) return;
     final practice = widget.practice;
     final target = practice.lesson.target;
-    final spot = target == null ? null : PracticeTargets.spotOf(target);
+    final found = target == null ? null : PracticeTargets.spotOf(target);
+    final spot = found == null ? null : _onLayer(found);
     if (spot != _spot) setState(() => _spot = spot);
-    if (target != null && spot != null && _revealed != practice.step) {
+    if (target != null && found != null && _revealed != practice.step) {
       _revealed = practice.step;
       PracticeTargets.reveal(target);
     }
     SchedulerBinding.instance.addPostFrameCallback(_watch);
   }
 
+  /// [spot], found on the screen, where it is on this layer. On a tablet the
+  /// app is a column in the middle of the screen (ResponsiveFrame), and Lit's
+  /// layer with it: drawn where the screen put it, the ring and the hole a
+  /// finger reaches through sat one margin to the right of the control.
+  PracticeSpot? _onLayer(PracticeSpot spot) {
+    final layer = context.findRenderObject();
+    if (layer is! RenderBox || !layer.attached || !layer.hasSize) return null;
+    final fromScreen = Matrix4.tryInvert(layer.getTransformTo(null));
+    if (fromScreen == null) return null;
+    final rect = MatrixUtils.transformRect(fromScreen, spot.rect);
+    return rect.isFinite ? (rect: rect, round: spot.round) : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final practice = widget.practice;
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        practice.changes,
-        practice.narrator.talking,
-        practice.narrator.muted,
-      ]),
-      builder: (context, _) => _layer(context),
+    return LayoutBuilder(
+      // The layer's own size, not the screen's: on a tablet it is the
+      // app's column.
+      builder: (context, box) => ListenableBuilder(
+        listenable: Listenable.merge([
+          practice.changes,
+          practice.narrator.talking,
+          practice.narrator.muted,
+        ]),
+        builder: (context, _) => _layer(context, box.biggest),
+      ),
     );
   }
 
-  Widget _layer(BuildContext context) {
+  Widget _layer(BuildContext context, Size screen) {
     final practice = widget.practice;
     final lesson = practice.lesson;
     final pal = context.pal;
-    final screen = MediaQuery.sizeOf(context);
     final safe = MediaQuery.paddingOf(context);
     final spot = lesson.target == null ? null : _spot;
     final hole = spot?.rect;

@@ -20,6 +20,7 @@ import 'package:replit/tutorial/lit_tutorial_state.dart';
 import 'package:replit/tutorial/practice.dart';
 import 'package:replit/widgets/app_nav_bar.dart';
 import 'package:replit/widgets/design.dart';
+import 'package:replit/widgets/responsive_frame.dart';
 
 import 'fake_narration.dart';
 
@@ -128,24 +129,40 @@ void main() {
       );
     });
 
-    test('each lesson has its own clip in both languages, or says why not', () {
-      for (final l in kLitLessons.where((l) => !l.part)) {
-        if (kMissingClips.containsKey(l.id)) {
-          expect(l.clip, isNull, reason: l.id);
-          continue;
-        }
-        expect(l.clip, startsWith('${l.id}_'), reason: l.id);
+    test('every lesson, 02\'s three parts too, has its own clip in both '
+        'languages, and so does the receipt', () {
+      final clips = <String>{};
+      for (final l in kLitLessons) {
+        expect(l.clip, startsWith('${l.id}_'), reason: l.name);
+        expect(clips.add(l.clip!), isTrue, reason: '${l.name}: its own');
         for (final language in LitLanguage.values) {
           final clip = l.clipAsset(language)!;
           expect(clip, 'tutorial/voice/${language.name}/${l.clip}.mp3');
           expect(File('assets/$clip').lengthSync(), greaterThan(10000));
         }
       }
-      // 02's parts are new words for the real screens; 03 says the location
-      // may be elsewhere. All are captioned without a clip.
-      expect(kMissingClips.keys, ['02', '03']);
-      for (final part in kLitLessons.where((l) => l.id == '02')) {
-        expect(part.clip, isNull, reason: part.name);
+      for (final language in LitLanguage.values) {
+        final receipt = litClipAsset(kReceivedClip, language);
+        expect(File('assets/$receipt').lengthSync(), greaterThan(10000));
+      }
+      // The 13 November recordings: each language its own, each clip its
+      // own file.
+      final bytes = <String>{};
+      for (final name in [
+        '02_tap_sos',
+        '02_hold_sos',
+        '02_photo',
+        '03_check_location',
+        kReceivedClip,
+      ]) {
+        for (final language in LitLanguage.values) {
+          final file = File('assets/${litClipAsset(name, language)}');
+          expect(
+            bytes.add(base64Encode(file.readAsBytesSync())),
+            isTrue,
+            reason: '${file.path} is a copy of another clip',
+          );
+        }
       }
     });
 
@@ -224,6 +241,7 @@ void main() {
       Size size = const Size(402, 874),
       double scale = 1,
       bool reduced = false,
+      bool tablet = false,
     }) async {
       voice = FakeNarrationPlayer();
       _replay = replay;
@@ -250,13 +268,17 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildAppTheme(),
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(scale),
-              disableAnimations: reduced,
-            ),
-            child: child!,
-          ),
+          builder: (context, child) {
+            final app = MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(scale),
+                disableAnimations: reduced,
+              ),
+              child: child!,
+            );
+            // As main.dart has it: on a tablet, the app's column.
+            return tablet ? ResponsiveFrame(child: app) : app;
+          },
           home: const _Home(),
         ),
       );
@@ -355,12 +377,13 @@ void main() {
       await tapText(tester, 'SUBMIT PRACTICE REPORT');
       expect(caption(tester), contains('Nothing was sent'));
       expect(find.text('PRACTICE REPORT'), findsOneWidget, reason: 'status');
-      await settle(tester, const Duration(milliseconds: 1500));
+      // The receipt, a second's pause, then the updates.
+      await settle(tester, const Duration(milliseconds: 3000));
       expect(caption(tester), lesson('follow_updates').captionEn);
-      // The stages play by themselves: on the way, a few seconds in.
-      expect(find.text('Waiting to be accepted'), findsOneWidget);
-      await settle(tester, const Duration(milliseconds: 1500));
+      // The stages play by themselves, a few seconds apart.
       expect(find.text('Responders are on the way'), findsOneWidget);
+      await settle(tester, const Duration(milliseconds: 3000));
+      expect(find.text('Responders reached the scene'), findsOneWidget);
       // Nothing on it leads anywhere real.
       expect(find.text('TRACK IT LIVE'), findsNothing);
       await tapText(tester, 'CONTINUE');
@@ -393,16 +416,21 @@ void main() {
       );
     });
 
-    testWidgets('each lesson plays its own clip; 02 and 03 have none', (
+    testWidgets('each lesson plays its own clip, and the receipt its own', (
       tester,
     ) async {
       await pump(tester);
       await walkThrough(tester);
       expect(voice.played, [
         'tutorial/voice/en/01_welcome.mp3',
+        'tutorial/voice/en/02_tap_sos.mp3',
+        'tutorial/voice/en/02_hold_sos.mp3',
+        'tutorial/voice/en/02_photo.mp3',
+        'tutorial/voice/en/03_check_location.mp3',
         'tutorial/voice/en/04_select_organization.mp3',
         'tutorial/voice/en/05_review_details.mp3',
         'tutorial/voice/en/06_practice_submit.mp3',
+        'tutorial/voice/en/06_report_received.mp3',
         'tutorial/voice/en/07_follow_updates.mp3',
         'tutorial/voice/en/08_finish.mp3',
       ]);
@@ -470,6 +498,80 @@ void main() {
       await leave(tester);
     });
 
+    testWidgets('on a tablet, the lit control is where the column put it', (
+      tester,
+    ) async {
+      // 13 November: on a tablet the ring sat one margin to the right of
+      // SOS, over Guides, and so did the hole a finger reaches through.
+      await pump(tester, size: const Size(1024, 1366), tablet: true);
+      await tapText(tester, 'START TUTORIAL');
+      expect(caption(tester), lesson('tap_sos').captionEn);
+      // Guides is not what is lit: a tap there waits.
+      await tester.tap(
+        find.bySemanticsLabel(RegExp(r'^Guides, tab')),
+        warnIfMissed: false,
+      );
+      await settle(tester);
+      expect(caption(tester), lesson('tap_sos').captionEn);
+      // SOS is, where it is drawn.
+      await tapSos(tester);
+      expect(caption(tester), lesson('hold_sos').captionEn);
+      await holdSos(tester);
+      expect(caption(tester), lesson('photo').captionEn);
+      await takePhoto(tester);
+      expect(caption(tester), lesson('check_location').captionEn);
+      await leave(tester);
+    });
+
+    testWidgets('step 6: Lit says the receipt to the end, then a second, '
+        'then step 7', (tester) async {
+      await pump(tester);
+      await toChooseWho(tester);
+      await tester.tap(medical);
+      await settle(tester, const Duration(milliseconds: 600));
+      await tapText(tester, 'CONTINUE');
+      await tapText(tester, 'SUBMIT PRACTICE REPORT');
+      expect(caption(tester), contains('Nothing was sent'));
+      expect(voice.played.last, 'tutorial/voice/en/06_report_received.mp3');
+
+      // However long he talks, step 6 stays.
+      voice.start();
+      await settle(tester, const Duration(seconds: 6));
+      expect(caption(tester), contains('Nothing was sent'));
+      expect(
+        find.byKey(const ValueKey('lit-talking')),
+        findsNothing,
+        reason: 'he approves, he does not move his mouth',
+      );
+
+      // Done: a second's pause, then the updates.
+      voice.end();
+      await settle(tester, const Duration(milliseconds: 800));
+      expect(caption(tester), contains('Nothing was sent'));
+      await settle(tester, const Duration(milliseconds: 400));
+      expect(caption(tester), lesson('follow_updates').captionEn);
+      expect(voice.played.last, 'tutorial/voice/en/07_follow_updates.mp3');
+      await leave(tester);
+    });
+
+    testWidgets('step 6 muted: the words stay a moment, then a second, then '
+        'step 7', (tester) async {
+      await pump(tester);
+      await tester.tap(find.bySemanticsLabel("Turn Lit's voice off"));
+      await settle(tester);
+      await toChooseWho(tester);
+      await tester.tap(medical);
+      await settle(tester, const Duration(milliseconds: 600));
+      await tapText(tester, 'CONTINUE');
+      await tapText(tester, 'SUBMIT PRACTICE REPORT');
+      expect(caption(tester), contains('Nothing was sent'));
+      await settle(tester, const Duration(milliseconds: 1600));
+      expect(caption(tester), contains('Nothing was sent'));
+      await settle(tester, const Duration(milliseconds: 1400));
+      expect(caption(tester), lesson('follow_updates').captionEn);
+      await leave(tester);
+    });
+
     testWidgets('Back from the updates returns to the form it was sent from', (
       tester,
     ) async {
@@ -479,7 +581,7 @@ void main() {
       await settle(tester, const Duration(milliseconds: 600));
       await tapText(tester, 'CONTINUE');
       await tapText(tester, 'SUBMIT PRACTICE REPORT');
-      await settle(tester, const Duration(milliseconds: 1500));
+      await settle(tester, const Duration(milliseconds: 3000));
       expect(caption(tester), lesson('follow_updates').captionEn);
 
       await tapText(tester, 'Back');
@@ -666,7 +768,7 @@ void main() {
         expect(coach(tester).contains(tester.getCenter(send)), isFalse);
 
         await tapText(tester, 'SUBMIT PRACTICE REPORT');
-        await settle(tester, const Duration(milliseconds: 1500));
+        await settle(tester, const Duration(milliseconds: 3000));
         expect(tester.takeException(), isNull);
         expect(caption(tester), lesson('follow_updates').captionEn);
         // Continue and Finish across the width, under Lit.

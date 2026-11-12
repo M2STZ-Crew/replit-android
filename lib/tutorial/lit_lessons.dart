@@ -5,7 +5,9 @@
 /// Lessons are named by a stable id ("01".."08"), never by their place on
 /// screen or their title: a clip stays with its lesson whatever the order.
 /// The files are the supplied recordings, copied into assets/tutorial by
-/// tool/tutorial/import_lit.dart.
+/// tool/tutorial/import_lit.dart; 02's three parts, 03 and the report's
+/// receipt ([kReceivedClip]) are the recordings of 13 November 2026, made
+/// for the real screens' words ("NEW UPDATE").
 library;
 
 /// The tutorial's two languages, the app's own: chosen once, on the first
@@ -99,8 +101,8 @@ class LitLesson {
   /// "01".."08": the lesson's number, and its clips'.
   final String id;
 
-  /// The clip's file name without the language ("04_select_organization"),
-  /// or null when the lesson is captioned without one (see [kMissingClips]).
+  /// The clip's file name without the language ("04_select_organization").
+  /// Every lesson has one; null would leave a lesson captioned only.
   final String? clip;
 
   /// A short name, for tests and logs.
@@ -125,7 +127,7 @@ class LitLesson {
 
   /// The clip for [language], or null when this lesson has none.
   String? clipAsset(LitLanguage language) =>
-      clip == null ? null : 'tutorial/voice/${language.name}/$clip.mp3';
+      clip == null ? null : litClipAsset(clip!, language);
 
   /// Whether the lesson waits for a touch on its real control (the rest
   /// are read, then Continue).
@@ -161,6 +163,7 @@ const List<LitLesson> kLitLessons = [
   LitLesson(
     id: '02',
     name: 'tap_sos',
+    clip: '02_tap_sos',
     action: LitAction.tapSos,
     target: LitTargets.sosDisc,
     pose: LitPose.present,
@@ -174,6 +177,7 @@ const List<LitLesson> kLitLessons = [
   LitLesson(
     id: '02',
     name: 'hold_sos',
+    clip: '02_hold_sos',
     part: true,
     action: LitAction.holdSos,
     target: LitTargets.sosDial,
@@ -189,6 +193,7 @@ const List<LitLesson> kLitLessons = [
   LitLesson(
     id: '02',
     name: 'photo',
+    clip: '02_photo',
     part: true,
     action: LitAction.shutter,
     target: LitTargets.shutter,
@@ -203,6 +208,7 @@ const List<LitLesson> kLitLessons = [
   LitLesson(
     id: '03',
     name: 'check_location',
+    clip: '03_check_location',
     action: LitAction.read,
     target: LitTargets.location,
     pose: LitPose.pointUpperLeft,
@@ -293,13 +299,13 @@ const List<LitLesson> kLitLessons = [
 /// How many lessons there are, for "2 of 8": 02 has three parts.
 final int kLitLessonCount = kLitLessons.where((l) => !l.part).length;
 
-/// The supplied clips left out, and why: each says what the app does not.
-/// Their lessons show accurate captions until new recordings replace them.
-const Map<String, String> kMissingClips = {
-  '02':
-      'The clip says "Tap Report Incident". RepLiT has no such button: a '
-      'report starts with SOS, tapped on the map and held for two seconds.',
-  '03':
-      'The clip says the location "may be different from where you are". A '
-      "report carries the phone's own location; there is no other to set.",
-};
+/// Lit's words when a practice report has been "sent" (06's beat, before
+/// the updates): "Practice report received. Nothing was sent." He says
+/// them to the end, and a second later the updates follow (13 November
+/// 2026: "lit needs to stop speaking first and pause for 1sec before you go
+/// to step 7").
+const String kReceivedClip = '06_report_received';
+
+/// A clip of Lit's in [language], under assets/.
+String litClipAsset(String clip, LitLanguage language) =>
+    'tutorial/voice/${language.name}/$clip.mp3';
