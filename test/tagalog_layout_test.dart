@@ -76,7 +76,7 @@ void main() {
     'report': () => SosReportScreen(photoBytes: pixel, api: api()),
     'national ID': () => NationalIdScreen(
       api: api(),
-      camera: () async => Uint8List.fromList(pixel),
+      camera: (_) async => Uint8List.fromList(pixel),
     ),
     'verification': () => VerificationScreen(api: api()),
     'profile': () => ProfileScreen(api: api()),

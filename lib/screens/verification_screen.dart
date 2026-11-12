@@ -5,6 +5,7 @@ import '../api/session.dart';
 import '../models/phone_numbers.dart';
 import '../models/verification_state.dart';
 import '../theme.dart';
+import '../widgets/coordinator_kit.dart' show IconPlate, ListRow;
 import '../widgets/design.dart';
 import '../widgets/email_link_sheet.dart';
 import 'national_id_screen.dart';
@@ -71,10 +72,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   Future<void> _openNationalId() async {
-    final changed = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => const NationalIdScreen()));
-    if (changed == true) _load();
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            NationalIdScreen(percent: _loaded ? _state.percent : null),
+      ),
+    );
+    // Sent, or not: either way, where it stands now.
+    _load();
   }
 
   @override
@@ -86,10 +91,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
         child: RefreshIndicator(
           onRefresh: _load,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            padding: const EdgeInsets.fromLTRB(24, 26, 24, 32),
             children: [
               const Align(alignment: Alignment.centerLeft, child: BackWell()),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
               Text(t('VERIFY YOUR ACCOUNT'), style: context.type.heading1),
               const SizedBox(height: 12),
               Text(
@@ -197,14 +202,25 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget _phone(VerificationState s) {
     const c = VerifyChannel.phone;
     if (s.isVerified(c)) {
-      return _Channel(channel: c, line: t('Verified'), done: true);
+      return _Channel(
+        channel: c,
+        icon: AppIcons.call,
+        line: t('Verified by SMS code'),
+        done: true,
+      );
     }
     if (!PhoneNumbers.open) {
       // Greyed out, "Coming soon" (WHAT'S NEXT, 2.2).
-      return _Channel(channel: c, line: t('Coming soon'), dimmed: true);
+      return _Channel(
+        channel: c,
+        icon: AppIcons.call,
+        line: t('Coming soon'),
+        dimmed: true,
+      );
     }
     return _Channel(
       channel: c,
+      icon: AppIcons.call,
       line: t('Confirm it with a code by SMS'),
       onTap: _openPhone,
     );
@@ -213,22 +229,30 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget _nationalId(VerificationState s) {
     const c = VerifyChannel.nationalId;
     if (s.isVerified(c)) {
-      return _Channel(channel: c, line: t('Verified'), done: true);
+      return _Channel(
+        channel: c,
+        icon: AppIcons.photoCamera,
+        line: t('Checked by an administrator'),
+        done: true,
+      );
     }
     if (s.isInReview(c)) {
       return _Channel(
         channel: c,
+        icon: AppIcons.photoCamera,
         line: t('Submitted — an administrator is checking it'),
-        lineColor: context.pal.warn,
-        trailing: Icon(AppIcons.schedule, size: 16, color: context.pal.warn),
+        tone: context.pal.warn,
+        trailing: Icon(AppIcons.schedule, size: 18, color: context.pal.warn),
       );
     }
+    final refused = s.isRefused(c);
     return _Channel(
       channel: c,
-      line: s.isRefused(c)
+      icon: AppIcons.photoCamera,
+      line: refused
           ? s.refusalReason(c) ?? t('Not accepted — take the photos again')
-          : t('Camera only — ID, QR code and selfie must be live'),
-      lineColor: s.isRefused(c) ? context.pal.live : null,
+          : t('Camera only — the photo and selfie must be live'),
+      tone: refused ? context.pal.live : null,
       onTap: _openNationalId,
     );
   }
@@ -236,10 +260,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget _emailRow(VerificationState s) {
     const c = VerifyChannel.email;
     if (s.isVerified(c)) {
-      return _Channel(channel: c, line: _email ?? t('Verified'), done: true);
+      return _Channel(
+        channel: c,
+        icon: AppIcons.mail,
+        line: maskEmail(_email) ?? t('Verified'),
+        done: true,
+      );
     }
     return _Channel(
       channel: c,
+      icon: AppIcons.mail,
       line: s.status(c) == 'pending'
           ? t('Link sent — open it on this phone')
           : t('Tap for a confirmation link'),
@@ -248,12 +278,26 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 }
 
-/// One channel row: what it is worth, where it stands, what a tap does.
+/// An address as 15 · Verification shows it, "m•••@example.com": enough to
+/// know which, not enough to read off over a shoulder.
+@visibleForTesting
+String? maskEmail(String? email) {
+  if (email == null) return null;
+  final at = email.indexOf('@');
+  if (at < 1) return email;
+  return '${email[0]}•••${email.substring(at)}';
+}
+
+/// One channel (15 · Verification, List item): its icon on a plate (green
+/// once verified, coral while it waits on the resident, the tone of a review
+/// or a refusal), what it is worth and where it stands, then Verified, or a
+/// chevron where a tap goes on.
 class _Channel extends StatelessWidget {
   const _Channel({
     required this.channel,
+    required this.icon,
     required this.line,
-    this.lineColor,
+    this.tone,
     this.trailing,
     this.onTap,
     this.done = false,
@@ -261,8 +305,11 @@ class _Channel extends StatelessWidget {
   });
 
   final VerifyChannel channel;
+  final IconData icon;
   final String line;
-  final Color? lineColor;
+
+  /// The line's tone and the plate's: in review, or refused.
+  final Color? tone;
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool done;
@@ -270,65 +317,27 @@ class _Channel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tone = done ? context.pal.ok : context.pal.accent;
+    final pal = context.pal;
+    final tint = done
+        ? pal.ok
+        : dimmed
+        ? null
+        : tone ?? (onTap != null ? pal.accent : null);
     return Opacity(
       opacity: dimmed ? 0.6 : 1,
-      child: Semantics(
-        button: onTap != null,
-        label: t('{channel}, plus {n} percent. {line}', {
-          'channel': t(channel.label),
-          'n': channel.percent,
-          'line': line,
-        }),
-        excludeSemantics: true,
-        child: Panel(
-          radius: AppRadius.card,
-          onTap: onTap,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: tone.withValues(alpha: done ? 0.14 : 0.16),
-                  borderRadius: BorderRadius.circular(AppRadius.chip),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '+${channel.percent}%',
-                  style: context.type.cardTitleSm.copyWith(color: tone),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(t(channel.label), style: context.type.rowTitleLg),
-                    const SizedBox(height: 5),
-                    Text(
-                      line,
-                      style: context.type.caption.copyWith(
-                        color: lineColor ?? context.pal.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              trailing ??
-                  (done
-                      ? Icon(AppIcons.check, size: 18, color: context.pal.ok)
-                      : Icon(
-                          AppIcons.chevronRight,
-                          size: 18,
-                          color: context.pal.accent,
-                        )),
-            ],
-          ),
-        ),
+      child: ListRow(
+        title: t(channel.label),
+        subtitle: '+${channel.percent}% · $line',
+        subtitleColor: tone,
+        leading: IconPlate(icon, tint: tint),
+        trailing: done
+            ? Text(
+                t('Verified'),
+                style: context.type.rowValue.copyWith(color: pal.ok),
+              )
+            : trailing,
+        chevron: !done && trailing == null && onTap != null,
+        onTap: onTap,
       ),
     );
   }
@@ -361,7 +370,9 @@ class _Legend extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             label.toUpperCase(),
-            style: context.type.eyebrow.copyWith(color: context.pal.textSoft),
+            style: context.type.eyebrow.copyWith(
+              color: context.pal.onBackground,
+            ),
           ),
         ],
       ),

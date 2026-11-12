@@ -122,7 +122,7 @@ void main() {
     expect(out, notJpeg);
   });
 
-  testWidgets('the form shows each photo in its guide\'s shape', (
+  testWidgets('Check your photos shows each in its guide\'s shape', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(402, 1400);
@@ -139,20 +139,18 @@ void main() {
           api: ApiClient(
             client: MockClient((_) async => http.Response('{}', 200)),
           ),
-          camera: () async => Uint8List.fromList(photo),
+          camera: (_) async => Uint8List.fromList(photo),
         ),
       ),
     );
     await tester.pump();
-    for (final slot in [
-      'Tap to photograph the side with your picture',
-      'On the back of the card. Tap to photograph it.',
-      'Tap to take a selfie',
-    ]) {
-      await tester.tap(find.text(slot));
+    await tester.tap(find.text('TAKE ID PHOTO'));
+    // Each photo is a round trip to the camera stand-in.
+    for (var i = 0; i < 8; i++) {
       await tester.pump();
     }
     expect(tester.takeException(), isNull);
+    expect(find.text('CHECK YOUR PHOTOS'), findsOneWidget);
 
     for (final shot in IdShot.values) {
       final framed = find.byKey(ValueKey('framed-${shot.name}'));
@@ -160,7 +158,7 @@ void main() {
       final size = tester.getSize(framed);
       expect(
         size.width / size.height,
-        moreOrLessEquals(shot.guide.width / shot.guide.height, epsilon: .01),
+        moreOrLessEquals(shot.aspect, epsilon: .01),
         reason: '${shot.name} keeps its guide\'s shape',
       );
       expect(

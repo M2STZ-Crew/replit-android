@@ -223,12 +223,12 @@ void main() {
         expect(find.text('60%'), findsOneWidget);
         expect(find.text('LIGHT GREEN'), findsOneWidget);
         expect(
-          find.text('Coming soon'),
+          find.text('+40% · Coming soon'),
           findsOneWidget,
           reason: 'phone verification is paused (§10.3)',
         );
         expect(
-          find.text('Submitted — an administrator is checking it'),
+          find.text('+50% · Submitted — an administrator is checking it'),
           findsOneWidget,
         );
         // Below the fold at a large font scale.
@@ -240,14 +240,18 @@ void main() {
             matching: find.byType(Scrollable),
           ),
         );
-        expect(find.text('m.reyes@gmail.com'), findsOneWidget);
+        // 15 · Verification: a verified address, masked.
+        expect(find.text('+10% · m•••@gmail.com'), findsOneWidget);
         expect(find.text('UNDER 50'), findsOneWidget);
       });
     }
 
     testWidgets('a refused ID can be taken again', (tester) async {
       await pump(tester, VerificationScreen(api: api(idStatus: 'rejected')));
-      expect(find.text('Not accepted — take the photos again'), findsOneWidget);
+      expect(
+        find.text('+50% · Not accepted — take the photos again'),
+        findsOneWidget,
+      );
     });
 
     test('the paused phone channel is never the next step', () {

@@ -2218,4 +2218,61 @@ const Map<String, String> kTagalog = {
       'Suspendido ang access ng organisasyon mo sa RepLiT. Tanungin ang central hub (Barangay 76) kung bakit, at kung kailan ito maibabalik.',
   'Your organization has been removed from RepLiT. Ask the central hub (Barangay 76) if you think this is a mistake.':
       'Inalis na ang organisasyon mo sa RepLiT. Tanungin ang central hub (Barangay 76) kung sa tingin mo ay pagkakamali ito.',
+
+  // v1.12.37: National ID as the Figma frames take it (16, 20, 20B, 20C,
+  // 20D, 21) and the Verification channels (15).
+  'National ID · +50%': 'National ID · +50%',
+  'VERIFY WITH YOUR ID': 'MAG-VERIFY GAMIT ANG ID MO',
+  "Take three photos with your camera: both sides of your National ID card, then your face. An admin checks them, and the card's QR code on PSA's PhilSys Check.":
+      'Kumuha ng tatlong litrato gamit ang camera: ang magkabilang panig ng National ID card mo, saka ang mukha mo. Susuriin ito ng admin, pati ang QR code ng card sa PhilSys Check ng PSA.',
+  'What you need': 'Ang kailangan mo',
+  'Your National ID card': 'Ang National ID card mo',
+  'Your PhilID card or ePhilID, not a photo of it':
+      'Ang PhilID card o ePhilID mo, hindi litrato nito',
+  'Good light': 'Maliwanag na lugar',
+  'Your face and the card clearly visible':
+      'Malinaw na kita ang mukha mo at ang card',
+  'About two minutes': 'Mga dalawang minuto',
+  'You can stop and start again later': 'Puwede kang tumigil at bumalik mamaya',
+  'Verification never blocks a report. It only tells responders how much weight to give yours.':
+      'Hindi kailanman haharangin ng verification ang isang report. Sinasabi lang nito sa mga responder kung gaano kabigat ang sa iyo.',
+  'Take ID photo': 'Kunan ang ID',
+  'ID front': 'Harap ng ID',
+  'ID back': 'Likod ng ID',
+  'Your face': 'Ang mukha mo',
+  'Fit all four corners of the card inside the frame.':
+      'Ipasok sa frame ang apat na sulok ng card.',
+  'Turn the card over. Fit all four corners inside the frame.':
+      'Baligtarin ang card. Ipasok sa frame ang apat na sulok nito.',
+  'Keep your face inside the oval. Look straight at the camera.':
+      'Panatilihin ang mukha mo sa loob ng oval. Tumingin nang diretso sa camera.',
+  '{photo}, taken': '{photo}, nakuha na',
+  '{photo}, now': '{photo}, ngayon',
+  'CHECK YOUR PHOTOS': 'TINGNAN ANG MGA LITRATO MO',
+  'Each photo shows exactly what was inside the guide. Retake one without losing the others.':
+      'Ipinapakita ng bawat litrato ang eksaktong nasa loob ng gabay. Kunan ulit ang isa nang hindi nawawala ang iba.',
+  'All four corners should be visible': 'Dapat kita ang apat na sulok',
+  'Mirrored, as you saw it': 'Nakasalamin, gaya ng nakita mo',
+  "Sending them means you agree to an admin checking your card's QR code on PSA's PhilSys Check, where PSA records the date, your first name and the result. The photos stay private and are deleted once it is decided.":
+      'Sa pagpapadala, pumapayag kang suriin ng admin ang QR code ng card mo sa PhilSys Check ng PSA, kung saan itinatala ng PSA ang petsa, ang first name mo at ang resulta. Pribado ang mga litrato at buburahin kapag napagpasyahan na.',
+  'Not sent': 'Hindi naipadala',
+  'Send for review': 'Ipadala para suriin',
+  'Could not send. Check your connection and try again.':
+      'Hindi naipadala. Tingnan ang koneksyon mo at subukan ulit.',
+  'National ID · in review': 'National ID · sinusuri',
+  'SENT FOR REVIEW': 'NAIPADALA PARA SURIIN',
+  "An admin checks your ID and your selfie, with the QR code on PSA's PhilSys Check. You'll get a notification when it's done. Your score stays as it is until then.":
+      'Susuriin ng admin ang ID at selfie mo, kasama ang QR code sa PhilSys Check ng PSA. Makakatanggap ka ng notification kapag tapos na. Mananatili ang score mo hanggang doon.',
+  "An admin checks your ID and your selfie, with the QR code on PSA's PhilSys Check. You'll get a notification when it's done. Your score stays at {n}% until then.":
+      'Susuriin ng admin ang ID at selfie mo, kasama ang QR code sa PhilSys Check ng PSA. Makakatanggap ka ng notification kapag tapos na. Mananatili sa {n}% ang score mo hanggang doon.',
+  'Captured': 'Nakuha na',
+  'Admin review': 'Pagsusuri ng admin',
+  'Waiting for an admin': 'Naghihintay sa admin',
+  'Verification never blocks a report. Send one any time.':
+      'Hindi haharangin ng verification ang isang report. Magpadala anumang oras.',
+  'Back to profile': 'Bumalik sa profile',
+  'Verified by SMS code': 'Na-verify sa SMS code',
+  'Checked by an administrator': 'Nasuri na ng administrator',
+  'Camera only — the photo and selfie must be live':
+      'Camera lang — dapat live ang litrato at selfie',
 };
