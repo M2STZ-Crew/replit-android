@@ -6,6 +6,24 @@ Context v12. The build number after `+` is the CI run number.
 
 ---
 
+## v1.12.36 — 12 November 2026 — A suspended organisation is told why
+
+With backend v1.12.28, where the central hub suspends, revokes or deletes an
+affiliate organisation. No new permission or dependency.
+
+### Changes
+- **Someone of a suspended or revoked organisation is told why** where their
+  account would have loaded (the splash, and after signing in): "Your
+  organization's RepLiT access is suspended. Ask the central hub (Barangay 76)
+  why…", or that it has been removed from RepLiT, in English and Tagalog,
+  rather than "Could not load your account".
+
+### Tests
+- `test/v1_12_36_test.dart`: both refusals in the app's words, and nothing
+  else taken for them.
+
+---
+
 ## v1.12.35 — 12 November 2026 — Every alert vibrates, iPhones ring while open, one phone
 
 With backend v1.12.27, which names the new channels and refuses an older

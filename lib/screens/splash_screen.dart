@@ -73,6 +73,10 @@ class _SplashScreenState extends State<SplashScreen>
   /// The account didn't load: say so, and offer a way on.
   bool _failed = false;
 
+  /// Why, when it is not the connection: the organisation is suspended or
+  /// revoked (backend v1.12.28).
+  String? _why;
+
   @override
   void initState() {
     super.initState();
@@ -121,8 +125,13 @@ class _SplashScreenState extends State<SplashScreen>
       // it: sign in, rather than an error whose Retry re-sends a dead token.
       await Session.instance.clear();
       next = const LoginScreen();
-    } catch (_) {
-      if (mounted) setState(() => _failed = true);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _failed = true;
+          _why = frozenOrganization(e) ? (e as ApiException).message : null;
+        });
+      }
     } finally {
       _slowTimer?.cancel();
     }
@@ -245,7 +254,7 @@ class _SplashScreenState extends State<SplashScreen>
         Semantics(
           liveRegion: true,
           child: Text(
-            t('Could not load your account.'),
+            _why ?? t('Could not load your account.'),
             textAlign: TextAlign.center,
             style: context.type.detail.copyWith(color: context.pal.muted),
           ),

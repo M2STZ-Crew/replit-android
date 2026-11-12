@@ -2213,4 +2213,10 @@ const Map<String, String> kTagalog = {
       'Kaka-sign in lang ng RepLiT account mo sa ibang phone. Isang phone lang ang puwedeng gumamit nito, kaya na-sign out ito rito.',
   'If that was not you, sign in again and change your password.':
       'Kung hindi ikaw iyon, mag-sign in ulit at palitan ang password mo.',
+
+  // v1.12.36: a suspended or revoked organisation.
+  "Your organization's RepLiT access is suspended. Ask the central hub (Barangay 76) why, and when it will be restored.":
+      'Suspendido ang access ng organisasyon mo sa RepLiT. Tanungin ang central hub (Barangay 76) kung bakit, at kung kailan ito maibabalik.',
+  'Your organization has been removed from RepLiT. Ask the central hub (Barangay 76) if you think this is a mistake.':
+      'Inalis na ang organisasyon mo sa RepLiT. Tanungin ang central hub (Barangay 76) kung sa tingin mo ay pagkakamali ito.',
 };

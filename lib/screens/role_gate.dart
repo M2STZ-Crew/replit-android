@@ -89,8 +89,13 @@ class _RoleGateState extends State<RoleGate> {
       // it, so send the user to sign in rather than showing an error whose only
       // button re-sends the same dead token.
       await _signInAgain();
-    } catch (_) {
-      if (mounted) setState(() => _error = t('Could not load your account.'));
+    } catch (e) {
+      if (!mounted) return;
+      setState(
+        () => _error = frozenOrganization(e)
+            ? (e as ApiException).message
+            : t('Could not load your account.'),
+      );
     } finally {
       _slowTimer?.cancel();
     }
