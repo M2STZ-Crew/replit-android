@@ -7,6 +7,46 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.40 — 13 November 2026 — The National ID camera, step to step; Lit's ring pulses
+
+Works with backend v1.12.31 as it is. No new permission.
+
+### Fixed
+- **The National ID check's camera froze or went black after the ID
+  front** ("the camera stucks after the front id capturing", on Android and
+  iPhone). Each step's camera opened while the last step's was still
+  closing, and that closing took the new camera's view with it: Android's
+  camera plugin closes every preview there is, and an iPhone's two sessions
+  on one camera clash. Now each step lets go of its camera before the next
+  one opens, the photo just taken stays on screen while it slides away, and
+  closing the camera (✕ or Back) lets go of it at once.
+- The SOS camera does the same, so a quick Retake from "What are we
+  sending?" cannot freeze either.
+
+### The LIT tutorial
+- **Lit's words sit centred beside him** ("it's inconsistent (has a blank
+  space)"; answered: centred beside Lit). A short caption sat at his feet,
+  a blank space under "STEP N OF 8" above it; a long one at the top.
+- **The ring pulses where you must touch** ("make the guide line or guide
+  shape blinking so the user knows and notice where to touch"; answered: a
+  pulse, on those steps only): on tapping SOS, holding it, the shutter,
+  Medical and Submit Practice Report, the coral ring brightens and a copy of
+  it grows out and fades, about once a second. On the steps that are read
+  (the location, the details, the updates) it stays still, so moving means
+  "touch here". With reduced motion it stays still, drawn thicker.
+
+### Tests
+- `test/id_camera_handoff_test.dart`: the three steps with a stand-in camera
+  that takes a moment to close, as a real one does: never two cameras open
+  at once, each step's view live, none left on after; closing lets go at
+  once. It fails on the old behaviour (the back's camera opened before the
+  front's had closed).
+- `test/lit_tutorial_test.dart`: Lit's words in his middle, short or long;
+  the ring moving on a touch step, still on a read one and with reduced
+  motion.
+
+---
+
 ## v1.12.39 — 13 November 2026 — Lit speaks every step; the tutorial on a tablet
 
 Works with backend v1.12.30 as it is. Adds Lit's ten new clips (about
