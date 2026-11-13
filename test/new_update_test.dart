@@ -82,22 +82,23 @@ void main() {
     final activity = File(
       'android/app/src/main/kotlin/com/m2stz/replit/MainActivity.kt',
     ).readAsStringSync();
-    // The ids backend v1.12.30 names (app/integrations/fcm.py).
+    // The ids backend v1.12.30 names (app/integrations/fcm.py), made by
+    // the one helper every sound channel uses since v1.12.42.
     expect(
       activity,
       contains(
-        'appUpdate("app_update_en_v1", "App updates (English)", '
+        'channel("app_update_en_v1", "App updates (English)", update, '
         'R.raw.update_en)',
       ),
     );
     expect(
       activity,
       contains(
-        'appUpdate("app_update_tl_v1", "App updates (Tagalog)", '
+        'channel("app_update_tl_v1", "App updates (Tagalog)", update, '
         'R.raw.update_tl)',
       ),
     );
-    final channel = activity.substring(activity.indexOf('fun appUpdate('));
+    final channel = activity.substring(activity.indexOf('fun channel('));
     final body = channel.substring(0, channel.indexOf('}'));
     expect(body, contains('setSound(sound(raw), attributes)'));
     expect(body, contains('enableVibration(true)'));
@@ -108,16 +109,21 @@ void main() {
     expect(keep, contains('@raw/update_tl'));
   });
 
-  test('Android has its channel: the phone\'s tone, vibrating', () {
+  test('the phone\'s-tone update channel is retired (v1.12.42)', () {
+    // app_updates_v1 played the phone's own tone, for an app before v1.12.38;
+    // this app is told on its language's channel, and nothing plays the
+    // phone's tone ("No phone tone anywhere"), so it is deleted, not made.
     final activity = File(
       'android/app/src/main/kotlin/com/m2stz/replit/MainActivity.kt',
     ).readAsStringSync();
-    // The id backend v1.12.29 names (app/integrations/fcm.py).
-    expect(activity, contains('"app_updates_v1"'));
-    final channel = activity.substring(activity.indexOf('"app_updates_v1"'));
-    final body = channel.substring(0, channel.indexOf('}'));
-    expect(body, contains('enableVibration(true)'));
-    expect(body, isNot(contains('setSound(')), reason: "the phone's own tone");
-    expect(activity, contains('appUpdates,\n'));
+    final retired = activity.substring(
+      activity.indexOf('val RETIRED_CHANNELS'),
+    );
+    expect(retired, contains('"app_updates_v1"'));
+    final made = activity.substring(
+      activity.indexOf('manager.createNotificationChannels('),
+      activity.indexOf('companion object'),
+    );
+    expect(made, isNot(contains('"app_updates_v1"')));
   });
 }

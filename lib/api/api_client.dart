@@ -6,6 +6,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/field_ops.dart';
+import 'api_cache.dart';
 import 'api_config.dart';
 import 'phone_gate.dart';
 import 'session.dart';
@@ -188,7 +189,9 @@ class ApiClient {
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, t('Failed to load notifications.'));
     }
-    return jsonDecode(resp.body) as List<dynamic>;
+    final list = jsonDecode(resp.body) as List<dynamic>;
+    ApiCache.instance.put(ApiCache.notifications, list, onPhone: true);
+    return list;
   }
 
   /// Unread-notification count for the bell badge: GET /notifications/unread-count.
@@ -281,7 +284,9 @@ class ApiClient {
         'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
       },
     );
-    return _decode(resp);
+    final area = _decode(resp);
+    ApiCache.instance.put(ApiCache.area(areaId), area);
+    return area;
   }
 
   /// Track It Live for an incident the caller reported: GET /areas/{id}/tracking.
@@ -314,7 +319,9 @@ class ApiClient {
         t('Failed to load evacuation sites.'),
       );
     }
-    return jsonDecode(resp.body) as List<dynamic>;
+    final sites = jsonDecode(resp.body) as List<dynamic>;
+    ApiCache.instance.put(ApiCache.evacuationSites, sites);
+    return sites;
   }
 
   /// List incident areas (citizen-accessible): GET /areas.
@@ -333,7 +340,9 @@ class ApiClient {
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, t('Failed to load incident areas.'));
     }
-    return jsonDecode(resp.body) as List<dynamic>;
+    final areas = jsonDecode(resp.body) as List<dynamic>;
+    if (activeOnly) ApiCache.instance.put(ApiCache.areas, areas);
+    return areas;
   }
 
   /// Add responder agencies to an incident you already reported:
@@ -364,7 +373,9 @@ class ApiClient {
         headers: _auth,
       ),
     );
-    return _decode(resp);
+    final me = _decode(resp);
+    ApiCache.instance.put(ApiCache.me, me, onPhone: true);
+    return me;
   }
 
   /// Progressive verification, per channel: GET /verification/status.
@@ -377,7 +388,9 @@ class ApiClient {
         'Authorization': 'Bearer ${Session.instance.accessToken ?? ''}',
       },
     );
-    return _decode(resp);
+    final status = _decode(resp);
+    ApiCache.instance.put(ApiCache.verification, status, onPhone: true);
+    return status;
   }
 
   /// The caller's own reports with signed media URLs: GET /reports/mine.
@@ -391,7 +404,9 @@ class ApiClient {
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, t('Failed to load your reports.'));
     }
-    return jsonDecode(resp.body) as List<dynamic>;
+    final reports = jsonDecode(resp.body) as List<dynamic>;
+    ApiCache.instance.put(ApiCache.myReports, reports);
+    return reports;
   }
 
   /// The caller's answer to a 100 m alert, and whether "I am safe" is open to
@@ -1292,7 +1307,9 @@ class ApiClient {
     if (resp.statusCode >= 400) {
       throw ApiException(resp.statusCode, 'Failed to load $layer.');
     }
-    return jsonDecode(resp.body) as List<dynamic>;
+    final rows = jsonDecode(resp.body) as List<dynamic>;
+    ApiCache.instance.put(ApiCache.mapLayer(layer), rows);
+    return rows;
   }
 
   /// Trade the stored refresh token for a new session. True when it worked.

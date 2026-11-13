@@ -11,6 +11,7 @@ import '../location/location_beacon.dart';
 import '../alerts/buzz.dart';
 import '../sound/sound_cues.dart';
 import '../theme.dart';
+import 'api_cache.dart';
 import 'api_client.dart';
 import 'notification_router.dart';
 import 'session.dart';
@@ -171,6 +172,8 @@ class PushService {
 
   void _onForeground(RemoteMessage message) {
     final type = message.data['type'] as String?;
+    // The account's own news: Profile, showing it, asks again (v1.12.42).
+    if (type == 'national_id_reviewed') ApiCache.instance.accountChangedNow();
     // Every alert vibrates, silent reminders included (v1.12.35).
     unawaited(Buzz.alert());
     if (message.data['silent'] != 'true') {

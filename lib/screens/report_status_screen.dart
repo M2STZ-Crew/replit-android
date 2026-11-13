@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../api/api_cache.dart';
 import '../api/api_client.dart';
 import '../api/report_queue.dart';
 import '../models/active_report.dart';
@@ -229,7 +230,17 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
     WidgetsBinding.instance.addObserver(this);
     ReportStatusScreen._heard.addListener(_onHeard);
     final known = widget.status;
-    if (known != null) _area = {'status': known};
+    // The area as this session last read it (ApiCache, v1.12.42), with the
+    // stage this screen was opened at, if it was given one.
+    final id = _areaId;
+    final cached = id == null
+        ? null
+        : ApiCache.instance.peek<Map<String, dynamic>>(ApiCache.area(id));
+    if (cached != null) {
+      _area = {...cached, 'status': ?known};
+    } else if (known != null) {
+      _area = {'status': known};
+    }
     if (_areaId != null && !_over) {
       _load();
       _poll = Timer.periodic(const Duration(seconds: 5), (_) => _load());

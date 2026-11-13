@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../api/api_cache.dart';
 import '../api/api_client.dart';
 import '../api/live_hub.dart';
 import '../api/map_cache.dart';
@@ -236,6 +237,7 @@ class _MapScreenState extends State<MapScreen> {
     _liveChanges = _live.messages.listen(_onAreaChange);
     _live.live.addListener(_onLiveChanged);
     _live.start();
+    _fromCache();
     _bootstrap();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _pollTick());
   }
@@ -314,6 +316,28 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   // --------------------------------------------------------------- data ---
+  /// The incidents and evacuation sites as this session last saw them
+  /// (ApiCache, v1.12.42): drawn at once on a return to the map, while it
+  /// asks again, rather than an empty map and a spinner.
+  void _fromCache() {
+    final areas = ApiCache.instance.peek<List<dynamic>>(ApiCache.areas);
+    if (areas != null) {
+      _areas = _usable(areas);
+      _areasLoaded = true;
+      _loading = false;
+    }
+    final evac = ApiCache.instance.peek<List<dynamic>>(
+      ApiCache.evacuationSites,
+    );
+    if (evac != null) _evac = _located(_shelters, evac);
+  }
+
+  /// The areas the map can place.
+  static List<Map<String, dynamic>> _usable(List<dynamic> raw) => raw
+      .cast<Map<String, dynamic>>()
+      .where((a) => a['centroid_lat'] != null && a['centroid_lng'] != null)
+      .toList();
+
   Future<void> _bootstrap() async {
     unawaited(_queue.load());
     final savedAt = await MapCache.instance.savedAt();
@@ -327,10 +351,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _loadAreas() async {
     try {
       final raw = await _api.getAreas();
-      final areas = raw
-          .cast<Map<String, dynamic>>()
-          .where((a) => a['centroid_lat'] != null && a['centroid_lng'] != null)
-          .toList();
+      final areas = _usable(raw);
       if (!mounted) return;
       setState(() {
         _areas = areas;

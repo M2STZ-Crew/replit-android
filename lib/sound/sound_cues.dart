@@ -13,6 +13,10 @@ import '../i18n/i18n.dart';
 /// (android/.../res/raw/`sound_<category>.mp3` — keep them the same as
 /// assets/sounds/; test/sound_files_test.dart checks).
 ///
+/// v1.12.42: the National ID's result has its own two (id_verified,
+/// id_rejected: "ID VERIFIED", "ID NOT VERIFIED"), and every recording is
+/// the one in NOTIFICATION SOUNDS for who hears it.
+///
 /// v1.12.23: sending a report plays nothing. Reported is the one stage with no
 /// sound — the first a resident hears is when the incident is verified — and
 /// the cue that played on sending (v10 §2.8's "salamat!", by then a recording
@@ -35,6 +39,8 @@ class SoundCues {
     'on_scene',
     'fire_out',
     'rejected',
+    'id_verified',
+    'id_rejected',
   };
 
   /// "New Update!": not an incident's sound but its own recording, in the

@@ -88,7 +88,12 @@ void main() {
         InboxWatcher.soundFor(item('1', now, event: 'incident_verified')),
         'verified',
       );
-      expect(InboxWatcher.soundFor(item('1', now, type: 'fire_alert')), 'fire');
+      // v1.12.42: a fire near a resident plays 01 NEARBY INCIDENT, the
+      // citizen recording (test/v1_12_42_test.dart).
+      expect(
+        InboxWatcher.soundFor(item('1', now, type: 'fire_alert')),
+        'citizen',
+      );
       expect(
         InboxWatcher.soundFor(item('1', now, type: 'national_id_reviewed')),
         'citizen',

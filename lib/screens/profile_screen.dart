@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../api/api_cache.dart';
 import '../api/api_client.dart';
 import '../app_version.dart';
 import 'change_password_screen.dart';
@@ -53,11 +54,17 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with WidgetsBindingObserver {
   late final ApiClient _api = widget.api ?? ApiClient();
 
   Map<String, dynamic>? _me;
   VerificationState _verification = VerificationState.empty;
+
+  /// /verification/status has answered, now or before (ApiCache). Until it
+  /// has, the badge is the account's own percentage and no next step shows:
+  /// never a made-up 0% and "Add your National ID" (v1.12.42).
+  bool _verificationKnown = false;
   bool _alerts = true;
   bool _alertsBusy = false;
 
@@ -70,8 +77,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // The account and its verification as this phone last saw them
+    // (ApiCache): drawn at once, refreshed behind them (13 November 2026:
+    // "it is verified but after I've pressing the home and going back to
+    // profile it is still fetching").
+    _me = ApiCache.instance.peek<Map<String, dynamic>>(ApiCache.me);
+    final status = ApiCache.instance.peek<Map<String, dynamic>>(
+      ApiCache.verification,
+    );
+    if (status != null) {
+      _verification = VerificationState.fromJson(status);
+      _verificationKnown = true;
+    }
+    // "National ID verified" arrived (PushService, InboxWatcher): ask again.
+    ApiCache.instance.accountChanged.addListener(_reload);
+    WidgetsBinding.instance.addObserver(this);
     _load();
   }
+
+  @override
+  void dispose() {
+    ApiCache.instance.accountChanged.removeListener(_reload);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Back from the shade, where a review's result may have been read.
+    if (state == AppLifecycleState.resumed) _reload();
+  }
+
+  void _reload() => unawaited(_load());
 
   Future<void> _load() async {
     try {
@@ -83,10 +120,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final status = await _api.getVerificationStatus();
       if (mounted) {
-        setState(() => _verification = VerificationState.fromJson(status));
+        setState(() {
+          _verification = VerificationState.fromJson(status);
+          _verificationKnown = true;
+        });
       }
     } catch (_) {
-      // The ring stays empty rather than guessing.
+      // What is on screen stays rather than a guess.
     }
     unawaited(_loadClosedAlerts());
     try {
@@ -323,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // As a tab it is the only route: it carries the bar and has nothing to go
     // back to. Opened from elsewhere it keeps a back chevron.
     final pushed = Navigator.of(context).canPop();
-    final next = _verification.nextStep;
+    final next = _verificationKnown ? _verification.nextStep : null;
     return Scaffold(
       backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.profile),
@@ -506,7 +546,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Avatar in its verification ring, the name, and the badge.
   Widget _identity() {
-    final v = _verification;
+    final v = _verificationKnown
+        ? _verification
+        // Before /verification/status answers: the account's own percentage
+        // and badge (GET /auth/me), not a made-up 0%.
+        : VerificationState.fromJson({
+            'verified_percent': _me?['verified_percent'] ?? 0,
+            'badge': _me?['badge'] ?? 'yellow',
+          });
     final pct = v.percent.clamp(0, 100);
     return Panel(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),

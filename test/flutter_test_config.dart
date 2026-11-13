@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter_test/flutter_test.dart';
+import 'package:replit/api/api_cache.dart';
 import 'package:replit/api/live_hub.dart';
 import 'package:replit/widgets/you_are_here.dart';
 
@@ -19,6 +21,8 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   LiveHub.instance = LiveHub(connect: (_, _) async => _SilentWire());
   MapLocationSource.positions = () => const Stream.empty();
   MapLocationSource.headings = () => const Stream.empty();
+  // Every test starts with no answers kept from the one before (ApiCache).
+  setUp(ApiCache.instance.reset);
   await testMain();
 }
 

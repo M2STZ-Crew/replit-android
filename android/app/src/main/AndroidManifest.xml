@@ -68,12 +68,14 @@
               android:value="false"
               />
         </activity>
-        <!-- How a push is shown when the server names no channel, and the
-             icon and tint every RepLiT notification uses. The channels are
-             made in MainActivity.kt. -->
+        <!-- How a push is shown when the server names no channel, or one
+             this phone does not have (v1.12.42: general_v1, which plays the
+             residents' recording, never the phone's tone), and the icon and
+             tint every RepLiT notification uses. The channels are made in
+             MainActivity.kt. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="updates_v2" />
+            android:value="general_v1" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_replit" />

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../api/web_only.dart';
 import '../i18n/i18n.dart';
 import '../theme.dart';
 import '../updates/update_nudge.dart';
@@ -101,7 +102,6 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _boot() async {
     await Session.instance.restore();
     if (!Session.instance.isAuthenticated) return _go(const LoginScreen());
-    unawaited(PushService.instance.syncForUser());
     await _loadAccount();
   }
 
@@ -113,9 +113,19 @@ class _SplashScreenState extends State<SplashScreen>
     Widget? next;
     try {
       final me = await _api.getMe().timeout(ApiClient.signInTimeout);
-      // The account's language, as the console or another phone left it.
-      await LanguageChoice.adopt(me['language']);
-      next = RoleGate(initialMe: me);
+      if (WebOnly.account(me)) {
+        // An Admin kept signed in by an older app: the web console is its
+        // place (WebOnly). Signed out, and its phone no longer told.
+        await WebOnly.signOut(_api);
+        next = LoginScreen(notice: WebOnly.message);
+      } else {
+        // The account's language, as the console or another phone left it.
+        await LanguageChoice.adopt(me['language']);
+        // Registered for pushes once the account is known not to be an
+        // Admin's (v1.12.42; it was before the account loaded).
+        unawaited(PushService.instance.syncForUser());
+        next = RoleGate(initialMe: me);
+      }
     } on SessionExpiredException {
       // The stored session was too old to renew and the client has cleared
       // it: sign in, rather than an error whose Retry re-sends a dead token.

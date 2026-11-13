@@ -7,6 +7,105 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.42 — 13 November 2026 — Every sound anew; screens open at once; admins on the web
+
+Goes with backend v1.12.33. They can deploy in either order: until a phone
+registers with 1.12.42, the server tells it on the channels it had. No new
+permission.
+
+### Sounds
+"check all of the sounds and apply it to the new. because we found some
+errors in sound"; the recordings in NOTIFICATION SOUNDS, by who hears them.
+
+- **Every sound on a channel made anew.** A phone that had the app before
+  v1.12.23 held its alert channels by resource number. Every recording added
+  since then moved those numbers, so on such a phone a Medical alert played
+  "fire out" and a Police alert played the Medical sound. This version
+  deletes every sound channel the app ever made and makes each one anew,
+  naming its file. Every recording in the app is now byte for byte the one
+  in NOTIFICATION SOUNDS.
+- **The verified step has its new recording**, "02 REPORT ACKNOWLEDGED", on
+  the "Report acknowledged" channel.
+- **The National ID's result has its own sounds**: ID VERIFIED, and ID NOT
+  VERIFIED when you are asked to try again.
+- **A fire near a resident plays "01 NEARBY INCIDENT"**, the first alert as
+  well as its reminders; the first used to play the staff fire alarm.
+- **No phone tone anywhere.** Every notification plays a recording. One
+  meant for a channel this phone does not have plays the residents'
+  recording, under "Other notifications".
+- In the phone's notification settings, RepLiT's channels appear afresh.
+  A channel someone had silenced needs silencing again.
+
+### Screens open with what they last showed
+"it is verified but after I've pressing the home and going back to profile
+it is still fetching ... do it to all screens as possible".
+
+- **Each tab used to open empty and fill in a moment later.** Every tab is
+  made anew on each visit, so Profile showed a name taken from the email,
+  "0% verified" and "Add your National ID" until the server answered.
+- **Now each screen starts from its last answers and refreshes behind
+  them:** Profile, Verification, Alerts, the map's incidents and evacuation
+  sites, My reports, and a report's status.
+- **Profile never guesses.** Before your verification has ever loaded, it
+  shows your account's own percentage and no next step.
+- **Profile asks again on its own** when "National ID verified" (or "not
+  verified") arrives, and when you come back to the app.
+- **Answers belong to the account signed in.**
+  - Who you are, your verification and your alerts are also kept on the
+    phone, so they show from the first screen after the app starts.
+  - The rest is kept only while the app runs.
+  - Signing out forgets all of it.
+- The monorepo has no part in this: it is a copy of the code, and nothing
+  is built or served from it.
+
+### Admin accounts sign in on the web
+"all admin accounts should be logged in web only, not on mobile".
+
+- The app opened coordinators and responders in their own apps and took any
+  other account for a resident. So an Admin (`barangay76.admin`,
+  `bfp.admin`, `pnp.admin`, and the rest) landed in the residents' app.
+- **Now signing in with an Admin account is refused.** It says "Admin
+  accounts sign in on the web console, not in the app:
+  reportwhatslit.vercel.app". Nothing is kept, and the phone is not
+  registered for the account's pushes.
+- **An Admin already signed in on a phone** is signed out when the app
+  opens, and told the same.
+
+### Barangay 76's teams
+Done in the data with backend v1.12.33; no app change is needed.
+
+- Six new accounts belong to Barangay 76 itself:
+  - `barangay76fire.coordinator1`, `.coordinator2` and `.responder1`: Fire
+    Volunteer.
+  - `barangay76medic.coordinator1`, `.coordinator2` and `.responder1`:
+    Medical.
+- They work in the coordinator and responder apps like any other team.
+- `barangay76.responder` is now `barangay76.responder1`.
+
+### Tests
+- `test/v1_12_42_test.dart`:
+  - The cache: one account's answers are not another's; they are on the
+    phone for the next start and forgotten at sign out; it is opened by the
+    token's account; the client keeps each answer.
+  - Profile at once by name and percentage, never the email and 0%; its own
+    percentage before the verification answers; asking again when told.
+  - Alerts listed at once.
+  - An Admin refused at sign in with nothing kept; a resident signs in as
+    before.
+  - The channels made are exactly the ones the server names, each with its
+    file; the old ones are retired; the fallback channel plays the
+    residents' recording.
+  - The National ID's two recordings.
+  - The open app plays what each push would.
+- Updated:
+  - `test/sound_files_test.dart`: res/raw's list, and every file kept from
+    the shrinker.
+  - `test/new_update_test.dart`: the update channels are made by the shared
+    helper, and the phone's-tone one is retired.
+  - `test/v1_12_35_test.dart`: a neighbour's alert sound.
+
+---
+
 ## v1.12.41 — 13 November 2026 — "New Update!" as soon as a version is out
 
 Goes with backend v1.12.32: merge and deploy that first, so this release's

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/report_queue.dart';
 import '../api/session.dart';
+import '../api/web_only.dart';
 import '../theme.dart';
 import 'call_screen.dart';
 import 'coordinator/coordinator_shell.dart';
@@ -59,11 +60,28 @@ class _RoleGateState extends State<RoleGate> {
   bool _slow = false;
   Timer? _slowTimer;
 
+  /// An Admin's account is being signed out of the app (WebOnly).
+  bool _leaving = false;
+
   @override
   void initState() {
     super.initState();
     _me = widget.initialMe;
-    if (_me == null) _load();
+    if (_me == null) {
+      _load();
+    } else {
+      _warm(_me!);
+    }
+  }
+
+  /// A resident's verification, read now and kept (ApiCache), so Profile
+  /// opens with it the first time too (v1.12.42).
+  void _warm(Map<String, dynamic> me) {
+    final role = me['role'];
+    if (role == 'response_team' || role == 'sub_admin' || WebOnly.account(me)) {
+      return;
+    }
+    unawaited(_api.getVerificationStatus().then((_) {}, onError: (_) {}));
   }
 
   @override
@@ -86,6 +104,7 @@ class _RoleGateState extends State<RoleGate> {
       // The account's language, as the console or another phone left it.
       await LanguageChoice.adopt(me['language']);
       if (mounted) setState(() => _me = me);
+      _warm(me);
     } on SessionExpiredException {
       // The stored session was too old to renew. The client has already cleared
       // it, so send the user to sign in rather than showing an error whose only
@@ -113,6 +132,16 @@ class _RoleGateState extends State<RoleGate> {
       style: TextStyle(color: context.pal.accent, fontWeight: FontWeight.w700),
     ),
   );
+
+  /// An Admin account: sign it out and say where it works (WebOnly).
+  Future<void> _leaveForWeb() async {
+    await WebOnly.signOut(_api);
+    if (!mounted) return;
+    await Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => LoginScreen(notice: WebOnly.message)),
+      (route) => false,
+    );
+  }
 
   /// Drop whatever is stored and start again at the login screen.
   ///
@@ -198,6 +227,22 @@ class _RoleGateState extends State<RoleGate> {
               _hotlinesLink(),
             ],
           ],
+        ),
+      );
+    }
+    if (WebOnly.account(me)) {
+      // Never the residents' app for an Admin: off to the web console.
+      if (!_leaving) {
+        _leaving = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) => _leaveForWeb());
+      }
+      return _shell(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 300),
+            child: const LoadingInline(),
+          ),
         ),
       );
     }
