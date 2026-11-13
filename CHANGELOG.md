@@ -7,6 +7,97 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.43 — 13 November 2026 — The map where you are; the ID in one camera; tablets
+
+Works with backend v1.12.33 as it is. No new permission.
+
+### The map opens where you are
+"the map still locates pasay, what if the map stays still where the user is
+or was. and it has "LOCATING YOU""; answered: where you last were.
+
+- **Leaving the map and coming back** (to the hotlines and back, say) opened
+  it on Pasay City, then jumped to the resident a moment later. Now it opens
+  on the last spot this phone knew, at street level.
+- **That spot is kept on the phone** (`LastPlace`), so a restart opens there
+  too. Only a phone that has never had a fix starts on Pasay.
+- **The map moves only if the resident has moved.** A fresh fix within 30 m
+  of where it opened leaves it still.
+- **The location card says LOCATING YOU** until the fresh fix answers, then
+  the street. A fix on the same spot (within 75 m of where the last street
+  was found) shows that street at once, before the phone's geocoder answers.
+- **Skeletons while the map loads** ("create a skeleton loading on that map
+  screen"; answered: on the map; every other screen keeps the splash's
+  loader):
+  - the card's second line and the "Active areas near you" rows show their
+    shape, with a light passing over them, until the fix and the areas
+    answer;
+  - with reduced motion the light holds still.
+
+### The National ID in one camera
+"the step by step is not seamless, it goes to "check your photos" screen very
+fast"; answered: one camera, three steps.
+
+- **Why it flashed.** Each photo had a camera screen of its own. Between two
+  photos one closed, the ID screen showed for a moment, and the next opened.
+- **Now the photos still to take are taken in one camera screen.**
+  - After each photo, its tick shows for a moment, then the guide becomes the
+    next one's.
+  - The ID's front and back share the back camera, which never closes
+    between them. The front is now taken at the back's higher resolution.
+  - For the face, the back camera is closed in full before the selfie camera
+    opens, so two cameras are never open at once (the cause of the 1.12.40
+    freeze).
+  - "Check your photos" comes once, after the last photo.
+- **Closing the camera part-way keeps what was taken:** the next go starts at
+  the photo still missing. Retake still opens just that one photo.
+
+### Tablets
+"the responsiveness for tablets ... we want to make it responsive to all
+devices"; answered: maps full, the rest centred.
+
+- **Before,** the whole app was one 600 px column with dark sides, the map
+  included.
+- **Now each screen has its own frame.**
+  - Maps and cameras fill the tablet: the citizen map, the coordinator's map
+    and LIVE, the responder's field map, directions, live updates, area
+    detail, the neighbour alert, the dashboards, the SOS and ID cameras.
+  - Reading screens keep the column, centred on the ground.
+  - On the tab screens (Hotlines, SOS, Guides, Profile, and the staff apps'
+    reading tabs), the ground and the bottom bar run edge to edge while the
+    content keeps the column. The bar's tabs stay the column's width,
+    centred under the disc.
+- **On a full-width map,** the "Active areas near you" sheet keeps the
+  column's width, centred.
+- **The ID card's guide** stays a card's size (at most 520 px wide) on a
+  tablet's full width.
+- **Phones are unchanged.**
+
+### Tests
+- `test/map_screen_test.dart`:
+  - The map opens on the last spot at street level, with LOCATING YOU and
+    two skeletons until the GPS answers.
+  - The last street names a fix on the same spot at once.
+  - A phone that never had a fix starts on Pasay.
+  - The fix is kept for next time.
+  - On a tablet the map is full width and its sheet keeps the column.
+- `test/id_camera_handoff_test.dart`:
+  - One camera screen for the three photos: no close between front and
+    back; the back camera closed before the face's opens; "Check your
+    photos" after.
+  - Closed after the front, that photo is kept and the next go opens on the
+    back.
+- `test/responsive_test.dart`:
+  - Every pushed page has its own column; the ground is painted beside it.
+  - A full-bleed screen fills the tablet.
+  - A tab's bar runs edge to edge over its column.
+  - A screen that stops filling the tablet goes back to its column within
+    the same frame.
+- `test/coordinator_experience_test.dart`: the report-filed test runs at a
+  phone's size. On the default 800 px test window the page now keeps the
+  tablet column.
+
+---
+
 ## v1.12.42 — 13 November 2026 — Every sound anew; screens open at once; admins on the web
 
 Goes with backend v1.12.33. They can deploy in either order: until a phone
