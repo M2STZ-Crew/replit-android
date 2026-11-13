@@ -23,7 +23,11 @@ what is missing.
 6. Uploads it to Firebase App Distribution, which emails the tester group
 7. Publishes it as a **GitHub release** (`android-v<version>-<build>`), with a
    `latest.json` beside it: what the app's **Check for updates** reads
-8. Deletes the secret files from the build machine
+8. Asks the backend to check for it at once (`POST /app-updates/check`, backend
+   v1.12.32), so phones on an older version get **New Update!** within seconds,
+   not at the backend's own check every 2 minutes. It sends the backend nothing
+   (the backend reads the release from GitHub) and never fails the release
+9. Deletes the secret files from the build machine
 
 **The APK is public** from v1.12.26: every build is a GitHub release, so people
 without a tester invitation can install and update RepLiT, and anyone who installs
