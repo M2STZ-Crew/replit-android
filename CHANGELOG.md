@@ -7,6 +7,32 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.41 — 13 November 2026 — "New Update!" as soon as a version is out
+
+Goes with backend v1.12.32: merge and deploy that first, so this release's
+own "New Update!" goes at once. With an older backend the release still goes
+out, and the push comes at that backend's next check. No new permission.
+
+### Fixed
+- **"New Update!" came too late to be seen** ("the "new update" push
+  notification doesn't work on my android phone"). The backend told phones
+  of a new version at its next check, 10 minutes apart, and by then the
+  phone had updated from the banner: 1.12.40 came out at 12:16, the phone
+  had it by 12:18, and the 12:26 check found it up to date, so it was never
+  told. Now the release asks the backend to check as soon as it is
+  published (`.github/workflows/android-release.yml`), and the backend also
+  checks every 2 minutes by itself. A phone on an older version hears "New
+  Update!" within seconds, with its own recording in the account's language
+  (English or Tagalog, since 1.12.38), vibrating; tapping it opens Check for
+  updates.
+
+### Tests
+- `test/release_workflow_test.dart`: the release asks the backend once it is
+  published, asks again until the backend names that version, never fails
+  the release, and sends the backend nothing.
+
+---
+
 ## v1.12.40 — 13 November 2026 — The National ID camera, step to step; Lit's ring pulses
 
 Works with backend v1.12.31 as it is. No new permission.
