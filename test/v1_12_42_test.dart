@@ -14,6 +14,7 @@ import 'package:replit/api/api_cache.dart';
 import 'package:replit/api/api_client.dart';
 import 'package:replit/api/session.dart';
 import 'package:replit/api/web_only.dart';
+import 'package:replit/location/location_beacon.dart';
 import 'package:replit/screens/login_screen.dart';
 import 'package:replit/screens/notifications_screen.dart';
 import 'package:replit/screens/profile_screen.dart';
@@ -271,6 +272,31 @@ void main() {
 
   // ------------------------------------------------------------------------
   group('admin accounts are web only', () {
+    // WorkManager stands aside: on a Linux machine (the release workflow's)
+    // its plugin runs systemctl, which never finishes under the test clock,
+    // and signing out stops the closed-app reports through it.
+    setUp(() => LocationBeacon.schedulerOverride = const _Scheduler());
+    tearDown(() => LocationBeacon.schedulerOverride = null);
+
+    testWidgets('signing out goes ahead when nothing answers', (tester) async {
+      LocationBeacon.schedulerOverride = const _Scheduler(answers: false);
+      Session.instance.setTokens(accessToken: jwt('u-admin'), email: 'a@x.ph');
+      var done = false;
+      unawaited(
+        WebOnly.signOut(
+          ApiClient(
+            client: MockClient((_) => Completer<http.Response>().future),
+          ),
+        ).then((_) => done = true),
+      );
+      // The push registration, then the session: each waits its bound.
+      await tester.pump(WebOnly.cleanupFor);
+      await tester.pump(WebOnly.cleanupFor);
+      await tester.pump();
+      expect(done, isTrue);
+      expect(Session.instance.isAuthenticated, isFalse);
+    });
+
     test('an Admin, and only an Admin', () {
       expect(WebOnly.account({'role': 'admin'}), isTrue);
       for (final role in ['general_user', 'sub_admin', 'response_team']) {
@@ -325,7 +351,16 @@ void main() {
       await tester.enterText(find.byType(TextField).at(1), 'a-password');
       await tester.ensureVisible(find.text('SIGN IN'));
       await tester.tap(find.text('SIGN IN'));
-      await frames(tester, 10);
+      // Signing out is bounded (WebOnly.cleanupFor a step), so the message
+      // comes within that on any machine, however slow a step is.
+      for (
+        var waited = Duration.zero;
+        waited < WebOnly.cleanupFor * 3 &&
+            find.text(WebOnly.message).evaluate().isEmpty;
+        waited += const Duration(milliseconds: 250)
+      ) {
+        await tester.pump(const Duration(milliseconds: 250));
+      }
 
       expect(find.text(WebOnly.message), findsOneWidget);
       expect(find.byType(RoleGate), findsNothing);
@@ -525,4 +560,23 @@ void main() {
       expect(InboxWatcher.soundFor(item('test')), 'medical');
     });
   });
+}
+
+/// Stands in for WorkManager. [answers] false: a call never comes back.
+class _Scheduler extends BeaconScheduler {
+  const _Scheduler({this.answers = true});
+
+  final bool answers;
+
+  Future<void> _call() =>
+      answers ? Future<void>.value() : Completer<void>().future;
+
+  @override
+  Future<void> initialize() => _call();
+
+  @override
+  Future<void> schedule(String name, Duration every) => _call();
+
+  @override
+  Future<void> cancel(String name) => _call();
 }
