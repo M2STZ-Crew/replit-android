@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -154,6 +155,10 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
   bool _capturing = false;
   String? _error;
 
+  /// The photo just taken, shown in place of the live view while this
+  /// screen slides away: by then its camera is already let go of.
+  Uint8List? _still;
+
   /// The viewfinder and the guide on it, as last laid out: what the shutter
   /// measures the photo against.
   Size? _viewfinder;
@@ -215,6 +220,12 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     try {
       await previous?.dispose();
       await controller.initialize();
+      // Let go of while it opened (the photo taken, the screen closed): not
+      // this screen's camera any more.
+      if (!identical(_controller, controller)) {
+        await controller.dispose();
+        return;
+      }
       try {
         // A flash on a laminated card is the glare the screen warns about.
         await controller.setFlashMode(FlashMode.off);
@@ -258,6 +269,12 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
       final preview = c.value.previewSize;
       final viewfinder = _viewfinder;
       final guide = _guide;
+      // The camera is let go of before the next step opens its own (13
+      // November 2026: "the camera stucks after the front id capturing").
+      // Closed after that one has started, it took the new preview with it:
+      // Android's camera closes every preview there is, and an iPhone's two
+      // sessions on one camera clash.
+      await _release(still: bytes);
       if (preview != null && viewfinder != null && guide != null) {
         bytes = await GuideCrop.cropToGuide(
           bytes,
@@ -269,7 +286,13 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
       if (mounted) Navigator.of(context).pop<Uint8List>(bytes);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _capturing = false);
+      setState(() {
+        _capturing = false;
+        _still = null;
+      });
+      // Let go of for the next step, which is not coming: the camera again,
+      // for another try.
+      if (_controller == null && _lens != null) unawaited(_open());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(t('Could not take the photo. Try again.')),
@@ -279,11 +302,33 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     }
   }
 
+  /// Let go of the camera now, not when this screen is gone: the next one
+  /// may already be opening its own. [still] stands in for the live view
+  /// meanwhile.
+  Future<void> _release({Uint8List? still}) async {
+    final c = _controller;
+    _controller = null;
+    if (mounted) {
+      setState(() {
+        _ready = false;
+        if (still != null) _still = still;
+      });
+    }
+    await c?.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.pal.canvas,
-      body: LayoutBuilder(builder: _layout),
+    return PopScope(
+      // Closed or backed out of: the camera goes now, not after the slide,
+      // so the screen under this one (or the next) finds it free.
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) unawaited(_release());
+      },
+      child: Scaffold(
+        backgroundColor: context.pal.canvas,
+        body: LayoutBuilder(builder: _layout),
+      ),
     );
   }
 
@@ -385,6 +430,10 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     final stand = widget.preview;
     if (stand != null) return stand;
     if (_error != null) return _cameraError();
+    final still = _still;
+    if (still != null) {
+      return Image.memory(still, fit: BoxFit.cover, gaplessPlayback: true);
+    }
     final c = _controller;
     if (c == null ||
         !_ready ||

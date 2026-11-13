@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -56,6 +57,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   String? _camError;
   bool _capturing = false;
   bool _torch = false;
+
+  /// The photo just taken, shown in place of the live view while this
+  /// screen gives way to the next: by then its camera is let go of.
+  Uint8List? _still;
 
   final SosLocation _location = SosLocation.instance;
   String? _address;
@@ -156,6 +161,12 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     try {
       await prev?.dispose();
       await controller.initialize();
+      // Let go of while it opened (the photo taken, the screen closed): not
+      // this screen's camera any more.
+      if (!identical(_controller, controller)) {
+        await controller.dispose();
+        return;
+      }
       _torch = false;
       if (!_practice) ReportTiming.instance.mark('camera_ready');
       if (mounted) {
@@ -240,6 +251,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
         ReportTiming.instance.mark('photo_taken');
       }
       if (!mounted) return;
+      // Let go of the camera before the report screen, and a retake from
+      // it, open theirs (13 November 2026: the National ID's freeze between
+      // steps; the same would catch a quick Retake here).
+      await _release(still: bytes);
+      if (!mounted) return;
       _goToReport(bytes);
     } catch (_) {
       _toast(t('Could not capture the photo. Try again.'));
@@ -274,6 +290,21 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     );
   }
 
+  /// Let go of the camera now, not when this screen is gone: the next one
+  /// may already be opening its own (Android's camera, closed late, takes
+  /// every preview with it). [still] stands in for the live view meanwhile.
+  Future<void> _release({Uint8List? still}) async {
+    final c = _controller;
+    _controller = null;
+    if (mounted) {
+      setState(() {
+        _camReady = false;
+        if (still != null) _still = still;
+      });
+    }
+    await c?.dispose();
+  }
+
   /// The practice photo's file, gone from the phone.
   static Future<void> _discard(String path) async {
     try {
@@ -297,7 +328,15 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
   // ------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) => PracticeBack(child: _page(context));
+  Widget build(BuildContext context) => PracticeBack(
+    child: PopScope(
+      // Closed or backed out of: the camera goes now, not after the slide.
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) unawaited(_release());
+      },
+      child: _page(context),
+    ),
+  );
 
   Widget _page(BuildContext context) {
     return Scaffold(
@@ -381,6 +420,10 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
   }
 
   Widget _previewLayer() {
+    final still = _still;
+    if (still != null) {
+      return Image.memory(still, fit: BoxFit.cover, gaplessPlayback: true);
+    }
     final c = _controller;
     if (_camError != null) {
       return ColoredBox(color: context.pal.canvas);

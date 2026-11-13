@@ -79,6 +79,9 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   geolocator_platform_interface: ^4.3.0
+  # A camera stand-in for test/id_camera_handoff_test.dart (already in the
+  # lock through camera).
+  camera_platform_interface: ^2.13.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
