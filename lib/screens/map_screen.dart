@@ -24,12 +24,18 @@ import '../widgets/map_marker.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
 import '../widgets/you_are_here.dart';
+import '../widgets/skeleton.dart';
+import '../widgets/responsive_frame.dart';
+import '../location/last_place.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../updates/update_banner.dart';
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
+
+/// The zoom the map brings the resident to: their street and its neighbours.
+const double _streetZoom = 15.2;
 
 /// How far "near you" reaches in the areas sheet: the frame's "Within 1.5 km".
 const double _nearMetres = 1500;
@@ -177,6 +183,12 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final MapFollow _follow = MapFollow();
+
+  /// Where the map opens: the phone's latest fix this session, else the last
+  /// spot kept on the phone (LastPlace, v1.12.43), else Pasay City. Coming
+  /// back from the hotlines it no longer opens on Pasay and jumps.
+  late final LatLng? _start =
+      LivePosition.instance.here.value ?? LastPlace.value;
 
   late final ApiClient _api = widget.api ?? ApiClient();
   final MapController _map = MapController();
@@ -494,9 +506,18 @@ class _MapScreenState extends State<MapScreen> {
       });
       // Also where the live stream starts, now that permission is settled.
       LivePosition.instance.offer(here, accuracy: pos.accuracy);
-      if (recenter) _map.move(here, 15.2);
+      LastPlace.remember(here);
+      if (recenter) _bringTo(here);
       _streetFrom = here;
-      _street = await _streetAt(here);
+      // The last spot's street at once, when the resident is still on it;
+      // the geocoder's answer after.
+      final known = LastPlace.streetNear(here);
+      if (known != null && _street == null) setState(() => _street = known);
+      final street = await _streetAt(here);
+      if (street != null) {
+        _street = street;
+        LastPlace.remember(here, street: street);
+      }
       if (mounted) setState(() {});
       _lookUpAreaStreets();
     } on PermissionRequestInProgressException {
@@ -513,6 +534,21 @@ class _MapScreenState extends State<MapScreen> {
         t('Could not find your location yet. Move near a window or outdoors.'),
       );
     }
+  }
+
+  /// The map to [here] at street level, unless it is already there: opened
+  /// on the last spot, it stays still for a resident who has not moved.
+  void _bringTo(LatLng here) {
+    try {
+      final camera = _map.camera;
+      if (metresBetween(camera.center, here) < 30 &&
+          (camera.zoom - _streetZoom).abs() < 0.5) {
+        return;
+      }
+    } catch (_) {
+      // No camera yet: move.
+    }
+    _map.move(here, _streetZoom);
   }
 
   /// No fix to measure from: the sheet says why, unless one arrived some
@@ -539,12 +575,16 @@ class _MapScreenState extends State<MapScreen> {
       _accuracy = LivePosition.instance.accuracy ?? _accuracy;
       _locating = false;
       _locationProblem = null;
+      _street ??= LastPlace.streetNear(here);
     });
+    LastPlace.remember(here);
     final from = _streetFrom;
     if (from != null && metresBetween(from, here) > 150) {
       _streetFrom = here;
       _streetAt(here).then((street) {
-        if (street != null && mounted) setState(() => _street = street);
+        if (street == null) return;
+        LastPlace.remember(here, street: street);
+        if (mounted) setState(() => _street = street);
       });
       _lookUpAreaStreets();
     }
@@ -674,41 +714,50 @@ class _MapScreenState extends State<MapScreen> {
   // -------------------------------------------------------------- build ---
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.pal.background,
-      // The map runs under the tab bar, and the SOS disc sits over it.
-      extendBody: true,
-      bottomNavigationBar: const AppNavBar(active: AppTab.map),
-      body: BackdropGroup(
-        child: Builder(
-          // Under extendBody the body's bottom padding is the bar's height —
-          // read here, below the Scaffold, not from the State's context.
-          builder: (context) {
-            final clearance = MediaQuery.paddingOf(context).bottom;
-            return Stack(
-              children: [
-                Positioned.fill(child: _mapLayer()),
-                const Positioned.fill(child: IgnorePointer(child: _Vignette())),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: _sheet(clearance),
-                ),
-                Positioned(top: 0, left: 0, right: 0, child: _topControls()),
-                if (_loading)
-                  const Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: LinearProgressIndicator(
-                      minHeight: 2,
-                      backgroundColor: Colors.transparent,
-                    ),
+    // The whole tablet (v1.12.43: maps full, the rest centred).
+    return FullBleed(
+      child: Scaffold(
+        backgroundColor: context.pal.background,
+        // The map runs under the tab bar, and the SOS disc sits over it.
+        extendBody: true,
+        bottomNavigationBar: const AppNavBar(active: AppTab.map),
+        body: BackdropGroup(
+          child: LayoutBuilder(
+            // Under extendBody the body's bottom padding is the bar's height —
+            // read here, below the Scaffold, not from the State's context.
+            builder: (context, box) {
+              final clearance = MediaQuery.paddingOf(context).bottom;
+              // On a tablet the sheet keeps the column's width, centred.
+              final side = box.maxWidth > ResponsiveFrame.threshold
+                  ? (box.maxWidth - ResponsiveFrame.maxWidth) / 2
+                  : 0.0;
+              return Stack(
+                children: [
+                  Positioned.fill(child: _mapLayer()),
+                  const Positioned.fill(
+                    child: IgnorePointer(child: _Vignette()),
                   ),
-              ],
-            );
-          },
+                  Positioned(
+                    left: side,
+                    right: side,
+                    bottom: 0,
+                    child: _sheet(clearance),
+                  ),
+                  Positioned(top: 0, left: 0, right: 0, child: _topControls()),
+                  if (_loading)
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(
+                        minHeight: 2,
+                        backgroundColor: Colors.transparent,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -721,8 +770,8 @@ class _MapScreenState extends State<MapScreen> {
     return FlutterMap(
       mapController: _map,
       options: MapOptions(
-        initialCenter: _pasayCenter,
-        initialZoom: 13,
+        initialCenter: _start ?? _pasayCenter,
+        initialZoom: _start == null ? 13 : _streetZoom,
         minZoom: 4,
         maxZoom: 18,
         backgroundColor: context.pal.background,
@@ -942,8 +991,13 @@ class _MapScreenState extends State<MapScreen> {
     final title = _myLoc == null
         ? t('LOCATING YOU')
         : (_street ?? t("You're here")).toUpperCase();
+    // While the fix is coming, its shape (v1.12.43), not a place: the map
+    // shows where the resident last was, not where they are yet.
+    final finding = _myLoc == null && _locating;
     final caption = _myLoc == null
-        ? t('Showing Pasay City until a fix arrives')
+        ? (_start == null
+              ? t('Showing Pasay City until a fix arrives')
+              : t('Showing where you last were'))
         : _accuracy == null
         ? t('Location on')
         : t('GPS accurate to {m} m', {'m': _accuracy!.round()});
@@ -979,14 +1033,22 @@ class _MapScreenState extends State<MapScreen> {
                         style: context.type.subtitle,
                       ),
                       const SizedBox(height: 5),
-                      Text(
-                        caption,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.type.caption.copyWith(
-                          color: context.pal.textSoft,
+                      if (finding)
+                        const SkeletonShimmer(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 3),
+                            child: SkeletonBar(width: 150),
+                          ),
+                        )
+                      else
+                        Text(
+                          caption,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.type.caption.copyWith(
+                            color: context.pal.textSoft,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -1180,7 +1242,13 @@ class _MapScreenState extends State<MapScreen> {
     if (_loading || (_myLoc == null && _locating)) {
       return [
         _sheetNote(t('Checking what is happening around you…')),
-        const _CheckingRow(),
+        // Two rows' shape, shimmering (v1.12.43: "create a skeleton loading
+        // on that map screen").
+        const SkeletonShimmer(
+          child: Column(
+            children: [_CheckingRow(), SizedBox(height: 8), _CheckingRow()],
+          ),
+        ),
       ];
     }
     if (!_areasLoaded) {
@@ -1700,7 +1768,8 @@ class _SheetRow extends StatelessWidget {
 
 /// A [_SheetRow]'s shape in placeholder bars, while the sheet checks: the
 /// skeleton idiom of the summary card ("Lit's place and skeleton lines, not a
-/// spinner alone"), still, so it reads the same with reduced motion.
+/// spinner alone"). Since v1.12.43 a [SkeletonShimmer] passes light over it,
+/// still under reduced motion.
 class _CheckingRow extends StatelessWidget {
   const _CheckingRow();
 

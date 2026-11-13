@@ -8,6 +8,7 @@ import '../models/active_report.dart';
 import '../screens/profile_screen.dart';
 import '../screens/report_status_screen.dart';
 import '../theme.dart';
+import 'responsive_frame.dart';
 import '../tutorial/lit_lessons.dart';
 import '../tutorial/practice.dart';
 import 'app_icons.dart';
@@ -142,22 +143,31 @@ class NavBarShell extends StatelessWidget {
                 ),
                 border: Border(top: BorderSide(color: context.pal.line)),
               ),
+              // Edge to edge on a tablet; its tabs keep the column's width,
+              // centred under the disc (v1.12.43).
               child: Padding(
                 padding: EdgeInsets.fromLTRB(8, _top, 8, below),
-                child: Row(
-                  children: [
-                    for (final (i, item) in items.indexed)
-                      Expanded(
-                        child: i == discSlot
-                            // The disc owns this slot; it sits above the row.
-                            ? const SizedBox.shrink()
-                            : _NavItem(
-                                item: item,
-                                position: i + 1,
-                                of: items.length,
-                              ),
-                      ),
-                  ],
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: ResponsiveFrame.maxWidth,
+                    ),
+                    child: Row(
+                      children: [
+                        for (final (i, item) in items.indexed)
+                          Expanded(
+                            child: i == discSlot
+                                // The disc owns this slot; it sits above the row.
+                                ? const SizedBox.shrink()
+                                : _NavItem(
+                                    item: item,
+                                    position: i + 1,
+                                    of: items.length,
+                                  ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

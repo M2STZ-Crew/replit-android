@@ -338,6 +338,7 @@ const Map<String, String> kTagalog = {
   'NO SIGNAL': 'WALANG SIGNAL',
   'RESPONDERS': 'MGA RESPONDER',
   'LOCATING YOU': 'HINAHANAP KA',
+  'Showing where you last were': 'Ipinapakita kung saan ka huling naroon',
   'You\'re here': 'Nandito ka',
   'Showing Pasay City until a fix arrives':
       'Ipinapakita ang Pasay City hanggang makuha ang lokasyon mo',
@@ -2251,6 +2252,7 @@ const Map<String, String> kTagalog = {
   '{photo}, taken': '{photo}, nakuha na',
   '{photo}, now': '{photo}, ngayon',
   'CHECK YOUR PHOTOS': 'TINGNAN ANG MGA LITRATO MO',
+  '{photo} taken': 'Nakuha na ang {photo}',
   'Each photo shows exactly what was inside the guide. Retake one without losing the others.':
       'Ipinapakita ng bawat litrato ang eksaktong nasa loob ng gabay. Kunan ulit ang isa nang hindi nawawala ang iba.',
   'All four corners should be visible': 'Dapat kita ang apat na sulok',

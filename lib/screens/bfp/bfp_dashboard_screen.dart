@@ -18,6 +18,7 @@ import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/responsive_frame.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _panel => ThemeChoice.palette.glassDim;
@@ -140,7 +141,11 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
 
   // ------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     return StaffScaffold(
       me: widget.me,
       page: StaffPage.dashboard,

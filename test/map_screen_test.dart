@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -13,6 +15,9 @@ import 'package:replit/widgets/map_marker.dart';
 import 'package:replit/api/api_client.dart';
 import 'package:replit/api/report_queue.dart';
 import 'package:replit/location/live_position.dart';
+import 'package:replit/location/last_place.dart';
+import 'package:replit/widgets/responsive_frame.dart';
+import 'package:replit/widgets/skeleton.dart';
 import 'package:replit/models/hotline.dart';
 import 'package:replit/screens/map_screen.dart';
 import 'package:replit/theme.dart';
@@ -399,6 +404,90 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('That is the good outcome'), findsNothing);
+    });
+  });
+
+  // v1.12.43 (13 November 2026: "the map still locates pasay, what if the map
+  // stays still where the user is or was. and it has "LOCATING YOU""; "create
+  // a skeleton loading on that map screen"). The map opens where the resident
+  // last was, and says LOCATING YOU over a skeleton until the fix answers.
+  group('the map opens where the resident last was', () {
+    const lastSpot = LatLng(14.5520, 121.0050);
+
+    MapOptions optionsOf(WidgetTester tester) =>
+        tester.widget<FlutterMap>(find.byType(FlutterMap)).options;
+
+    testWidgets('on the last spot, at street level, LOCATING YOU over a '
+        'skeleton until the GPS answers', (tester) async {
+      LastPlace.remember(lastSpot, street: 'Concha Street');
+      GeolocatorPlatform.instance = _WaitingGeo();
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+
+      expect(optionsOf(tester).initialCenter, lastSpot);
+      expect(optionsOf(tester).initialZoom, greaterThan(15));
+      expect(find.text('LOCATING YOU'), findsOneWidget);
+      // Not a made-up place: the card and the sheet show their shape.
+      expect(find.text('Showing Pasay City until a fix arrives'), findsNothing);
+      expect(find.byType(SkeletonShimmer), findsNWidgets(2));
+      expect(
+        find.text('Checking what is happening around you…'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the last street names a fix on the same spot at once', (
+      tester,
+    ) async {
+      // The fake GPS answers at Pasay's centre: the street found there.
+      LastPlace.remember(
+        const LatLng(14.5378, 121.0014),
+        street: 'Concha Street',
+      );
+      await pump(tester);
+      expect(tester.takeException(), isNull);
+      expect(find.text('CONCHA STREET'), findsOneWidget);
+      expect(find.text('LOCATING YOU'), findsNothing);
+      expect(find.byType(SkeletonShimmer), findsNothing);
+    });
+
+    testWidgets('a phone that never had a fix starts on Pasay', (tester) async {
+      GeolocatorPlatform.instance = _WaitingGeo();
+      await pump(tester);
+      expect(optionsOf(tester).initialCenter, const LatLng(14.5378, 121.0014));
+      expect(optionsOf(tester).initialZoom, 13);
+      expect(find.text('LOCATING YOU'), findsOneWidget);
+    });
+
+    testWidgets('the fix is kept as the last spot for the next time', (
+      tester,
+    ) async {
+      await pump(tester);
+      expect(LastPlace.value, const LatLng(14.5378, 121.0014));
+    });
+
+    testWidgets('on a tablet the map fills the screen; its sheet keeps the '
+        'column', (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: MapScreen(api: api()),
+        ),
+      );
+      for (var i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(tester.takeException(), isNull);
+      expect(tester.getSize(find.byType(FlutterMap)).width, 1280);
+      final sheet = tester.getTopLeft(find.text('ACTIVE AREAS NEAR YOU')).dx;
+      expect(
+        sheet,
+        greaterThanOrEqualTo((1280 - ResponsiveFrame.maxWidth) / 2),
+        reason: 'the sheet is the column, centred',
+      );
     });
   });
 }

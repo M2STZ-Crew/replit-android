@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replit/api/api_cache.dart';
 import 'package:replit/api/live_hub.dart';
+import 'package:replit/location/last_place.dart';
 import 'package:replit/widgets/you_are_here.dart';
 
 /// Runs before every test file.
@@ -23,6 +24,9 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   MapLocationSource.headings = () => const Stream.empty();
   // Every test starts with no answers kept from the one before (ApiCache).
   setUp(ApiCache.instance.reset);
+  // ...and as a phone that has never had a fix: the map starts on Pasay
+  // unless a test gives it a last spot (LastPlace).
+  setUp(LastPlace.reset);
   await testMain();
 }
 
