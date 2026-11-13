@@ -70,6 +70,10 @@ it is still fetching ... do it to all screens as possible".
   registered for the account's pushes.
 - **An Admin already signed in on a phone** is signed out when the app
   opens, and told the same.
+- **Signing out never holds the message.** Each server step gets at most 5
+  seconds (`WebOnly.cleanupFor`): dropping the phone's push registration,
+  then revoking the session. The session on the phone is forgotten either
+  way.
 
 ### Barangay 76's teams
 Done in the data with backend v1.12.33; no app change is needed.
@@ -91,7 +95,11 @@ Done in the data with backend v1.12.33; no app change is needed.
     percentage before the verification answers; asking again when told.
   - Alerts listed at once.
   - An Admin refused at sign in with nothing kept; a resident signs in as
-    before.
+    before; signing out goes ahead when nothing answers.
+  - The admin tests stand WorkManager aside (`LocationBeacon`'s test
+    scheduler). The first 1.12.42 build failed on the release workflow's
+    Linux machine: there WorkManager's plugin cancels a task by running
+    `systemctl`, which never finishes under the test clock.
   - The channels made are exactly the ones the server names, each with its
     file; the old ones are retired; the fallback channel plays the
     residents' recording.

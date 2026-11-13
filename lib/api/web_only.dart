@@ -27,13 +27,24 @@ abstract final class WebOnly {
 
   /// Signs this phone out of the account: it stops getting the account's
   /// pushes, and the session is revoked and forgotten. Never throws.
+  ///
+  /// The server's part is best-effort and bounded ([cleanupFor]): a slow
+  /// server, or a background scheduler that never answers, must not keep
+  /// the person from hearing where to go.
   static Future<void> signOut(ApiClient api) async {
     try {
-      await PushService.instance.unregister();
+      await PushService.instance.unregister().timeout(cleanupFor);
     } catch (_) {
-      // Its phone may never have been registered.
+      // Its phone may never have been registered, or nothing answered.
     }
-    await api.logout();
+    try {
+      await api.logout().timeout(cleanupFor);
+    } catch (_) {
+      // The session is forgotten below either way.
+    }
     await Session.instance.clear();
   }
+
+  /// How long signing out waits on each step before going on anyway.
+  static const Duration cleanupFor = Duration(seconds: 5);
 }
