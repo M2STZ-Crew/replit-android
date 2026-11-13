@@ -241,6 +241,33 @@ jobs:
           fi
           echo "Published $apk ($size bytes) on release $tag."
 
+      # "New Update!" at once (backend v1.12.32; 13 Nov 2026: "the "new
+      # update" push notification doesn't work on my android phone"). The
+      # backend told phones of a release at its next check, 10 minutes apart,
+      # and by then the phone had updated from the banner. Now this asks it to
+      # check as soon as the release is up. The backend reads the release
+      # from GitHub itself (this sends it nothing) and answers with the
+      # version it found, so this asks again until that is the one just
+      # published. A backend that cannot be reached finds the release at its
+      # own check, every 2 minutes, so this never fails the release.
+      - name: Tell phones on an older version ("New Update!")
+        continue-on-error: true
+        env:
+          REPLIT_API_BASE: ${{ vars.REPLIT_API_BASE }}
+        run: |
+          version=$(sed -nE 's/^version: *([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' pubspec.yaml)
+          url="${REPLIT_API_BASE%/}/app-updates/check"
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            found=$(curl -sS --max-time 90 -X POST "$url" | jq -r '.version // empty' 2>/dev/null || true)
+            echo "Ask $attempt: the backend found ${found:-no release}."
+            if [ "$found" = "$version" ]; then
+              echo "Phones on an older version are being told of $version."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::warning::The backend did not confirm $version; its own check, every 2 minutes, will tell the phones."
+
       - name: Remove the secret files
         if: always()
         run: |
