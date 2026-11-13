@@ -403,10 +403,13 @@ void main() {
       await tester.enterText(field('you@email.com'), 'captain@example.com');
       await tester.enterText(field('Your password'), 'long-enough-1');
       await tap(tester, find.text('SIGN IN'));
-      expect(calls.single.$2, {
+      expect(calls.first.$1, '/auth/login');
+      expect(calls.first.$2, {
         'email': 'captain@example.com',
         'password': 'long-enough-1',
       });
+      // v1.12.42: then the account, so an Admin is kept out (WebOnly).
+      expect(paths(), contains('/auth/me'));
       expect(find.byType(RoleGate), findsOneWidget);
     });
 
@@ -451,11 +454,13 @@ void main() {
         await tester.enterText(field('Your password'), 'long-enough-1');
         await tap(tester, find.text('SIGN IN'));
 
-        expect(calls.single.$1, '/auth/login');
-        expect(calls.single.$2, {
+        expect(calls.first.$1, '/auth/login');
+        expect(calls.first.$2, {
           'phone': '0917 123 4567',
           'password': 'long-enough-1',
         });
+        // v1.12.42: then the account, so an Admin is kept out (WebOnly).
+        expect(paths(), contains('/auth/me'));
         expect(find.byType(RoleGate), findsOneWidget);
       });
 

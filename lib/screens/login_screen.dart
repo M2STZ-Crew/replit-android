@@ -7,6 +7,7 @@ import '../api/api_client.dart';
 import '../api/api_config.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../api/web_only.dart';
 import '../models/phone_numbers.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
@@ -32,9 +33,13 @@ import '../i18n/i18n.dart';
 /// which is the delay people see at sign-in. So the screen starts waking it as
 /// it opens, while they type, and says what is happening if they still wait.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.api, this.openLink});
+  const LoginScreen({super.key, this.api, this.openLink, this.notice});
 
   final ApiClient? api;
+
+  /// Said as the screen opens: why the person is back here (an Admin
+  /// account, which signs in on the web: WebOnly).
+  final String? notice;
 
   /// Opens a page in the phone's browser; a test's stand-in.
   final Future<bool> Function(Uri uri)? openLink;
@@ -62,6 +67,12 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     unawaited(_api.wakeServer());
+    final notice = widget.notice;
+    if (notice != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showError(notice, long: true);
+      });
+    }
   }
 
   @override
@@ -99,12 +110,29 @@ class _LoginScreenState extends State<LoginScreen> {
         phone: _byEmail ? null : phone,
         password: password,
       );
+      // An Admin works in the web console, not here: refused before its
+      // session is kept or its phone registered for pushes (WebOnly).
+      Map<String, dynamic>? me;
+      try {
+        me = await _api.getMe().timeout(ApiClient.signInTimeout);
+      } catch (_) {
+        // RoleGate loads the account again, and refuses an Admin there.
+      }
+      if (WebOnly.account(me)) {
+        await WebOnly.signOut(_api);
+        _showError(WebOnly.message, long: true);
+        return;
+      }
+      if (me != null) {
+        // The account's language, as the console or another phone left it.
+        await LanguageChoice.adopt(me['language']);
+      }
       await Session.instance.persist();
       unawaited(PushService.instance.syncForUser());
       if (!mounted) return;
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const RoleGate()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => RoleGate(initialMe: me)),
+      );
     } on ApiException catch (e) {
       _showError(
         e.statusCode == 401 && e.message == 'Invalid login credentials'
@@ -164,9 +192,17 @@ class _LoginScreenState extends State<LoginScreen> {
   static Future<bool> _openInBrowser(Uri uri) =>
       launchUrl(uri, mode: LaunchMode.externalApplication);
 
-  void _showError(String message) {
+  /// [long]: a message to read and act on (an Admin sent to the web),
+  /// shown for longer than a typing mistake.
+  void _showError(String message, {bool long = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: context.pal.live),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: context.pal.live,
+        duration: long
+            ? const Duration(seconds: 10)
+            : const Duration(seconds: 4),
+      ),
     );
   }
 

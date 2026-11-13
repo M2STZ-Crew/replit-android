@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../api/api_cache.dart';
 import '../api/api_client.dart';
 import '../models/resident_status.dart';
 import '../theme.dart';
@@ -56,6 +57,10 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   @override
   void initState() {
     super.initState();
+    // As this session last saw them (ApiCache, v1.12.42).
+    _reports = ApiCache.instance
+        .peek<List<dynamic>>(ApiCache.myReports)
+        ?.cast<Map<String, dynamic>>();
     _load();
   }
 

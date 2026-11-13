@@ -39,4 +39,11 @@ class ApiConfig {
     'REPLIT_AFFILIATE_REGISTER',
     defaultValue: 'https://replit-backend-5u9u.vercel.app/register',
   );
+
+  /// The Admin console, on the web: where an Admin account signs in. The app
+  /// does not open one (WebOnly, v1.12.42).
+  static const String adminConsoleUrl = String.fromEnvironment(
+    'REPLIT_ADMIN_CONSOLE',
+    defaultValue: 'https://reportwhatslit.vercel.app',
+  );
 }

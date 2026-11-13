@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../api/api_cache.dart';
 import '../api/api_client.dart';
 import '../api/notification_router.dart';
 import '../theme.dart';
@@ -57,6 +58,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
+    // The alerts as this phone last saw them (ApiCache, v1.12.42): listed at
+    // once, refreshed behind them.
+    final cached = ApiCache.instance.peek<List<dynamic>>(
+      ApiCache.notifications,
+    );
+    if (cached != null) {
+      _items = cached.cast<Map<String, dynamic>>();
+      _loading = false;
+    }
     _load();
   }
 
@@ -89,6 +99,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           for (final n in _items) {...n, 'is_read': true},
         ];
       });
+      // So the next visit does not show them unread for a moment.
+      ApiCache.instance.put(ApiCache.notifications, _items, onPhone: true);
     }
   }
 

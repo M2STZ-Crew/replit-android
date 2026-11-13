@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../api/api_cache.dart';
 import '../api/api_client.dart';
 import '../api/session.dart';
 import '../models/phone_numbers.dart';
@@ -40,6 +41,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
   @override
   void initState() {
     super.initState();
+    // As this phone last saw it (ApiCache), refreshed behind it (v1.12.42).
+    final status = ApiCache.instance.peek<Map<String, dynamic>>(
+      ApiCache.verification,
+    );
+    if (status != null) {
+      _state = VerificationState.fromJson(status);
+      _loaded = true;
+    }
+    _email =
+        ApiCache.instance.peek<Map<String, dynamic>>(ApiCache.me)?['email']
+            as String?;
     _load();
   }
 

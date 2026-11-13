@@ -68,10 +68,12 @@ void main() {
     expect(SoundCues.categories.contains('reported'), isFalse);
   });
 
-  test('res/raw keeps its list: a new file renumbers the channels', () {
-    // A channel made before v1.12.23 holds its recording by resource number,
-    // and the numbers follow this list alphabetically (MainActivity.kt). A
-    // change here moves what those channels play: give them new ids first.
+  test('res/raw holds the recordings', () {
+    // Until v1.12.42 this list could not change: a channel made before
+    // v1.12.23 held its recording by resource number, and the numbers follow
+    // this list alphabetically. v1.12.42 deletes every such channel and makes
+    // each sound's channel by name (MainActivity.kt), so the National ID's
+    // two recordings could join it.
     final names = [
       for (final f in Directory(raw).listSync()) f.uri.pathSegments.last,
     ]..sort();
@@ -81,16 +83,27 @@ void main() {
       'sound_citizen.mp3',
       'sound_fire.mp3',
       'sound_fire_out.mp3',
+      'sound_id_rejected.mp3',
+      'sound_id_verified.mp3',
       'sound_medical.mp3',
       'sound_on_route.mp3',
       'sound_on_scene.mp3',
       'sound_police.mp3',
       'sound_rejected.mp3',
       'sound_verified.mp3',
-      // v1.12.38, after every older file: nothing above moves.
       'update_en.mp3',
       'update_tl.mp3',
     ]);
+    // The release build's shrinker keeps every one (they are named only by
+    // the server and the channels).
+    final keep = File('$raw/keep.xml').readAsStringSync();
+    for (final name in names.where((n) => n.endsWith('.mp3'))) {
+      expect(
+        keep,
+        contains('@raw/${name.replaceAll('.mp3', '')}'),
+        reason: '$name must be in keep.xml',
+      );
+    }
   });
 
   test('each stage of an incident has a recording of its own', () {

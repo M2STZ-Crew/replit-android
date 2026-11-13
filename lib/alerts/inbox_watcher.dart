@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../api/api_cache.dart';
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
@@ -128,6 +129,10 @@ class InboxWatcher with WidgetsBindingObserver {
   /// Ring for one inbox item: its sound, a vibration, the banner.
   @visibleForTesting
   Future<void> announce(Map<String, dynamic> item) async {
+    // The account's own news: Profile, showing it, asks again (v1.12.42).
+    if (item['type'] == 'national_id_reviewed') {
+      ApiCache.instance.accountChangedNow();
+    }
     unawaited(Buzz.alert());
     unawaited(SoundCues.instance.playAlert(soundFor(item)));
     final title = (item['title'] as String?) ?? 'RepLiT';
@@ -145,6 +150,12 @@ class InboxWatcher with WidgetsBindingObserver {
   /// The sound a push of this kind plays (app/integrations/fcm.py,
   /// incident_notify.py): a report's stage, a staff member's agency alarm,
   /// the fire near you; the general one otherwise.
+  ///
+  /// v1.12.42, as the server's pushes (backend v1.12.33): a fire near a
+  /// resident plays "01 NEARBY INCIDENT", the citizen recording, not the
+  /// staff fire alarm; a staff member's other news plays their agency's
+  /// recording; an alarm request and its answer the fire one; the National
+  /// ID's result its own, which the inbox row names.
   static String soundFor(Map<String, dynamic> item) {
     final data = item['data'];
     final event = data is Map ? data['event'] as String? : null;
@@ -152,11 +163,18 @@ class InboxWatcher with WidgetsBindingObserver {
     if (category != null && SoundCues.categories.contains(category)) {
       return category;
     }
+    final staff = StaffAccount.current;
+    final agencySound = SoundCues.categoryForAgency(
+      staff?['agency_type'] as String?,
+    );
     return switch (item['type']) {
-      'fire_alert' => 'fire',
-      'incident_new' => SoundCues.categoryForAgency(
-        StaffAccount.current?['agency_type'] as String?,
-      ),
+      'fire_alert' => 'citizen',
+      'incident_new' ||
+      'responder_dispatch' ||
+      'incident_routed' ||
+      'incident_reminder' => agencySound,
+      'alarm_request' || 'alarm_request_answered' => 'fire',
+      'test' => staff == null ? 'citizen' : agencySound,
       'incident_update' => switch (event) {
         'incident_verified' => 'verified',
         'incident_en_route' => 'on_route',
