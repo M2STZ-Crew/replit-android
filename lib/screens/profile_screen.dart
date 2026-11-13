@@ -32,6 +32,7 @@ import 'verification_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../i18n/language_switch.dart';
+import '../widgets/responsive_frame.dart';
 
 /// "15 Profile" from the REPLIT-OVERHAUL Figma — "Your profile", now a tab.
 ///
@@ -359,7 +360,11 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // -------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     // As a tab it is the only route: it carries the bar and has nothing to go
     // back to. Opened from elsewhere it keeps a back chevron.
     final pushed = Navigator.of(context).canPop();
@@ -367,7 +372,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Scaffold(
       backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.profile),
-      body: SafeArea(
+      body: ReadingSafeArea(
         bottom: false,
         child: ScrollFade(
           child: RefreshIndicator(

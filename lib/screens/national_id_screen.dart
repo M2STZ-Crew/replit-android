@@ -65,26 +65,46 @@ class _NationalIdScreenState extends State<NationalIdScreen> {
   bool _submitting = false;
   String? _error;
 
-  /// Take one photo with the camera. Null means they closed it, which is not
-  /// an error; a camera that cannot start says so on its own screen.
+  /// One visit to the camera for [shots], taken in turn in that one screen
+  /// (v1.12.43): the photos it took, by shot. Closing it is not an error; a
+  /// camera that cannot start says so on its own screen.
+  Future<Map<IdShot, Uint8List>> _visit(List<IdShot> shots) async {
+    final taken = await Navigator.of(context).push<Map<IdShot, Uint8List>>(
+      MaterialPageRoute(
+        builder: (_) =>
+            IdCameraScreen(shots: shots, taken: _photos.keys.toSet()),
+      ),
+    );
+    return taken ?? const {};
+  }
+
+  /// Take one photo again (Retake). Null means they closed the camera.
   Future<Uint8List?> _capture(IdShot shot) async {
     final camera = widget.camera;
     if (camera != null) return camera(shot);
-    return Navigator.of(context).push<Uint8List>(
-      MaterialPageRoute(
-        builder: (_) => IdCameraScreen(shot: shot, taken: _photos.keys.toSet()),
-      ),
-    );
+    return (await _visit([shot]))[shot];
   }
 
-  /// Take ID photo: the three in turn, then Check your photos. Closing a
+  /// Take ID photo: those still missing, in one camera, then Check your
+  /// photos (v1.12.43: "the step by step is not seamless": each photo had a
+  /// camera of its own, and this screen showed between them). Closing the
   /// camera stops there; what was taken is kept for the next go.
   Future<void> _takePhotos() async {
-    for (final shot in IdShot.values) {
-      if (_photos.containsKey(shot)) continue;
-      final bytes = await _capture(shot);
-      if (bytes == null || !mounted) return;
-      setState(() => _photos[shot] = bytes);
+    final missing = [
+      for (final shot in IdShot.values)
+        if (!_photos.containsKey(shot)) shot,
+    ];
+    if (widget.camera != null) {
+      for (final shot in missing) {
+        final bytes = await _capture(shot);
+        if (bytes == null || !mounted) return;
+        setState(() => _photos[shot] = bytes);
+      }
+    } else if (missing.isNotEmpty) {
+      final taken = await _visit(missing);
+      if (!mounted) return;
+      setState(() => _photos.addAll(taken));
+      if (_photos.length < IdShot.values.length) return;
     }
     if (!mounted) return;
     setState(() {

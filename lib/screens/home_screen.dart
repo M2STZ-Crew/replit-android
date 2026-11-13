@@ -16,6 +16,7 @@ import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 /// "07 SOS" from the REPLIT-OVERHAUL Figma — the screen behind the SOS disc.
 ///
@@ -166,11 +167,15 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     return Scaffold(
       backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.sos),
-      body: SafeArea(
+      body: ReadingSafeArea(
         bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(

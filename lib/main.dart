@@ -10,7 +10,6 @@ import 'api/push_service.dart';
 import 'app_version.dart';
 import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
-import 'widgets/responsive_frame.dart';
 import 'widgets/launch_mark.dart';
 import 'updates/update_nudge.dart';
 import 'theme.dart';
@@ -25,6 +24,7 @@ import 'screens/phone_verify_screen.dart';
 import 'screens/report_status_screen.dart';
 import 'screens/role_gate.dart';
 import 'alerts/inbox_watcher.dart';
+import 'location/last_place.dart';
 import 'screens/signed_in_elsewhere_screen.dart';
 
 Future<void> main() async {
@@ -63,6 +63,8 @@ Future<void> main() async {
   // A report in progress survives the app being closed: read it now so the
   // first screen after sign-in can go straight back to it.
   await ActiveReportStore.load();
+  // Where the map opens: the last spot this phone knew (v1.12.43).
+  await LastPlace.load();
   // A report saved with no signal in an earlier session starts retrying now,
   // and says so wherever the person is in the app when it finally goes.
   unawaited(ReportQueue.instance.load());
@@ -182,14 +184,15 @@ class _RepLitAppState extends State<RepLitApp> with WidgetsBindingObserver {
           themeMode: light ? ThemeMode.light : ThemeMode.dark,
           scaffoldMessengerKey: PushService.messengerKey,
           navigatorKey: PushService.navigatorKey,
-          // On a tablet the app keeps the column the design was drawn in
-          // rather than stretching it across the room.
+          // On a tablet each screen keeps the column the design was drawn
+          // in, or fills the tablet when it is a map or a camera: each page
+          // has its own frame (ResponsiveFrame, through the theme's page
+          // transitions; v1.12.43), not the whole app one.
           //
           // Over all of it, a release build's block while Android's Developer
           // options are on (lib/security/developer_mode.dart).
-          builder: (context, child) => DeveloperModeGate(
-            child: ResponsiveFrame(child: child ?? const SizedBox.shrink()),
-          ),
+          builder: (context, child) =>
+              DeveloperModeGate(child: child ?? const SizedBox.shrink()),
           home: const SplashScreen(),
         ),
       ),

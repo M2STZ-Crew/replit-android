@@ -31,6 +31,7 @@ import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/responsive_frame.dart';
 
 /// A unit within this distance of the Area's centre is on scene.
 const double _onSceneMetres = 100;
@@ -1001,7 +1002,11 @@ class LiveIncidentScreen extends StatelessWidget {
   final ApiClient? api;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     return Scaffold(
       backgroundColor: context.pal.background,
       body: Stack(

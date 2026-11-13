@@ -301,7 +301,7 @@ void main() {
                 textScaler: TextScaler.linear(scale),
               ),
               child: IdCameraScreen(
-                shot: shot,
+                shots: [shot],
                 taken: taken,
                 preview: const ColoredBox(color: Colors.blueGrey),
               ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'widgets/responsive_frame.dart';
+
 /// Design tokens from the "General User App v2" hand-off (Claude Design).
 ///
 /// The rules the design holds to, which everything below encodes:
@@ -917,6 +919,11 @@ ThemeData buildAppTheme([AppPalette pal = AppPalette.dark]) {
   final type = AppType(pal);
   return base.copyWith(
     extensions: <ThemeExtension<dynamic>>[pal],
+    // Every pushed page in its own frame: a column on a tablet, or the whole
+    // tablet for a map or a camera (ResponsiveFrame, v1.12.43).
+    pageTransitionsTheme: FramedPageTransitions.around(
+      base.pageTransitionsTheme,
+    ),
     scaffoldBackgroundColor: pal.background,
     canvasColor: pal.background,
     colorScheme: base.colorScheme.copyWith(

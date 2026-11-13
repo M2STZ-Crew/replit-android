@@ -12,6 +12,7 @@ import 'profile_tab.dart';
 import 'queue_tab.dart';
 import '../../i18n/i18n.dart';
 import '../../updates/update_banner.dart';
+import '../../widgets/responsive_frame.dart';
 
 /// The coordinator's five destinations (REPLIT (MAIN) 06 · Coordinator
 /// Experience): Queue, Map, the raised LIVE disc, Codes, Profile.
@@ -119,7 +120,11 @@ class CoordinatorShellState extends State<CoordinatorShell> {
   }
 
   Widget _build(CoordinatorTab tab) => switch (tab) {
-    CoordinatorTab.queue => QueueTab(feed: feed, shell: this),
+    // The reading tabs keep the column on a tablet; the map and LIVE
+    // fill it (v1.12.43).
+    CoordinatorTab.queue => ReadingColumn(
+      child: QueueTab(feed: feed, shell: this),
+    ),
     CoordinatorTab.map => MapTab(feed: feed, shell: this),
     CoordinatorTab.live => LiveTab(
       feed: feed,
@@ -127,12 +132,18 @@ class CoordinatorShellState extends State<CoordinatorShell> {
       visible: _tab == CoordinatorTab.live,
       onFocus: (id) => setState(() => _liveFocus = id),
     ),
-    CoordinatorTab.codes => CodesTab(feed: feed, focus: _liveFocus),
-    CoordinatorTab.profile => ProfileTab(feed: feed),
+    CoordinatorTab.codes => ReadingColumn(
+      child: CodesTab(feed: feed, focus: _liveFocus),
+    ),
+    CoordinatorTab.profile => ReadingColumn(child: ProfileTab(feed: feed)),
   };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     return PopScope(
       // Back from any other tab is the queue; Back from the queue leaves.
       canPop: _tab == CoordinatorTab.queue,

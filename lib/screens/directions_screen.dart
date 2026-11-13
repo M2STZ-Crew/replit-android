@@ -28,6 +28,7 @@ import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/you_are_here.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -431,7 +432,11 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   // ------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     final origin = _origin;
     final navigating = _nav.navigating && !_nav.arrived;
     final banner = navigating ? _banner() : null;

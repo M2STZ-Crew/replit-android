@@ -19,6 +19,7 @@ import '../widgets/loading.dart';
 import 'sos_report_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 /// A photo taken again from the report screen, with the place it names.
 typedef RetakenPhoto = ({List<int> bytes, String? address});
@@ -328,7 +329,11 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
 
   // ------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) => PracticeBack(
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) => PracticeBack(
     child: PopScope(
       // Closed or backed out of: the camera goes now, not after the slide.
       onPopInvokedWithResult: (didPop, _) {

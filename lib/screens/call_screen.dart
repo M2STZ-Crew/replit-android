@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 /// "12 Hotlines" from the REPLIT-OVERHAUL Figma — "Call for help".
 ///
@@ -67,13 +68,17 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     return Scaffold(
       backgroundColor: context.pal.background,
       bottomNavigationBar: widget.guest
           ? null
           : const AppNavBar(active: AppTab.hotlines),
-      body: SafeArea(
+      body: ReadingSafeArea(
         bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

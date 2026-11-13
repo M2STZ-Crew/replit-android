@@ -13,6 +13,7 @@ import 'responder_profile_tab.dart';
 import 'run_tab.dart';
 import '../../i18n/i18n.dart';
 import '../../updates/update_banner.dart';
+import '../../widgets/responsive_frame.dart';
 
 /// The responder's five destinations (REPLIT (MAIN) 07 · Responder): Duty,
 /// Map, the raised RUN disc, Alerts, Profile.
@@ -92,15 +93,29 @@ class ResponderShellState extends State<ResponderShell> {
   }
 
   Widget _build(ResponderTab tab) => switch (tab) {
-    ResponderTab.duty => DutyTab(feed: feed, shell: this),
+    // The reading tabs keep the column on a tablet; the map fills it
+    // (v1.12.43).
+    ResponderTab.duty => ReadingColumn(
+      child: DutyTab(feed: feed, shell: this),
+    ),
     ResponderTab.map => FieldMapTab(feed: feed, shell: this),
-    ResponderTab.run => RunTab(feed: feed, shell: this),
-    ResponderTab.alerts => NotificationsScreen(api: feed.api, asTab: true),
-    ResponderTab.profile => ResponderProfileTab(feed: feed),
+    ResponderTab.run => ReadingColumn(
+      child: RunTab(feed: feed, shell: this),
+    ),
+    ResponderTab.alerts => ReadingColumn(
+      child: NotificationsScreen(api: feed.api, asTab: true),
+    ),
+    ResponderTab.profile => ReadingColumn(
+      child: ResponderProfileTab(feed: feed),
+    ),
   };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     return PopScope(
       // Back from any other tab is Duty; Back from Duty leaves.
       canPop: _tab == ResponderTab.duty,

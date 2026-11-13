@@ -5,37 +5,47 @@ import 'package:replit/theme.dart';
 import 'package:replit/widgets/design.dart';
 import 'package:replit/widgets/responsive_frame.dart';
 
-/// The hand-off is drawn at 402 px. On a tablet the app keeps that column and
-/// centres it, rather than stretching a phone layout across the room.
+/// The hand-off is drawn at 402 px. On a tablet a screen keeps that column
+/// and centres it, rather than stretching a phone layout across the room;
+/// since v1.12.43 (13 November 2026: "the responsiveness for tablets";
+/// answered: maps full, the rest centred) each page has its own frame, a map
+/// or a camera fills the tablet, and a tab's bar runs edge to edge over its
+/// column.
 void main() {
+  Widget page(BuildContext context) => Scaffold(
+    body: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const ScreenHeader(title: 'Your reports'),
+        Panel(child: Text('a card', style: context.type.cardTitle)),
+        AppButton('Send report', onPressed: () {}),
+      ],
+    ),
+  );
+
+  void sizeTo(WidgetTester tester, Size size) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+  }
+
+  /// A reading page, pushed as every page is: the theme's transitions give
+  /// it its frame.
   Future<void> pumpAt(
     WidgetTester tester,
     Size size, {
     double scale = 1,
   }) async {
-    tester.view.physicalSize = size;
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+    sizeTo(tester, size);
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAppTheme(),
-        builder: (context, child) =>
-            ResponsiveFrame(child: child ?? const SizedBox.shrink()),
         home: Builder(
           builder: (context) => MediaQuery(
             data: MediaQuery.of(
               context,
             ).copyWith(textScaler: TextScaler.linear(scale)),
-            child: Scaffold(
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const ScreenHeader(title: 'Your reports'),
-                  Panel(child: Text('a card', style: context.type.cardTitle)),
-                  AppButton('Send report', onPressed: () {}),
-                ],
-              ),
-            ),
+            child: Builder(builder: page),
           ),
         ),
       ),
@@ -93,14 +103,92 @@ void main() {
 
   testWidgets('the ground fills the space beside the column', (tester) async {
     await pumpAt(tester, const Size(1024, 768));
-    final fill = tester.widget<ColoredBox>(
-      find
-          .descendant(
-            of: find.byType(ResponsiveFrame),
-            matching: find.byType(ColoredBox),
-          )
-          .first,
+    // The frame paints the ground across the page, then the column on it.
+    expect(
+      tester.renderObject(find.byType(ResponsiveFrame).first),
+      paints..rect(
+        rect: const Rect.fromLTWH(0, 0, 1024, 768),
+        color: AppPalette.dark.background,
+      ),
     );
-    expect(fill.color, AppPalette.dark.background);
   });
+
+  testWidgets('a map or a camera fills the tablet', (tester) async {
+    sizeTo(tester, const Size(1280, 800));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: const FullBleed(
+          child: Scaffold(body: SizedBox.expand(key: ValueKey('map'))),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(widthOf(tester, find.byKey(const ValueKey('map'))), 1280);
+  });
+
+  testWidgets('a tab keeps its column under a bar that runs edge to edge', (
+    tester,
+  ) async {
+    sizeTo(tester, const Size(1280, 800));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        home: FullBleed(
+          child: Scaffold(
+            bottomNavigationBar: const SizedBox(
+              key: ValueKey('bar'),
+              height: 64,
+            ),
+            body: ReadingSafeArea(
+              bottom: false,
+              child: Builder(
+                builder: (context) =>
+                    AppButton('Send report', onPressed: () {}),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(widthOf(tester, find.byKey(const ValueKey('bar'))), 1280);
+    expect(widthOf(tester, find.byType(AppButton)), ResponsiveFrame.maxWidth);
+    expect(
+      tester.getCenter(find.byType(AppButton)).dx,
+      moreOrLessEquals(640, epsilon: 1),
+    );
+  });
+
+  testWidgets(
+    'a screen that stops filling the tablet goes back to its column',
+    (tester) async {
+      sizeTo(tester, const Size(1280, 800));
+      final full = ValueNotifier(true);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(),
+          home: ValueListenableBuilder<bool>(
+            valueListenable: full,
+            builder: (context, on, _) {
+              const content = Scaffold(
+                body: SizedBox.expand(key: ValueKey('content')),
+              );
+              return on ? const FullBleed(child: content) : content;
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(widthOf(tester, find.byKey(const ValueKey('content'))), 1280);
+      full.value = false;
+      await tester.pump();
+      expect(
+        widthOf(tester, find.byKey(const ValueKey('content'))),
+        ResponsiveFrame.maxWidth,
+      );
+    },
+  );
 }

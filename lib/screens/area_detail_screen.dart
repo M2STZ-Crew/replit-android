@@ -19,6 +19,7 @@ import 'live_update_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 /// Reports join an area only from within this distance of its centre
 /// (clustering, Master Context §3.4) — the circle on the map extract.
@@ -216,7 +217,11 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
 
   // -------------------------------------------------------------- build ---
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     final designation =
         (_area?['designation'] as String?) ?? widget.designation ?? 'Area';
     return Scaffold(

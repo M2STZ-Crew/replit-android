@@ -25,6 +25,7 @@ import 'report_status_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 /// How much of the screen the sheet covers when open: the map keeps the top
 /// 44%, where the fire and the trucks are framed.
@@ -561,7 +562,11 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     final height = MediaQuery.sizeOf(context).height;
     // Folded, the sheet keeps its handle, "STATUS" and the status word in
     // view above the home indicator.

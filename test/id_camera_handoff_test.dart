@@ -135,7 +135,58 @@ void main() {
     }
   }
 
-  testWidgets('each step lets go of its camera before the next opens one', (
+  // v1.12.43: "the step by step is not seamless". The three photos are taken
+  // in one camera screen: the ID's front and back on the same camera, which
+  // never closes between them; the face once the back camera is closed in
+  // full. The ID screen is not seen until "Check your photos".
+  testWidgets('one camera for the three photos: open from the front to the '
+      'back, closed before the face', (tester) async {
+    tester.view.physicalSize = const Size(402, 874);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final pushes = _Pushes();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(),
+        navigatorObservers: [pushes],
+        home: const NationalIdScreen(),
+      ),
+    );
+    await tester.tap(find.text('TAKE ID PHOTO'));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    expect(cameras.log, ['open 1 back']);
+    expect(find.text('ID FRONT'), findsOneWidget);
+    expect(find.byKey(const ValueKey('preview-1')), findsOneWidget);
+
+    // ID front: a tick, then the back's guide on the same live camera.
+    await shoot(tester);
+    expect(cameras.log, ['open 1 back', 'photo 1']);
+    expect(find.text('ID BACK'), findsOneWidget);
+    expect(
+      find.text('TAKE ID PHOTO'),
+      findsNothing,
+      reason: 'still the camera',
+    );
+    expect(find.byKey(const ValueKey('preview-1')), findsOneWidget);
+
+    // ID back, then the face: the back camera closed before the front opens.
+    await shoot(tester);
+    expect(cameras.log.sublist(2), ['photo 1', 'close 1', 'open 2 front']);
+    expect(cameras.open, 1, reason: 'never two cameras at once');
+    expect(find.text('YOUR FACE'), findsOneWidget);
+    expect(find.byKey(const ValueKey('preview-2')), findsOneWidget);
+
+    // The face, and then "Check your photos": one camera screen for all.
+    await shoot(tester);
+    expect(cameras.log.sublist(5), ['photo 2', 'close 2']);
+    expect(cameras.open, 0, reason: 'no camera left on after the check');
+    expect(find.text('CHECK YOUR PHOTOS'), findsOneWidget);
+    expect(pushes.count, 1, reason: 'one camera screen for the three photos');
+  });
+
+  testWidgets('closed after the front: that photo is kept for the next go', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(402, 874);
@@ -148,26 +199,27 @@ void main() {
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 60));
     }
-    expect(cameras.log, ['open 1 back']);
-    expect(find.byKey(const ValueKey('preview-1')), findsOneWidget);
-
-    // ID front: its camera is closed before the back's is opened.
     await shoot(tester);
-    expect(cameras.log, ['open 1 back', 'photo 1', 'close 1', 'open 2 back']);
-    expect(cameras.open, 1, reason: 'never two cameras at once');
     expect(find.text('ID BACK'), findsOneWidget);
-    expect(find.byKey(const ValueKey('preview-2')), findsOneWidget);
+    expect(await tester.binding.handlePopRoute(), isTrue);
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    expect(cameras.open, 0);
 
-    // ID back, then the face on the front lens.
-    await shoot(tester);
-    expect(cameras.log.sublist(4), ['photo 2', 'close 2', 'open 3 front']);
-    expect(cameras.open, 1);
-    expect(find.text('YOUR FACE'), findsOneWidget);
-    expect(find.byKey(const ValueKey('preview-3')), findsOneWidget);
+    // Again: the camera opens on the back, the front already ticked.
+    await tester.tap(find.text('TAKE ID PHOTO'));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 60));
+    }
+    expect(find.text('ID BACK'), findsOneWidget);
+    expect(find.text('ID FRONT'), findsNothing);
 
-    await shoot(tester);
-    expect(cameras.log.sublist(7), ['photo 3', 'close 3']);
-    expect(cameras.open, 0, reason: 'no camera left on after the check');
+    // Closed again, and let go of before the test ends.
+    expect(await tester.binding.handlePopRoute(), isTrue);
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+    expect(cameras.open, 0);
   });
 
   testWidgets('closing the camera lets go of it at once', (tester) async {
@@ -191,4 +243,14 @@ void main() {
     expect(cameras.log, ['open 1 back', 'close 1']);
     await tester.pumpAndSettle();
   });
+}
+
+/// Counts the screens pushed after the first.
+class _Pushes extends NavigatorObserver {
+  int count = 0;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (previousRoute != null) count++;
+  }
 }

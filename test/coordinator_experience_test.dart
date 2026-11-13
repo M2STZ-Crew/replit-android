@@ -773,6 +773,11 @@ void main() {
       tester,
     ) async {
       states = ['unavailable'];
+      // A phone: on the default 800 px test window, wider than a phone, the
+      // page keeps the tablet column (ResponsiveFrame, v1.12.43).
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
           theme: buildAppTheme(),

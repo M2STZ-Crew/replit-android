@@ -7,6 +7,7 @@ import '../widgets/design.dart';
 import 'guide_detail_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 /// "13 Guides" from the REPLIT-OVERHAUL Figma — "Safety guides".
 ///
@@ -30,7 +31,11 @@ class GuideScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     final featured = kGuideArticles.firstWhere(
       (g) => g.startHere,
       orElse: () => kGuideArticles.first,
@@ -40,7 +45,7 @@ class GuideScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: context.pal.background,
       bottomNavigationBar: const AppNavBar(active: AppTab.guides),
-      body: SafeArea(
+      body: ReadingSafeArea(
         bottom: false,
         // The list fades at whichever edge has more past it (04 · Scroll
         // fade), instead of a gradient that never moves.

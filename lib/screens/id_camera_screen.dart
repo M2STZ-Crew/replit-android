@@ -13,6 +13,7 @@ import '../widgets/design.dart';
 import '../widgets/map_glass.dart';
 import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
+import '../widgets/responsive_frame.dart';
 
 /// One photo of the National ID check, in the order they are taken: what the
 /// screen says and the guide it holds up (Figma 20, 20C and 20B).
@@ -24,7 +25,9 @@ enum IdShot {
     hint: 'Fit all four corners of the card inside the frame.',
     oval: false,
     lens: CameraLensDirection.back,
-    resolution: ResolutionPreset.veryHigh,
+    // The back's resolution (v1.12.43), so the camera stays open from the
+    // front to the back: one camera for the three photos.
+    resolution: ResolutionPreset.ultraHigh,
   ),
 
   /// "20C National ID · ID back" (1177:1673). The back carries the QR code
@@ -74,6 +77,9 @@ enum IdShot {
 
   /// Room the guide leaves above and below: the header with its chips, then
   /// the shutter and its note. Two lines of hint sit under the guide.
+  /// The widest the card's guide is drawn (a tablet).
+  static const double maxCardWidth = 520;
+
   static const double _clearTop = 118;
   static const double _clearBottom = 140;
   static const double hintGap = 16;
@@ -88,7 +94,11 @@ enum IdShot {
     final top = safe.top + _clearTop;
     final bottom = screen.height - safe.bottom - _clearBottom;
     final room = math.max(bottom - top - _hintRoom, 120.0);
-    var width = oval ? math.min(240.0, screen.width * 0.6) : screen.width - 72;
+    var width = oval
+        ? math.min(240.0, screen.width * 0.6)
+        // On a tablet's whole width (v1.12.43), the card stays a
+        // card's size rather than the screen's.
+        : math.min(screen.width - 72, maxCardWidth);
     var height = width / aspect;
     if (height > room) {
       height = room;
@@ -105,22 +115,34 @@ enum IdShot {
 
 /// The National ID camera: "20 · ID front", "20C · ID back", "20B · Face".
 ///
-/// Pops with the JPEG cut to the guide (see [GuideCrop]) — what the resident
-/// framed, not the whole sensor frame — or with nothing when closed. It is an in-app camera so
-/// that the photo is live: there is no gallery here to reach for, which a
-/// phone's own camera app offers one tap away.
+/// v1.12.43 (13 November 2026: "in the national id verification the step by
+/// step is not seamless"; answered: one camera, three steps): the photos still
+/// to take are taken here, one after another, in this one screen. Between the
+/// ID's front and back the camera never closes: the photo just taken shows
+/// with a tick, then the guide becomes the next one's over the live view. For
+/// the face it turns to the front lens, and the back camera is closed in full
+/// before the front one opens (the freeze 1.12.40 fixed came from two cameras
+/// at once). "Check your photos" comes once, after the last.
+///
+/// Pops with the photos taken in this visit, by shot: all of them, or those
+/// taken before it was closed, which the ID screen keeps for the next go.
+/// Each is the JPEG cut to its guide (see [GuideCrop]): what the resident
+/// framed, not the whole sensor frame. It is an in-app camera so that the
+/// photo is live: there is no gallery here to reach for, which a phone's own
+/// camera app offers one tap away.
 ///
 /// A viewfinder stays dark on the light ground too, so the screen always
 /// draws from the dark palette.
 class IdCameraScreen extends StatelessWidget {
   const IdCameraScreen({
     super.key,
-    required this.shot,
+    required this.shots,
     this.taken = const {},
     this.preview,
   });
 
-  final IdShot shot;
+  /// The photos to take, in turn: those still missing, or one to retake.
+  final List<IdShot> shots;
 
   /// The photos already taken, ticked in the chips under the title.
   final Set<IdShot> taken;
@@ -132,15 +154,15 @@ class IdCameraScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Theme(
       data: buildAppTheme(),
-      child: _IdCamera(shot: shot, taken: taken, preview: preview),
+      child: _IdCamera(shots: shots, taken: taken, preview: preview),
     );
   }
 }
 
 class _IdCamera extends StatefulWidget {
-  const _IdCamera({required this.shot, required this.taken, this.preview});
+  const _IdCamera({required this.shots, required this.taken, this.preview});
 
-  final IdShot shot;
+  final List<IdShot> shots;
   final Set<IdShot> taken;
   final Widget? preview;
 
@@ -149,15 +171,30 @@ class _IdCamera extends StatefulWidget {
 }
 
 class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
+  List<CameraDescription>? _cameras;
   CameraDescription? _lens;
   CameraController? _controller;
   bool _ready = false;
   bool _capturing = false;
   String? _error;
 
-  /// The photo just taken, shown in place of the live view while this
-  /// screen slides away: by then its camera is already let go of.
+  /// The photo just taken, shown in place of the live view: while its tick
+  /// shows, and while the screen slides away after the last.
   Uint8List? _still;
+
+  /// Which of the shots is being taken.
+  int _at = 0;
+
+  /// The photos taken in this visit, each cut to its guide.
+  final Map<IdShot, Uint8List> _photos = {};
+
+  /// The photo just taken, while its tick shows before the next step.
+  IdShot? _justTaken;
+
+  /// How long a photo shows with its tick before the next step's guide.
+  static const Duration tickFor = Duration(milliseconds: 700);
+
+  IdShot get _shot => widget.shots[_at];
 
   /// The viewfinder and the guide on it, as last laid out: what the shutter
   /// measures the photo against.
@@ -192,15 +229,12 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
 
   Future<void> _start() async {
     try {
-      final cameras = await availableCameras();
+      final cameras = _cameras ??= await availableCameras();
       if (cameras.isEmpty) {
         _fail(t('No camera found on this device.'));
         return;
       }
-      _lens = cameras.firstWhere(
-        (c) => c.lensDirection == widget.shot.lens,
-        orElse: () => cameras.first,
-      );
+      _lens = _lensFor(_shot);
       await _open();
     } on CameraException catch (e) {
       _fail(e.description ?? t('Camera permission denied.'));
@@ -209,10 +243,19 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     }
   }
 
+  /// The phone's camera on [shot]'s side, or its first.
+  CameraDescription _lensFor(IdShot shot) {
+    final cameras = _cameras!;
+    return cameras.firstWhere(
+      (c) => c.lensDirection == shot.lens,
+      orElse: () => cameras.first,
+    );
+  }
+
   Future<void> _open() async {
     final controller = CameraController(
       _lens!,
-      widget.shot.resolution,
+      _shot.resolution,
       enableAudio: false,
     );
     final previous = _controller;
@@ -220,8 +263,8 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     try {
       await previous?.dispose();
       await controller.initialize();
-      // Let go of while it opened (the photo taken, the screen closed): not
-      // this screen's camera any more.
+      // Let go of while it opened (the last photo taken, the screen
+      // closed): not this screen's camera any more.
       if (!identical(_controller, controller)) {
         await controller.dispose();
         return;
@@ -254,13 +297,24 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
   Future<void> _capture() async {
     final c = _controller;
     if (c == null || !c.value.isInitialized || _capturing) return;
+    final shot = _shot;
+    final next = _at + 1 < widget.shots.length ? widget.shots[_at + 1] : null;
+    // The ID's front and back: the same lens at the same resolution, so the
+    // camera stays open between them. Anything else is let go of in full
+    // before the next opens (13 November 2026: "the camera stucks after the
+    // front id capturing": a camera closed after the next had started took
+    // the new preview with it).
+    final keep =
+        next != null &&
+        next.lens == shot.lens &&
+        next.resolution == shot.resolution;
     setState(() => _capturing = true);
     try {
-      final shot = await c.takePicture();
-      var bytes = await shot.readAsBytes();
+      final file = await c.takePicture();
+      var bytes = await file.readAsBytes();
       try {
         // The plugin leaves the file in the cache, and this one is an ID.
-        await File(shot.path).delete();
+        await File(file.path).delete();
       } on FileSystemException catch (_) {
         // Already gone.
       }
@@ -269,12 +323,16 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
       final preview = c.value.previewSize;
       final viewfinder = _viewfinder;
       final guide = _guide;
-      // The camera is let go of before the next step opens its own (13
-      // November 2026: "the camera stucks after the front id capturing").
-      // Closed after that one has started, it took the new preview with it:
-      // Android's camera closes every preview there is, and an iPhone's two
-      // sessions on one camera clash.
-      await _release(still: bytes);
+      final shown = Stopwatch()..start();
+      if (keep) {
+        setState(() {
+          _still = bytes;
+          _justTaken = shot;
+        });
+      } else {
+        await _release(still: bytes);
+        if (next != null && mounted) setState(() => _justTaken = shot);
+      }
       if (preview != null && viewfinder != null && guide != null) {
         bytes = await GuideCrop.cropToGuide(
           bytes,
@@ -283,15 +341,37 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
           preview: Size(preview.height, preview.width),
         );
       }
-      if (mounted) Navigator.of(context).pop<Uint8List>(bytes);
+      _photos[shot] = bytes;
+      if (!mounted) return;
+      if (next == null) {
+        Navigator.of(context).pop<Map<IdShot, Uint8List>>(Map.of(_photos));
+        return;
+      }
+      // The tick a moment, then the next step's guide.
+      final rest = tickFor - shown.elapsed;
+      if (rest > Duration.zero) await Future<void>.delayed(rest);
+      if (!mounted) return;
+      setState(() {
+        _at++;
+        _justTaken = null;
+        _capturing = false;
+        // The live view again: still running on the same lens, or the next
+        // lens starting ("Starting the camera") once this one is closed.
+        _still = null;
+      });
+      if (!keep) {
+        _lens = _lensFor(_shot);
+        await _open();
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _capturing = false;
+        _justTaken = null;
         _still = null;
       });
-      // Let go of for the next step, which is not coming: the camera again,
-      // for another try.
+      // Let go of for a next step that is not coming yet: the camera
+      // again, for another try.
       if (_controller == null && _lens != null) unawaited(_open());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -302,9 +382,9 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     }
   }
 
-  /// Let go of the camera now, not when this screen is gone: the next one
-  /// may already be opening its own. [still] stands in for the live view
-  /// meanwhile.
+  /// Let go of the camera now, not when this screen is gone: the next
+  /// camera, here or on the screen under this one, may be opening its own.
+  /// [still] stands in for the live view meanwhile.
   Future<void> _release({Uint8List? still}) async {
     final c = _controller;
     _controller = null;
@@ -317,13 +397,23 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
     await c?.dispose();
   }
 
+  /// Closed (the close button or Back): the camera goes at once, and the
+  /// photos taken in this visit go back with the screen.
+  void _close() {
+    unawaited(_release());
+    Navigator.of(context).pop<Map<IdShot, Uint8List>>(Map.of(_photos));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => FullBleed(child: _fullScreen(context));
+
+  /// The screen, filling a tablet (v1.12.43: maps full, the rest
+  /// centred).
+  Widget _fullScreen(BuildContext context) {
     return PopScope(
-      // Closed or backed out of: the camera goes now, not after the slide,
-      // so the screen under this one (or the next) finds it free.
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (didPop) unawaited(_release());
+        if (!didPop) _close();
       },
       child: Scaffold(
         backgroundColor: context.pal.canvas,
@@ -334,11 +424,12 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
 
   Widget _layout(BuildContext context, BoxConstraints box) {
     final pal = context.pal;
-    final shot = widget.shot;
+    final shot = _justTaken ?? _shot;
     final guide = shot.guideIn(box.biggest, MediaQuery.paddingOf(context));
     _viewfinder = box.biggest;
     _guide = guide;
     final live = _error == null;
+    final taken = _justTaken;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -349,7 +440,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
               guide: guide,
               oval: shot.oval,
               scrim: pal.scrim,
-              edge: pal.accent,
+              edge: taken == null ? pal.accent : pal.ok,
             ),
           ),
           Positioned(
@@ -362,6 +453,11 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
               style: context.type.bodySm.copyWith(color: pal.textSoft),
             ),
           ),
+          if (taken != null)
+            Positioned.fromRect(
+              rect: guide,
+              child: Center(child: _Taken(shot: taken)),
+            ),
         ],
         SafeArea(
           child: Column(
@@ -394,6 +490,7 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
   }
 
   Widget _header() {
+    final shot = _justTaken ?? _shot;
     return Stack(
       children: [
         // The words set the header's height, so large text grows it.
@@ -407,16 +504,19 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 56),
                   child: Text(
-                    t(widget.shot.title).toUpperCase(),
+                    t(shot.title).toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: context.type.headline,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Eyebrow(t(widget.shot.step), color: context.pal.label),
+                Eyebrow(t(shot.step), color: context.pal.label),
                 const SizedBox(height: 16),
-                _CaptureSlots(current: widget.shot, taken: widget.taken),
+                _CaptureSlots(
+                  current: shot,
+                  taken: {...widget.taken, ..._photos.keys},
+                ),
               ],
             ),
           ),
@@ -475,6 +575,48 @@ class _IdCameraState extends State<_IdCamera> with WidgetsBindingObserver {
           setState(() => _error = null);
           _start();
         },
+      ),
+    );
+  }
+}
+
+/// "ID front taken": the tick over the photo just taken, a moment before the
+/// next step's guide (v1.12.43).
+class _Taken extends StatelessWidget {
+  const _Taken({required this.shot});
+
+  final IdShot shot;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final words = t('{photo} taken', {'photo': t(shot.title)});
+    return Semantics(
+      liveRegion: true,
+      label: words,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.glassOverlay,
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          border: Border.all(color: pal.ok),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(AppIcons.checkCircle, color: pal.ok, size: 22),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                words,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: context.type.rowTitle.copyWith(color: pal.onBackground),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
