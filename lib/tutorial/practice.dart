@@ -595,16 +595,34 @@ class _CoachLayer extends StatefulWidget {
   State<_CoachLayer> createState() => _CoachLayerState();
 }
 
-class _CoachLayerState extends State<_CoachLayer> {
+class _CoachLayerState extends State<_CoachLayer>
+    with SingleTickerProviderStateMixin {
   PracticeSpot? _spot;
 
   /// The lesson whose control was last brought into view.
   int? _revealed;
 
+  /// The ring's pulse on a step that waits for a touch (13 November 2026:
+  /// "make the guide line or guide shape blinking so the user knows and
+  /// notice where to touch"; answered: a pulse, on those steps only).
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
+  /// Reduced motion: the ring stays still, drawn thicker instead.
+  bool _reduced = false;
+
   @override
   void initState() {
     super.initState();
     SchedulerBinding.instance.addPostFrameCallback(_watch);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
   }
 
   /// After every frame (never asking for one): screens slide in and lay
@@ -620,6 +638,19 @@ class _CoachLayerState extends State<_CoachLayer> {
     if (target != null && found != null && _revealed != practice.step) {
       _revealed = practice.step;
       PracticeTargets.reveal(target);
+    }
+    // Pulsing means "touch here": only where the step waits for a touch.
+    final pulsing =
+        spot != null &&
+        practice.lesson.touches &&
+        !practice.received &&
+        !_reduced;
+    if (pulsing && !_pulse.isAnimating) {
+      _pulse.repeat();
+    } else if (!pulsing && (_pulse.isAnimating || _pulse.value != 0)) {
+      _pulse
+        ..stop()
+        ..value = 0;
     }
     SchedulerBinding.instance.addPostFrameCallback(_watch);
   }
@@ -659,6 +690,7 @@ class _CoachLayerState extends State<_CoachLayer> {
     final lesson = practice.lesson;
     final pal = context.pal;
     final safe = MediaQuery.paddingOf(context);
+    _reduced = MediaQuery.disableAnimationsOf(context);
     final spot = lesson.target == null ? null : _spot;
     final hole = spot?.rect;
     // On the side of the control with more room: over it when it is low on
@@ -682,12 +714,17 @@ class _CoachLayerState extends State<_CoachLayer> {
       children: [
         if (spot != null)
           Positioned.fill(
-            child: _Spotlight(
-              hole: spot.rect,
-              round: spot.round,
-              touchable: lesson.touches && !practice.received,
-              dim: pal.scrim,
-              ring: pal.accent,
+            child: AnimatedBuilder(
+              animation: _pulse,
+              builder: (context, _) => _Spotlight(
+                hole: spot.rect,
+                round: spot.round,
+                touchable: lesson.touches && !practice.received,
+                dim: pal.scrim,
+                ring: pal.accent,
+                pulse: Curves.easeOut.transform(_pulse.value),
+                steady: _reduced,
+              ),
             ),
           ),
         Positioned(
@@ -807,7 +844,11 @@ class _Panel extends StatelessWidget {
                       ),
                     );
                     return Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      // His words in the middle of his height, so a short
+                      // caption does not leave a gap under the step (13
+                      // November 2026: "it's inconsistent (has a blank
+                      // space)"; answered: centred beside Lit).
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         if (litLeft) ...[lit, const SizedBox(width: 8)],
                         Expanded(child: SingleChildScrollView(child: caption)),
@@ -949,7 +990,9 @@ class _IconControl extends StatelessWidget {
 
 /// The screen dimmed with a hole where the lit control is, ringed in coral.
 /// Outside the hole every touch stops here; inside it, a touch reaches the
-/// control when the lesson waits for one ([touchable]).
+/// control when the lesson waits for one ([touchable]). On such a step the
+/// ring pulses ([pulse], 0 to 1): it brightens, and a fading copy of it
+/// grows out a few pixels, about once a second.
 class _Spotlight extends LeafRenderObjectWidget {
   const _Spotlight({
     required this.hole,
@@ -957,6 +1000,8 @@ class _Spotlight extends LeafRenderObjectWidget {
     required this.touchable,
     required this.dim,
     required this.ring,
+    this.pulse = 0,
+    this.steady = false,
   });
 
   final Rect hole;
@@ -964,6 +1009,10 @@ class _Spotlight extends LeafRenderObjectWidget {
   final bool touchable;
   final Color dim;
   final Color ring;
+  final double pulse;
+
+  /// Reduced motion: no pulse, a thicker ring.
+  final bool steady;
 
   @override
   _RenderSpotlight createRenderObject(BuildContext context) => _RenderSpotlight(
@@ -972,6 +1021,8 @@ class _Spotlight extends LeafRenderObjectWidget {
     touchable: touchable,
     dim: dim,
     ring: ring,
+    pulse: pulse,
+    steady: steady,
   );
 
   @override
@@ -981,7 +1032,9 @@ class _Spotlight extends LeafRenderObjectWidget {
       ..round = round
       ..touchable = touchable
       ..dim = dim
-      ..ring = ring;
+      ..ring = ring
+      ..pulse = pulse
+      ..steady = steady;
   }
 }
 
@@ -992,11 +1045,15 @@ class _RenderSpotlight extends RenderBox {
     required bool touchable,
     required Color dim,
     required Color ring,
+    required double pulse,
+    required bool steady,
   }) : _hole = hole,
        _round = round,
        _touchable = touchable,
        _dim = dim,
-       _ring = ring;
+       _ring = ring,
+       _pulse = pulse,
+       _steady = steady;
 
   Rect _hole;
   set hole(Rect value) {
@@ -1026,6 +1083,20 @@ class _RenderSpotlight extends RenderBox {
   set ring(Color value) {
     if (value == _ring) return;
     _ring = value;
+    markNeedsPaint();
+  }
+
+  double _pulse;
+  set pulse(double value) {
+    if (value == _pulse) return;
+    _pulse = value;
+    markNeedsPaint();
+  }
+
+  bool _steady;
+  set steady(bool value) {
+    if (value == _steady) return;
+    _steady = value;
     markNeedsPaint();
   }
 
@@ -1059,13 +1130,24 @@ class _RenderSpotlight extends RenderBox {
         ..addRRect(_cut),
       Paint()..color = _dim,
     );
+    final cut = _cut;
     canvas.drawRRect(
-      _cut,
+      cut,
       Paint()
         ..color = _ring
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+        ..strokeWidth = _steady ? 3 : 2 + _pulse,
     );
+    // The pulse: a copy of the ring growing out of it, fading as it goes.
+    if (_pulse > 0 && !_steady) {
+      canvas.drawRRect(
+        cut.inflate(2 + 8 * _pulse),
+        Paint()
+          ..color = _ring.withValues(alpha: 0.75 * (1 - _pulse))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3,
+      );
+    }
     canvas.restore();
   }
 }

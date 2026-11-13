@@ -15,6 +15,7 @@ import 'package:replit/i18n/i18n.dart';
 import 'package:replit/location/sos_location.dart';
 import 'package:replit/models/active_report.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/tutorial/lit_character.dart';
 import 'package:replit/tutorial/lit_lessons.dart';
 import 'package:replit/tutorial/lit_tutorial_state.dart';
 import 'package:replit/tutorial/practice.dart';
@@ -587,6 +588,59 @@ void main() {
       await tapText(tester, 'Back');
       expect(caption(tester), lesson('practice_submit').captionEn);
       expect(find.text('SUBMIT PRACTICE REPORT'), findsOneWidget);
+      await leave(tester);
+    });
+
+    testWidgets('Lit\'s words sit centred beside him, short or long', (
+      tester,
+    ) async {
+      // 13 November: a short caption sat at Lit's feet, a blank space
+      // under the step above it; a long one at the top.
+      await pump(tester);
+      await tapText(tester, 'START TUTORIAL');
+      final lit = find.descendant(
+        of: find.byKey(const ValueKey('lit-coach')),
+        matching: find.byType(LitCharacter),
+      );
+      final words = find.byKey(const ValueKey('lit-caption'));
+      double middle(Finder f) => tester.getCenter(f).dy;
+      // Short (tap SOS) and long (hold SOS): both in his middle.
+      expect(middle(words), closeTo(middle(lit), 2));
+      await tapSos(tester);
+      expect(middle(words), closeTo(middle(lit), 2));
+      await leave(tester);
+    });
+
+    testWidgets('the ring pulses where a touch is waited for, and only '
+        'there', (tester) async {
+      await pump(tester);
+      await tapText(tester, 'START TUTORIAL');
+      // Tap SOS waits for a touch: the ring keeps moving.
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.binding.hasScheduledFrame, isTrue);
+
+      // The updates are read, not touched: the ring is still.
+      await tapSos(tester);
+      await holdSos(tester);
+      await takePhoto(tester);
+      await tapText(tester, 'CONTINUE');
+      await tester.tap(medical);
+      await settle(tester, const Duration(milliseconds: 600));
+      await tapText(tester, 'CONTINUE');
+      await tapText(tester, 'SUBMIT PRACTICE REPORT');
+      await settle(tester, const Duration(milliseconds: 3000));
+      expect(caption(tester), lesson('follow_updates').captionEn);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      await leave(tester);
+    });
+
+    testWidgets('with reduced motion the ring stays still', (tester) async {
+      await pump(tester, reduced: true);
+      await tapText(tester, 'START TUTORIAL');
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(caption(tester), lesson('tap_sos').captionEn);
+      expect(tester.binding.hasScheduledFrame, isFalse);
       await leave(tester);
     });
 
