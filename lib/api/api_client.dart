@@ -536,6 +536,20 @@ class ApiClient {
     _decode(resp);
   }
 
+  /// Delete this account for good: POST /auth/me/delete (v1.12.44, Google
+  /// Play's rule; residents only). A wrong password is a 400
+  /// `wrong_password`, a staff account a 403 `staff_account`.
+  Future<void> deleteAccount({required String password}) async {
+    final resp = await _authed(
+      () => _client.post(
+        Uri.parse('${ApiConfig.baseUrl}/auth/me/delete'),
+        headers: _jsonAuth,
+        body: jsonEncode({'password': password}),
+      ),
+    );
+    _decode(resp);
+  }
+
   /// Revoke the current session server-side: POST /auth/logout (best-effort).
   Future<void> logout() async {
     try {
@@ -1422,6 +1436,16 @@ class ApiClient {
         ),
         // 18 and over (v1.12.27, app/services/age.py).
         'underage' => t('You must be 18 or older to use RepLiT.'),
+        // Backend v1.12.34 (QA D-02, Z-10): an address no mail can reach,
+        // and a name that is not letters.
+        'undeliverable_email' => t(
+          'No email can reach this address. Check it for typos, or use '
+          'another one.',
+        ),
+        'invalid_name' => t(
+          'Use letters for your name. Spaces, periods, apostrophes and '
+          'hyphens are fine; numbers and emoji are not.',
+        ),
         // An organisation the central hub suspended or revoked (backend
         // v1.12.28): nobody of it signs in until it is restored.
         'organization_suspended' => t(

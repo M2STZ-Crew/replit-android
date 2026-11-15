@@ -2307,4 +2307,61 @@ const Map<String, String> kTagalog = {
   'You have a report in progress. Replay the tutorial once it is done.':
       'May report kang kasalukuyang inaasikaso. Ulitin ang tutorial kapag '
       'tapos na ito.',
+  // v1.12.44: QA fixes and Google Play (account deletion, privacy, offline).
+  'RepLiT did not answer in time. Check your signal and try again. Hotlines work without signing in.':
+      'Hindi agad sumagot ang RepLiT. Tingnan ang signal mo at subukan ulit. Gumagana ang mga hotline kahit hindi naka-sign in.',
+  'No internet connection. Turn on mobile data or Wi-Fi, then try again. Hotlines work without internet.':
+      'Walang internet connection. I-on ang mobile data o Wi-Fi, saka subukan ulit. Gumagana ang mga hotline kahit walang internet.',
+  'No internet connection. Turn on mobile data or Wi-Fi, then try again.':
+      'Walang internet connection. I-on ang mobile data o Wi-Fi, saka subukan ulit.',
+  'Use letters for your name. Spaces, periods, apostrophes and hyphens are fine; numbers and emoji are not.':
+      'Mga letra lang ang gamitin sa pangalan mo. Puwede ang space, tuldok, apostrophe at gitling; hindi puwede ang numero at emoji.',
+  'No email can reach this address. Check it for typos, or use another one.':
+      'Walang email na makakarating sa address na ito. Tingnan kung may mali sa pagkaka-type, o gumamit ng iba.',
+  'Read the privacy policy':
+      'Basahin ang privacy policy',
+  'Privacy policy':
+      'Privacy policy',
+  'What RepLiT keeps, and why':
+      'Ano ang itinatago ng RepLiT, at bakit',
+  'Delete my account':
+      'Burahin ang account ko',
+  'Enter your password.':
+      'Ilagay ang password mo.',
+  'Tick the box to confirm. Deleting an account cannot be undone.':
+      'I-tick ang box para kumpirmahin. Hindi na maibabalik ang nabura na account.',
+  'The password is not right.':
+      'Mali ang password.',
+  "This is a staff account. Your organization's administrator removes it.":
+      'Staff account ito. Ang administrator ng organisasyon mo ang nagbubura nito.',
+  "Your account is deleted. The reports you sent stay in the barangay's incident records without your name.":
+      'Nabura na ang account mo. Mananatili ang mga report na ipinadala mo sa talaan ng mga insidente ng barangay, pero wala na ang pangalan mo.',
+  'Deleting your account cannot be undone.':
+      'Hindi na maibabalik ang account mo kapag binura.',
+  'What is deleted':
+      'Ano ang buburahin',
+  'What is kept':
+      'Ano ang itatago',
+  'Your sign-in and profile: name, email, mobile number, birthday, gender, language and last location.':
+      'Ang sign-in at profile mo: pangalan, email, mobile number, kaarawan, kasarian, wika at huling lokasyon.',
+  "This phone's alert registration, your alerts and answers.":
+      'Ang pagkaka-rehistro ng phone na ito para sa alerto, ang mga alerto mo at mga sagot mo.',
+  'Your verification records, and any National ID photos still held.':
+      'Ang mga record ng verification mo, at anumang litrato ng National ID na nakatago pa.',
+  'The reports you sent, without your name: they are part of the incident records responders and the barangay keep.':
+      'Ang mga report na ipinadala mo, pero wala na ang pangalan mo: bahagi sila ng talaan ng mga insidente na itinatago ng mga responder at ng barangay.',
+  'I understand that my account is deleted for good and cannot be brought back.':
+      'Naiintindihan ko na mabubura nang tuluyan ang account ko at hindi na ito maibabalik.',
+  'Offline':
+      'Offline',
+  "You're offline. Reports wait on this phone and send themselves once there is signal.":
+      'Offline ka. Naghihintay ang mga report sa phone na ito at kusang maipapadala kapag may signal na.',
+  "You're offline. The map shows what was saved {ago}; reports wait and send themselves once there is signal.":
+      'Offline ka. Ipinapakita ng mapa ang na-save {ago}; naghihintay ang mga report at kusang maipapadala kapag may signal na.',
+  'Report photo. Tap to see it whole.':
+      'Litrato ng report. I-tap para makita nang buo.',
+  'fire out':
+      'patay na ang sunog',
+  'Continue anyway':
+      'Ituloy pa rin',
 };

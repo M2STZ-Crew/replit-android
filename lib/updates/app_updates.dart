@@ -13,6 +13,7 @@ import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
 import '../widgets/sheet_grip.dart';
 import '../i18n/i18n.dart';
+import '../store_build.dart';
 
 /// A newer build of RepLiT, published on the repository's GitHub releases.
 class AvailableRelease {
@@ -404,8 +405,14 @@ abstract final class AppUpdates {
   };
 }
 
-/// Open the "Check for updates" sheet; it checks at once.
-Future<void> showUpdateSheet(BuildContext context) => showAppSheet<void>(
+/// Open the "Check for updates" sheet; it checks at once. A Google Play copy
+/// (v1.12.44) opens its Play Store page instead: Play updates it.
+Future<void> showUpdateSheet(BuildContext context) {
+  if (StoreBuild.play) return StoreBuild.openPlayListing();
+  return _showUpdateSheet(context);
+}
+
+Future<void> _showUpdateSheet(BuildContext context) => showAppSheet<void>(
   context: context,
   isScrollControlled: true,
   backgroundColor: context.pal.surfaceSolid,

@@ -362,7 +362,7 @@ class _ReportCard extends StatelessWidget {
     final flagged = report['gps_discrepancy_flag'] == true;
 
     final footer = switch (status) {
-      'fire_out' => [?designation, 'fire out'].join(' · '),
+      'fire_out' => [?designation, t('fire out')].join(' · '),
       'rejected' => t('Closed — it could not be confirmed'),
       'merged' => t('Joined to a neighbouring incident'),
       _ when designation == null => t('Waiting to be grouped with others'),
@@ -421,6 +421,11 @@ class _ReportCard extends StatelessWidget {
                 ),
               ],
             ),
+            // QA H-16 (v1.12.44): the photo the report was sent with.
+            if (_photoUrl(report) case final url?) ...[
+              const SizedBox(height: 13),
+              _ReportPhoto(url: url),
+            ],
             const SizedBox(height: 13),
             Divider(
               height: 1,
@@ -469,6 +474,84 @@ class _ReportCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The report's photo link from the server (GET /reports/mine signs one that
+/// works for a while), when it sent one.
+String? _photoUrl(Map<String, dynamic> report) {
+  final url = report['photo_url'];
+  return url is String && url.startsWith('http') ? url : null;
+}
+
+/// The report's photo on its card (QA H-16, v1.12.44); tap to see it whole. A
+/// link that has run out shows a placeholder until the list is opened again.
+class _ReportPhoto extends StatelessWidget {
+  const _ReportPhoto({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    Widget placeholder() => ColoredBox(
+      color: pal.line,
+      child: Center(child: Icon(AppIcons.image, color: pal.muted)),
+    );
+    return Semantics(
+      button: true,
+      label: t('Report photo. Tap to see it whole.'),
+      child: GestureDetector(
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => _PhotoViewer(url: url))),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Image.network(
+              url,
+              key: const ValueKey('report-photo'),
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, progress) =>
+                  progress == null ? child : ColoredBox(color: pal.line),
+              errorBuilder: (context, error, stack) => placeholder(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhotoViewer extends StatelessWidget {
+  const _PhotoViewer({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(t('Report photo')),
+      ),
+      body: InteractiveViewer(
+        maxScale: 5,
+        child: Center(
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stack) => Text(
+              t('The photo could not be loaded.'),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
         ),
       ),
     );

@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../models/person_rules.dart';
 import '../models/phone_numbers.dart';
 import '../models/ph_mobile.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/email_link_sheet.dart';
 import '../widgets/phone_code_sheet.dart';
+import '../store_build.dart';
 import 'role_gate.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
@@ -74,13 +76,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (first.isEmpty) return _error(t('Please enter your first name.'));
     if (last.isEmpty) return _error(t('Please enter your last name.'));
+    // Letters, as on the ID (QA Z-10, v1.12.44; the server checks too).
+    if (!looksLikeName(first) || !looksLikeName(last)) {
+      return _error(
+        t(
+          'Use letters for your name. Spaces, periods, apostrophes and '
+          'hyphens are fine; numbers and emoji are not.',
+        ),
+      );
+    }
     // Required once SMS is settled; until then optional, but a number given
     // has to be one.
     if ((PhoneNumbers.open || mobile.isNotEmpty) &&
         !looksLikePhMobile(mobile)) {
       return _error(t('Enter your mobile number, like 0917 123 4567.'));
     }
-    if (!email.contains('@') || !email.contains('.')) {
+    // A whole address (QA D-02, v1.12.44); the server also asks whether its
+    // domain takes mail.
+    if (!looksLikeEmail(email)) {
       return _error(t('Please enter a valid email address.'));
     }
     if (password.length < 8) {
@@ -116,7 +129,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _error(e.message);
     } catch (_) {
       _error(
-        t('Could not reach the server. Check the API URL in api_config.dart.'),
+        t(
+          'No internet connection. Turn on mobile data or Wi-Fi, then try '
+          'again. Hotlines work without internet.',
+        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -273,7 +289,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  /// The agreement, and the privacy policy it rests on (v1.12.44).
   Widget _terms() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _agreement(),
+        Padding(
+          padding: const EdgeInsets.only(left: 32, top: 6),
+          child: TextLink(
+            t('Read the privacy policy'),
+            onTap: () => unawaited(PolicyLinks.openPrivacy()),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _agreement() {
     return Semantics(
       checked: _agree,
       child: GestureDetector(

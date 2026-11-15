@@ -23,6 +23,8 @@ import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/theme_picker.dart';
+import '../store_build.dart';
+import 'delete_account_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_center_screen.dart';
 import 'login_screen.dart';
@@ -512,6 +514,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                   line: t('Emergency reporting for Pasay City'),
                   onTap: _about,
                 ),
+                const SizedBox(height: 8),
+                // Google Play (v1.12.44): the policy, from inside the app.
+                _Link(
+                  icon: AppIcons.shield,
+                  title: t('Privacy policy'),
+                  line: t('What RepLiT keeps, and why'),
+                  onTap: () => unawaited(PolicyLinks.openPrivacy()),
+                ),
                 if (AppUpdates.supported) ...[
                   const SizedBox(height: 8),
                   _Link(
@@ -529,6 +539,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                   icon: AppIcons.logout,
                   busy: _loggingOut,
                   onPressed: _loggingOut ? null : _logout,
+                ),
+                const SizedBox(height: 14),
+                // Google Play's account deletion (v1.12.44).
+                Center(
+                  child: TextLink(
+                    t('Delete my account'),
+                    color: context.pal.live,
+                    onTap: () => DeleteAccountScreen.open(context, api: _api),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Center(

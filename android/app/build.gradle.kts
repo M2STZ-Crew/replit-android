@@ -12,6 +12,16 @@ if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
 
+// Google Play's copy (v1.12.44), built with
+//   flutter build appbundle --android-project-arg=playStore=true
+//     --dart-define=PLAY_STORE=true
+// (.github/workflows/android-release.yml, docs/play-release.md). It is
+// signed with the Play upload key and does not ask to install apps: Play
+// updates it. Every other build is the APK page's, as before: the team's
+// debug key, and its own updater.
+val playStore = (project.findProperty("playStore") as String?) == "true"
+val uploadKeystore = System.getenv("UPLOAD_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "com.m2stz.replit"
     compileSdk = flutter.compileSdkVersion
@@ -36,13 +46,42 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // The permission to install a downloaded update: the APK page's copy
+        // only (AndroidManifest.xml).
+        manifestPlaceholders["installPermission"] =
+            if (playStore) {
+                "com.m2stz.replit.permission.UPDATED_BY_GOOGLE_PLAY"
+            } else {
+                "android.permission.REQUEST_INSTALL_PACKAGES"
+            }
+    }
+
+    signingConfigs {
+        uploadKeystore?.let { path ->
+            create("upload") {
+                storeFile = file(path)
+                storePassword = System.getenv("UPLOAD_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("UPLOAD_KEY_ALIAS")
+                keyPassword = System.getenv("UPLOAD_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // The APK page's copy: the team's debug key, which every installed
+            // copy has (android-release.yml checks it). Google Play's copy: the
+            // upload key; Play then signs what it hands out with its own.
+            signingConfig =
+                if (playStore) {
+                    signingConfigs.findByName("upload")
+                        ?: throw GradleException(
+                            "The Google Play build needs the upload key: set UPLOAD_KEYSTORE_PATH " +
+                                "and its passwords (docs/play-release.md).",
+                        )
+                } else {
+                    signingConfigs.getByName("debug")
+                }
         }
     }
 }
