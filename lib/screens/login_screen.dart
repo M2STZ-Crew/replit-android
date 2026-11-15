@@ -146,14 +146,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on TimeoutException {
       _showError(
-        'RepLiT did not answer in time. Check your signal and try again. '
-        'Hotlines work without signing in.',
+        t(
+          'RepLiT did not answer in time. Check your signal and try again. '
+          'Hotlines work without signing in.',
+        ),
       );
     } catch (_) {
+      // No internet, or the server out of reach (QA C-04, v1.12.44): said
+      // plainly and in the app's language, with no server address.
       _showError(
-        'Could not reach RepLiT at ${ApiConfig.host}. Check your internet '
-        'connection, then try again. If it keeps failing, install the latest '
-        'version of the app.',
+        t(
+          'No internet connection. Turn on mobile data or Wi-Fi, then try '
+          'again. Hotlines work without internet.',
+        ),
       );
     } finally {
       _slowTimer?.cancel();

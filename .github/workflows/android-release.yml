@@ -268,6 +268,48 @@ jobs:
           done
           echo "::warning::The backend did not confirm $version; its own check, every 2 minutes, will tell the phones."
 
+      # Google Play's copy (v1.12.44): an app bundle signed with the upload
+      # key, with no updater of its own (Play updates it). Kept as this run's
+      # artifact, for uploading in Play Console. Until the upload key is in
+      # the secrets it is skipped, with a notice; a failure here never holds
+      # back the APK above. One-time setup: docs/play-release.md.
+      - name: Build Google Play's app bundle
+        id: play
+        continue-on-error: true
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ]; then
+            echo "::notice::No Play upload key in the secrets yet, so no Play app bundle (docs/play-release.md)."
+            exit 0
+          fi
+          export UPLOAD_KEYSTORE_PATH="$RUNNER_TEMP/upload.jks"
+          printf '%s' "$UPLOAD_KEYSTORE_BASE64" | base64 -d > "$UPLOAD_KEYSTORE_PATH"
+          flutter build appbundle --release \
+            --android-project-arg=playStore=true \
+            --dart-define-from-file=env.json \
+            --dart-define=PLAY_STORE=true \
+            --build-number=${{ github.run_number }}
+          rm -f "$UPLOAD_KEYSTORE_PATH"
+          aab=build/app/outputs/bundle/release/app-release.aab
+          # The Play copy must not be able to install apps.
+          if unzip -p "$aab" base/manifest/AndroidManifest.xml | grep -a -q REQUEST_INSTALL_PACKAGES; then
+            echo "::error::The Play app bundle still asks to install apps."
+            exit 1
+          fi
+          echo "aab=$aab" >> "$GITHUB_OUTPUT"
+
+      - name: Keep Google Play's app bundle
+        if: steps.play.outputs.aab != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: RepLiT-play-${{ github.run_number }}
+          path: ${{ steps.play.outputs.aab }}
+          retention-days: 30
+
       - name: Remove the secret files
         if: always()
         run: |
@@ -275,4 +317,5 @@ jobs:
           rm -f "$RUNNER_TEMP/firebase-service-account.json" \
                 android/app/google-services.json \
                 env.json \
-                "$HOME/.android/debug.keystore"
+                "$HOME/.android/debug.keystore" \
+                "$RUNNER_TEMP/upload.jks"

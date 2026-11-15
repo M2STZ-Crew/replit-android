@@ -7,6 +7,41 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.44 — 16 November 2026 — The QA run's fixes; ready for Google Play
+
+Works with backend v1.12.34 (account deletion, and the name and email checks).
+With an older backend everything works but Delete my account. No new
+permission; Google Play's copy has one fewer (it cannot install apps).
+
+### From the QA run on the Realme C75 (15–16 Nov)
+- **Signing in with no internet** (C-04) said the server's address and "install
+  the latest version", in English only. Now: "No internet connection. Turn on
+  mobile data or Wi-Fi, then try again. Hotlines work without internet.", in
+  English or Tagalog. Create account no longer shows a developer's message.
+- **The map offline** (G-12) says so in words: "You're offline. The map shows
+  what was saved…; reports wait and send themselves once there is signal."
+- **Your reports** (H-16) show each report's photo; tap it to see it whole.
+- **Names** (Z-10) are letters, with spaces, periods, apostrophes and hyphens:
+  no digits, no emoji, on Create account and Edit profile (the server checks
+  too).
+- **Email addresses** (D-02) must be whole, and the server refuses one whose
+  domain takes no mail ("No email can reach this address…").
+- **Tagalog** (Y-01): the last English words on Sign in, the map ("Offline")
+  and Your reports ("fire out").
+
+### Google Play
+- **Delete my account** (Profile, at the bottom): what goes and what stays,
+  your password, then the account is deleted and the phone signed out. The same
+  on the web: reportwhatslit.vercel.app/delete-account.
+- **Privacy policy**: Profile → Privacy policy, and on Create account.
+- **Google Play's own copy** (docs/play-release.md): an app bundle signed with
+  the upload key, built by every release once the key is in the secrets. It has
+  no updater ("Check for updates" opens the Play Store page), is never sent the
+  GitHub "New Update!", and lets people past the Developer options warning
+  (Continue anyway). The APK page's copy is unchanged.
+
+---
+
 ## v1.12.43 — 13 November 2026 — The map where you are; the ID in one camera; tablets
 
 Works with backend v1.12.33 as it is. No new permission.

@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/design.dart';
 import '../i18n/i18n.dart';
+import '../store_build.dart';
 
 /// Android's Developer options must be off for RepLiT to be used.
 ///
@@ -124,6 +125,10 @@ class _DeveloperModeGateState extends State<DeveloperModeGate>
     with WidgetsBindingObserver {
   DeviceRisk? _risk;
 
+  /// "Continue anyway", in the Google Play copy (v1.12.44): Google's test
+  /// phones and its reviewers have Developer options on, and must get in.
+  bool _continued = false;
+
   @override
   void initState() {
     super.initState();
@@ -151,7 +156,7 @@ class _DeveloperModeGateState extends State<DeveloperModeGate>
 
   @override
   Widget build(BuildContext context) {
-    final risk = _risk;
+    final risk = _continued ? null : _risk;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -160,7 +165,13 @@ class _DeveloperModeGateState extends State<DeveloperModeGate>
           excluding: risk != null,
           child: AbsorbPointer(absorbing: risk != null, child: widget.child),
         ),
-        if (risk != null) DeveloperModeWarning(risk: risk),
+        if (risk != null)
+          DeveloperModeWarning(
+            risk: risk,
+            onContinue: StoreBuild.play
+                ? () => setState(() => _continued = true)
+                : null,
+          ),
       ],
     );
   }
@@ -170,9 +181,12 @@ class _DeveloperModeGateState extends State<DeveloperModeGate>
 /// ways out — Exit, or a call to 911 for someone who opened RepLiT because
 /// something is on fire.
 class DeveloperModeWarning extends StatelessWidget {
-  const DeveloperModeWarning({super.key, required this.risk});
+  const DeveloperModeWarning({super.key, required this.risk, this.onContinue});
 
   final DeviceRisk risk;
+
+  /// When set (the Google Play copy), the warning can be passed.
+  final VoidCallback? onContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +274,14 @@ class DeveloperModeWarning extends StatelessWidget {
                           t('Exit'),
                           onPressed: () => unawaited(DeveloperMode.exit()),
                         ),
+                        if (onContinue != null) ...[
+                          const SizedBox(height: 8),
+                          AppButton.secondary(
+                            t('Continue anyway'),
+                            key: const ValueKey('developer-mode-continue'),
+                            onPressed: onContinue,
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         Center(
                           child: TextButton.icon(

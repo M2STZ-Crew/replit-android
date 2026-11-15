@@ -18,9 +18,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- "Check for updates" (lib/updates/app_updates.dart) hands a downloaded
-         release to Android's installer, which asks once to allow it. RepLiT is
-         not on Google Play, whose policy limits this permission. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+         release to Android's installer, which asks once to allow it. Only the
+         APK page's copy asks for it: Google Play's copy (v1.12.44) is updated
+         by Play, whose policy keeps this permission from it, and names instead
+         a permission nobody defines, which Android ignores
+         (android/app/build.gradle.kts, installPermission). -->
+    <uses-permission android:name="${installPermission}"/>
     <!-- Every alert vibrates with the app open too (lib/alerts/buzz.dart).
          A normal permission: granted at install, nothing is asked. -->
     <uses-permission android:name="android.permission.VIBRATE"/>

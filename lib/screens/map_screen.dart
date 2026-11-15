@@ -1214,11 +1214,17 @@ class _MapScreenState extends State<MapScreen> {
               // The sheet only ever lists what is within 1.5 km: with no
               // fix it lists nothing, rather than the city under this name.
               Eyebrow(
-                offline ? 'Offline' : t('Within 1.5 km'),
+                offline ? t('Offline') : t('Within 1.5 km'),
                 color: context.pal.muted,
               ),
             ],
           ),
+          // QA G-12 (v1.12.44): offline is said in words, not only by the
+          // pill's NO SIGNAL and this eyebrow.
+          if (offline) ...[
+            const SizedBox(height: 12),
+            _OfflineNote(savedAt: _cacheSavedAt),
+          ],
         ],
       ),
       body: Column(
@@ -1953,4 +1959,52 @@ class _DetailRow {
   const _DetailRow(this.label, this.value);
   final String label;
   final String value;
+}
+
+/// "You're offline" (QA G-12, v1.12.44): the map shows what this phone saved,
+/// and a report waits and sends itself once there is signal.
+class _OfflineNote extends StatelessWidget {
+  const _OfflineNote({required this.savedAt});
+
+  final DateTime? savedAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    final saved = savedAt;
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        key: const ValueKey('map-offline-note'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: pal.live.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: pal.live.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(AppIcons.cloudOff, size: 18, color: pal.live),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                saved == null
+                    ? t(
+                        "You're offline. Reports wait on this phone and send "
+                        'themselves once there is signal.',
+                      )
+                    : t(
+                        "You're offline. The map shows what was saved {ago}; "
+                        'reports wait and send themselves once there is signal.',
+                        {'ago': tAgo(saved)},
+                      ),
+                style: context.type.caption.copyWith(color: pal.label),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

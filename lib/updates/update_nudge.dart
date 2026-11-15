@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_updates.dart';
+import '../store_build.dart';
 
 /// "There's a new update!" (WHAT'S NEXT, 1.1), on the home screens.
 ///
@@ -41,10 +42,15 @@ abstract final class UpdateNudge {
   static DateTime Function() now = DateTime.now;
 
   /// Look as the app opens, however recent the last look was.
-  static Future<void> start() => _look();
+  static Future<void> start() async {
+    // A Google Play copy is updated by Play (v1.12.44): no banner from GitHub.
+    if (StoreBuild.play) return;
+    await _look();
+  }
 
   /// Look on coming back to the front, unless one looked in the last [every].
   static Future<void> maybeCheck() async {
+    if (StoreBuild.play) return;
     final last = _lookedAt;
     if (last != null && now().difference(last) < every) return;
     await _look();

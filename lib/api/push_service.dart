@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app_version.dart';
+import '../store_build.dart';
 import '../i18n/i18n.dart';
 import '../location/location_beacon.dart';
 import '../alerts/buzz.dart';
@@ -52,8 +53,9 @@ class PushService {
   String? _token;
 
   /// Sent with the device, so the server knows which build each phone runs.
-  static String? get _version =>
-      AppVersion.label.isEmpty ? null : AppVersion.label;
+  /// A Google Play copy adds " play" (v1.12.44): Play updates it, so the
+  /// server never tells it of a GitHub release.
+  static String? get _version => StoreBuild.deviceVersion(AppVersion.label);
   bool _listenersReady = false;
 
   /// Whether the user has emergency alerts switched on (default true).

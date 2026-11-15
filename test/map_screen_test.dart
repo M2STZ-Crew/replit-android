@@ -205,6 +205,7 @@ void main() {
       expect(find.text('SPACE FOR 480'), findsOneWidget);
       expect(find.text('GPS accurate to 4 m'), findsOneWidget);
       expect(find.text('WATCHING PASAY'), findsOneWidget);
+      expect(find.byKey(const ValueKey('map-offline-note')), findsNothing);
     });
 
     testWidgets(
@@ -227,6 +228,8 @@ void main() {
         expect(find.text('1 REPORT WAITING'), findsOneWidget);
         expect(find.text('NO SIGNAL — QUEUED'), findsOneWidget);
         expect(find.text('SAVED ON THIS PHONE'), findsOneWidget);
+        // QA G-12 (v1.12.44): offline is said in words.
+        expect(find.byKey(const ValueKey('map-offline-note')), findsOneWidget);
         expect(find.text('Fire report'), findsOneWidget);
         expect(find.text('QUEUED'), findsOneWidget);
         expect(find.text('All ${kHotlines.length} hotlines'), findsOneWidget);

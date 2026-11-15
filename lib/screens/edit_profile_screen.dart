@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../models/person_rules.dart';
 
 const List<String> _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -87,11 +88,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
+    final name = _name.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    // Letters, as on the ID (QA Z-10, v1.12.44; the server checks too).
+    if (name.isNotEmpty && !looksLikeName(name)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            t(
+              'Use letters for your name. Spaces, periods, apostrophes and '
+              'hyphens are fine; numbers and emoji are not.',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final api = ApiClient();
     try {
       await api.updateProfile(
-        fullName: _name.text.trim().isEmpty ? null : _name.text.trim(),
+        fullName: name.isEmpty ? null : name,
         mobile: _mobile.text.trim().isEmpty ? null : _mobile.text.trim(),
         dateOfBirth: _dob == null ? null : _iso(_dob!),
         gender: _gender,
