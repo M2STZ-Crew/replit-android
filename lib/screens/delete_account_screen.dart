@@ -6,6 +6,7 @@ import '../api/account_freeze.dart';
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
+import '../api/web_only.dart';
 import '../i18n/i18n.dart';
 import '../store_build.dart';
 import '../theme.dart';
@@ -95,8 +96,10 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       return;
     }
     // Frozen: this phone forgets the account until it is restored.
+    // Bounded, as signing out is (WebOnly.cleanupFor): a background
+    // scheduler that never answers must not keep the person here.
     try {
-      await PushService.instance.unregister();
+      await PushService.instance.unregister().timeout(WebOnly.cleanupFor);
     } catch (_) {
       // The server stopped this phone's alerts already.
     }

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:replit/api/account_freeze.dart';
 import 'package:replit/api/api_client.dart';
+import 'package:replit/location/location_beacon.dart';
 import 'package:replit/screens/delete_account_screen.dart';
 import 'package:replit/screens/login_screen.dart';
 import 'package:replit/store_build.dart';
@@ -145,6 +146,10 @@ void main() {
   testWidgets('Delete my account freezes it and says the day it goes', (
     tester,
   ) async {
+    // No real background scheduler: on Linux, workmanager's never answers
+    // in a test (as in v1_12_42_test).
+    LocationBeacon.schedulerOverride = const _Scheduler();
+    addTearDown(() => LocationBeacon.schedulerOverride = null);
     tester.view.physicalSize = const Size(402, 874);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -190,4 +195,17 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+class _Scheduler extends BeaconScheduler {
+  const _Scheduler();
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<void> schedule(String name, Duration every) async {}
+
+  @override
+  Future<void> cancel(String name) async {}
 }
