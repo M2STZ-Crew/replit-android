@@ -786,25 +786,40 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = tone ?? context.pal.faint;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconWell(tint: color, icon: icon, size: 52, glyph: 24),
-            const SizedBox(height: 18),
-            Text(
-              title.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: context.type.cardTitle.copyWith(fontSize: 15),
-            ),
-            const SizedBox(height: 10),
-            Text(body, textAlign: TextAlign.center, style: context.type.body),
-            if (action != null) ...[const SizedBox(height: 22), action!],
-          ],
-        ),
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconWell(tint: color, icon: icon, size: 52, glyph: 24),
+          const SizedBox(height: 18),
+          Text(
+            title.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: context.type.cardTitle.copyWith(fontSize: 15),
+          ),
+          const SizedBox(height: 10),
+          Text(body, textAlign: TextAlign.center, style: context.type.body),
+          if (action != null) ...[const SizedBox(height: 22), action!],
+        ],
       ),
+    );
+    // Centred in the space it is given; scrolls when that is too short (a
+    // 320 x 568 phone under a header, a large font) so "Try again" is still
+    // reachable. It ran 29 px off BFP's alarm requests there, 127 px at 1.3x.
+    return LayoutBuilder(
+      builder: (context, box) {
+        if (!box.maxHeight.isFinite) return Center(child: content);
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: box.maxHeight,
+              minWidth: box.maxWidth.isFinite ? box.maxWidth : 0,
+            ),
+            child: Center(child: content),
+          ),
+        );
+      },
     );
   }
 }

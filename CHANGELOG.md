@@ -7,6 +7,28 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.46 — 16 November 2026 — The smallest phones
+
+Goes with backend v1.12.36. The fit tests started at 360 wide; a new one
+(`test/small_phone_fit_test.dart`) pumps 28 screens, residents' and staff, at
+320 x 568 and 375 x 667, at normal text and at 1.3x, with the server down. It
+found four places where something ran off the screen, now fixed:
+
+- **"Opened on another phone"**: Exit was 48 px below a 320 x 568 screen (314 px
+  at 1.3x). The message now scrolls when it must, and Exit stays on screen.
+- **Every "unavailable" / empty state** (the shared `EmptyState`) scrolls when
+  its space is too short, so "Try again" is reachable: BFP's alarm requests ran
+  29 px off (127 px at 1.3x).
+- **Notifications**' title and the **Nearby fire alert** chip wrap instead of
+  running 40 px and 16 px off the right edge at 1.3x.
+- **Five wrong passwords and the account waits** (backend v1.12.36). Sign in,
+  Change password and Delete my account now say how many minutes to wait, in
+  English or Tagalog, and point to Forgot password? (`lib/api/sign_in_limits.dart`).
+  When too many people sign in at once, they say to wait a few minutes instead
+  of showing a server error.
+
+---
+
 ## v1.12.45 — 16 November 2026 — 30 days to change your mind; a residents' site
 
 Works with backend v1.12.35. No new permission.

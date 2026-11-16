@@ -100,7 +100,13 @@ class _NotificationSettingsScreenState
       children: [
         const BackWell(),
         const SizedBox(width: 16),
-        Text(t('Notifications').toUpperCase(), style: context.type.screenTitle),
+        // Expanded: at 320 wide and a large font the title ran 40 px off.
+        Expanded(
+          child: Text(
+            t('Notifications').toUpperCase(),
+            style: context.type.screenTitle,
+          ),
+        ),
       ],
     );
   }
