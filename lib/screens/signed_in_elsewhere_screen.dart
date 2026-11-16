@@ -52,54 +52,27 @@ class SignedInElsewhereScreen extends StatelessWidget {
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            // The message sits centred above Exit, as drawn. On a small phone
+            // or at a large font it scrolls instead, and Exit stays on screen
+            // (it ran 48 px off a 320 x 568 phone, 314 px at 1.3x).
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Spacer(),
-                Center(
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: pal.wellFor(pal.warn),
-                      borderRadius: BorderRadius.circular(AppRadius.panel),
-                    ),
-                    child: Icon(
-                      AppIcons.smartphone,
-                      size: 36,
-                      color: pal.glyphOn(pal.warn),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, box) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: box.maxHeight),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: _message(context),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
-                Semantics(
-                  header: true,
-                  child: Text(
-                    t('OPENED ON ANOTHER PHONE'),
-                    textAlign: TextAlign.center,
-                    style: context.type.heading2,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  t(
-                    'Your RepLiT account was just signed in on another phone. '
-                    'One phone can use it at a time, so it has been signed '
-                    'out here.',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: context.type.bodyLarge,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  t(
-                    'If that was not you, sign in again and change your '
-                    'password.',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: context.type.body,
-                ),
-                const Spacer(),
+                const SizedBox(height: 16),
                 AppButton(
                   t('Exit').toUpperCase(),
                   run: true,
@@ -111,5 +84,54 @@ class SignedInElsewhereScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _message(BuildContext context) {
+    final pal = context.pal;
+    return [
+      Center(
+        child: Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            color: pal.wellFor(pal.warn),
+            borderRadius: BorderRadius.circular(AppRadius.panel),
+          ),
+          child: Icon(
+            AppIcons.smartphone,
+            size: 36,
+            color: pal.glyphOn(pal.warn),
+          ),
+        ),
+      ),
+      const SizedBox(height: 28),
+      Semantics(
+        header: true,
+        child: Text(
+          t('OPENED ON ANOTHER PHONE'),
+          textAlign: TextAlign.center,
+          style: context.type.heading2,
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text(
+        t(
+          'Your RepLiT account was just signed in on another phone. '
+          'One phone can use it at a time, so it has been signed '
+          'out here.',
+        ),
+        textAlign: TextAlign.center,
+        style: context.type.bodyLarge,
+      ),
+      const SizedBox(height: 12),
+      Text(
+        t(
+          'If that was not you, sign in again and change your '
+          'password.',
+        ),
+        textAlign: TextAlign.center,
+        style: context.type.body,
+      ),
+    ];
   }
 }
