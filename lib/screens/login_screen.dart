@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
+import '../api/account_freeze.dart';
 import '../api/api_config.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
@@ -104,6 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
     _slowTimer = Timer(ApiClient.slowAfter, () {
       if (mounted) setState(() => _slow = true);
     });
+    // Frozen for deletion (backend v1.12.35): offered Restore below.
+    var frozen = false;
+    String? goes;
     try {
       await _api.login(
         email: _byEmail ? email : null,
@@ -134,6 +138,11 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => RoleGate(initialMe: me)),
       );
     } on ApiException catch (e) {
+      if (e.code == AccountFreeze.errorCode) {
+        frozen = true;
+        goes = e.details?['delete_after'] as String?;
+        return;
+      }
       _showError(
         e.statusCode == 401 && e.message == 'Invalid login credentials'
             ? (_byEmail
@@ -168,7 +177,87 @@ class _LoginScreenState extends State<LoginScreen> {
           _slow = false;
         });
       }
+      if (frozen && mounted) {
+        unawaited(
+          _offerRestore(
+            email: _byEmail ? email : null,
+            password: password,
+            deleteAfter: goes,
+          ),
+        );
+      }
     }
+  }
+
+  /// An account frozen for deletion (backend v1.12.35): within its 30 days
+  /// its owner may restore it here, and is then signed in as usual.
+  Future<void> _offerRestore({
+    required String? email,
+    required String password,
+    String? deleteAfter,
+  }) async {
+    final day = AccountFreeze.day(deleteAfter);
+    final restore = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(t('Restore your account?')),
+        content: Text(
+          day == null
+              ? t(
+                  'This account is set to be deleted. Restore it to keep '
+                  'using RepLiT.',
+                )
+              : t(
+                  'This account is set to be deleted on {date}. Restore it '
+                  'to keep using RepLiT.',
+                  {'date': day},
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(t('Not now')),
+          ),
+          FilledButton(
+            key: const ValueKey('restore-account'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(t('Restore my account')),
+          ),
+        ],
+      ),
+    );
+    if (restore != true || !mounted) return;
+    if (email == null) {
+      _showError(t('Sign in with your email to restore your account.'));
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await _api.restoreAccount(email: email, password: password);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        _showError(e.message);
+      }
+      return;
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loading = false);
+        _showError(
+          t(
+            'No internet connection. Turn on mobile data or Wi-Fi, then try '
+            'again. Hotlines work without internet.',
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _loading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(t('Your account is restored. Signing you in…'))),
+    );
+    await _submit();
   }
 
   void _hotlines() => Navigator.of(context).push(

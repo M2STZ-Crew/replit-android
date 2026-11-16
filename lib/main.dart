@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
+import 'api/account_freeze.dart';
 import 'api/api_client.dart';
 import 'api/phone_gate.dart';
 import 'api/push_service.dart';
@@ -20,6 +21,7 @@ import 'privacy/contact_mask.dart';
 import 'security/developer_mode.dart';
 import 'api/session.dart';
 import 'models/active_report.dart';
+import 'screens/login_screen.dart';
 import 'screens/phone_verify_screen.dart';
 import 'screens/report_status_screen.dart';
 import 'screens/role_gate.dart';
@@ -84,6 +86,20 @@ Future<void> main() async {
   // A request refused mid-session because the account's phone is not
   // verified: show the gate over whatever was open. Verified, the app starts
   // again from RoleGate, which now lets the resident through.
+  // An account frozen for deletion from another phone or the website
+  // (backend v1.12.35): signed out here, back at Sign in with the day it
+  // goes; signing in there offers Restore my account.
+  AccountFreeze.onTrip = (deleteAfter) async {
+    final nav = PushService.navigatorKey.currentState;
+    if (nav == null || !Session.instance.isAuthenticated) return;
+    await Session.instance.clear();
+    nav.pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(notice: AccountFreeze.notice(deleteAfter)),
+      ),
+      (route) => false,
+    );
+  };
   PhoneGate.onTrip = () {
     final nav = PushService.navigatorKey.currentState;
     if (nav == null || !Session.instance.isAuthenticated) return;

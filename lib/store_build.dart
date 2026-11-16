@@ -53,13 +53,14 @@ abstract final class StoreBuild {
   }
 }
 
-/// RepLiT's public pages on the Admin console (v1.12.44, Google Play): the
-/// privacy policy, and deleting an account without the app.
+/// RepLiT's public pages (Google Play): the privacy policy, and deleting or
+/// restoring an account without the app. On the residents' site since
+/// v1.12.45, not the Admin console's address.
 abstract final class PolicyLinks {
-  static Uri get privacy => Uri.parse('${ApiConfig.adminConsoleUrl}/privacy');
+  static Uri get privacy => Uri.parse('${ApiConfig.publicSiteUrl}/privacy');
 
   static Uri get deleteAccount =>
-      Uri.parse('${ApiConfig.adminConsoleUrl}/delete-account');
+      Uri.parse('${ApiConfig.publicSiteUrl}/delete-account');
 
   /// Open the privacy policy in the browser.
   static Future<void> openPrivacy() async {

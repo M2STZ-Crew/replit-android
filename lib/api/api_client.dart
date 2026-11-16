@@ -6,6 +6,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/field_ops.dart';
+import 'account_freeze.dart';
 import 'api_cache.dart';
 import 'api_config.dart';
 import 'phone_gate.dart';
@@ -539,13 +540,32 @@ class ApiClient {
   /// Delete this account for good: POST /auth/me/delete (v1.12.44, Google
   /// Play's rule; residents only). A wrong password is a 400
   /// `wrong_password`, a staff account a 403 `staff_account`.
-  Future<void> deleteAccount({required String password}) async {
+  ///
+  /// Since backend v1.12.35 the account is frozen for 30 days first: the
+  /// answer says when it goes (null from an older server, which deleted at once).
+  Future<DateTime?> deleteAccount({required String password}) async {
     final resp = await _authed(
       () => _client.post(
         Uri.parse('${ApiConfig.baseUrl}/auth/me/delete'),
         headers: _jsonAuth,
         body: jsonEncode({'password': password}),
       ),
+    );
+    final body = _decode(resp);
+    return DateTime.tryParse('${body['delete_after'] ?? ''}');
+  }
+
+  /// Restore an account frozen for deletion, within its 30 days: POST
+  /// /auth/restore (backend v1.12.35). No session: the email and password,
+  /// as at sign-in. An account that is not frozen is a 409 `not_scheduled`.
+  Future<void> restoreAccount({
+    required String email,
+    required String password,
+  }) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/auth/restore'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'password': password}),
     );
     _decode(resp);
   }
@@ -1436,6 +1456,18 @@ class ApiClient {
         ),
         // 18 and over (v1.12.27, app/services/age.py).
         'underage' => t('You must be 18 or older to use RepLiT.'),
+        // Frozen for deletion (backend v1.12.35): the day it goes, and how
+        // to keep it, in the app's words.
+        AccountFreeze.errorCode => AccountFreeze.notice(
+          (body['details'] as Map?)?['delete_after'] as String?,
+        ),
+        'not_scheduled' => t(
+          'This account is not set to be deleted. You can sign in as usual.',
+        ),
+        'deletion_unavailable' => t(
+          'Deleting or restoring an account is not available just now. Try '
+          'again later.',
+        ),
         // Backend v1.12.34 (QA D-02, Z-10): an address no mail can reach,
         // and a name that is not letters.
         'undeliverable_email' => t(
@@ -1468,6 +1500,10 @@ class ApiClient {
       // show the gate. RoleGate catches it at start-up; this catches the rest.
       if (resp.statusCode == 403 && code == PhoneGate.errorCode) {
         PhoneGate.trip();
+      }
+      // Frozen from another phone or the website: signed out here too.
+      if (resp.statusCode == 403 && code == AccountFreeze.errorCode) {
+        AccountFreeze.trip(details?['delete_after'] as String?);
       }
       throw ApiException(
         resp.statusCode,

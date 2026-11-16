@@ -7,6 +7,20 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.45 — 16 November 2026 — 30 days to change your mind; a residents' site
+
+Works with backend v1.12.35. No new permission.
+
+- **Delete my account freezes the account for 30 days first.** The screen says
+  what happens right away (signed out on every phone, no alerts), for the 30
+  days (kept, frozen) and after them (deleted for good; reports stay without
+  your name). Sign in then says the day it goes.
+- **Restore my account**: signing in to a frozen account offers it, then signs
+  in as usual. A phone still signed in when the account is frozen elsewhere is
+  signed out, with the day it goes.
+- **The privacy policy and the account page** are on the residents' site,
+  reportwhatslit-app.vercel.app, not the Admin console's address.
+
 ## v1.12.44 — 16 November 2026 — The QA run's fixes; ready for Google Play
 
 Works with backend v1.12.34 (account deletion, and the name and email checks).
