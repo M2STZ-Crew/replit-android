@@ -35,6 +35,7 @@ import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../i18n/language_switch.dart';
 import '../widgets/responsive_frame.dart';
+import '../widgets/confirm_log_out.dart';
 
 /// "15 Profile" from the REPLIT-OVERHAUL Figma — "Your profile", now a tab.
 ///
@@ -281,6 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Future<void> _logout() async {
+    if (!await confirmLogOut(context) || !mounted) return;
     setState(() => _loggingOut = true);
     final navigator = Navigator.of(context);
     await PushService.instance.unregister();

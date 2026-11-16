@@ -2399,4 +2399,8 @@ const Map<String, String> kTagalog = {
       'Sobrang dami ng maling password para sa account na ito. Maghintay ng {n} minuto, saka subukan ulit, o i-tap ang Nakalimutan ang password?.',
   'Too many people are signing in right now. Wait a few minutes, then try again.':
       'Sobrang daming nagsa-sign in ngayon. Maghintay ng ilang minuto, saka subukan ulit.',
+  // v1.12.47: Log out asks first.
+  'Log out?': 'Mag-log out?',
+  'This phone gets no fire alerts until you sign in again with your email or mobile number and your password.':
+      'Walang alerto sa sunog ang phone na ito hanggang mag-sign in ka ulit gamit ang email o mobile number mo at ang password mo.',
 };

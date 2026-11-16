@@ -13,6 +13,7 @@ import '../../widgets/staff_shell.dart';
 import 'responder_feed.dart';
 import 'responder_status.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/confirm_log_out.dart';
 
 /// Profile (REPLIT (MAIN) 07 · R13): who you are and which unit, the sounds
 /// and voice of a run, and what you can do.
@@ -196,10 +197,11 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
                   AppButton.danger(
                     t('Log out'),
                     icon: AppIcons.logout,
-                    onPressed: () => staffSignOut(
-                      Navigator.of(context),
-                      api: widget.feed.api,
-                    ),
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
+                      if (!await confirmLogOut(context)) return;
+                      await staffSignOut(nav, api: widget.feed.api);
+                    },
                   ),
                 ],
               ),

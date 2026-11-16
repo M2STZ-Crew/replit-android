@@ -367,6 +367,80 @@ void main() {
         throwsA(isA<RoutingException>()),
       );
     });
+
+    // v1.12.47, 17 November 2026: "the map uses ferry boat".
+    group('no ferries', () {
+      final byBoat = (
+        points: lRoute.points,
+        steps: [
+          for (final (i, s) in lRoute.steps.indexed)
+            i == 1 ? {...s, 'mode': 'ferry'} : {...s, 'mode': 'driving'},
+        ],
+        duration: 100.0,
+        summary: 'By ferry',
+        congestion: null,
+        typical: null,
+      );
+      final byRoad = (
+        points: lRoute.points,
+        steps: [
+          for (final s in lRoute.steps) {...s, 'mode': 'driving'},
+        ],
+        duration: 900.0,
+        summary: 'By road',
+        congestion: null,
+        typical: null,
+      );
+
+      test(
+        'driving asks Mapbox to leave ferries out; walking cannot',
+        () async {
+          await service().routes(at(0), at(2000), mode: TravelMode.driving);
+          expect(asked.single.queryParameters['exclude'], 'ferry');
+          asked.clear();
+          await service().routes(at(0), at(2000), mode: TravelMode.walking);
+          expect(asked.single.queryParameters.containsKey('exclude'), isFalse);
+        },
+      );
+
+      test('a route over water is dropped, even the fastest', () async {
+        for (final mode in TravelMode.values) {
+          final set = await service(
+            body: answer([byBoat, byRoad]),
+          ).routes(at(0), at(2000), mode: mode);
+          expect(set.routes, hasLength(1), reason: '$mode');
+          expect(set.routes.single.summary, 'By road', reason: '$mode');
+        }
+      });
+
+      test(
+        'OSRM cannot be asked to avoid ferries, so its answer is checked',
+        () async {
+          final set = await service(
+            token: '',
+            body: answer([byBoat, byRoad]),
+          ).routes(at(0), at(2000), mode: TravelMode.driving);
+          expect(asked.single.host, 'router.project-osrm.org');
+          expect(asked.single.queryParameters.containsKey('exclude'), isFalse);
+          expect(set.routes.single.summary, 'By road');
+        },
+      );
+
+      test('only by ferry: no route, rather than a crossing by boat', () async {
+        expect(
+          () => service(
+            body: answer([byBoat]),
+          ).routes(at(0), at(2000), mode: TravelMode.driving),
+          throwsA(
+            isA<RoutingException>().having(
+              (e) => e.message,
+              'message',
+              'No road route was found.',
+            ),
+          ),
+        );
+      });
+    });
   });
 
   // ------------------------------------------------------- controller ---
