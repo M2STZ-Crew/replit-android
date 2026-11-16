@@ -100,12 +100,29 @@ class UpToDate extends UpdateCheck {
 }
 
 class UpdateAvailable extends UpdateCheck {
-  const UpdateAvailable(this.release, {this.downloaded = false});
+  const UpdateAvailable(
+    this.release, {
+    this.downloaded = false,
+    this.downloading = false,
+  });
   final AvailableRelease release;
 
   /// The APK is already in the app's cache, whole, from an earlier download
   /// that was not installed: installing needs no second download.
   final bool downloaded;
+
+  /// Android is downloading it already, in the background (v1.12.48): the
+  /// sheet follows that download rather than starting another.
+  final bool downloading;
+}
+
+/// Where Android's background download of an update is (v1.12.48).
+enum UpdateDownloadState {
+  /// Downloading: the person may leave RepLiT, and it carries on.
+  background,
+
+  /// Waiting for a connection, to carry on where it stopped.
+  waiting,
 }
 
 class UpdateCheckFailed extends UpdateCheck {
@@ -151,9 +168,15 @@ class UpdateInstallFailed implements Exception {
 /// SHA-256, notes). This reads the newest one's `latest.json` — a plain file
 /// download, not GitHub's rate-limited API, so phones sharing a carrier's
 /// address do not use up each other's checks — and compares its build number
-/// with this one's. Installing downloads the APK into the app's cache;
-/// MainActivity checks it against the SHA-256 and opens Android's installer,
-/// which asks the first time to allow installs from RepLiT.
+/// with this one's. Installing hands the APK's download to Android's
+/// DownloadManager (v1.12.48, 17 Nov 2026: "add the background downloading
+/// when updating, because it can be interrupted"): it carries on with RepLiT
+/// in the background or closed, shows its progress in the notification shade,
+/// and picks up after a lost connection; when it is done, a notification
+/// opens this sheet. Without a DownloadManager, the app downloads it itself,
+/// as before. MainActivity then checks the APK against the SHA-256 and opens
+/// Android's installer, which asks the first time to allow installs from
+/// RepLiT.
 ///
 /// iPhones are sideloaded (docs/ios-sideload.md), and nothing installed that
 /// way can update itself, so the row is not drawn there.
@@ -235,12 +258,18 @@ abstract final class AppUpdates {
         return newer ? UpdateAvailable(release) : const UpToDate();
       }
       if (!newer) {
-        // Installed already: an APK still waiting in the cache is not
-        // needed any more.
+        // Installed already: an APK still waiting in the cache, or still
+        // downloading, is not needed any more.
+        await _cancelBackground();
         await _clearDownloads();
         return const UpToDate();
       }
       _found = release;
+      // Android may be downloading it already, from an earlier tap: the sheet
+      // follows that download rather than clearing it away.
+      if (await _runningFor(release) != null) {
+        return UpdateAvailable(release, downloading: true);
+      }
       return UpdateAvailable(release, downloaded: await _keepOnly(release));
     } on FormatException catch (_) {
       return const UpdateCheckFailed('BAD_RELEASE');
@@ -258,9 +287,16 @@ abstract final class AppUpdates {
   /// Hand the release the last [check] found to Android's installer,
   /// downloading it first unless a whole copy is already waiting — so
   /// calling this again after the install dialog was closed reopens it at
-  /// once. [onProgress] hears the share downloaded, 0 to 1. Throws
-  /// [UpdateInstallFailed].
-  static Future<void> install(ValueChanged<double?> onProgress) async {
+  /// once. [onProgress] hears the share downloaded, 0 to 1, or null when the
+  /// size is not known yet. [onState] hears where Android's background
+  /// download is; while [watching] says yes, this follows it, and when it
+  /// says no (the sheet closed), this returns and Android carries on alone.
+  /// Throws [UpdateInstallFailed].
+  static Future<void> install(
+    ValueChanged<double?> onProgress, {
+    ValueChanged<UpdateDownloadState>? onState,
+    bool Function()? watching,
+  }) async {
     final stand = installOverride;
     if (stand != null) return stand(onProgress);
     final release = _found;
@@ -273,8 +309,25 @@ abstract final class AppUpdates {
     try {
       final dir = await _downloads();
       apk = File('${dir.path}${Platform.pathSeparator}${release.apk}');
-      if (await _keepOnly(release)) {
+      // Android's download already under way, from an earlier tap; else a
+      // whole copy waiting; else a new download, by Android when it can.
+      final running = await _runningFor(release);
+      final whole = running == null && await _keepOnly(release);
+      final background =
+          running ?? (whole ? null : await _startInBackground(release));
+      if (whole) {
         onProgress(1);
+      } else if (background != null) {
+        final done = await _watch(
+          background,
+          release,
+          onProgress,
+          onState,
+          watching,
+        );
+        // The sheet closed: Android carries on, and says when it is done.
+        if (done == null) return;
+        apk = done;
       } else {
         // Written beside its final name and renamed once whole, so a file
         // with the final name is always a complete download.
@@ -307,6 +360,9 @@ abstract final class AppUpdates {
         await part.rename(apk.path);
         part = null;
       }
+      // Android lets only the app in front open the installer: a download
+      // that finished with RepLiT behind others waits for it to come back.
+      await _inFront();
       // Kept after the hand-off: if the install dialog is closed, the same
       // file opens it again.
       await _channel.invokeMethod<bool>('install', {
@@ -318,7 +374,10 @@ abstract final class AppUpdates {
     } on PlatformException catch (e) {
       // A copy that does not match the release is no use to anyone; the next
       // try downloads it afresh. (MainActivity deletes it too.)
-      if (e.code == 'CORRUPT') await _delete(apk);
+      if (e.code == 'CORRUPT') {
+        await _cancelBackground();
+        await _delete(apk);
+      }
       throw UpdateInstallFailed(e.code);
     } on MissingPluginException catch (_) {
       throw const UpdateInstallFailed('UNAVAILABLE');
@@ -341,6 +400,163 @@ abstract final class AppUpdates {
     try {
       await file?.delete();
     } on FileSystemException catch (_) {}
+  }
+
+  /// How often the sheet asks Android how far its download is.
+  @visibleForTesting
+  static Duration pollEvery = const Duration(milliseconds: 500);
+
+  /// Hand [release]'s download to Android's DownloadManager: its id, or null
+  /// when this phone or build cannot (then the app downloads it itself).
+  static Future<int?> _startInBackground(AvailableRelease release) async {
+    try {
+      return await _channel.invokeMethod<int>('startDownload', {
+        'url': release.apkUrl.toString(),
+        'file': release.apk,
+        // In the notification shade while it downloads.
+        'title': t('RepLiT {v}', {'v': release.label}),
+        'description': t('Downloading the update'),
+        // The notification once it is done, in the person's language and
+        // their "New Update!" channel.
+        'readyTitle': t('The update is downloaded'),
+        'readyText': t('Tap to install RepLiT {v}.', {'v': release.label}),
+        'channel': LanguageChoice.tagalog
+            ? 'app_update_tl_v1'
+            : 'app_update_en_v1',
+      });
+    } on Object catch (_) {
+      return null;
+    }
+  }
+
+  /// Android's download of [release], while it is under way (queued,
+  /// downloading or waiting for a connection). One for another release, or
+  /// one that failed, is cancelled; a finished one is left for [_keepOnly].
+  static Future<int?> _runningFor(AvailableRelease release) async {
+    try {
+      final pending = await _channel.invokeMapMethod<String, Object?>(
+        'pendingDownload',
+      );
+      final id = (pending?['id'] as num?)?.toInt();
+      if (pending == null || id == null) return null;
+      final status = await _status(id);
+      if (pending['file'] != release.apk ||
+          status == null ||
+          status.state == 'failed') {
+        await _cancelBackground();
+        return null;
+      }
+      return status.state == 'successful' ? null : id;
+    } on Object catch (_) {
+      // No DownloadManager to ask (an iPhone, a test): nothing under way.
+      return null;
+    }
+  }
+
+  /// Follow Android's download [id] of [release] until it is whole, and
+  /// return the file; null when [watching] says the sheet has gone.
+  static Future<File?> _watch(
+    int id,
+    AvailableRelease release,
+    ValueChanged<double?> onProgress,
+    ValueChanged<UpdateDownloadState>? onState,
+    bool Function()? watching,
+  ) async {
+    while (true) {
+      final status = await _status(id);
+      if (status == null || status.state == 'failed') {
+        await _cancelBackground();
+        throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+      }
+      if (status.state == 'successful') {
+        final path = status.path;
+        final file = path == null ? null : File(path);
+        if (file == null ||
+            !await file.exists() ||
+            await file.length() != release.size) {
+          await _cancelBackground();
+          throw const UpdateInstallFailed('DOWNLOAD_FAILURE');
+        }
+        onProgress(1);
+        return file;
+      }
+      onState?.call(
+        status.state == 'paused'
+            ? UpdateDownloadState.waiting
+            : UpdateDownloadState.background,
+      );
+      onProgress(
+        status.total > 0 ? (status.bytes / status.total).clamp(0.0, 1.0) : null,
+      );
+      if (watching != null && !watching()) return null;
+      await Future<void>.delayed(pollEvery);
+    }
+  }
+
+  /// Where Android's download [id] is: queued (`pending`), `running`,
+  /// `paused` (waiting for a connection), `successful` or `failed`; null when
+  /// Android no longer has it (cancelled from the notification shade).
+  static Future<({String state, int bytes, int total, String? path})?> _status(
+    int id,
+  ) async {
+    final s = await _channel.invokeMapMethod<String, Object?>(
+      'downloadStatus',
+      {'id': id},
+    );
+    if (s == null) return null;
+    return (
+      state: s['status'] as String? ?? 'failed',
+      bytes: (s['bytes'] as num?)?.toInt() ?? 0,
+      total: (s['total'] as num?)?.toInt() ?? 0,
+      path: s['path'] as String?,
+    );
+  }
+
+  /// Stop Android's download, if there is one, and forget it. Never throws.
+  static Future<void> _cancelBackground() async {
+    try {
+      await _channel.invokeMethod<void>('cancelDownload');
+    } on Object catch (_) {}
+  }
+
+  /// Wait until RepLiT is in front.
+  static Future<void> _inFront() async {
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state == null || state == AppLifecycleState.resumed) return;
+    final back = Completer<void>();
+    final listener = AppLifecycleListener(
+      onResume: () {
+        if (!back.isCompleted) back.complete();
+      },
+    );
+    try {
+      await back.future;
+    } finally {
+      listener.dispose();
+    }
+  }
+
+  /// Opens "Check for updates" when the "downloaded" notification is tapped
+  /// (main.dart sets it).
+  static VoidCallback? onOpenRequested;
+
+  /// Listen for that notification's tap: with RepLiT running, MainActivity
+  /// says so at once; one that started RepLiT is asked for once it runs.
+  static Future<void> listenForOpen() async {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'open' && call.arguments == 'updates') {
+        onOpenRequested?.call();
+      }
+    });
+    try {
+      final open = await _channel.invokeMethod<String>('takeOpen');
+      if (open != 'updates') return;
+      // Let the splash route home first, as a tapped alert does.
+      await Future<void>.delayed(const Duration(milliseconds: 1700));
+      onOpenRequested?.call();
+    } on Object catch (_) {
+      // Not Android, or an older MainActivity: nothing to open.
+    }
   }
 
   /// Clear out every download except a whole copy of [release]'s APK, and
@@ -427,6 +643,10 @@ Future<void> _showUpdateSheet(BuildContext context) => showAppSheet<void>(
 class UpdateSheet extends StatefulWidget {
   const UpdateSheet({super.key});
 
+  /// Whether the sheet is open: the "downloaded" notification's tap does not
+  /// open a second one over it.
+  static bool isShowing = false;
+
   @override
   State<UpdateSheet> createState() => _UpdateSheetState();
 }
@@ -443,10 +663,21 @@ class _UpdateSheetState extends State<UpdateSheet> {
   /// opens Android's installer.
   bool _downloaded = false;
 
+  /// Where Android's background download is, once it has it; null while the
+  /// app downloads it itself.
+  UpdateDownloadState? _background;
+
   @override
   void initState() {
     super.initState();
+    UpdateSheet.isShowing = true;
     unawaited(_check());
+  }
+
+  @override
+  void dispose() {
+    UpdateSheet.isShowing = false;
+    super.dispose();
   }
 
   Future<void> _check() async {
@@ -469,17 +700,28 @@ class _UpdateSheetState extends State<UpdateSheet> {
           _stage = _Stage.failed;
       }
     });
+    // Already downloading in the background: show how far it is.
+    if (found case UpdateAvailable(downloading: true)) unawaited(_install());
   }
 
   Future<void> _install() async {
     setState(() {
       _stage = _Stage.installing;
       _progress = _downloaded ? 1 : null;
+      _background = null;
     });
     try {
-      await AppUpdates.install((p) {
-        if (mounted) setState(() => _progress = p);
-      });
+      await AppUpdates.install(
+        (p) {
+          if (mounted) setState(() => _progress = p);
+        },
+        onState: (state) {
+          if (mounted && state != _background) {
+            setState(() => _background = state);
+          }
+        },
+        watching: () => mounted,
+      );
       // The file stays in the cache after the hand-off, for "Open the
       // installer again".
       if (mounted) {
@@ -572,6 +814,8 @@ class _UpdateSheetState extends State<UpdateSheet> {
             Text(
               _downloaded
                   ? t('Opening the installer…')
+                  : _background == UpdateDownloadState.waiting
+                  ? t('Waiting for a connection…')
                   : _progress == null
                   ? t('Downloading…')
                   : t('Downloading… {n}%', {'n': (_progress! * 100).round()}),
@@ -579,10 +823,17 @@ class _UpdateSheetState extends State<UpdateSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              t(
-                'Android will ask you to confirm the install. The first '
-                'time, it also asks you to allow installs from RepLiT.',
-              ),
+              _background != null && !_downloaded
+                  // Android has the download: leaving does not stop it.
+                  ? t(
+                      'You can leave RepLiT. The download carries on, its '
+                      'progress is in your notifications, and RepLiT tells '
+                      'you when it is ready to install.',
+                    )
+                  : t(
+                      'Android will ask you to confirm the install. The first '
+                      'time, it also asks you to allow installs from RepLiT.',
+                    ),
               style: context.type.caption.copyWith(color: pal.label),
             ),
           ],

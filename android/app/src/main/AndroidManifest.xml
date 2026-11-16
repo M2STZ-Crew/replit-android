@@ -85,8 +85,20 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_accent" />
-        <!-- Shares cache/updates, and nothing else, with Android's installer
-             (res/xml/update_paths.xml, MainActivity.installUpdate). -->
+        <!-- Check for updates (v1.12.48): DownloadManager says the update it
+             downloaded in the background is done; "The update is
+             downloaded" goes up (UpdateDownloads.kt). Exported, as the
+             system's download service sends it to this package. -->
+        <receiver
+            android:name=".UpdateDownloadReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+            </intent-filter>
+        </receiver>
+        <!-- Shares the downloaded update's folder, and nothing else, with
+             Android's installer (res/xml/update_paths.xml,
+             MainActivity.installUpdate). -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updates"

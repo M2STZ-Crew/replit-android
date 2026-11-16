@@ -25,7 +25,13 @@ import java.security.MessageDigest
 
 class MainActivity : FlutterActivity() {
 
+    /** "updates" when the "downloaded" notification started RepLiT, until
+     *  Dart asks for it (takeOpen). */
+    private var pendingOpen: String? = null
+    private var updatesChannel: MethodChannel? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        pendingOpen = intent?.getStringExtra(UpdateDownloads.EXTRA_OPEN)
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // Android 12+ would slide the app's first frame up under its
@@ -84,22 +90,63 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
-        // lib/updates/app_updates.dart: "Check for updates". Dart downloads the
-        // newest APK from the repository's GitHub releases into cache/updates;
-        // this checks it against the release's SHA-256 and hands it to
-        // Android's installer.
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "replit/updates")
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "updatesDir" -> result.success(updatesDir().absolutePath)
-                    "install" -> installUpdate(
-                        call.argument<String>("path"),
-                        call.argument<String>("sha256"),
-                        result
+        // lib/updates/app_updates.dart: "Check for updates". Android's
+        // DownloadManager downloads the newest APK from the repository's GitHub
+        // releases into files/updates, in the background (UpdateDownloads,
+        // v1.12.48); this checks it against the release's SHA-256 and hands it
+        // to Android's installer.
+        updatesChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "replit/updates")
+        updatesChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "updatesDir" -> result.success(updatesDir().absolutePath)
+                "install" -> installUpdate(
+                    call.argument<String>("path"),
+                    call.argument<String>("sha256"),
+                    result
+                )
+                "startDownload" -> try {
+                    result.success(
+                        UpdateDownloads.start(
+                            this,
+                            call.argument<String>("url") ?: "",
+                            call.argument<String>("file") ?: "",
+                            call.argument<String>("title") ?: "RepLiT",
+                            call.argument<String>("description") ?: "",
+                            call.argument<String>("readyTitle") ?: "RepLiT",
+                            call.argument<String>("readyText") ?: "",
+                            call.argument<String>("channel") ?: "app_update_en_v1"
+                        )
                     )
-                    else -> result.notImplemented()
+                } catch (e: Exception) {
+                    // No DownloadManager (turned off), no external storage:
+                    // Dart downloads it itself, as before.
+                    result.error("UNAVAILABLE", e.message, null)
                 }
+                "downloadStatus" -> result.success(
+                    UpdateDownloads.status(this, call.argument<Number>("id")?.toLong() ?: -1L)
+                )
+                "pendingDownload" -> result.success(UpdateDownloads.pendingInfo(this))
+                "cancelDownload" -> {
+                    UpdateDownloads.cancel(this)
+                    result.success(null)
+                }
+                "takeOpen" -> {
+                    result.success(pendingOpen)
+                    pendingOpen = null
+                }
+                else -> result.notImplemented()
             }
+        }
+    }
+
+    /** The "downloaded" notification tapped with RepLiT already running:
+     *  Dart opens Check for updates. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val open = intent.getStringExtra(UpdateDownloads.EXTRA_OPEN) ?: return
+        val channel = updatesChannel
+        if (channel != null) channel.invokeMethod("open", open) else pendingOpen = open
     }
 
     /** Vibrate once through [pattern] (off, on, off, on … in milliseconds).
@@ -125,9 +172,17 @@ class MainActivity : FlutterActivity() {
         return true
     }
 
-    /** Where a downloaded update waits: cache/updates, the one folder the
-     *  updates FileProvider shares (res/xml/update_paths.xml). */
-    private fun updatesDir(): File = File(cacheDir, "updates").apply { mkdirs() }
+    /** Where a downloaded update waits: files/updates on the app's external
+     *  storage, where DownloadManager can write (v1.12.48); cache/updates on a
+     *  phone without one. The updates FileProvider shares both
+     *  (res/xml/update_paths.xml). An APK left in cache/updates by an earlier
+     *  version goes. */
+    private fun updatesDir(): File {
+        val legacy = File(cacheDir, "updates")
+        val external = UpdateDownloads.dir(this) ?: return legacy.apply { mkdirs() }
+        if (legacy.exists()) legacy.deleteRecursively()
+        return external
+    }
 
     /** Check the downloaded APK against the release's SHA-256, off the main
      *  thread, then open Android's installer on it. The first time, Android
@@ -160,6 +215,9 @@ class MainActivity : FlutterActivity() {
                                     Intent.FLAG_ACTIVITY_NEW_TASK
                             )
                     )
+                    // Handed over: the background download, and its
+                    // "downloaded" notification, are done with.
+                    UpdateDownloads.forget(this)
                     result.success(true)
                 } catch (e: Exception) {
                     result.error("INSTALLATION_FAILURE", e.message, null)

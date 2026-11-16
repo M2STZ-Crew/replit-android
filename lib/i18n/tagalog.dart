@@ -2403,4 +2403,12 @@ const Map<String, String> kTagalog = {
   'Log out?': 'Mag-log out?',
   'This phone gets no fire alerts until you sign in again with your email or mobile number and your password.':
       'Walang alerto sa sunog ang phone na ito hanggang mag-sign in ka ulit gamit ang email o mobile number mo at ang password mo.',
+  // v1.12.48: updates download in the background.
+  'RepLiT {v}': 'RepLiT {v}',
+  'Downloading the update': 'Dina-download ang update',
+  'The update is downloaded': 'Na-download na ang update',
+  'Tap to install RepLiT {v}.': 'I-tap para i-install ang RepLiT {v}.',
+  'Waiting for a connection…': 'Naghihintay ng koneksiyon…',
+  'You can leave RepLiT. The download carries on, its progress is in your notifications, and RepLiT tells you when it is ready to install.':
+      'Puwede mong iwan ang RepLiT. Tuloy ang download, nasa notifications mo ang progreso nito, at sasabihin ng RepLiT kapag handa na itong i-install.',
 };

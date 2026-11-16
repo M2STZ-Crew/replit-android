@@ -12,6 +12,7 @@ import 'app_version.dart';
 import 'api/report_queue.dart';
 import 'screens/splash_screen.dart';
 import 'widgets/launch_mark.dart';
+import 'updates/app_updates.dart';
 import 'updates/update_nudge.dart';
 import 'theme.dart';
 import 'theme_choice.dart';
@@ -116,6 +117,14 @@ Future<void> main() async {
       ),
     );
   };
+  // An update Android downloaded in the background (v1.12.48): its
+  // "downloaded" notification opens Check for updates, which installs it.
+  AppUpdates.onOpenRequested = () {
+    final nav = PushService.navigatorKey.currentState;
+    if (nav == null || UpdateSheet.isShowing) return;
+    unawaited(showUpdateSheet(nav.context));
+  };
+  unawaited(AppUpdates.listenForOpen());
   runApp(const RepLitApp());
 }
 
