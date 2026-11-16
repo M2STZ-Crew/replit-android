@@ -124,6 +124,9 @@ class RoutingService {
         'language': 'en',
         if (driving) 'annotations': 'congestion,duration',
         if (driving) 'max_width': '$truckWidthMetres',
+        // No ferries (v1.12.47). Mapbox takes this for driving only; a walking
+        // route over water is dropped from the answer instead (_get).
+        if (driving) 'exclude': 'ferry',
         if (driving && headingDeg != null) 'bearings': _bearing(headingDeg),
         'access_token': _token,
       },
@@ -168,11 +171,38 @@ class RoutingService {
       throw RoutingException('Routing failed (${resp.statusCode}).');
     }
     final json = jsonDecode(resp.body) as Map<String, dynamic>;
-    final routes = parseRoutes(json, walkingPace: walkingPace);
+    final routes = parseRoutes({
+      ...json,
+      'routes': _withoutFerries(json['routes']),
+    }, walkingPace: walkingPace);
     if (json['code'] != 'Ok' || routes.isEmpty) {
       throw const RoutingException('No road route was found.');
     }
     return routes;
+  }
+
+  /// The routes that stay on land (v1.12.47, 17 November 2026: "the map uses
+  /// ferry boat"). A ferry keeps to a timetable, and no fire truck or person
+  /// running from a fire waits for one, yet Mapbox and OSRM both route over
+  /// one when it is shorter. Mapbox is asked to leave ferries out for driving;
+  /// OSRM's public server refuses that ("Exclude flag combination is not
+  /// supported"), and Mapbox's walking takes no such flag. So any route with
+  /// a ferry step is dropped here, and when every one has one, there is no
+  /// route rather than a crossing by boat.
+  static List<Object?> _withoutFerries(Object? routes) => [
+    for (final route in (routes as List?) ?? const [])
+      if (!_usesFerry(route)) route,
+  ];
+
+  static bool _usesFerry(Object? route) {
+    final legs = route is Map ? route['legs'] as List? : null;
+    for (final leg in legs ?? const []) {
+      final steps = leg is Map ? leg['steps'] as List? : null;
+      for (final step in steps ?? const []) {
+        if (step is Map && step['mode'] == 'ferry') return true;
+      }
+    }
+    return false;
   }
 
   static String _coords(LatLng from, LatLng to) =>

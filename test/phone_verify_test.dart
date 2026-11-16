@@ -86,7 +86,8 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('Verify your number'), findsOneWidget);
       expect(find.text('Emergency now? Call 911'), findsOneWidget);
-      expect(find.text('Sign out'), findsOneWidget);
+      // "Log out" like everywhere else, and translated (v1.12.47).
+      expect(find.text('Log out'), findsOneWidget);
       expect(find.byType(BackWell), findsNothing);
       expect(PhoneGate.isShowing, isTrue);
     });

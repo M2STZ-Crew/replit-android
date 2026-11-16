@@ -13,6 +13,7 @@ import '../widgets/design.dart';
 import 'login_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../widgets/confirm_log_out.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -195,6 +196,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
   }
 
   Future<void> _signOut() async {
+    if (!await confirmLogOut(context) || !mounted) return;
     try {
       await _api.logout();
     } catch (_) {}
@@ -432,7 +434,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
     Center(
       child: TextButton(
         onPressed: _busy ? null : _signOut,
-        child: Text('Sign out', style: TextStyle(color: context.pal.muted)),
+        child: Text(t('Log out'), style: TextStyle(color: context.pal.muted)),
       ),
     ),
   ];

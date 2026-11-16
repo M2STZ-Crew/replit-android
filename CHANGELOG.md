@@ -7,6 +7,29 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.47 — 17 November 2026 — No ferries; Log out asks first
+
+Goes with backend v1.12.37 (the console).
+
+- **Directions never cross by ferry** (17 Nov: "the map uses ferry boat, what
+  happened"). Mapbox and OSRM both route over a ferry when it is shorter, and
+  nothing told them not to. A ferry keeps a timetable, and no fire truck or
+  person leaving a fire waits for one. Driving now asks Mapbox to leave ferries
+  out (`exclude=ferry`). OSRM's public server refuses that flag ("Exclude flag
+  combination is not supported"), and Mapbox's walking does not take it, so
+  every route with a ferry step is also dropped from the answer. When only a
+  ferry would do, there is no route rather than a crossing by boat
+  (`lib/navigation/routing_service.dart`).
+- **Log out asks first** (17 Nov: "if the user press logout it make it having
+  a confirmation"): "Log out?", saying the phone gets no fire alerts until you
+  sign in again. On a resident's Profile, a responder's and a coordinator's,
+  the staff menu, and the phone-number step. Being signed out by the app
+  (another phone, a frozen account) does not ask (`lib/widgets/confirm_log_out.dart`).
+- The phone-number step's sign-out button said "Sign out" in English even in
+  Tagalog; it is now "Log out", like everywhere else, and translated.
+
+---
+
 ## v1.12.46 — 16 November 2026 — The smallest phones
 
 Goes with backend v1.12.36. The fit tests started at 360 wide; a new one

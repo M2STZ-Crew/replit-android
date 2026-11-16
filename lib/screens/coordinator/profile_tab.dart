@@ -18,6 +18,7 @@ import '../subadmin/team_screen.dart';
 import 'coordinator_feed.dart';
 import 'my_decisions_screen.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/confirm_log_out.dart';
 
 /// The Profile tab (06 · C15): who you are, what you may do, how the fire
 /// alert sounds, and the rest of the console — your decisions, your
@@ -299,10 +300,11 @@ class _ProfileTabState extends State<ProfileTab> {
                   AppButton.danger(
                     t('Log out'),
                     icon: AppIcons.logout,
-                    onPressed: () => staffSignOut(
-                      Navigator.of(context),
-                      api: widget.feed.api,
-                    ),
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
+                      if (!await confirmLogOut(context)) return;
+                      await staffSignOut(nav, api: widget.feed.api);
+                    },
                   ),
                 ],
               ),

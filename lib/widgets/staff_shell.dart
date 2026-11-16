@@ -17,6 +17,7 @@ import 'design.dart';
 import 'notification_bell.dart';
 import 'app_icons.dart';
 import '../i18n/i18n.dart';
+import 'confirm_log_out.dart';
 
 /// The one console responders and coordinators share.
 ///
@@ -287,6 +288,8 @@ class _StaffDrawerState extends State<StaffDrawer> {
 
   Future<void> _signOut() async {
     final nav = Navigator.of(context);
+    // Asked over the menu; the menu closes only once they choose Log out.
+    if (!await confirmLogOut(context)) return;
     nav.pop();
     await staffSignOut(nav, api: _api);
   }
