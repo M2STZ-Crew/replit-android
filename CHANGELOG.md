@@ -7,6 +7,32 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.48 — 17 November 2026 — Updates download in the background
+
+App only; the backend stays at v1.12.37.
+
+- **Check for updates hands the download to Android** (17 Nov: "add the
+  background downloading when updating, because it can be interrupted").
+  Android's DownloadManager downloads the new APK, so leaving RepLiT, locking
+  the phone or even closing the app no longer stops it. Its progress shows in
+  the notification shade, and it picks up again after a lost connection (the
+  sheet says "Waiting for a connection…"). When it is done, "The update is
+  downloaded" comes up, in English or Tagalog, on the "New Update!" channel;
+  its tap opens Check for updates, which opens Android's installer. The
+  SHA-256 check before installing is unchanged.
+- Opening the sheet again while Android is downloading follows that download
+  (its progress, no second download). An older release's download, or one
+  that failed, is dropped. The installer opens only with RepLiT in front, as
+  Android requires.
+- On a phone where DownloadManager is off, the app downloads the update
+  itself, as before.
+- The update now waits in the app's own files on external storage
+  (`files/updates`), where DownloadManager can write; an APK left in the
+  cache by an earlier version is cleared (`UpdateDownloads.kt`,
+  `res/xml/update_paths.xml`).
+
+---
+
 ## v1.12.47 — 17 November 2026 — No ferries; Log out asks first
 
 Goes with backend v1.12.37 (the console).

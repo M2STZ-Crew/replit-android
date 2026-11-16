@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- What the updates FileProvider may share with Android's installer: the
-     folder "Check for updates" downloads into (MainActivity.updatesDir). -->
+     folder "Check for updates" downloads into (MainActivity.updatesDir).
+     files/updates on external storage, where DownloadManager downloads it in
+     the background (v1.12.48); cache/updates on a phone without one. -->
 <paths>
+    <external-files-path name="updates_external" path="updates/" />
     <cache-path name="updates" path="updates/" />
 </paths>
