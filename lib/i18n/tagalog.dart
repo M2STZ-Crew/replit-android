@@ -2364,4 +2364,51 @@ const Map<String, String> kTagalog = {
       'patay na ang sunog',
   'Continue anyway':
       'Ituloy pa rin',
+  // v1.12.45: the 30-day freeze, and Restore my account.
+  'This account is set to be deleted. To keep it, sign in and choose Restore my account.':
+      'Nakatakdang burahin ang account na ito. Para manatili ito, mag-sign in at piliin ang Ibalik ang account ko.',
+  'This account is set to be deleted on {date}. To keep it, sign in and choose Restore my account.':
+      'Nakatakdang burahin ang account na ito sa {date}. Para manatili ito, mag-sign in at piliin ang Ibalik ang account ko.',
+  'This account is not set to be deleted. You can sign in as usual.':
+      'Hindi nakatakdang burahin ang account na ito. Puwede kang mag-sign in gaya ng dati.',
+  'Deleting or restoring an account is not available just now. Try again later.':
+      'Hindi pa puwedeng magbura o magbalik ng account ngayon. Subukan ulit mamaya.',
+  'Restore your account?':
+      'Ibalik ang account mo?',
+  'This account is set to be deleted. Restore it to keep using RepLiT.':
+      'Nakatakdang burahin ang account na ito. Ibalik ito para patuloy na magamit ang RepLiT.',
+  'This account is set to be deleted on {date}. Restore it to keep using RepLiT.':
+      'Nakatakdang burahin ang account na ito sa {date}. Ibalik ito para patuloy na magamit ang RepLiT.',
+  'Restore my account':
+      'Ibalik ang account ko',
+  'Sign in with your email to restore your account.':
+      'Mag-sign in gamit ang email mo para maibalik ang account mo.',
+  'Your account is restored. Signing you in…':
+      'Naibalik na ang account mo. Sina-sign in ka na…',
+  'Your account is frozen and will be deleted in 30 days. To keep it, sign in before then and choose Restore my account.':
+      'Naka-freeze na ang account mo at buburahin ito pagkalipas ng 30 araw. Para manatili ito, mag-sign in bago noon at piliin ang Ibalik ang account ko.',
+  'Your account is frozen and will be deleted on {date}. To keep it, sign in before then and choose Restore my account.':
+      'Naka-freeze na ang account mo at buburahin ito sa {date}. Para manatili ito, mag-sign in bago noon at piliin ang Ibalik ang account ko.',
+  'Your account is frozen for 30 days first, then deleted for good. You can restore it any time in those 30 days.':
+      'Ifi-freeze muna ang account mo nang 30 araw, saka buburahin nang tuluyan. Puwede mo itong ibalik anumang oras sa loob ng 30 araw na iyon.',
+  'What happens':
+      'Ano ang mangyayari',
+  'Right away':
+      'Agad-agad',
+  'You are signed out on every phone, and RepLiT stops sending you alerts.':
+      'Masa-sign out ka sa lahat ng phone, at hihinto ang mga alerto ng RepLiT sa iyo.',
+  'For 30 days':
+      'Sa loob ng 30 araw',
+  'Your account is kept, frozen. To keep it, sign in and choose Restore my account.':
+      'Nakatago at naka-freeze ang account mo. Para manatili ito, mag-sign in at piliin ang Ibalik ang account ko.',
+  'After 30 days':
+      'Pagkalipas ng 30 araw',
+  'Your sign-in and profile (name, email, mobile number, birthday, gender, language and last location), your alerts and any National ID photos are deleted for good.':
+      'Buburahin nang tuluyan ang sign-in at profile mo (pangalan, email, mobile number, kaarawan, kasarian, wika at huling lokasyon), ang mga alerto mo at anumang litrato ng National ID.',
+  'What stays':
+      'Ano ang mananatili',
+  "The reports you sent stay in the barangay's incident records, without your name.":
+      'Mananatili sa talaan ng mga insidente ng barangay ang mga report na ipinadala mo, pero wala na ang pangalan mo.',
+  'I understand that my account is frozen now and deleted for good after 30 days unless I restore it.':
+      'Naiintindihan ko na ifi-freeze ngayon ang account ko at buburahin nang tuluyan pagkalipas ng 30 araw kung hindi ko ito ibabalik.',
 };

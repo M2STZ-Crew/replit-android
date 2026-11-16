@@ -49,11 +49,12 @@ holds `app-release.aab`, the file Play Console takes.
 
 - **Create the app**: name, default language, App, Free.
 - **App signing**: keep Play App Signing (the default) and upload the `.aab`.
-- **Privacy policy**: `https://reportwhatslit.vercel.app/privacy`. First set
-  `VITE_PRIVACY_CONTACT` on Vercel (the email or office for privacy requests)
-  and redeploy the console.
+- **Privacy policy**: `https://reportwhatslit-app.vercel.app/privacy` (the
+  residents' site, not the console).
 - **Account deletion**: in the app, Profile → Delete my account; on the web,
-  `https://reportwhatslit.vercel.app/delete-account`.
+  `https://reportwhatslit-app.vercel.app/delete-account`. The account is
+  frozen for 30 days (restorable), then deleted; say so in the Data safety
+  form's deletion answers.
 - **App access**: give the reviewers a citizen test account made for them (not
   a staff account), and say that administrators use the web console only.
 - **Ads**: none. **Target audience**: 18 and over. **Content rating**: answer

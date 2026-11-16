@@ -258,7 +258,11 @@ void main() {
 
     Future<void> tapDelete(WidgetTester tester) async {
       final button = find.byKey(const ValueKey('delete-account-button'));
-      await tester.ensureVisible(button);
+      await tester.scrollUntilVisible(
+        button,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(button);
     }
 
@@ -296,7 +300,11 @@ void main() {
         ),
       );
       await tester.enterText(find.byType(TextField), 'guess');
-      await tester.ensureVisible(find.byType(Checkbox));
+      await tester.scrollUntilVisible(
+        find.byType(Checkbox),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.byType(Checkbox));
       await tester.pump();
       await tapDelete(tester);

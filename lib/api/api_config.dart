@@ -40,6 +40,14 @@ class ApiConfig {
     defaultValue: 'https://replit-backend-5u9u.vercel.app/register',
   );
 
+  /// The residents' site (v1.12.45): the privacy policy, and deleting or
+  /// restoring an account without the app. Apart from the Admin console, so
+  /// a resident is never sent to the admins' address.
+  static const String publicSiteUrl = String.fromEnvironment(
+    'REPLIT_PUBLIC_SITE',
+    defaultValue: 'https://reportwhatslit-app.vercel.app',
+  );
+
   /// The Admin console, on the web: where an Admin account signs in. The app
   /// does not open one (WebOnly, v1.12.42).
   static const String adminConsoleUrl = String.fromEnvironment(

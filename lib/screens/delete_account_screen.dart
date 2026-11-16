@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../api/account_freeze.dart';
 import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
@@ -13,10 +14,12 @@ import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import 'login_screen.dart';
 
-/// Profile > Delete my account (v1.12.44, Google Play's rule): what goes and
-/// what stays, the password, then the account is gone (POST /auth/me/delete)
-/// and this phone forgets it. The console's /delete-account page does the same
-/// without the app.
+/// Profile > Delete my account (v1.12.44, Google Play's rule; v1.12.45: frozen
+/// for 30 days first). What happens and when, the password, then the account
+/// is frozen (POST /auth/me/delete) and this phone signed out. Within the 30
+/// days, signing in offers Restore my account; after them it is deleted for
+/// good. The residents' site (reportwhatslit-app.vercel.app/delete-account)
+/// does the same without the app.
 class DeleteAccountScreen extends StatefulWidget {
   const DeleteAccountScreen({super.key, this.api});
 
@@ -63,8 +66,9 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       _error = null;
     });
     final navigator = Navigator.of(context);
+    DateTime? goes;
     try {
-      await _api.deleteAccount(password: _password.text);
+      goes = await _api.deleteAccount(password: _password.text);
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -90,20 +94,27 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       });
       return;
     }
-    // The account is gone: this phone forgets it.
+    // Frozen: this phone forgets the account until it is restored.
     try {
       await PushService.instance.unregister();
     } catch (_) {
-      // Its registration went with the account.
+      // The server stopped this phone's alerts already.
     }
     await Session.instance.clear();
+    final day = AccountFreeze.day(goes?.toUtc().toIso8601String());
     navigator.pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => LoginScreen(
-          notice: t(
-            'Your account is deleted. The reports you sent stay in the '
-            "barangay's incident records without your name.",
-          ),
+          notice: day == null
+              ? t(
+                  'Your account is frozen and will be deleted in 30 days. To '
+                  'keep it, sign in before then and choose Restore my account.',
+                )
+              : t(
+                  'Your account is frozen and will be deleted on {date}. To '
+                  'keep it, sign in before then and choose Restore my account.',
+                  {'date': day},
+                ),
         ),
       ),
       (route) => false,
@@ -113,23 +124,35 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final pal = context.pal;
-    Widget point(String text) => Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    Widget step(String title, String text) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 7, right: 10),
+            padding: const EdgeInsets.only(top: 6, right: 12),
             child: Container(
-              width: 5,
-              height: 5,
+              width: 8,
+              height: 8,
               decoration: BoxDecoration(
-                color: pal.muted,
+                color: pal.accent,
                 shape: BoxShape.circle,
               ),
             ),
           ),
-          Expanded(child: Text(text, style: context.type.body)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: context.type.rowTitle),
+                const SizedBox(height: 2),
+                Text(
+                  text,
+                  style: context.type.body.copyWith(color: pal.textSoft),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -140,37 +163,45 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             Text(
-              t('Deleting your account cannot be undone.'),
+              t(
+                'Your account is frozen for 30 days first, then deleted for '
+                'good. You can restore it any time in those 30 days.',
+              ),
               style: context.type.cardTitle,
             ),
-            const SizedBox(height: 16),
-            SectionHeader(t('What is deleted')),
-            const SizedBox(height: 10),
-            point(
-              t(
-                'Your sign-in and profile: name, email, mobile number, '
-                'birthday, gender, language and last location.',
-              ),
-            ),
-            point(
-              t("This phone's alert registration, your alerts and answers."),
-            ),
-            point(
-              t(
-                'Your verification records, and any National ID photos still '
-                'held.',
-              ),
-            ),
+            const SizedBox(height: 18),
+            SectionHeader(t('What happens')),
             const SizedBox(height: 12),
-            SectionHeader(t('What is kept')),
-            const SizedBox(height: 10),
-            point(
+            step(
+              t('Right away'),
               t(
-                'The reports you sent, without your name: they are part of the '
-                'incident records responders and the barangay keep.',
+                'You are signed out on every phone, and RepLiT stops sending '
+                'you alerts.',
               ),
             ),
-            const SizedBox(height: 20),
+            step(
+              t('For 30 days'),
+              t(
+                'Your account is kept, frozen. To keep it, sign in and choose '
+                'Restore my account.',
+              ),
+            ),
+            step(
+              t('After 30 days'),
+              t(
+                'Your sign-in and profile (name, email, mobile number, '
+                'birthday, gender, language and last location), your alerts '
+                'and any National ID photos are deleted for good.',
+              ),
+            ),
+            step(
+              t('What stays'),
+              t(
+                'The reports you sent stay in the barangay\'s incident records, '
+                'without your name.',
+              ),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: _password,
               obscureText: !_show,
@@ -197,8 +228,8 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
               controlAffinity: ListTileControlAffinity.leading,
               title: Text(
                 t(
-                  'I understand that my account is deleted for good and cannot '
-                  'be brought back.',
+                  'I understand that my account is frozen now and deleted for '
+                  'good after 30 days unless I restore it.',
                 ),
                 style: context.type.body,
               ),
