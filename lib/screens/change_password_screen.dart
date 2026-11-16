@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../api/sign_in_limits.dart';
 import '../i18n/i18n.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
@@ -83,6 +84,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
       setState(
         () => _error = switch (e.code) {
+          _ when slowDownMessage(e) != null => slowDownMessage(e)!,
           'wrong_password' => t('That is not your current password.'),
           'same_password' => t(
             'The new password is the same as the current one.',

@@ -2318,30 +2318,22 @@ const Map<String, String> kTagalog = {
       'Mga letra lang ang gamitin sa pangalan mo. Puwede ang space, tuldok, apostrophe at gitling; hindi puwede ang numero at emoji.',
   'No email can reach this address. Check it for typos, or use another one.':
       'Walang email na makakarating sa address na ito. Tingnan kung may mali sa pagkaka-type, o gumamit ng iba.',
-  'Read the privacy policy':
-      'Basahin ang privacy policy',
-  'Privacy policy':
-      'Privacy policy',
-  'What RepLiT keeps, and why':
-      'Ano ang itinatago ng RepLiT, at bakit',
-  'Delete my account':
-      'Burahin ang account ko',
-  'Enter your password.':
-      'Ilagay ang password mo.',
+  'Read the privacy policy': 'Basahin ang privacy policy',
+  'Privacy policy': 'Privacy policy',
+  'What RepLiT keeps, and why': 'Ano ang itinatago ng RepLiT, at bakit',
+  'Delete my account': 'Burahin ang account ko',
+  'Enter your password.': 'Ilagay ang password mo.',
   'Tick the box to confirm. Deleting an account cannot be undone.':
       'I-tick ang box para kumpirmahin. Hindi na maibabalik ang nabura na account.',
-  'The password is not right.':
-      'Mali ang password.',
+  'The password is not right.': 'Mali ang password.',
   "This is a staff account. Your organization's administrator removes it.":
       'Staff account ito. Ang administrator ng organisasyon mo ang nagbubura nito.',
   "Your account is deleted. The reports you sent stay in the barangay's incident records without your name.":
       'Nabura na ang account mo. Mananatili ang mga report na ipinadala mo sa talaan ng mga insidente ng barangay, pero wala na ang pangalan mo.',
   'Deleting your account cannot be undone.':
       'Hindi na maibabalik ang account mo kapag binura.',
-  'What is deleted':
-      'Ano ang buburahin',
-  'What is kept':
-      'Ano ang itatago',
+  'What is deleted': 'Ano ang buburahin',
+  'What is kept': 'Ano ang itatago',
   'Your sign-in and profile: name, email, mobile number, birthday, gender, language and last location.':
       'Ang sign-in at profile mo: pangalan, email, mobile number, kaarawan, kasarian, wika at huling lokasyon.',
   "This phone's alert registration, your alerts and answers.":
@@ -2352,18 +2344,15 @@ const Map<String, String> kTagalog = {
       'Ang mga report na ipinadala mo, pero wala na ang pangalan mo: bahagi sila ng talaan ng mga insidente na itinatago ng mga responder at ng barangay.',
   'I understand that my account is deleted for good and cannot be brought back.':
       'Naiintindihan ko na mabubura nang tuluyan ang account ko at hindi na ito maibabalik.',
-  'Offline':
-      'Offline',
+  'Offline': 'Offline',
   "You're offline. Reports wait on this phone and send themselves once there is signal.":
       'Offline ka. Naghihintay ang mga report sa phone na ito at kusang maipapadala kapag may signal na.',
   "You're offline. The map shows what was saved {ago}; reports wait and send themselves once there is signal.":
       'Offline ka. Ipinapakita ng mapa ang na-save {ago}; naghihintay ang mga report at kusang maipapadala kapag may signal na.',
   'Report photo. Tap to see it whole.':
       'Litrato ng report. I-tap para makita nang buo.',
-  'fire out':
-      'patay na ang sunog',
-  'Continue anyway':
-      'Ituloy pa rin',
+  'fire out': 'patay na ang sunog',
+  'Continue anyway': 'Ituloy pa rin',
   // v1.12.45: the 30-day freeze, and Restore my account.
   'This account is set to be deleted. To keep it, sign in and choose Restore my account.':
       'Nakatakdang burahin ang account na ito. Para manatili ito, mag-sign in at piliin ang Ibalik ang account ko.',
@@ -2373,14 +2362,12 @@ const Map<String, String> kTagalog = {
       'Hindi nakatakdang burahin ang account na ito. Puwede kang mag-sign in gaya ng dati.',
   'Deleting or restoring an account is not available just now. Try again later.':
       'Hindi pa puwedeng magbura o magbalik ng account ngayon. Subukan ulit mamaya.',
-  'Restore your account?':
-      'Ibalik ang account mo?',
+  'Restore your account?': 'Ibalik ang account mo?',
   'This account is set to be deleted. Restore it to keep using RepLiT.':
       'Nakatakdang burahin ang account na ito. Ibalik ito para patuloy na magamit ang RepLiT.',
   'This account is set to be deleted on {date}. Restore it to keep using RepLiT.':
       'Nakatakdang burahin ang account na ito sa {date}. Ibalik ito para patuloy na magamit ang RepLiT.',
-  'Restore my account':
-      'Ibalik ang account ko',
+  'Restore my account': 'Ibalik ang account ko',
   'Sign in with your email to restore your account.':
       'Mag-sign in gamit ang email mo para maibalik ang account mo.',
   'Your account is restored. Signing you in…':
@@ -2391,24 +2378,25 @@ const Map<String, String> kTagalog = {
       'Naka-freeze na ang account mo at buburahin ito sa {date}. Para manatili ito, mag-sign in bago noon at piliin ang Ibalik ang account ko.',
   'Your account is frozen for 30 days first, then deleted for good. You can restore it any time in those 30 days.':
       'Ifi-freeze muna ang account mo nang 30 araw, saka buburahin nang tuluyan. Puwede mo itong ibalik anumang oras sa loob ng 30 araw na iyon.',
-  'What happens':
-      'Ano ang mangyayari',
-  'Right away':
-      'Agad-agad',
+  'What happens': 'Ano ang mangyayari',
+  'Right away': 'Agad-agad',
   'You are signed out on every phone, and RepLiT stops sending you alerts.':
       'Masa-sign out ka sa lahat ng phone, at hihinto ang mga alerto ng RepLiT sa iyo.',
-  'For 30 days':
-      'Sa loob ng 30 araw',
+  'For 30 days': 'Sa loob ng 30 araw',
   'Your account is kept, frozen. To keep it, sign in and choose Restore my account.':
       'Nakatago at naka-freeze ang account mo. Para manatili ito, mag-sign in at piliin ang Ibalik ang account ko.',
-  'After 30 days':
-      'Pagkalipas ng 30 araw',
+  'After 30 days': 'Pagkalipas ng 30 araw',
   'Your sign-in and profile (name, email, mobile number, birthday, gender, language and last location), your alerts and any National ID photos are deleted for good.':
       'Buburahin nang tuluyan ang sign-in at profile mo (pangalan, email, mobile number, kaarawan, kasarian, wika at huling lokasyon), ang mga alerto mo at anumang litrato ng National ID.',
-  'What stays':
-      'Ano ang mananatili',
+  'What stays': 'Ano ang mananatili',
   "The reports you sent stay in the barangay's incident records, without your name.":
       'Mananatili sa talaan ng mga insidente ng barangay ang mga report na ipinadala mo, pero wala na ang pangalan mo.',
   'I understand that my account is frozen now and deleted for good after 30 days unless I restore it.':
       'Naiintindihan ko na ifi-freeze ngayon ang account ko at buburahin nang tuluyan pagkalipas ng 30 araw kung hindi ko ito ibabalik.',
+  // v1.12.46: five wrong passwords and the account waits; or everyone is
+  // signing in at once.
+  'Too many wrong passwords for this account. Wait {n} min, then try again, or tap Forgot password?.':
+      'Sobrang dami ng maling password para sa account na ito. Maghintay ng {n} minuto, saka subukan ulit, o i-tap ang Nakalimutan ang password?.',
+  'Too many people are signing in right now. Wait a few minutes, then try again.':
+      'Sobrang daming nagsa-sign in ngayon. Maghintay ng ilang minuto, saka subukan ulit.',
 };

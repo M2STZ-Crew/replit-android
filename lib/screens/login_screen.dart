@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
+import '../api/sign_in_limits.dart';
 import '../api/account_freeze.dart';
 import '../api/api_config.dart';
 import '../api/push_service.dart';
@@ -141,6 +142,11 @@ class _LoginScreenState extends State<LoginScreen> {
       if (e.code == AccountFreeze.errorCode) {
         frozen = true;
         goes = e.details?['delete_after'] as String?;
+        return;
+      }
+      final slowDown = slowDownMessage(e);
+      if (slowDown != null) {
+        _showError(slowDown, long: true);
         return;
       }
       _showError(

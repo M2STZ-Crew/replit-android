@@ -21,8 +21,11 @@ found four places where something ran off the screen, now fixed:
   29 px off (127 px at 1.3x).
 - **Notifications**' title and the **Nearby fire alert** chip wrap instead of
   running 40 px and 16 px off the right edge at 1.3x.
-- When too many people sign in at once, the server now says to wait a few
-  minutes (backend v1.12.36) instead of a server error.
+- **Five wrong passwords and the account waits** (backend v1.12.36). Sign in,
+  Change password and Delete my account now say how many minutes to wait, in
+  English or Tagalog, and point to Forgot password? (`lib/api/sign_in_limits.dart`).
+  When too many people sign in at once, they say to wait a few minutes instead
+  of showing a server error.
 
 ---
 

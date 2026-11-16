@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../api/account_freeze.dart';
 import '../api/api_client.dart';
+import '../api/sign_in_limits.dart';
 import '../api/push_service.dart';
 import '../api/session.dart';
 import '../api/web_only.dart';
@@ -75,6 +76,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
       setState(() {
         _busy = false;
         _error = switch (e.code) {
+          _ when slowDownMessage(e) != null => slowDownMessage(e)!,
           'wrong_password' => t('The password is not right.'),
           'staff_account' => t(
             "This is a staff account. Your organization's administrator "
