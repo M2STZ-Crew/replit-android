@@ -2411,4 +2411,20 @@ const Map<String, String> kTagalog = {
   'Waiting for a connection…': 'Naghihintay ng koneksiyon…',
   'You can leave RepLiT. The download carries on, its progress is in your notifications, and RepLiT tells you when it is ready to install.':
       'Puwede mong iwan ang RepLiT. Tuloy ang download, nasa notifications mo ang progreso nito, at sasabihin ng RepLiT kapag handa na itong i-install.',
+  // v1.12.49: confirm your email before using RepLiT.
+  'Wrong email? Start over': 'Mali ang email? Magsimula ulit',
+  'Signed out. Sign up again with the right email.':
+      'Naka-sign out ka na. Mag-sign up ulit gamit ang tamang email.',
+  'Emergency now? Call 911': 'May emergency ngayon? Tumawag sa 911',
+  // v1.12.49: BFP raises the alarm itself.
+  'Raise the alarm?': 'Itaas ang alarma?',
+  'Only BFP sets the alarm level. Everyone on this fire sees the new level at once, and Fire Volunteer requests it meets are answered with it.':
+      'BFP lang ang nagtatakda ng alarma. Makikita agad ng lahat ng nasa sunog na ito ang bagong antas, at masasagot na rin ang mga hiling ng Fire Volunteer na naabot nito.',
+  '1 request waiting': '1 hiling ang naghihintay',
+  '{n} requests waiting': '{n} hiling ang naghihintay',
+  'Fire Volunteers asked for a higher level.': 'Humiling ang mga Fire Volunteer ng mas mataas na antas.',
+  'See requests': 'Tingnan ang mga hiling',
+  'Raise to {alarmWord}': 'Itaas sa {alarmWord}',
+  'Raised to {alarmWord}. Everyone on this fire sees it now.':
+      'Itinaas sa {alarmWord}. Nakikita na ito ng lahat ng nasa sunog na ito.',
 };

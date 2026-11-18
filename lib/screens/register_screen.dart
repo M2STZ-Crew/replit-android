@@ -119,7 +119,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (PhoneNumbers.open) {
         await showPhoneCodeSheet(context, phone: mobile, api: _api);
       } else {
-        await showEmailLinkSheet(context, email: email, api: _api);
+        // Confirm before use (v1.12.49): no Later. "Wrong email? Start
+        // over" signs out, back on this form; the account made with the
+        // wrong address goes by itself a day after sign-up.
+        final confirmed = await showEmailLinkSheet(
+          context,
+          email: email,
+          api: _api,
+          required: true,
+        );
+        if (!confirmed) {
+          try {
+            await _api.logout();
+          } catch (_) {}
+          await Session.instance.clear();
+          if (!mounted) return;
+          _error(t('Signed out. Sign up again with the right email.'));
+          return;
+        }
       }
       if (!mounted) return;
       await Navigator.of(

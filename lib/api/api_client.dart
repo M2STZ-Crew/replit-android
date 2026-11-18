@@ -9,6 +9,7 @@ import '../models/field_ops.dart';
 import 'account_freeze.dart';
 import 'api_cache.dart';
 import 'api_config.dart';
+import 'email_gate.dart';
 import 'phone_gate.dart';
 import 'session.dart';
 import '../i18n/i18n.dart';
@@ -820,6 +821,26 @@ class ApiClient {
     return _decode(resp);
   }
 
+  /// BFP raises an Area's alarm itself, with no request to answer (backend
+  /// v1.12.38): POST /alarm-requests/raise. Waiting requests it meets are
+  /// answered with it.
+  Future<Map<String, dynamic>> raiseAlarm({
+    required String areaId,
+    required String alarmLevel,
+    String? notes,
+  }) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/alarm-requests/raise'),
+      headers: _jsonAuth,
+      body: jsonEncode({
+        'area_id': areaId,
+        'alarm_level': alarmLevel,
+        'notes': ?notes,
+      }),
+    );
+    return _decode(resp);
+  }
+
   /// Raise an alarm-escalation request to BFP: POST /alarm-requests.
   Future<Map<String, dynamic>> createAlarmRequest({
     required String areaId,
@@ -1500,6 +1521,11 @@ class ApiClient {
       // show the gate. RoleGate catches it at start-up; this catches the rest.
       if (resp.statusCode == 403 && code == PhoneGate.errorCode) {
         PhoneGate.trip();
+      }
+      // A resident who has not confirmed their email (v1.12.49): the same,
+      // with Confirm your email.
+      if (resp.statusCode == 403 && code == EmailGate.errorCode) {
+        EmailGate.trip();
       }
       // Frozen from another phone or the website: signed out here too.
       if (resp.statusCode == 403 && code == AccountFreeze.errorCode) {

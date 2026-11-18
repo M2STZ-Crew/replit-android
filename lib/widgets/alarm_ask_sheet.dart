@@ -5,14 +5,19 @@ import '../models/area_view.dart';
 import '../theme.dart';
 import 'coordinator_kit.dart';
 import 'design.dart';
+import '../i18n/i18n.dart';
 
 /// What [AlarmAskSheet] decided: a level to ask BFP for, with why — or, with
 /// no level, take the waiting request back.
 class AlarmAsk {
-  const AlarmAsk(this.level, [this.why]);
+  const AlarmAsk(this.level, [this.why]) : openRequests = false;
+
+  /// BFP: open the Area's waiting requests instead.
+  const AlarmAsk.requests() : level = null, why = null, openRequests = true;
 
   final String? level;
   final String? why;
+  final bool openRequests;
 }
 
 /// Ask BFP to raise an Area's alarm (PRD v14 §4.5.3: Fire Volunteer
@@ -23,9 +28,22 @@ class AlarmAsk {
 /// accepts. While a request of theirs waits it says so and lets them take it
 /// back; asking for another level replaces it on the server.
 class AlarmAskSheet extends StatefulWidget {
-  const AlarmAskSheet({super.key, required this.area, this.waiting});
+  const AlarmAskSheet({
+    super.key,
+    required this.area,
+    this.waiting,
+    this.bfp = false,
+    this.requestsWaiting = 0,
+  });
 
   final AreaView area;
+
+  /// BFP raises the level itself (v1.12.49, 18 Nov 2026: "bfp coordinator
+  /// can raise an alarm without the request of fv"); Fire Volunteers ask.
+  final bool bfp;
+
+  /// BFP: Fire Volunteer requests for this Area waiting on an answer.
+  final int requestsWaiting;
 
   /// The asker's request for this Area that BFP has not answered yet.
   final AlarmRequest? waiting;
@@ -63,12 +81,32 @@ class _AlarmAskSheetState extends State<AlarmAskSheet> {
         children: [
           SheetTitles(
             eyebrow: '${area.name} · now at ${alarmWord(area.alarmLevel)}',
-            title: 'Ask BFP to raise the alarm?',
-            body:
-                'BFP sets the alarm level. Your request reaches every BFP '
-                'Coordinator at once with this Area attached, and you are '
-                'told when they answer.',
+            title: widget.bfp
+                ? t('Raise the alarm?')
+                : 'Ask BFP to raise the alarm?',
+            body: widget.bfp
+                ? t(
+                    'Only BFP sets the alarm level. Everyone on this fire sees '
+                    'the new level at once, and Fire Volunteer requests it '
+                    'meets are answered with it.',
+                  )
+                : 'BFP sets the alarm level. Your request reaches every BFP '
+                      'Coordinator at once with this Area attached, and you '
+                      'are told when they answer.',
           ),
+          if (widget.bfp && widget.requestsWaiting > 0) ...[
+            const SizedBox(height: 16),
+            InlineAlert(
+              tone: AlertTone.warning,
+              title: widget.requestsWaiting == 1
+                  ? t('1 request waiting')
+                  : t('{n} requests waiting', {'n': widget.requestsWaiting}),
+              body: t('Fire Volunteers asked for a higher level.'),
+              action: t('See requests'),
+              onAction: () =>
+                  Navigator.of(context).pop(const AlarmAsk.requests()),
+            ),
+          ],
           if (waiting != null) ...[
             const SizedBox(height: 16),
             InlineAlert(
@@ -102,7 +140,8 @@ class _AlarmAskSheetState extends State<AlarmAskSheet> {
               builder: (focus) => TextField(
                 controller: _why,
                 focusNode: focus,
-                maxLength: 2000,
+                // The server keeps 1000 characters of BFP's note.
+                maxLength: widget.bfp ? 1000 : 2000,
                 minLines: 1,
                 maxLines: 3,
                 textCapitalization: TextCapitalization.sentences,
@@ -114,7 +153,11 @@ class _AlarmAskSheetState extends State<AlarmAskSheet> {
             ),
             const SizedBox(height: 8),
             AppButton(
-              level == null ? 'Choose a level' : 'Ask for ${alarmWord(level)}',
+              level == null
+                  ? 'Choose a level'
+                  : widget.bfp
+                  ? t('Raise to {alarmWord}', {'alarmWord': alarmWord(level)})
+                  : 'Ask for ${alarmWord(level)}',
               run: true,
               onPressed: level == null ? null : () => _send(level),
             ),

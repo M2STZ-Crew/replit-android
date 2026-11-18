@@ -20,25 +20,40 @@ import 'design.dart';
 ///
 /// Then it watches for the confirmation: when the app comes back from Gmail,
 /// and every few seconds while it is open, so a link opened on a computer
-/// counts too. Resolves true once the email is confirmed. Closing it early is
-/// allowed: the account exists by then, and Profile asks again.
+/// counts too. Resolves true once the email is confirmed.
+///
+/// [required] (sign-up, v1.12.49): RepLiT stays locked until the email is
+/// confirmed, so the sheet cannot be swiped away and has no "Later"; "Wrong
+/// email? Start over" resolves false instead (18 Nov 2026: "an illegitimate
+/// email can still sign up, because of the Later button").
 Future<bool> showEmailLinkSheet(
   BuildContext context, {
   required String? email,
   ApiClient? api,
   bool sendNow = true,
+  bool required = false,
 }) async {
   final confirmed = await showAppSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    isDismissible: !required,
+    enableDrag: !required,
     backgroundColor: context.pal.surfaceSolid,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(AppRadius.sheet),
       ),
     ),
-    builder: (_) => EmailLinkSheet(email: email, api: api, sendNow: sendNow),
+    builder: (sheet) => PopScope(
+      canPop: !required,
+      child: EmailLinkSheet(
+        email: email,
+        api: api,
+        sendNow: sendNow,
+        onStartOver: required ? () => Navigator.of(sheet).pop(false) : null,
+      ),
+    ),
   );
   return confirmed == true;
 }
@@ -88,6 +103,9 @@ class EmailLinkSheet extends StatefulWidget {
     required this.email,
     this.api,
     this.sendNow = true,
+    this.onStartOver,
+    this.onContinue,
+    this.handle = true,
   });
 
   /// The account's email, as shown; null while it is not known.
@@ -95,8 +113,18 @@ class EmailLinkSheet extends StatefulWidget {
   final ApiClient? api;
 
   /// Send the link as the sheet opens (sign-up), or wait for Send the link
-  /// (Profile).
+  /// (Profile, and Confirm your email).
   final bool sendNow;
+
+  /// Confirming is required (v1.12.49): "Wrong email? Start over" in place
+  /// of "Later".
+  final VoidCallback? onStartOver;
+
+  /// Continue once confirmed; the sheet pops itself with true without one.
+  final VoidCallback? onContinue;
+
+  /// The grab handle, drawn on a sheet but not on a full screen.
+  final bool handle;
 
   /// How often an open sheet asks whether the link was opened.
   static const checkEvery = Duration(seconds: 5);
@@ -132,7 +160,14 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.sendNow) _send();
+    if (widget.sendNow) {
+      _send();
+    } else {
+      // A link sent earlier may have been opened since, here or on a
+      // computer: look, and keep looking while this is open.
+      _check();
+      _startWatching();
+    }
   }
 
   @override
@@ -145,7 +180,7 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_step != _Step.sent) return;
+    if (_step == _Step.confirmed || _step == _Step.sending) return;
     if (state == AppLifecycleState.resumed) {
       // Back from Gmail: the link was likely just opened.
       _check();
@@ -175,7 +210,9 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
   }
 
   Future<void> _check() async {
-    if (_checking || _step != _Step.sent) return;
+    if (_checking || _step == _Step.confirmed || _step == _Step.sending) {
+      return;
+    }
     _checking = true;
     try {
       final status = VerificationState.fromJson(
@@ -310,7 +347,7 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
       _Step.sent => AppButton(open, onPressed: _openInbox),
       _Step.confirmed => AppButton(
         t('Continue'),
-        onPressed: () => Navigator.of(context).pop(true),
+        onPressed: widget.onContinue ?? () => Navigator.of(context).pop(true),
       ),
     };
   }
@@ -324,7 +361,7 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(child: SheetHandle()),
+          if (widget.handle) const Center(child: SheetHandle()),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -381,13 +418,25 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
                       ),
                     ),
                   ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text(
-                    t('Later'),
-                    style: TextStyle(color: context.pal.muted),
+                // Confirming is required: no Later, only a way back to fix a
+                // mistyped address (the account made with it goes in a day).
+                if (widget.onStartOver != null)
+                  TextButton(
+                    key: const ValueKey('email-start-over'),
+                    onPressed: widget.onStartOver,
+                    child: Text(
+                      t('Wrong email? Start over'),
+                      style: TextStyle(color: context.pal.muted),
+                    ),
+                  )
+                else
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(
+                      t('Later'),
+                      style: TextStyle(color: context.pal.muted),
+                    ),
                   ),
-                ),
               ],
             ),
           ],

@@ -422,7 +422,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Emergency now? Call 911',
+              t('Emergency now? Call 911'),
               style: context.type.rowTitleLg,
             ),
           ),
