@@ -30,6 +30,7 @@ import '../location/last_place.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../updates/update_banner.dart';
+import '../widgets/map_layer_gate.dart';
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
@@ -787,6 +788,7 @@ class _MapScreenState extends State<MapScreen> {
                 ...MapAreas.riskZone(context.pal, r['area_geojson']),
             ],
           ),
+        ZoomGatedMarkers(markers: _layerMarkers()),
         MarkerLayer(rotate: true, markers: _markers()),
         YouAreHereLayer(follow: _follow),
         MapLocationButtons(
@@ -797,7 +799,9 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  List<Marker> _markers() {
+  /// Shelters and the GIS layers' points, drawn from street level in
+  /// (v1.12.49).
+  List<Marker> _layerMarkers() {
     final markers = <Marker>[];
 
     if (_on.contains('evac')) {
@@ -848,6 +852,12 @@ class _MapScreenState extends State<MapScreen> {
         );
       }
     }
+
+    return markers;
+  }
+
+  List<Marker> _markers() {
+    final markers = <Marker>[];
 
     if (_on.contains('incidents')) {
       for (final a in _areas) {

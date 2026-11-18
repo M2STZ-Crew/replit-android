@@ -7,9 +7,20 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
-## v1.12.49 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm; the iPhone's icon
+## v1.12.49 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm; the iPhone's icon; Metro Manila on the map
 
 Goes with backend v1.12.38.
+
+- **All of Metro Manila on the map, from street level in** (18 Nov: "now,
+  let's get all of the data within metropolitan manila only"; "Only nearby,
+  when zoomed in"). The map layers now hold about 3,100 places across Metro
+  Manila: hydrants, covered courts as shelters, cisterns and bodies of water.
+  On every map (the resident's, the coordinator's, the responder's field map,
+  and the BFP and sub-admin dashboards), a layer's places are drawn from zoom
+  14 in, and only those on screen; further out, "Zoom in to see the places
+  you turned on". All of them are still downloaded and kept for offline use.
+  Incidents and "you are here" show at every zoom
+  (`lib/widgets/map_layer_gate.dart`).
 
 - **Confirm your email before using RepLiT** (18 Nov: "an illegitimate email
   can still signup ... because of the 'later' button"). Sign-up's email sheet
