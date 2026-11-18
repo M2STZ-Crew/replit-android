@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/map_layer_gate.dart';
 
-/// v1.12.49 (18 Nov 2026, Metro Manila's 3,100 points): "Only nearby, when
+/// v1.12.50 (18 Nov 2026, Metro Manila's 3,100 points): "Only nearby, when
 /// zoomed in". A layer's points are drawn from street level in; zoomed out,
 /// the map says to zoom in.
 void main() {

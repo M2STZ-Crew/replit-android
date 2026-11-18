@@ -7,9 +7,10 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
-## v1.12.49 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm; the iPhone's icon; Metro Manila on the map
+## v1.12.50 — 18 November 2026 — No emoji in any text box; all of Metro Manila on the map
 
-Goes with backend v1.12.38.
+Goes with backend v1.12.39. These were pushed to v1.12.49's branch after it
+was merged and released, so they come as their own release.
 
 - **All of Metro Manila on the map, from street level in** (18 Nov: "now,
   let's get all of the data within metropolitan manila only"; "Only nearby,
@@ -19,8 +20,20 @@ Goes with backend v1.12.38.
   and the BFP and sub-admin dashboards), a layer's places are drawn from zoom
   14 in, and only those on screen; further out, "Zoom in to see the places
   you turned on". All of them are still downloaded and kept for offline use.
-  Incidents and "you are here" show at every zoom
+  Incidents, a risk zone's area and "you are here" show at every zoom
   (`lib/widgets/map_layer_gate.dart`).
+- **No emoji in any text box** (18 Nov: "make in any characters typing in
+  every typebox in the app and web cannot be typed by any emoji"). All 26 text
+  boxes take `NoEmojiFormatter` (`lib/widgets/no_emoji.dart`): emoji, skin
+  tones, joiners, flags and keycaps are dropped as they are typed or pasted;
+  everything else, ñ included, goes in as typed, and the cursor stays put.
+  `test/no_emoji_test.dart` fails if a text box is ever added without it.
+
+---
+
+## v1.12.49 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm; the iPhone's icon
+
+Goes with backend v1.12.38.
 
 - **Confirm your email before using RepLiT** (18 Nov: "an illegitimate email
   can still signup ... because of the 'later' button"). Sign-up's email sheet
@@ -44,12 +57,6 @@ Goes with backend v1.12.38.
   one-colour version for themed icons; the older Androids' square and round
   icons cut from it.
 - "Emergency now? Call 911" on the phone and email steps is in Tagalog too.
-- **No emoji in any text box** (18 Nov: "make in any characters typing in
-  every typebox in the app and web cannot be typed by any emoji"). All 26 text
-  boxes take `NoEmojiFormatter` (`lib/widgets/no_emoji.dart`): emoji, skin
-  tones, joiners, flags and keycaps are dropped as they are typed or pasted;
-  everything else, ñ included, goes in as typed, and the cursor stays put.
-  `test/no_emoji_test.dart` fails if a text box is ever added without it.
 
 ---
 

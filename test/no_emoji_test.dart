@@ -8,7 +8,7 @@ import 'package:replit/screens/login_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/no_emoji.dart';
 
-/// v1.12.49 (18 Nov 2026): "make in any characters typing in every typebox in
+/// v1.12.50 (18 Nov 2026): "make in any characters typing in every typebox in
 /// the app and web cannot be typed by any emoji".
 void main() {
   TextEditingValue typed(String text, [int? cursor]) => TextEditingValue(

@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-/// No emoji in any text box (v1.12.49, 18 Nov 2026: "make in any characters
+/// No emoji in any text box (v1.12.50, 18 Nov 2026: "make in any characters
 /// typing in every typebox in the app and web cannot be typed by any emoji").
 ///
 /// Every TextField in the app takes [NoEmojiFormatter]

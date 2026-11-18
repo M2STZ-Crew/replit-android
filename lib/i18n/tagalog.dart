@@ -2428,7 +2428,7 @@ const Map<String, String> kTagalog = {
   'Raise to {alarmWord}': 'Itaas sa {alarmWord}',
   'Raised to {alarmWord}. Everyone on this fire sees it now.':
       'Itinaas sa {alarmWord}. Nakikita na ito ng lahat ng nasa sunog na ito.',
-  // v1.12.49: layer points drawn from street level in.
+  // v1.12.50: layer points drawn from street level in.
   'Zoom in to see the places you turned on':
       'Mag-zoom in para makita ang mga lugar na binuksan mo',
 };

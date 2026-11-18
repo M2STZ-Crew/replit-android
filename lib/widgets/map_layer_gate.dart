@@ -5,7 +5,7 @@ import '../i18n/i18n.dart';
 import '../theme.dart';
 
 /// The zoom from which a map draws its layers' points: shelters, hydrants,
-/// cisterns, bodies of water, stations (v1.12.49).
+/// cisterns, bodies of water, stations (v1.12.50).
 ///
 /// 18 Nov 2026: Metro Manila's layers went from about 40 points to about
 /// 3,100, and "Only nearby, when zoomed in" keeps an older phone's map

@@ -472,7 +472,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     );
   }
 
-  /// The layers' points, drawn from street level in (v1.12.49).
+  /// The layers' points, drawn from street level in (v1.12.50).
   List<Marker> _layerMarkers() => [
     for (final layer in _layers)
       if (layer.key != 'incidents' && _enabled.contains(layer.key))

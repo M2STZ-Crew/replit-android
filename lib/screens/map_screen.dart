@@ -800,7 +800,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   /// Shelters and the GIS layers' points, drawn from street level in
-  /// (v1.12.49).
+  /// (v1.12.50).
   List<Marker> _layerMarkers() {
     final markers = <Marker>[];
 
