@@ -5,6 +5,7 @@ import '../api/sign_in_limits.dart';
 import '../i18n/i18n.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
+import '../widgets/no_emoji.dart';
 
 /// Change password (WHAT'S NEXT, 1.2), from Profile for residents and staff
 /// alike: the current password, the new one twice. The server checks the
@@ -116,6 +117,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return LabeledField(
       label: label,
       builder: (focus) => TextField(
+        inputFormatters: const [NoEmojiFormatter()],
         controller: controller,
         focusNode: focus,
         obscureText: !_show,

@@ -14,6 +14,7 @@ import 'login_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../widgets/confirm_log_out.dart';
+import '../widgets/no_emoji.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -356,7 +357,7 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       controller: _phone,
       keyboardType: TextInputType.phone,
       style: _fieldStyle(context),
-      inputFormatters: const [PhMobileFormatter()],
+      inputFormatters: const [NoEmojiFormatter(), PhMobileFormatter()],
       decoration: InputDecoration(
         hintText: kPhMobileHint,
         prefixIcon: Icon(AppIcons.call, size: 18, color: context.pal.muted),
@@ -375,7 +376,10 @@ class _PhoneVerifyScreenState extends State<PhoneVerifyScreen> {
       style: _fieldStyle(
         context,
       ).copyWith(fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: 6),
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      inputFormatters: [
+        const NoEmojiFormatter(),
+        FilteringTextInputFormatter.digitsOnly,
+      ],
       decoration: const InputDecoration(hintText: '••••••', counterText: ''),
     );
   }

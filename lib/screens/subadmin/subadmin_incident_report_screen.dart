@@ -17,6 +17,7 @@ import 'subadmin_incident_command_screen.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/motion.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/no_emoji.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _panel => ThemeChoice.palette.glassDim;
@@ -219,6 +220,7 @@ class _SubAdminIncidentReportScreenState
             style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
           ),
           content: TextField(
+            inputFormatters: const [NoEmojiFormatter()],
             controller: ctrl,
             autofocus: true,
             style: TextStyle(color: _ink),

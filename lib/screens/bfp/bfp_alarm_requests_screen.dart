@@ -14,6 +14,7 @@ import '../../widgets/staff_shell.dart';
 import '../subadmin/coordinator_nav.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/no_emoji.dart';
 
 /// BFP's alarm request queue: Fire Volunteer coordinators (and their
 /// responders) ask BFP to raise an Area's alarm; a BFP Coordinator sets the
@@ -562,6 +563,7 @@ class _DeclineSheetState extends State<_DeclineSheet> {
           LabeledField(
             label: t('Reason (optional)'),
             builder: (focus) => TextField(
+              inputFormatters: const [NoEmojiFormatter()],
               controller: _reason,
               focusNode: focus,
               maxLength: 1000,

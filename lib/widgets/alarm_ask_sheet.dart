@@ -6,6 +6,7 @@ import '../theme.dart';
 import 'coordinator_kit.dart';
 import 'design.dart';
 import '../i18n/i18n.dart';
+import 'no_emoji.dart';
 
 /// What [AlarmAskSheet] decided: a level to ask BFP for, with why — or, with
 /// no level, take the waiting request back.
@@ -138,6 +139,7 @@ class _AlarmAskSheetState extends State<AlarmAskSheet> {
             LabeledField(
               label: 'Why (optional)',
               builder: (focus) => TextField(
+                inputFormatters: const [NoEmojiFormatter()],
                 controller: _why,
                 focusNode: focus,
                 // The server keeps 1000 characters of BFP's note.

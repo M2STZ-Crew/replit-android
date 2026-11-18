@@ -24,6 +24,7 @@ import '../../widgets/you_are_here.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/no_emoji.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _sheet => ThemeChoice.palette.surfaceSolid;
@@ -389,6 +390,7 @@ class _SubAdminIncidentCommandScreenState
                 style: TextStyle(color: context.pal.muted, fontSize: 13),
               ),
               TextField(
+                inputFormatters: const [NoEmojiFormatter()],
                 controller: ctrl,
                 autofocus: true,
                 style: TextStyle(color: _ink),

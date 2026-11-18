@@ -33,6 +33,12 @@ Goes with backend v1.12.38.
   one-colour version for themed icons; the older Androids' square and round
   icons cut from it.
 - "Emergency now? Call 911" on the phone and email steps is in Tagalog too.
+- **No emoji in any text box** (18 Nov: "make in any characters typing in
+  every typebox in the app and web cannot be typed by any emoji"). All 26 text
+  boxes take `NoEmojiFormatter` (`lib/widgets/no_emoji.dart`): emoji, skin
+  tones, joiners, flags and keycaps are dropped as they are typed or pasted;
+  everything else, ñ included, goes in as typed, and the cursor stays put.
+  `test/no_emoji_test.dart` fails if a text box is ever added without it.
 
 ---
 

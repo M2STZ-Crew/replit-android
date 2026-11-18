@@ -8,6 +8,7 @@ import '../widgets/design.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../models/person_rules.dart';
+import '../widgets/no_emoji.dart';
 
 const List<String> _genders = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -211,7 +212,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return TextField(
       controller: c,
       keyboardType: keyboard,
-      inputFormatters: formatters,
+      inputFormatters: [const NoEmojiFormatter(), ...?formatters],
       style: _fieldStyle,
       decoration: InputDecoration(hintText: hint),
     );

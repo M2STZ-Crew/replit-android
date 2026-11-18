@@ -19,6 +19,7 @@ import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../widgets/no_emoji.dart';
 
 /// One choice in "Who should respond": the agency the server knows, the word
 /// a resident knows, and the frame's colour and glyph for it.
@@ -408,6 +409,7 @@ class _SosReportScreenState extends State<SosReportScreen> {
                   Eyebrow(t('Anything else'), color: context.pal.muted),
                   const SizedBox(height: 10),
                   TextField(
+                    inputFormatters: const [NoEmojiFormatter()],
                     controller: _notes,
                     minLines: 1,
                     maxLines: 4,

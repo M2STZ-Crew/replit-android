@@ -8,6 +8,7 @@ import '../models/ph_mobile.dart';
 import '../theme.dart';
 import 'design.dart';
 import '../i18n/i18n.dart';
+import 'no_emoji.dart';
 
 /// The last step of sign-up: text a code to the number just given, and take
 /// it back, in a sheet over the form.
@@ -182,7 +183,10 @@ class _PhoneCodeSheetState extends State<PhoneCodeSheet> {
               maxLength: 8,
               textAlign: TextAlign.center,
               autofillHints: const [AutofillHints.oneTimeCode],
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              inputFormatters: [
+                const NoEmojiFormatter(),
+                FilteringTextInputFormatter.digitsOnly,
+              ],
               onSubmitted: (_) => busy ? null : _verify(),
               style: context.type.input.copyWith(
                 fontSize: 22,

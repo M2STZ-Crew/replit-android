@@ -2422,7 +2422,8 @@ const Map<String, String> kTagalog = {
       'BFP lang ang nagtatakda ng alarma. Makikita agad ng lahat ng nasa sunog na ito ang bagong antas, at masasagot na rin ang mga hiling ng Fire Volunteer na naabot nito.',
   '1 request waiting': '1 hiling ang naghihintay',
   '{n} requests waiting': '{n} hiling ang naghihintay',
-  'Fire Volunteers asked for a higher level.': 'Humiling ang mga Fire Volunteer ng mas mataas na antas.',
+  'Fire Volunteers asked for a higher level.':
+      'Humiling ang mga Fire Volunteer ng mas mataas na antas.',
   'See requests': 'Tingnan ang mga hiling',
   'Raise to {alarmWord}': 'Itaas sa {alarmWord}',
   'Raised to {alarmWord}. Everyone on this fire sees it now.':

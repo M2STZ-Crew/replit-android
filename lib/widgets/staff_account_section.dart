@@ -9,6 +9,7 @@ import 'app_icons.dart';
 import 'coordinator_kit.dart';
 import 'design.dart';
 import 'theme_picker.dart';
+import 'no_emoji.dart';
 
 /// The account rows of a staff Profile, the same for coordinators and
 /// responders: the language the app and their alerts come in, light mode, the
@@ -187,6 +188,7 @@ class _PersonalEmailDialogState extends State<_PersonalEmailDialog> {
           ),
           const SizedBox(height: 16),
           TextField(
+            inputFormatters: const [NoEmojiFormatter()],
             controller: _email,
             autofocus: true,
             keyboardType: TextInputType.emailAddress,
