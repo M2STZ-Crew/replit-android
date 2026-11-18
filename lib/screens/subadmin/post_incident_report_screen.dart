@@ -11,6 +11,7 @@ import '../../widgets/design.dart';
 import 'report_filed_screen.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/no_emoji.dart';
 
 export '../../models/post_incident_report.dart' show kCommonEquipment;
 
@@ -690,6 +691,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       LabeledField(
         label: t('Notes'),
         builder: (focus) => TextField(
+          inputFormatters: const [NoEmojiFormatter()],
           controller: _notes,
           focusNode: focus,
           minLines: 4,

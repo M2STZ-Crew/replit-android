@@ -19,6 +19,7 @@ import 'register_screen.dart';
 import 'role_gate.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
+import '../widgets/no_emoji.dart';
 
 /// "02 Sign in" from the REPLIT-OVERHAUL Figma.
 ///
@@ -325,6 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 16),
             TextField(
+              inputFormatters: const [NoEmojiFormatter()],
               controller: controller,
               autofocus: true,
               keyboardType: TextInputType.emailAddress,
@@ -409,6 +411,7 @@ class _LoginScreenState extends State<LoginScreen> {
               label: _byEmail ? t('Email address') : t('Mobile number'),
               builder: (focus) => _byEmail
                   ? TextField(
+                      inputFormatters: const [NoEmojiFormatter()],
                       controller: _emailCtrl,
                       focusNode: focus,
                       keyboardType: TextInputType.emailAddress,
@@ -424,7 +427,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.telephoneNumber],
-                      inputFormatters: const [PhMobileFormatter()],
+                      inputFormatters: const [
+                        NoEmojiFormatter(),
+                        PhMobileFormatter(),
+                      ],
                       style: context.type.input,
                       decoration: const InputDecoration(
                         hintText: kPhMobileHint,
@@ -435,6 +441,7 @@ class _LoginScreenState extends State<LoginScreen> {
             LabeledField(
               label: t('Password'),
               builder: (focus) => TextField(
+                inputFormatters: const [NoEmojiFormatter()],
                 controller: _passwordCtrl,
                 focusNode: focus,
                 obscureText: _obscure,

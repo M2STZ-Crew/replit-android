@@ -19,6 +19,7 @@ import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
 import '../../i18n/i18n.dart';
 import '../../widgets/responsive_frame.dart';
+import '../../widgets/map_layer_gate.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _panel => ThemeChoice.palette.glassDim;
@@ -462,6 +463,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
       ),
       children: [
         MapTiles.layer(light: context.pal.isLight),
+        ZoomGatedMarkers(markers: _layerMarkers()),
         MarkerLayer(rotate: true, markers: _markers()),
         YouAreHereLayer(follow: _follow),
         MapLocationButtons(follow: _follow),
@@ -470,16 +472,16 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
     );
   }
 
+  /// The layers' points, drawn from street level in (v1.12.50).
+  List<Marker> _layerMarkers() => [
+    for (final layer in _layers)
+      if (layer.key != 'incidents' && _enabled.contains(layer.key))
+        for (final p in _cache[layer.key] ?? const <OpsPoint>[])
+          opsMarker(context.pal, layer, p),
+  ];
+
   List<Marker> _markers() {
     final markers = <Marker>[];
-    for (final layer in _layers) {
-      if (layer.key == 'incidents' || !_enabled.contains(layer.key)) continue;
-      final pts = _cache[layer.key];
-      if (pts == null) continue;
-      for (final p in pts) {
-        markers.add(opsMarker(context.pal, layer, p));
-      }
-    }
     if (_enabled.contains('incidents')) {
       for (final inc in _incidents) {
         final lat = (inc['centroid_lat'] as num?)?.toDouble();

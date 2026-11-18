@@ -19,6 +19,7 @@ import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
 import 'responder_shell.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/map_layer_gate.dart';
 
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
@@ -204,11 +205,14 @@ class _FieldMapTabState extends State<FieldMapTab> {
 
   Widget _map(List<AreaView> areas) {
     final pal = context.pal;
-    final markers = <Marker>[
+    // The layers' points, drawn from street level in (v1.12.50).
+    final layerMarkers = <Marker>[
       for (final layer in _layers)
         if (layer.key != 'incidents' && _on.contains(layer.key))
           for (final p in _cache[layer.key] ?? const <OpsPoint>[])
             opsMarker(pal, layer, p),
+    ];
+    final markers = <Marker>[
       // The Areas last, so they sit on top.
       if (_on.contains('incidents'))
         for (final a in areas)
@@ -255,6 +259,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
                   ),
             ],
           ),
+        ZoomGatedMarkers(markers: layerMarkers),
         MarkerLayer(rotate: true, markers: markers),
         YouAreHereLayer(follow: _follow),
         MapLocationButtons(

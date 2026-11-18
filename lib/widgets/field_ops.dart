@@ -8,6 +8,7 @@ import 'coordinator_kit.dart';
 import 'design.dart';
 import 'sheet_grip.dart';
 import '../i18n/i18n.dart';
+import 'no_emoji.dart';
 
 /// REPLIT (MAIN) 04 · V13 field operations (pass 6): the Choice row, the
 /// on-scene Action tile and its Field actions grid, the neighbourhood Safety
@@ -1786,6 +1787,7 @@ class _RequestSheetState extends State<RequestSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
+            inputFormatters: const [NoEmojiFormatter()],
             controller: _text,
             focusNode: focus,
             enabled: editable,

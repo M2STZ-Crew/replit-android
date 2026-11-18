@@ -15,6 +15,7 @@ import '../widgets/app_icons.dart';
 import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import 'login_screen.dart';
+import '../widgets/no_emoji.dart';
 
 /// Profile > Delete my account (v1.12.44, Google Play's rule; v1.12.45: frozen
 /// for 30 days first). What happens and when, the password, then the account
@@ -208,6 +209,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              inputFormatters: const [NoEmojiFormatter()],
               controller: _password,
               obscureText: !_show,
               autocorrect: false,

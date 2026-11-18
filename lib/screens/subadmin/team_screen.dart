@@ -11,6 +11,7 @@ import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/no_emoji.dart';
 
 /// The coordinator's responder accounts (v1.12.4) — where a responder's
 /// account comes from.
@@ -514,6 +515,7 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
             LabeledField(
               label: t('First name'),
               builder: (focus) => TextField(
+                inputFormatters: const [NoEmojiFormatter()],
                 controller: _first,
                 focusNode: focus,
                 textCapitalization: TextCapitalization.words,
@@ -527,6 +529,7 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
             LabeledField(
               label: t('Surname'),
               builder: (focus) => TextField(
+                inputFormatters: const [NoEmojiFormatter()],
                 controller: _last,
                 focusNode: focus,
                 textCapitalization: TextCapitalization.words,
@@ -540,6 +543,7 @@ class _NewResponderSheetState extends State<_NewResponderSheet> {
             LabeledField(
               label: t('Their personal email'),
               builder: (focus) => TextField(
+                inputFormatters: const [NoEmojiFormatter()],
                 controller: _email,
                 focusNode: focus,
                 keyboardType: TextInputType.emailAddress,
