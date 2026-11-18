@@ -275,7 +275,9 @@ void main() {
   group('from Profile', () {
     testWidgets('it waits for Send the link', (tester) async {
       await open(tester, sendNow: false);
-      expect(calls, isEmpty);
+      // Nothing is sent until asked; it only looks whether a link sent
+      // earlier was opened (v1.12.49).
+      expect(requests(), isEmpty);
       expect(find.text('CONFIRM YOUR EMAIL'), findsOneWidget);
       expect(
         find.text(

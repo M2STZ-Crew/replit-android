@@ -170,10 +170,18 @@ void main() {
       expect(find.text('CHECK YOUR EMAIL'), findsOneWidget);
       expect(find.textContaining('a link to juan@example.com'), findsOneWidget);
 
-      // "Later" still goes on into the app; Profile asks again.
-      await tap(tester, find.text('Later'));
+      // Confirm before use (v1.12.49, 18 Nov 2026: "an illegitimate email
+      // can still sign up, because of the Later button"): no Later. A wrong
+      // address starts over: signed out, back on this form.
+      expect(find.text('Later'), findsNothing);
+      await tap(tester, find.byKey(const ValueKey('email-start-over')));
       expect(find.text('CHECK YOUR EMAIL'), findsNothing);
-      expect(find.byType(RoleGate), findsOneWidget);
+      expect(paths(), contains('/auth/logout'));
+      expect(find.byType(RoleGate), findsNothing);
+      expect(
+        find.text('Signed out. Sign up again with the right email.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a mobile number may be given, and no code is texted', (
@@ -185,7 +193,16 @@ void main() {
       expect(paths(), ['/auth/signup', '/verification/email/request']);
       expect(calls.first.$2['mobile'], '0917 123 4567');
       expect(find.text('ENTER THE CODE'), findsNothing);
-      await tap(tester, find.text('Later'));
+      // Opened in Gmail: the sheet sees it, and Continue goes on in.
+      routes['/verification/status'] = (_) => json(200, {
+        'verified_percent': 10,
+        'badge': 'yellow',
+        'channels': [
+          {'type': 'email', 'status': 'verified'},
+        ],
+      });
+      await tester.pump(const Duration(seconds: 6));
+      await tap(tester, find.text('CONTINUE'));
       expect(find.byType(RoleGate), findsOneWidget);
     });
 

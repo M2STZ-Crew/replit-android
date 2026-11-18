@@ -7,6 +7,35 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.49 — 18 November 2026 — Confirm your email; every resident hears of a fire; BFP raises the alarm; the iPhone's icon
+
+Goes with backend v1.12.38.
+
+- **Confirm your email before using RepLiT** (18 Nov: "an illegitimate email
+  can still signup ... because of the 'later' button"). Sign-up's email sheet
+  has no Later and cannot be swiped away; "Wrong email? Start over" signs out,
+  back on the form. A resident whose email is not confirmed sees only Confirm
+  your email (`EmailGateScreen`): it notices a link opened anywhere, offers 911
+  and Log out, and is shown at start-up or on any refused request
+  (`EmailGate`). The server deletes an account never confirmed a day after
+  sign-up.
+- **A verified fire, for every resident**: the new "Fire verified" alert opens
+  the fire's details, where only those within 100 m can add a report.
+- **BFP raises the alarm itself**: on LIVE, a BFP Coordinator's alarm row
+  opens "Raise the alarm?" (levels above now, an optional note), with the
+  Fire Volunteer requests waiting a tap away (`raiseAlarm`).
+- **The fire type for residents**: the fire's details and the reporter's live
+  tracker show "Fire type: Structural — Residential · {team}" once the first
+  fire team on scene says (`ResidentFireTypeRow`).
+- **The Android icon is the iPhone's** (18 Nov: "make the logo of android same
+  as iphone"): a flat #171717 ground and the iPhone's flame and pin, sized and
+  placed as on an iPhone, made from its 1024 px icon for every density; a
+  one-colour version for themed icons; the older Androids' square and round
+  icons cut from it.
+- "Emergency now? Call 911" on the phone and email steps is in Tagalog too.
+
+---
+
 ## v1.12.48 — 17 November 2026 — Updates download in the background
 
 App only; the backend stays at v1.12.37.

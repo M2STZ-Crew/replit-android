@@ -16,6 +16,7 @@ import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import 'camera_capture_screen.dart';
 import 'live_update_screen.dart';
+import '../widgets/fire_type_row.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/loading.dart';
 import '../i18n/i18n.dart';
@@ -276,6 +277,11 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
           if (away != null) _Fact('${_distance(away)} away'),
         ],
       ),
+      // What is burning, once the first fire team on scene says (v1.12.49).
+      if (_area?['fire_type'] != null) ...[
+        const SizedBox(height: 12),
+        ResidentFireTypeRow(area: _area),
+      ],
       const SizedBox(height: 16),
       _mapExtract(),
       const SizedBox(height: 20),

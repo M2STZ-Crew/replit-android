@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../i18n/i18n.dart';
 import '../models/area_view.dart';
+import '../models/field_ops.dart';
 import '../theme.dart';
 import 'app_icons.dart';
 import 'coordinator_kit.dart';
@@ -47,6 +48,33 @@ class FireTypeRow extends StatelessWidget {
           : '${fire.label} · ${area.fireTypeOrgName}',
       chevron: onPick != null,
       onTap: onPick,
+    );
+  }
+}
+
+/// What is burning, for a resident (v1.12.49, 18 Nov 2026: "if the fire type
+/// is chosen, make other users aware too ... make all of the user aware in the
+/// details of the incident"): the fire type the first fire team on scene gave,
+/// and which team, never the person. Nothing until a team has said.
+class ResidentFireTypeRow extends StatelessWidget {
+  const ResidentFireTypeRow({super.key, required this.area});
+
+  /// The incident as GET /areas/{id} gives it.
+  final Map<String, dynamic>? area;
+
+  @override
+  Widget build(BuildContext context) {
+    final raw = area;
+    final fire = raw == null ? null : FireClassification.fromIncident(raw);
+    if (fire == null) return const SizedBox.shrink();
+    final team = (raw!['fire_type_org_name'] as String?)?.trim();
+    return ListRow(
+      key: const ValueKey('resident-fire-type'),
+      leading: const IconPlate(AppIcons.localFireDepartment),
+      title: t('Fire type'),
+      subtitle: team == null || team.isEmpty
+          ? fire.label
+          : '${fire.label} · $team',
     );
   }
 }

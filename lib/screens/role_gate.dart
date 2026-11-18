@@ -13,6 +13,7 @@ import 'login_screen.dart';
 import '../models/active_report.dart';
 import 'map_screen.dart';
 import 'report_status_screen.dart';
+import 'email_gate_screen.dart';
 import 'phone_verify_screen.dart';
 import 'responder/responder_shell.dart';
 import '../tutorial/lit_tutorial_state.dart';
@@ -261,6 +262,16 @@ class _RoleGateState extends State<RoleGate> {
       // (CoordinatorPowers); BFP's alarm requests sit under Profile and on
       // LIVE's alarm level.
       return CoordinatorShell(me: me);
+    }
+    // Confirm your email (v1.12.49): nothing else until the link is opened.
+    if (me['email_verification_required'] == true) {
+      return EmailGateScreen(
+        email: me['email'] as String?,
+        onConfirmed: () {
+          setState(() => _me = null);
+          _load();
+        },
+      );
     }
     if (me['phone_verification_required'] == true) {
       return PhoneVerifyScreen(

@@ -13,6 +13,7 @@ import '../models/resident_status.dart';
 import '../models/responder_unit.dart';
 import '../models/tracking.dart';
 import '../theme.dart';
+import '../widgets/fire_type_row.dart';
 import '../widgets/design.dart';
 import '../widgets/sheet_grip.dart';
 import '../widgets/map_layers.dart';
@@ -866,6 +867,12 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                             ),
                         ],
                       ),
+                      // What is burning, once the first fire team on scene
+                      // says (v1.12.49).
+                      if (_area?['fire_type'] != null) ...[
+                        const SizedBox(height: 12),
+                        ResidentFireTypeRow(area: _area),
+                      ],
                       const SizedBox(height: 14),
                       _rail(at),
                       ..._verified(),

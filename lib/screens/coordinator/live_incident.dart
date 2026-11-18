@@ -437,13 +437,39 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     final area = _area;
     if (area == null) return;
     if (_powers.decidesAlarm) {
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) =>
-              BfpAlarmRequestsScreen(api: _api, areaId: widget.areaId),
+      // BFP raises the level itself (v1.12.49); the requests waiting on it
+      // are a tap away.
+      final raise = await showFrameSheet<AlarmAsk>(
+        context,
+        builder: (_) => AlarmAskSheet(
+          area: area,
+          bfp: true,
+          requestsWaiting: _asks.where((r) => r.waiting).length,
         ),
       );
-      await _load();
+      if (raise == null || !mounted) return;
+      if (raise.openRequests) {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                BfpAlarmRequestsScreen(api: _api, areaId: widget.areaId),
+          ),
+        );
+        await _load();
+        return;
+      }
+      final level = raise.level;
+      if (level == null) return;
+      await _act(
+        () => _api.raiseAlarm(
+          areaId: widget.areaId,
+          alarmLevel: level,
+          notes: raise.why,
+        ),
+        t('Raised to {alarmWord}. Everyone on this fire sees it now.', {
+          'alarmWord': alarmWord(level),
+        }),
+      );
       return;
     }
     final waiting = _myAsk != null && _myAsk!.waiting ? _myAsk : null;

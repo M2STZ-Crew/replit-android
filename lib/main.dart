@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import 'api/account_freeze.dart';
+import 'api/email_gate.dart';
 import 'api/api_client.dart';
 import 'api/phone_gate.dart';
 import 'api/push_service.dart';
@@ -23,6 +24,7 @@ import 'security/developer_mode.dart';
 import 'api/session.dart';
 import 'models/active_report.dart';
 import 'screens/login_screen.dart';
+import 'screens/email_gate_screen.dart';
 import 'screens/phone_verify_screen.dart';
 import 'screens/report_status_screen.dart';
 import 'screens/role_gate.dart';
@@ -99,6 +101,25 @@ Future<void> main() async {
         builder: (_) => LoginScreen(notice: AccountFreeze.notice(deleteAfter)),
       ),
       (route) => false,
+    );
+  };
+  // A resident who has not confirmed their email (v1.12.49): Confirm your
+  // email over whatever was open; confirmed, the app starts again from
+  // RoleGate.
+  EmailGate.onTrip = () {
+    final nav = PushService.navigatorKey.currentState;
+    if (nav == null || !Session.instance.isAuthenticated) return;
+    EmailGate.opened();
+    nav.push(
+      MaterialPageRoute(
+        builder: (_) => EmailGateScreen(
+          email: null,
+          onConfirmed: () => nav.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const RoleGate()),
+            (route) => false,
+          ),
+        ),
+      ),
     );
   };
   PhoneGate.onTrip = () {

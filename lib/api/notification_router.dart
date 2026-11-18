@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../screens/area_detail_screen.dart';
 import '../screens/bfp/bfp_alarm_requests_screen.dart';
 import '../screens/live_update_screen.dart';
 import '../screens/neighbour_alert_screen.dart';
@@ -19,6 +20,10 @@ import 'api_client.dart';
 enum NotificationTarget {
   /// "Do you see it too?" — a resident near a reported fire.
   nearbyFire,
+
+  /// A verified fire anywhere, for every other resident (backend v1.12.38):
+  /// its details, where only those within 100 m may add a report.
+  verifiedFire,
 
   /// The live tracker of the resident's own report.
   myReport,
@@ -47,6 +52,7 @@ const fireAlertTypes = {
   'incident_reminder',
   'neighborhood_alert',
   'fire_alert',
+  'fire_verified',
   'alarm_request',
 };
 
@@ -84,6 +90,11 @@ NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
       return staff
           ? NotificationTarget.staffIncident
           : NotificationTarget.nearbyFire;
+    // A verified fire, told to every resident (backend v1.12.38).
+    case 'fire_verified':
+      return staff
+          ? NotificationTarget.staffIncident
+          : NotificationTarget.verifiedFire;
     // News about a report the resident made.
     case 'incident_update':
       return staff
@@ -152,6 +163,15 @@ class NotificationRouter {
           nav.push(
             MaterialPageRoute<void>(
               builder: (_) => NeighbourAlertScreen(areaId: areaId!),
+            ),
+          );
+        case NotificationTarget.verifiedFire:
+          nav.push(
+            MaterialPageRoute<void>(
+              builder: (_) => AreaDetailScreen(
+                areaId: areaId!,
+                designation: data['designation'] as String?,
+              ),
             ),
           );
         case NotificationTarget.myReport:

@@ -130,6 +130,8 @@ void main() {
         'incident_reminder',
         'neighborhood_alert',
         'fire_alert',
+        // A verified fire, told to every resident (v1.12.49).
+        'fire_verified',
         'alarm_request',
       });
       expect(fireAlertTypes.contains('incident_update'), isFalse);
