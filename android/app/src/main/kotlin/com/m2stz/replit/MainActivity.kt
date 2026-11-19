@@ -421,7 +421,7 @@ class MainActivity : FlutterActivity() {
                     urgent = true
                 ),
 
-                // Residents: a fire verified farther away (v1.12.51: "create a
+                // Residents: a fire verified farther away (v1.12.53: "create a
                 // placeholder for voice for far incidents (outside 100m). and
                 // remain the sound of near incident"), in their language. The
                 // placeholders are replaced under the same file names.
