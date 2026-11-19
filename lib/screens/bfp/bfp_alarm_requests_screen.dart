@@ -226,7 +226,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } catch (_) {
-      if (mounted) _toast(t('Could not open the Area. Check your signal.'));
+      if (mounted) _toast(t('Could not open the incident. Check your signal.'));
     }
   }
 
@@ -324,9 +324,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
                           'declines, or the coordinator takes one back.',
                         )
                       : t(
-                          'A request lands here, with the fire alert, when a '
-                          'Fire Volunteer coordinator asks BFP to raise an '
-                          "Area's alarm.",
+                          'A request lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise a fire\'s alarm.',
                         ),
                 ),
               )

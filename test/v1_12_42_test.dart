@@ -453,6 +453,9 @@ void main() {
         'alert_medical_v2': 'sound_medical',
         'alert_barangay_v2': 'sound_barangay',
         'citizen_nearby_v1': 'sound_citizen',
+        // v1.12.51: a far fire's voice, by language.
+        'citizen_far_en_v1': 'sound_far_en',
+        'citizen_far_tl_v1': 'sound_far_tl',
         'citizen_verified_v4': 'sound_verified',
         'citizen_on_route_v3': 'sound_on_route',
         'citizen_on_scene_v3': 'sound_on_scene',

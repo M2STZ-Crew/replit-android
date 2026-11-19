@@ -144,7 +144,7 @@ class ResponderShellState extends State<ResponderShell> {
         ),
         bottomNavigationBar: NavBarShell(
           disc: t('RUN'),
-          discLabel: t('Run — the Area you are going to'),
+          discLabel: t('Run — the fire you are going to'),
           discActive: _tab == ResponderTab.run,
           onDisc: () => show(ResponderTab.run),
           items: [

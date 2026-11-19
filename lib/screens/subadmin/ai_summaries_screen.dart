@@ -9,6 +9,7 @@ import '../../widgets/design.dart';
 import '../../widgets/staff_shell.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/loading.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 
 /// Opens a link outside the app — the phone's browser, which saves the PDF to
@@ -54,7 +55,7 @@ String summarySubtitle(Map<String, dynamic> item) {
   final who = teams.isNotEmpty
       ? teams.join(', ')
       : '$filed ${filed == 1 ? 'team' : 'teams'}';
-  return '${item['designation'] ?? t('Incident')} · $who';
+  return '${fireNameOr(item['designation'] as String?, t('Incident'))} · $who';
 }
 
 /// The coordinator's AI summaries (v1.12.5).

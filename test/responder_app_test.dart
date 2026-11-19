@@ -214,7 +214,7 @@ void main() {
         );
       }
       expect(
-        find.bySemanticsLabel('Run — the Area you are going to'),
+        find.bySemanticsLabel('Run — the fire you are going to'),
         findsOneWidget,
       );
       expect(
@@ -255,7 +255,7 @@ void main() {
       expect(find.text('DUTY'), findsOneWidget);
       expect(find.text('Location sharing is off'), findsOneWidget);
       expect(find.text('NEEDS A UNIT'), findsOneWidget);
-      expect(find.text('2 AREAS'), findsOneWidget);
+      expect(find.text('2 INCIDENTS'), findsOneWidget);
       expect(find.text('REVIEW'), findsNWidgets(2));
 
       // Below the fold: the counters /incidents/stats returns, none invented.
@@ -268,9 +268,9 @@ void main() {
     testWidgets('nothing waiting says what will arrive (R02)', (tester) async {
       incidents.clear();
       await shell(tester);
-      expect(find.text('NO AREA NEEDS TANKER 1'), findsOneWidget);
+      expect(find.text('NO INCIDENT NEEDS TANKER 1'), findsOneWidget);
       expect(
-        find.textContaining('When an Area asks for Fire Volunteer'),
+        find.textContaining('When an incident asks for Fire Volunteer'),
         findsOneWidget,
       );
       expect(find.text('REVIEW'), findsNothing);
@@ -296,7 +296,7 @@ void main() {
       expect(find.text('Go to Area 1.2?'), findsOneWidget);
       expect(find.textContaining('You go as Tanker 1'), findsOneWidget);
       expect(
-        find.textContaining('This Area is still Reported'),
+        find.textContaining('This incident is still Reported'),
         findsOneWidget,
       );
       await tester.tap(find.text('I AM GOING').last);
@@ -402,7 +402,7 @@ void main() {
     testWidgets('RUN with no run says how one starts', (tester) async {
       await shell(tester);
       await tester.tap(
-        find.bySemanticsLabel('Run — the Area you are going to'),
+        find.bySemanticsLabel('Run — the fire you are going to'),
       );
       await settle(tester);
       expect(find.text('NO RUN'), findsOneWidget);
@@ -427,8 +427,8 @@ void main() {
         ),
       );
       final pal = AppPalette.dark;
-      expect(chip('Areas').tone, pal.accentInk);
-      expect(chip('Areas').on, isTrue);
+      expect(chip('Fires').tone, pal.accentInk);
+      expect(chip('Fires').on, isTrue);
       expect(chip('Hydrants').tone, pal.water);
       expect(chip('Shelters').tone, pal.ok);
       expect(chip('Risk zones').tone, pal.live);
@@ -483,7 +483,7 @@ void main() {
       tester.widget<ListRow>(more).onTap!();
       await settle(tester);
       expect(find.text('WHAT YOU CAN DO'), findsOneWidget);
-      expect(find.text('Reject an Area', skipOffstage: false), findsOneWidget);
+      expect(find.text('Reject an incident', skipOffstage: false), findsOneWidget);
       expect(
         find.text('Coordinators only', skipOffstage: false),
         findsOneWidget,

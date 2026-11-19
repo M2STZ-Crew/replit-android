@@ -23,6 +23,7 @@ import 'post_incident_report_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/loading.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 import '../../widgets/no_emoji.dart';
 
@@ -449,7 +450,7 @@ class _SubAdminIncidentCommandScreenState
       context,
       lat: c.latitude,
       lng: c.longitude,
-      name: (_incident?['designation'] as String?) ?? 'The fire',
+      name: fireNameOr(_incident?['designation'] as String?, t('The fire')),
       areaId: widget.areaId,
     );
   }
@@ -587,7 +588,7 @@ class _SubAdminIncidentCommandScreenState
     return StaffScaffold(
       me: widget.me,
       page: StaffPage.incidents,
-      title: (_incident?['designation'] as String?) ?? t('Incident'),
+      title: fireNameOr(_incident?['designation'] as String?, t('Incident')),
       body: _loading
           ? const LoadingView()
           : Column(

@@ -43,9 +43,7 @@ class RunTab extends StatelessWidget {
                       tone: context.pal.accentInk,
                       title: t('No run'),
                       body: t(
-                        'When you tap I am going on an Area, your run is '
-                        'here: the way there, your crew, and what happens '
-                        'next.',
+                        'When you tap I am going on an incident, your run is here: the way there, your crew, and what happens next.',
                       ),
                       action: AppButton.secondary(
                         t('Open duty'),

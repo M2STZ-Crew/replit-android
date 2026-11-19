@@ -9,6 +9,7 @@ import '../../widgets/area_map_preview.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import 'coordinator_feed.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 
 /// Two Areas that have grown into each other (06 · C07): merge them into one
@@ -69,10 +70,8 @@ class _OverlapScreenState extends State<OverlapScreen> {
     }
   }
 
-  String _name(String key) {
-    final d = (_o[key] as String?) ?? '';
-    return d.toLowerCase().startsWith('area') ? d : t('Area {d}', {'d': d});
-  }
+  /// The fire's name (v1.12.51; it was "Area 1.2").
+  String _name(String key) => fireNameOr(_o[key] as String?, t('Incident'));
 
   Duration? get _left {
     final e = _expires;
@@ -100,7 +99,7 @@ class _OverlapScreenState extends State<OverlapScreen> {
                     '_name': _name('area_b_designation'),
                     '_name2': _name('area_a_designation'),
                   })
-                : t('Kept as two Areas.'),
+                : t('Kept as two incidents.'),
           ),
         ),
       );
@@ -151,7 +150,7 @@ class _OverlapScreenState extends State<OverlapScreen> {
               eyebrow: metres == null
                   ? t('Overlap')
                   : t('Overlap · {metres} m apart', {'metres': metres}),
-              title: t('Merge these Areas?'),
+              title: t('Merge these incidents?'),
               subtitle: metres == null
                   ? t('{b} has grown into {a}.', {'b': b, 'a': a})
                   : t('{b} has grown to within {metres} m of {a}.', {
@@ -180,7 +179,7 @@ class _OverlapScreenState extends State<OverlapScreen> {
                     const SizedBox(height: 16),
                     InlineAlert(
                       body: t(
-                        'Merging folds {b} into {a}. The smaller Area becomes "merged" and records what it joined. It cannot be split again.',
+                        'Merging folds {b} into {a}. The smaller incident becomes "merged" and records what it joined. It cannot be split again.',
                         {'b': b, 'a': a},
                       ),
                     ),
@@ -194,8 +193,8 @@ class _OverlapScreenState extends State<OverlapScreen> {
                                 '_clock': _clock(left),
                               }),
                         body: over
-                            ? t('They stay as two Areas.')
-                            : t('If nobody decides, they stay as two Areas.'),
+                            ? t('They stay as two incidents.')
+                            : t('If nobody decides, they stay as two incidents.'),
                       ),
                     ],
                   ],

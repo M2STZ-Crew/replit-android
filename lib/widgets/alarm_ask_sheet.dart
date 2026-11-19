@@ -92,7 +92,7 @@ class _AlarmAskSheetState extends State<AlarmAskSheet> {
                     'meets are answered with it.',
                   )
                 : 'BFP sets the alarm level. Your request reaches every BFP '
-                      'Coordinator at once with this Area attached, and you '
+                      'Coordinator at once with this fire attached, and you '
                       'are told when they answer.',
           ),
           if (widget.bfp && widget.requestsWaiting > 0) ...[

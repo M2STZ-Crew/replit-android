@@ -145,7 +145,7 @@ void main() {
           skipOffstage: false,
         ),
       );
-      expect(chip('Areas').tone, pal.accentInk);
+      expect(chip('Fires').tone, pal.accentInk);
       expect(chip('Risk zones').tone, pal.live);
       expect(chip('Hydrants').tone, pal.water);
       expect(chip('Shelters').tone, pal.ok);

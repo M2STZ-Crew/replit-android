@@ -11,6 +11,7 @@ import 'live_update_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/loading.dart';
+import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 
 /// What each agency a report asked for is called on its card, and its glyph.
@@ -357,7 +358,9 @@ class _ReportCard extends StatelessWidget {
     final title = words.isEmpty
         ? t('Report')
         : t('{kind} report', {'kind': words.join(' + ')});
-    final designation = report['area_designation'] as String?;
+    // The fire's name (v1.12.51), in the app's language.
+    final named = report['area_designation'] as String?;
+    final designation = named == null ? null : fireName(named);
     final band = report['area_confidence_band'] as String?;
     final flagged = report['gps_discrepancy_flag'] == true;
 

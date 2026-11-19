@@ -121,8 +121,8 @@ class DutyTab extends StatelessWidget {
               SectionHeader(
                 t('Needs a unit'),
                 meta: waiting.length == 1
-                    ? t('1 Area')
-                    : t('{count} Areas', {'count': waiting.length}),
+                    ? t('1 incident')
+                    : t('{count} incidents', {'count': waiting.length}),
               ),
               const SizedBox(height: 12),
               for (final (i, a) in waiting.indexed) ...[
@@ -225,7 +225,7 @@ class _NothingWaiting extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              t('No Area needs {unit}', {'unit': unit}).toUpperCase(),
+              t('No incident needs {unit}', {'unit': unit}).toUpperCase(),
               textAlign: TextAlign.center,
               style: context.type.cardTitle,
             ),
@@ -233,7 +233,7 @@ class _NothingWaiting extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             t(
-              'When an Area asks for {agencyLabel} it arrives here with an alert sound. You can leave this screen.',
+              'When an incident asks for {agencyLabel} it arrives here with an alert sound. You can leave this screen.',
               {'agencyLabel': agencyLabel(agency)},
             ),
             textAlign: TextAlign.center,

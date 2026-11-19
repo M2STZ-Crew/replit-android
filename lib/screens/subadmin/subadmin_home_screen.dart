@@ -14,6 +14,7 @@ import 'subadmin_incident_report_screen.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/loading.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 
 Color get _panel => ThemeChoice.palette.glassDim;
@@ -223,8 +224,10 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ((area['designation'] as String?) ?? t('Area'))
-                            .toUpperCase(),
+                        fireNameOr(
+                          area['designation'] as String?,
+                          t('Incident'),
+                        ).toUpperCase(),
                         style: TextStyle(
                           color: color,
                           fontSize: 12,
@@ -286,7 +289,7 @@ class _SubAdminHomeScreenState extends State<SubAdminHomeScreen> {
       return Padding(
         padding: EdgeInsets.fromLTRB(24, 12, 24, 12),
         child: Text(
-          t('No reports in this area.'),
+          t('No reports in this incident.'),
           style: TextStyle(color: context.pal.muted),
         ),
       );

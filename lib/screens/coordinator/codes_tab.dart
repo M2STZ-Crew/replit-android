@@ -122,8 +122,7 @@ class _CodesTabState extends State<CodesTab> {
                 eyebrow: area?.name ?? t('No live incident'),
                 title: t('Fire codes'),
                 subtitle: t(
-                  'Pressing a code records an event on this incident. It '
-                  'does not change the Area status.',
+                  'Pressing a code records an event on this incident. It does not change the incident\'s status.',
                 ),
               ),
               Expanded(child: _list(area)),
@@ -168,8 +167,7 @@ class _CodesTabState extends State<CodesTab> {
           else if (area == null)
             InlineAlert(
               body: t(
-                'Codes are pressed on a live incident. When an Area is '
-                'under way, LIVE shows it and its codes work here.',
+                'Codes are pressed on a live incident. When an incident is under way, LIVE shows it and its codes work here.',
               ),
             )
           else if (_recorded != null)
