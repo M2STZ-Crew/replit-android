@@ -75,7 +75,7 @@ void main() {
   /// A phone with room for the ring even in the test font, which draws every
   /// letter as a square; on a shorter one the ring steps aside, and the
   /// steps say the same (screen_fit_test.dart measures it in Inter).
-  // 1450 (was 1400) since v1.12.51: the step names the fire's street, longer
+  // 1450 (was 1400) since v1.12.53: the step names the fire's street, longer
   // than "Area 1.2 opened".
   const roomForTheRing = Size(402, 1450);
 

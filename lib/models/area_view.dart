@@ -13,7 +13,7 @@ class AreaView {
   String get id => raw['id'] as String;
 
   /// The fire's name as the server sends it: "Near F. Victor Street",
-  /// "Taft Avenue corner Gil Puyat Avenue" (v1.12.51; it was "Area 1.2").
+  /// "Taft Avenue corner Gil Puyat Avenue" (v1.12.53; it was "Area 1.2").
   String get designation => (raw['designation'] as String?) ?? '';
 
   /// The fire's name in the app's language ("Malapit sa ..." in

@@ -777,7 +777,7 @@ class _RejectSheetState extends State<RejectSheet> {
   static const _prank = 'Prank or misuse';
   static const _reasons = [
     'False alarm — no fire found',
-    'Duplicate of another Area',
+    'Duplicate of another incident',
     'Not an emergency',
     _prank,
   ];

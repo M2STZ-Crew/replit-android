@@ -446,7 +446,7 @@ class _QueueTabState extends State<QueueTab> {
   }
 }
 
-/// The fire's name (v1.12.51; it was "Area 1.2").
+/// The fire's name (v1.12.53; it was "Area 1.2").
 String _designation(Object? d) => fireNameOr(d as String?, t('Incident'));
 
 class _Empty extends StatelessWidget {

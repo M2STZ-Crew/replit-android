@@ -1,4 +1,4 @@
-// v1.12.51: a fire is called by its street, and a far fire has its own voice.
+// v1.12.53: a fire is called by its street, and a far fire has its own voice.
 //
 // 18 Nov 2026: "instead of area, it will be called 'Near [street]' or the
 // street itself ... '[street] corner [street]' or 'near [street]'" (answered

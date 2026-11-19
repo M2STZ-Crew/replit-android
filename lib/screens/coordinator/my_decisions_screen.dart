@@ -46,7 +46,7 @@ class DecisionEntry {
   String? get areaId => raw['area_id'] as String?;
   DateTime? get at => parseTime(raw['created_at']);
 
-  /// The fire's name (v1.12.51; it was "Area 1.2").
+  /// The fire's name (v1.12.53; it was "Area 1.2").
   String get area =>
       fireNameOr(raw['area_designation'] as String?, t('An incident'));
 

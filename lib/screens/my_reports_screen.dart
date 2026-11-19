@@ -358,7 +358,7 @@ class _ReportCard extends StatelessWidget {
     final title = words.isEmpty
         ? t('Report')
         : t('{kind} report', {'kind': words.join(' + ')});
-    // The fire's name (v1.12.51), in the app's language.
+    // The fire's name (v1.12.53), in the app's language.
     final named = report['area_designation'] as String?;
     final designation = named == null ? null : fireName(named);
     final band = report['area_confidence_band'] as String?;

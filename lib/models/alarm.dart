@@ -51,7 +51,7 @@ class AlarmRequest {
   String get id => raw['id'] as String;
   String get areaId => raw['area_id'] as String;
 
-  /// The fire's name: "Near F. Victor Street" (v1.12.51; it was "Area
+  /// The fire's name: "Near F. Victor Street" (v1.12.53; it was "Area
   /// 1.2"), or "The fire".
   String get areaName =>
       fireNameOr(raw['area_designation'] as String?, t('The fire'));

@@ -38,7 +38,7 @@ Goes with backend v1.12.42.
 
 ## v1.12.52 — 19 November 2026 — Prank reports pause reporting, step by step
 
-Goes with backend v1.12.41. Comes after v1.12.51 (street names).
+Goes with backend v1.12.41. Comes before the street names, planned as 1.12.51 and shipped as 1.12.53.
 
 - **Reporting paused after a prank report** (19 Nov: "a false alarm or prank
   report can be temporarily cannot report and has a progressive penalty").

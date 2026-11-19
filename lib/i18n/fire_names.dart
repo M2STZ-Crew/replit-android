@@ -1,4 +1,4 @@
-/// A fire's name (v1.12.51, 18 Nov 2026: "instead of area, it will be called
+/// A fire's name (v1.12.53, 18 Nov 2026: "instead of area, it will be called
 /// 'Near [street]' or the street itself because 'Area #1' is not appropriate
 /// or overwhelming to citizens and to all"; answered "Corner, else Near", and
 /// the area number "Nowhere on screen").

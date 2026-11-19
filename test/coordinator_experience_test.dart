@@ -363,12 +363,12 @@ void main() {
       await tester.tap(find.text('REJECT AREA 2.1'));
       await settle(tester);
       expect(posted, isEmpty, reason: 'no reason picked yet');
-      await tester.tap(find.text('Duplicate of another Area'));
+      await tester.tap(find.text('Duplicate of another incident'));
       await settle(tester);
       await tester.tap(find.text('REJECT AREA 2.1'));
       await settle(tester);
       expect(posted.single.$2, '/incidents/a2/reject');
-      expect(posted.single.$3['reason'], 'Duplicate of another Area');
+      expect(posted.single.$3['reason'], 'Duplicate of another incident');
       await done(tester);
     });
   });
@@ -397,12 +397,12 @@ void main() {
       await settle(tester);
       expect(find.text('Reject Area 3.1?'), findsOneWidget);
       expect(find.byType(AreaDecisionScreen), findsNothing);
-      await tester.tap(find.text('Duplicate of another Area'));
+      await tester.tap(find.text('Duplicate of another incident'));
       await settle(tester);
       await tester.tap(find.text('REJECT AREA 3.1'));
       await settle(tester);
       expect(posted.single.$2, '/incidents/a3/reject');
-      expect(posted.single.$3['reason'], 'Duplicate of another Area');
+      expect(posted.single.$3['reason'], 'Duplicate of another incident');
       await done(tester);
     });
 

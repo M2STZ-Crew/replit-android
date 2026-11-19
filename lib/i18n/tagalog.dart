@@ -2181,7 +2181,7 @@ const Map<String, String> kTagalog = {
   'Hand these over in person. The password is shown only this once. You can give them a new one from this screen.':
       'Ibigay ang mga ito nang personal. Isang beses lang ipinapakita ang password. Puwede mo silang bigyan ng bago mula sa screen na ito.',
   'False alarm — no fire found': 'False alarm — walang nakitang sunog',
-  'Duplicate of another Area': 'Kapareho ng ibang Area',
+  'Duplicate of another incident': 'Kapareho ng ibang insidente',
   'Not an emergency': 'Hindi emergency',
   'Prank or misuse': 'Biro o maling paggamit',
   'Codes': 'Mga code',
@@ -2548,7 +2548,7 @@ const Map<String, String> kTagalog = {
   'Zoom in to see the places you turned on':
       'Mag-zoom in para makita ang mga lugar na binuksan mo',
 
-  // v1.12.51: a fire is called by its street, never "Area 3".
+  // v1.12.53: a fire is called by its street, never "Area 3".
   'New incident: {name}': 'Bagong insidente: {name}',
   'Matched to {fire}': 'Naitugma sa {fire}',
   'The fire': 'Ang sunog',

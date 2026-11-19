@@ -41,13 +41,13 @@ class SoundCues {
     'rejected',
     'id_verified',
     'id_rejected',
-    // v1.12.51: "Fire verified" for a fire farther than 100 m, in the
+    // v1.12.53: "Fire verified" for a fire farther than 100 m, in the
     // reader's language. The 100 m alert keeps the citizen recording.
     'far_en',
     'far_tl',
   };
 
-  /// A far fire's voice in the app's language (v1.12.51).
+  /// A far fire's voice in the app's language (v1.12.53).
   static String get farVoice => LanguageChoice.tagalog ? 'far_tl' : 'far_en';
 
   /// "New Update!": not an incident's sound but its own recording, in the

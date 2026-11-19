@@ -70,7 +70,7 @@ class _OverlapScreenState extends State<OverlapScreen> {
     }
   }
 
-  /// The fire's name (v1.12.51; it was "Area 1.2").
+  /// The fire's name (v1.12.53; it was "Area 1.2").
   String _name(String key) => fireNameOr(_o[key] as String?, t('Incident'));
 
   Duration? get _left {
