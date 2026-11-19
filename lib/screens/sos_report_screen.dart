@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../api/api_client.dart';
+import '../api/reporting_standing.dart';
 import '../api/session.dart';
 import '../api/report_queue.dart';
 import '../diagnostics/report_timing.dart';
@@ -17,6 +18,7 @@ import '../widgets/design.dart';
 import '../widgets/staff_shell.dart' show StaffAccount;
 import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
+import 'reporting_paused_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../widgets/no_emoji.dart';
@@ -213,6 +215,14 @@ class _SosReportScreenState extends State<SosReportScreen> {
       await _showSuccess(data, agencies, pos);
     } on ApiException catch (e) {
       timing.finish(outcome: 'rejected');
+      // Paused after prank reports (backend v1.12.41): when they can report
+      // again, why, and 911 — not a toast.
+      if (e.code == ReportingStanding.errorCode && mounted) {
+        await Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(builder: (_) => ReportingPausedScreen(api: _api)),
+        );
+        return;
+      }
       // 409: the server has a live report from this person that the phone
       // had lost track of. Follow that one rather than leave them here.
       if (e.statusCode == 409 &&

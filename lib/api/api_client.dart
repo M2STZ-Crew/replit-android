@@ -11,6 +11,7 @@ import 'api_cache.dart';
 import 'api_config.dart';
 import 'email_gate.dart';
 import 'phone_gate.dart';
+import 'reporting_standing.dart';
 import 'session.dart';
 import '../i18n/i18n.dart';
 
@@ -1107,13 +1108,59 @@ class ApiClient {
   }
 
   /// Reject an incident (sub-admin): POST /incidents/{id}/reject.
-  Future<Map<String, dynamic>> rejectIncident(String id, String reason) async {
+  ///
+  /// [prank] (backend v1.12.41): it was a prank or malicious, not an honest
+  /// mistake; the first resident who reported it gets a strike and reads
+  /// [reason]. [serious]: a truck went out, or a real household was
+  /// targeted — at least the 3rd strike.
+  Future<Map<String, dynamic>> rejectIncident(
+    String id,
+    String reason, {
+    bool prank = false,
+    bool serious = false,
+  }) async {
     final resp = await _client.post(
       Uri.parse('${ApiConfig.baseUrl}/incidents/$id/reject'),
       headers: _jsonAuth,
-      body: jsonEncode({'reason': reason}),
+      body: jsonEncode({
+        'reason': reason,
+        if (prank) 'prank': true,
+        if (prank && serious) 'serious': true,
+      }),
     );
     return _decode(resp);
+  }
+
+  // ------------------------------------------------- prank-report strikes ---
+  // Backend v1.12.41 (app/services/report_strikes.py): a resident's standing,
+  // their appeal, and the lesson read once per strike.
+
+  /// GET /report-strikes/me.
+  Future<Map<String, dynamic>> getReportingStanding() async {
+    final resp = await _client.get(
+      Uri.parse('${ApiConfig.baseUrl}/report-strikes/me'),
+      headers: _auth,
+    );
+    return _decode(resp);
+  }
+
+  /// POST /report-strikes/me/{id}/appeal: 10 to 500 characters.
+  Future<Map<String, dynamic>> appealStrike(String id, String text) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/report-strikes/me/$id/appeal'),
+      headers: _jsonAuth,
+      body: jsonEncode({'text': text}),
+    );
+    return _decode(resp);
+  }
+
+  /// POST /report-strikes/me/{id}/lesson: they read what a false alarm costs.
+  Future<void> strikeLessonSeen(String id) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/report-strikes/me/$id/lesson'),
+      headers: _auth,
+    );
+    _decode(resp);
   }
 
   /// Resolve an incident (sub-admin): POST /incidents/{id}/resolve.
@@ -1509,6 +1556,10 @@ class ApiClient {
           'Your organization has been removed from RepLiT. Ask the central '
           'hub (Barangay 76) if you think this is a mistake.',
         ),
+        // Paused or removed after prank reports (backend v1.12.41).
+        ReportingStanding.errorCode => ReportingStanding.refusal(
+          (body['details'] as Map?)?.cast<String, dynamic>(),
+        ),
         _ =>
           (body['message'] as String?) ??
               'Request failed (${resp.statusCode}).',
@@ -1530,6 +1581,10 @@ class ApiClient {
       // Frozen from another phone or the website: signed out here too.
       if (resp.statusCode == 403 && code == AccountFreeze.errorCode) {
         AccountFreeze.trip(details?['delete_after'] as String?);
+      }
+      // Reporting paused (backend v1.12.41): the next tap knows at once.
+      if (resp.statusCode == 403 && code == ReportingStanding.errorCode) {
+        ReportingStanding.noteRefusal(details);
       }
       throw ApiException(
         resp.statusCode,

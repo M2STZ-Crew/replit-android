@@ -2409,6 +2409,92 @@ const Map<String, String> kTagalog = {
   'The update is downloaded': 'Na-download na ang update',
   'Tap to install RepLiT {v}.': 'I-tap para i-install ang RepLiT {v}.',
   'Waiting for a connection…': 'Naghihintay ng koneksiyon…',
+  // v1.12.52: prank reports pause reporting, step by step.
+  'Reporting': 'Pag-report',
+  'Reporting paused': 'Naka-pause ang pag-report',
+  'Reporting removed': 'Tinanggal ang pag-report',
+  'You can send reports': 'Puwede kang mag-report',
+  'You can send reports again on {when}': 'Puwede ka ulit mag-report sa {when}',
+  'You can send reports again on {when}. In an emergency, call 911.':
+      'Puwede ka ulit mag-report sa {when}. Kung may emergency, tumawag sa 911.',
+  'You can no longer send reports': 'Hindi ka na makakapag-report',
+  'You can no longer send reports after repeated prank reports. In an emergency, call 911.':
+      'Hindi ka na makakapag-report dahil sa paulit-ulit na prank na report. Kung may emergency, tumawag sa 911.',
+  'Your reporting is paused. In an emergency, call 911.':
+      'Naka-pause ang pag-report mo. Kung may emergency, tumawag sa 911.',
+  'Could not check right now. In an emergency, call 911.':
+      'Hindi masuri ngayon. Kung may emergency, tumawag sa 911.',
+  'You still get fire alerts.': 'Makakatanggap ka pa rin ng fire alert.',
+  'After repeated prank reports, reporting was removed from your account. You may appeal below.':
+      'Dahil sa paulit-ulit na prank na report, tinanggal ang pag-report sa account mo. Puwede kang mag-apela sa ibaba.',
+  'Staff found another of your reports was a prank. A second staff member will check it; until then, reporting is paused.':
+      'Nakita ng staff na prank ulit ang isang report mo. Susuriin ito ng isa pang staff; hanggang doon, naka-pause ang pag-report.',
+  'Staff found that a report you sent was a prank.':
+      'Nakita ng staff na prank ang isang report na ipinadala mo.',
+  'Until {when}, staff check your reports before your neighbours are alerted.':
+      'Hanggang {when}, sinusuri muna ng staff ang mga report mo bago maalerto ang mga kapitbahay mo.',
+  'Nothing is stopping your reports.': 'Walang pumipigil sa mga report mo.',
+  'In effect': 'Umiiral',
+  'Removed': 'Tinanggal',
+  'removed': 'tinanggal',
+  'Waiting for a second staff check': 'Naghihintay ng pagsuri ng isa pang staff',
+  'Your appeal is waiting for an answer': 'Naghihintay ng sagot ang apela mo',
+  'Appeal not accepted': 'Hindi tinanggap ang apela',
+  'The strike stays.': 'Mananatili ang strike.',
+  'Appeal accepted': 'Tinanggap ang apela',
+  'The strike was removed.': 'Tinanggal ang strike.',
+  'Appeal this strike': 'Mag-apela sa strike na ito',
+  'Appeal sent. You will get the answer in RepLiT.':
+      'Naipadala ang apela. Makukuha mo ang sagot sa RepLiT.',
+  'How strikes work': 'Paano gumagana ang mga strike',
+  '1st strike: reporting paused for 24 hours':
+      'Unang strike: naka-pause ang pag-report nang 24 oras',
+  '2nd strike: paused for 7 days, then 30 days of staff checks':
+      'Ikalawang strike: naka-pause nang 7 araw, saka 30 araw na sinusuri muna ng staff',
+  '3rd strike: paused for 30 days, then 90 days of staff checks':
+      'Ikatlong strike: naka-pause nang 30 araw, saka 90 araw na sinusuri muna ng staff',
+  '4th strike: no reporting until an appeal is granted':
+      'Ikaapat na strike: walang pag-report hangga’t hindi tinatanggap ang apela',
+  'Only a report staff find was a prank counts, never an honest mistake. A strike ends 12 months after it is given.':
+      'Ang report lang na nakitang prank ng staff ang binibilang, hindi kailanman ang tapat na pagkakamali. Natatapos ang strike 12 buwan matapos itong ibigay.',
+  'Earlier strikes': 'Mga naunang strike',
+  'What a false alarm costs': 'Ang kapalit ng maling alarma',
+  'Before you report again': 'Bago ka mag-report ulit',
+  'An honest mistake never counts. In an emergency, call 911.':
+      'Hindi kailanman binibilang ang tapat na pagkakamali. Kung may emergency, tumawag sa 911.',
+  'A fire truck and its crew go to the wrong place, and a real fire waits for them.':
+      'Napupunta sa maling lugar ang trak ng bumbero at ang crew nito, at naghihintay sa kanila ang totoong sunog.',
+  'Your neighbours get an alert and worry for nothing.':
+      'Naaalerto ang mga kapitbahay mo at nag-aalala nang walang dahilan.',
+  'Giving a false or malicious fire alarm is against the Fire Code (RA 9514, Sec. 8(i)). BFP can fine up to ₱50,000.':
+      'Labag sa Fire Code (RA 9514, Sec. 8(i)) ang pagbibigay ng mali o sinadyang fire alarm. Puwedeng magmulta ang BFP nang hanggang ₱50,000.',
+  'Each prank report pauses your reporting for longer: 24 hours, then 7 days, then 30 days, then no more reporting.':
+      'Bawat prank na report, mas matagal ang pause sa pag-report mo: 24 oras, saka 7 araw, saka 30 araw, saka wala nang pag-report.',
+  'I understand': 'Naiintindihan ko',
+  'Say why this was not a prank, for example what you saw. Staff who did not give the strike decide, and you get the answer in RepLiT.':
+      'Sabihin kung bakit hindi ito prank, halimbawa kung ano ang nakita mo. Staff na hindi nagbigay ng strike ang magpapasya, at makukuha mo ang sagot sa RepLiT.',
+  'Your appeal': 'Ang apela mo',
+  'I saw smoke from my neighbour burning leaves.':
+      'Nakakita ako ng usok mula sa kapitbahay na nagsisiga ng dahon.',
+  'Send appeal': 'Ipadala ang apela',
+  'Could not send. Check your connection.':
+      'Hindi naipadala. Tingnan ang koneksiyon mo.',
+  // v1.12.52: a coordinator rejects a fire as a prank.
+  'Only “Prank or misuse” gives the reporter a strike. An honest mistake never does.':
+      '“Biro o maling paggamit” lang ang nagbibigay ng strike sa nag-report. Hindi kailanman ang tapat na pagkakamali.',
+  'The first resident who reported it gets a strike':
+      'Magkaka-strike ang unang residenteng nag-report nito',
+  'Their reporting pauses: 24 hours the first time, longer each time after. Neighbours who answered “Do you see it too?” are not affected, and 911 is never blocked.':
+      'Mapo-pause ang pag-report nila: 24 oras sa unang beses, mas matagal sa bawat kasunod. Hindi apektado ang mga kapitbahay na sumagot sa “Nakikita mo rin ba?”, at hindi kailanman hinaharangan ang 911.',
+  'What showed it was a prank? They read this':
+      'Ano ang nagpakitang prank ito? Mababasa nila ito',
+  'No fire, and the photo was from the internet':
+      'Walang sunog, at galing sa internet ang litrato',
+  'Serious case': 'Seryosong kaso',
+  'A truck went out, or a real household was targeted: at least the 3rd strike':
+      'May trak na lumabas, o may totoong bahay na pinuntirya: ikatlong strike man lang',
+  '{name} rejected as a prank. The reporter gets a strike.':
+      'Tinanggihan ang {name} bilang prank. Magkaka-strike ang nag-report.',
   'You can leave RepLiT. The download carries on, its progress is in your notifications, and RepLiT tells you when it is ready to install.':
       'Puwede mong iwan ang RepLiT. Tuloy ang download, nasa notifications mo ang progreso nito, at sasabihin ng RepLiT kapag handa na itong i-install.',
   // v1.12.49: confirm your email before using RepLiT.

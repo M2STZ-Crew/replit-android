@@ -544,14 +544,25 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
       reports = const [];
     }
     if (!mounted) return;
-    final reason = await showFrameSheet<String>(
+    final choice = await showFrameSheet<RejectChoice>(
       context,
       builder: (_) => RejectSheet(area: area, reports: reports),
     );
-    if (reason == null || !mounted) return;
+    if (choice == null || !mounted) return;
     await _act(
-      () => _api.rejectIncident(widget.areaId, reason),
-      t('{name} rejected. It has left the live feed.', {'name': area.name}),
+      () => _api.rejectIncident(
+        widget.areaId,
+        choice.reason,
+        prank: choice.prank,
+        serious: choice.serious,
+      ),
+      choice.prank
+          ? t('{name} rejected as a prank. The reporter gets a strike.', {
+              'name': area.name,
+            })
+          : t('{name} rejected. It has left the live feed.', {
+              'name': area.name,
+            }),
     );
   }
 

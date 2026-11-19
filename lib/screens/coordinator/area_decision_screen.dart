@@ -16,6 +16,7 @@ import '../../widgets/design.dart';
 import '../directions_screen.dart';
 import 'report_detail_screen.dart';
 import '../../widgets/loading.dart';
+import '../../widgets/no_emoji.dart';
 import '../../i18n/i18n.dart';
 
 /// An Area and the decision on it (06 · C04): where it is, how sure the
@@ -190,18 +191,29 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
   Future<void> _reject() async {
     final area = _area;
     if (area == null) return;
-    final reason = await showFrameSheet<String>(
+    final choice = await showFrameSheet<RejectChoice>(
       context,
       builder: (_) => RejectSheet(area: area, reports: _reports),
     );
-    if (reason == null || !mounted) return;
+    if (choice == null || !mounted) return;
     setState(() => _busy = true);
     final navigator = Navigator.of(context);
     try {
-      await _api.rejectIncident(widget.areaId, reason);
+      await _api.rejectIncident(
+        widget.areaId,
+        choice.reason,
+        prank: choice.prank,
+        serious: choice.serious,
+      );
       if (!mounted) return;
       _toast(
-        t('{name} rejected. It has left the live feed.', {'name': area.name}),
+        choice.prank
+            ? t('{name} rejected as a prank. The reporter gets a strike.', {
+                'name': area.name,
+              })
+            : t('{name} rejected. It has left the live feed.', {
+                'name': area.name,
+              }),
       );
       navigator.pop(true);
     } on ApiException catch (e) {
@@ -730,6 +742,26 @@ class GoSheetState extends State<GoSheet> {
   }
 }
 
+/// What the Reject sheet decided: why, and whether it was a prank (v1.12.52).
+class RejectChoice {
+  const RejectChoice({
+    required this.reason,
+    this.prank = false,
+    this.serious = false,
+  });
+
+  /// What the server keeps; for a prank, also what the resident reads.
+  final String reason;
+
+  /// "Prank or misuse": the first resident who reported it gets a strike
+  /// (backend v1.12.41). Every other reason is an honest mistake: none.
+  final bool prank;
+
+  /// A truck went out, or a real household was targeted: at least the 3rd
+  /// strike.
+  final bool serious;
+}
+
 /// C06 — Reject Area 2.1? Destructive and final, so it says what the Area
 /// is, what rejecting does, and asks why (the server keeps the reason).
 class RejectSheet extends StatefulWidget {
@@ -743,14 +775,44 @@ class RejectSheet extends StatefulWidget {
 }
 
 class _RejectSheetState extends State<RejectSheet> {
+  static const _prank = 'Prank or misuse';
   static const _reasons = [
     'False alarm — no fire found',
     'Duplicate of another Area',
     'Not an emergency',
-    'Prank or misuse',
+    _prank,
   ];
 
   String? _reason;
+  bool _serious = false;
+  final _found = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _found.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _found.dispose();
+    super.dispose();
+  }
+
+  bool get _isPrank => _reason == _prank;
+
+  /// A prank needs what staff found: the resident reads it.
+  bool get _ready =>
+      _reason != null && (!_isPrank || _found.text.trim().length >= 3);
+
+  RejectChoice _choice() {
+    if (!_isPrank) return RejectChoice(reason: _reason!);
+    return RejectChoice(
+      reason: '$_prank: ${_found.text.trim()}',
+      prank: true,
+      serious: _serious,
+    );
+  }
 
   String _describe() {
     final area = widget.area;
@@ -796,6 +858,14 @@ class _RejectSheetState extends State<RejectSheet> {
         ),
         const SizedBox(height: 16),
         SectionHeader(t('Why')),
+        const SizedBox(height: 4),
+        Text(
+          t(
+            'Only “Prank or misuse” gives the reporter a strike. An honest '
+            'mistake never does.',
+          ),
+          style: context.type.bodySm,
+        ),
         const SizedBox(height: 8),
         for (final r in _reasons)
           Padding(
@@ -806,13 +876,55 @@ class _RejectSheetState extends State<RejectSheet> {
               onTap: () => setState(() => _reason = r),
             ),
           ),
+        if (_isPrank) ...[
+          const SizedBox(height: 12),
+          InlineAlert(
+            tone: AlertTone.warning,
+            title: t('The first resident who reported it gets a strike'),
+            body: t(
+              'Their reporting pauses: 24 hours the first time, longer each '
+              'time after. Neighbours who answered “Do you see it too?” are '
+              'not affected, and 911 is never blocked.',
+            ),
+          ),
+          const SizedBox(height: 12),
+          LabeledField(
+            label: t('What showed it was a prank? They read this'),
+            builder: (focus) => TextField(
+              key: const ValueKey('prank-found'),
+              inputFormatters: const [NoEmojiFormatter()],
+              controller: _found,
+              focusNode: focus,
+              maxLength: 400,
+              minLines: 1,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              style: context.type.input,
+              decoration: InputDecoration(
+                hintText: t('No fire, and the photo was from the internet'),
+              ),
+            ),
+          ),
+          ListRow(
+            title: t('Serious case'),
+            subtitle: t(
+              'A truck went out, or a real household was targeted: at least '
+              'the 3rd strike',
+            ),
+            trailing: Switch(
+              value: _serious,
+              onChanged: (v) => setState(() => _serious = v),
+            ),
+            onTap: () => setState(() => _serious = !_serious),
+          ),
+        ],
         const SizedBox(height: 12),
         AppButton.danger(
           t('Reject {name}', {'name': area.name}),
           run: true,
-          onPressed: _reason == null
-              ? null
-              : () => Navigator.of(context).pop(_reason),
+          onPressed: _ready
+              ? () => Navigator.of(context).pop(_choice())
+              : null,
         ),
         const SizedBox(height: 10),
         AppButton.secondary(

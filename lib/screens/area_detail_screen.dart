@@ -14,7 +14,7 @@ import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
-import 'camera_capture_screen.dart';
+import '../widgets/report_gate.dart';
 import 'live_update_screen.dart';
 import '../widgets/fire_type_row.dart';
 import '../widgets/you_are_here.dart';
@@ -197,9 +197,8 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   void _addMyReport() {
     ReportTiming.instance.start('corroborate');
     SosLocation.instance.warmUp();
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const CameraCaptureScreen()));
+    // "Reporting paused" instead, when the phone knows it is (v1.12.52).
+    openReportCamera(context);
   }
 
   void _followMine() {

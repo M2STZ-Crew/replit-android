@@ -7,6 +7,40 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.52 — 19 November 2026 — Prank reports pause reporting, step by step
+
+Goes with backend v1.12.41. Comes after v1.12.51 (street names).
+
+- **Reporting paused after a prank report** (19 Nov: "a false alarm or prank
+  report can be temporarily cannot report and has a progressive penalty").
+  When staff find a report was a prank (never an honest mistake), its
+  reporter's reporting pauses: 24 hours, then 7 days, then 30 days, then no
+  reporting until an appeal is granted, counted over 12 months. The new
+  Reporting paused screen (`ReportingPausedScreen`) says until when and why,
+  keeps "Emergency now? Call 911" at the top with "You still get fire
+  alerts", explains how strikes work, and takes an appeal (500 characters, no
+  emoji) that someone other than whoever gave the strike decides.
+- **The SOS button stays instant.** The phone keeps the last answer
+  (`ReportingStanding`, refreshed when the home screen opens), so the camera
+  opens at once unless reporting is already known to be paused; then Reporting
+  paused opens instead (`openReportCamera`: the SOS hold, "Do you see it
+  too?", and adding a report to a fire). A paused report the server refuses
+  (`reporting_paused`) opens the same screen, and the offline queue drops it
+  with the refusal in the app's words.
+- **What a false alarm costs**, once per strike: the truck sent to the wrong
+  place, the neighbours alarmed, the Fire Code (RA 9514 §8(i), fines up to
+  ₱50,000) and the growing pause. "I understand" records it.
+- A strike's alert, its second check and an appeal's answer open Reporting
+  (`report_strike`).
+- **Coordinators: Reject as a prank.** On the Reject sheet, "Prank or misuse"
+  now asks what showed it was a prank (the resident reads it) and whether it
+  was a serious case (a truck went out, a real household targeted: at least
+  the 3rd strike), and says the first resident who reported it gets a strike,
+  neighbours are not affected and 911 is never blocked. Every other reason is
+  an honest mistake and gives none.
+
+---
+
 ## v1.12.50 — 18 November 2026 — No emoji in any text box; all of Metro Manila on the map
 
 Goes with backend v1.12.39. These were pushed to v1.12.49's branch after it
