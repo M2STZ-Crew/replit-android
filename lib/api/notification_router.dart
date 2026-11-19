@@ -6,6 +6,7 @@ import '../screens/area_detail_screen.dart';
 import '../screens/bfp/bfp_alarm_requests_screen.dart';
 import '../screens/live_update_screen.dart';
 import '../screens/neighbour_alert_screen.dart';
+import '../screens/reporting_paused_screen.dart';
 import '../screens/responder/responder_incident_screen.dart';
 import '../screens/subadmin/coordinator_nav.dart';
 import '../screens/verification_screen.dart';
@@ -36,6 +37,10 @@ enum NotificationTarget {
 
   /// Where a resident's verification stands, and why an ID came back.
   verification,
+
+  /// A prank-report strike, its second check or its appeal's answer
+  /// (backend v1.12.41): Reporting paused, or that they can report again.
+  reporting,
 
   /// Check for updates: "New Update!", a new version is out (backend
   /// v1.12.29). For anyone, signed in or not.
@@ -103,6 +108,9 @@ NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
     // The hub's answer about a National ID.
     case 'national_id_reviewed':
       return NotificationTarget.verification;
+    // A prank-report strike and what came of it (backend v1.12.41).
+    case 'report_strike':
+      return NotificationTarget.reporting;
     // A new version of the app.
     case 'app_update':
       return NotificationTarget.appUpdate;
@@ -118,6 +126,7 @@ bool canOpen(String? type, Map<String, dynamic>? data) =>
     data?['area_id'] is String ||
     type == 'alarm_request' ||
     type == 'national_id_reviewed' ||
+    type == 'report_strike' ||
     type == 'app_update';
 
 /// Opens what a notification is about.
@@ -155,7 +164,8 @@ class NotificationRouter {
       if (target == NotificationTarget.none) return false;
       if (areaId == null &&
           target != NotificationTarget.alarmRequests &&
-          target != NotificationTarget.verification) {
+          target != NotificationTarget.verification &&
+          target != NotificationTarget.reporting) {
         return false;
       }
       switch (target) {
@@ -200,6 +210,12 @@ class NotificationRouter {
           nav.push(
             MaterialPageRoute<void>(
               builder: (_) => VerificationScreen(api: _api),
+            ),
+          );
+        case NotificationTarget.reporting:
+          nav.push(
+            MaterialPageRoute<void>(
+              builder: (_) => ReportingPausedScreen(api: _api),
             ),
           );
         case NotificationTarget.appUpdate:

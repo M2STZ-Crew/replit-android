@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../api/api_client.dart';
 import '../api/push_service.dart';
 import '../api/report_queue.dart';
 import '../diagnostics/report_timing.dart';
@@ -12,8 +13,10 @@ import '../tutorial/lit_lessons.dart';
 import '../tutorial/practice.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
+import '../widgets/report_gate.dart';
 import 'camera_capture_screen.dart';
 import 'report_status_screen.dart';
+import 'reporting_paused_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
@@ -86,7 +89,11 @@ class _HomeScreenState extends State<HomeScreen>
     final report = await ActiveReportStore.recover();
     if (mounted && report != null) {
       ReportStatusScreen.redirectIfReporting(context);
+      return;
     }
+    // Whether reporting is paused after prank reports (v1.12.52), kept for
+    // the SOS button; and the lesson once, when a new strike's is due.
+    if (mounted) await showStrikeLessonIfDue(context, ApiClient());
   }
 
   @override
@@ -161,9 +168,14 @@ class _HomeScreenState extends State<HomeScreen>
     HapticFeedback.heavyImpact();
     if (!_practice) ReportTiming.instance.mark('hold_complete');
     _hold.reset();
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const CameraCaptureScreen()));
+    if (_practice) {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const CameraCaptureScreen()));
+      return;
+    }
+    // "Reporting paused" instead, when the phone knows it is (v1.12.52).
+    await openReportCamera(context);
   }
 
   @override
