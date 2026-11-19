@@ -81,6 +81,8 @@ void main() {
       'keep.xml',
       'sound_barangay.mp3',
       'sound_citizen.mp3',
+      'sound_far_en.mp3',
+      'sound_far_tl.mp3',
       'sound_fire.mp3',
       'sound_fire_out.mp3',
       'sound_id_rejected.mp3',

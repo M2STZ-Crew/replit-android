@@ -21,6 +21,7 @@ import 'camera_capture_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/loading.dart';
+import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
 
@@ -356,9 +357,9 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
   /// chip on the map, which the light ground left dark on dark.
   List<Widget> _whereLine() {
     final away = _metresAway;
-    final area = (_area?['designation'] as String?)?.trim();
+    final area = fireName(_area?['designation'] as String?);
     final parts = [
-      if (area != null && area.isNotEmpty) area.toUpperCase(),
+      if (area.isNotEmpty) area.toUpperCase(),
       if (away != null)
         t('{distance} FROM YOU', {
           'distance': away < 1000

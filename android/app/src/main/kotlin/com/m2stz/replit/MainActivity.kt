@@ -421,6 +421,23 @@ class MainActivity : FlutterActivity() {
                     urgent = true
                 ),
 
+                // Residents: a fire verified farther away (v1.12.51: "create a
+                // placeholder for voice for far incidents (outside 100m). and
+                // remain the sound of near incident"), in their language. The
+                // placeholders are replaced under the same file names.
+                channel(
+                    "citizen_far_en_v1",
+                    "Fires verified (English)",
+                    "A fire responders verified, anywhere in the city.",
+                    R.raw.sound_far_en
+                ),
+                channel(
+                    "citizen_far_tl_v1",
+                    "Fires verified (Tagalog)",
+                    "A fire responders verified, anywhere in the city.",
+                    R.raw.sound_far_tl
+                ),
+
                 // Residents: the stages of their report.
                 channel("citizen_verified_v4", "Report acknowledged", stage, R.raw.sound_verified),
                 channel("citizen_on_route_v3", "Responders on route", stage, R.raw.sound_on_route),

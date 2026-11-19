@@ -7,6 +7,35 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.51 — 19 November 2026 — A fire is called by its street; a far fire has its own voice
+
+Goes with backend v1.12.40.
+
+- **A fire is called by its street, never "Area 3"** (18 Nov: "instead of
+  area, it will be called 'Near [street]' or the street itself because 'Area
+  #1' is not appropriate or overwhelming to citizens and to all"; answered
+  "Corner, else Near", and the number "Nowhere on screen"). The server names
+  each fire after the streets around it: "Taft Avenue corner Gil Puyat
+  Avenue" where two streets meet, else "Near F. Victor Street", with "(2)"
+  for a second live fire of the same name. Every screen shows that name, for
+  residents and staff alike; in Tagalog, "Malapit sa F. Victor Street", and a
+  corner reads the same in both (`lib/i18n/fire_names.dart`). The coordinator
+  screens' own "Area 1.2" went with it, and "Area" as a word became
+  "incident" or "fire" (the map layer is Incidents; "Route to the fire").
+  Your report's step says "New incident: Near F. Victor Street" or "Matched
+  to the fire near F. Victor Street".
+- **A far fire has its own voice** (18 Nov: "create a placeholder for voice
+  for far incidents (outside 100m). and remain the sound of near incident").
+  "Fire verified", which every resident gets once responders verify a fire,
+  plays a voice of its own in the reader's language
+  (`res/raw/sound_far_en.mp3`, `sound_far_tl.mp3`, on two new channels,
+  "Fires verified (English)" and "(Tagalog)"). They are placeholders, read by
+  the LIT voice; the team's own recordings replace them under the same file
+  names, in `res/raw/` and `assets/sounds/` alike. A fire within 100 m still
+  asks "Do you see it too?" in the citizen recording.
+
+---
+
 ## v1.12.50 — 18 November 2026 — No emoji in any text box; all of Metro Manila on the map
 
 Goes with backend v1.12.39. These were pushed to v1.12.49's branch after it

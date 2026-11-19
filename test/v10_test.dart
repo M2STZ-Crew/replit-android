@@ -360,10 +360,10 @@ void main() {
 
     Future<void> file(WidgetTester tester) async {
       expect(find.textContaining('Still needed'), findsNothing);
-      await tester.tap(find.text('SUBMIT AND CLOSE AREA'));
+      await tester.tap(find.text('SUBMIT AND CLOSE THE INCIDENT'));
       await tester.pumpAndSettle();
       // The confirm sheet's own button, over the action bar's.
-      await tester.tap(find.text('SUBMIT AND CLOSE AREA').last);
+      await tester.tap(find.text('SUBMIT AND CLOSE THE INCIDENT').last);
       // 06 · C14 follows, its narrative spinner turning: pump, not settle.
       for (var i = 0; i < 10; i++) {
         await tester.pump(const Duration(milliseconds: 100));

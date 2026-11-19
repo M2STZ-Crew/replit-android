@@ -53,7 +53,7 @@ void main() {
   }) => {
     'id': id,
     'area_id': 'a3',
-    'area_designation': '3.1',
+    'area_designation': 'Taft Avenue corner Gil Puyat Avenue',
     'area_status': 'en_route',
     'area_alarm_level': areaLevel,
     'area_centroid_lat': 14.5378,
@@ -99,7 +99,7 @@ void main() {
     conflict = null;
     incident = {
       'id': 'a3',
-      'designation': '3.1',
+      'designation': 'Taft Avenue corner Gil Puyat Avenue',
       'status': 'en_route',
       'alarm_level': 'first_alarm',
       'centroid_lat': 14.5378,
@@ -195,7 +195,7 @@ void main() {
       expect(find.bySemanticsLabel('2 Waiting'), findsOneWidget);
       expect(find.bySemanticsLabel('0 Answered'), findsOneWidget);
       expect(
-        find.text('Area 3.1 · F. Victor Street, Barangay 76, Pasay City'),
+        find.text('Taft Avenue corner Gil Puyat Avenue · F. Victor Street, Barangay 76, Pasay City'),
         findsNWidgets(2),
       );
       expect(find.text('En route · now at 1st alarm'), findsNWidgets(2));
@@ -242,7 +242,7 @@ void main() {
       await tester.tap(find.text('SET 2ND ALARM').last);
       await settle(tester);
       expect(posted(), ['/alarm-requests/q1/execute']);
-      expect(find.text('Area 3.1 is now at 2nd alarm.'), findsOneWidget);
+      expect(find.text('Taft Avenue corner Gil Puyat Avenue is now at 2nd alarm.'), findsOneWidget);
       await done(tester);
     });
 
@@ -327,7 +327,7 @@ void main() {
     testWidgets('the Queue tab shows BFP what waits on it', (tester) async {
       requests = [request('q1')];
       await pump(tester, CoordinatorShell(me: bfp, api: api()));
-      expect(find.text('Area 3.1 asks for 2nd alarm'), findsOneWidget);
+      expect(find.text('Taft Avenue corner Gil Puyat Avenue asks for 2nd alarm'), findsOneWidget);
       expect(
         find.textContaining('R. Alonzo · Hercules Fire & Rescue'),
         findsOneWidget,

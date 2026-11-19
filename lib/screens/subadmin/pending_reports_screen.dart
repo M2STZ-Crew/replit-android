@@ -7,6 +7,7 @@ import '../../widgets/staff_shell.dart';
 import 'post_incident_report_screen.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/loading.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 
 /// The "pending report" tray (Master Context v10 §10.2): incidents whose fire
@@ -189,8 +190,10 @@ class _PendingReportsScreenState extends State<PendingReportsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        ((inc['designation'] as String?) ?? t('Incident'))
-                            .toUpperCase(),
+                        fireNameOr(
+                          inc['designation'] as String?,
+                          t('Incident'),
+                        ).toUpperCase(),
                         style: context.type.cardTitle,
                       ),
                       const SizedBox(height: 6),

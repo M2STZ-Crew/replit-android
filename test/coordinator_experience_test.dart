@@ -301,7 +301,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('ACCEPT'), findsOneWidget);
-      expect(find.text('REJECT THIS AREA'), findsOneWidget);
+      expect(find.text('REJECT THIS INCIDENT'), findsOneWidget);
       await done(tester);
     });
 
@@ -357,7 +357,7 @@ void main() {
 
     testWidgets('Reject waits for a reason, then sends it', (tester) async {
       await openArea(tester, 'a2');
-      await tester.tap(find.text('REJECT THIS AREA'));
+      await tester.tap(find.text('REJECT THIS INCIDENT'));
       await settle(tester);
       expect(find.text('Reject Area 2.1?'), findsOneWidget);
       await tester.tap(find.text('REJECT AREA 2.1'));
@@ -392,8 +392,8 @@ void main() {
       tester,
     ) async {
       await openLive(tester);
-      await scrollSheetTo(tester, find.text('Reject this Area'));
-      await tester.tap(find.text('Reject this Area'));
+      await scrollSheetTo(tester, find.text('Reject this incident'));
+      await tester.tap(find.text('Reject this incident'));
       await settle(tester);
       expect(find.text('Reject Area 3.1?'), findsOneWidget);
       expect(find.byType(AreaDecisionScreen), findsNothing);
@@ -408,8 +408,8 @@ void main() {
 
     testWidgets('Area details opens the Area', (tester) async {
       await openLive(tester);
-      await scrollSheetTo(tester, find.text('Area details'));
-      await tester.tap(find.text('Area details'));
+      await scrollSheetTo(tester, find.text('Incident details'));
+      await tester.tap(find.text('Incident details'));
       await settle(tester);
       expect(find.byType(AreaDecisionScreen), findsOneWidget);
       expect(find.text('Medium — 0.46'), findsOneWidget);
@@ -528,13 +528,13 @@ void main() {
       expect(find.text('PNP PASAY'), findsOneWidget);
       expect(find.text('DECIDE'), findsNWidgets(2));
       await tester.dragUntilVisible(
-        find.textContaining('These Areas asked for Police'),
+        find.textContaining('These incidents asked for Police'),
         find.byType(ListView).first,
         const Offset(0, -200),
       );
       expect(
         find.text(
-          'These Areas asked for Police. Accepting acknowledges them for PNP '
+          'These incidents asked for Police. Accepting acknowledges them for PNP '
           'Pasay. Only a Fire Volunteer or BFP Coordinator can reject.',
         ),
         findsOneWidget,
@@ -551,7 +551,7 @@ void main() {
       );
       posted.clear();
       expect(find.text('ACCEPT'), findsOneWidget);
-      expect(find.text('REJECT THIS AREA'), findsNothing);
+      expect(find.text('REJECT THIS INCIDENT'), findsNothing);
       await tester.tap(find.text('ACCEPT'));
       await settle(tester);
       expect(
@@ -575,7 +575,7 @@ void main() {
       );
       expect(find.text('I AM GOING'), findsNothing);
       expect(find.text('MARK FIRE OUT'), findsNothing);
-      expect(find.text('Reject this Area'), findsNothing);
+      expect(find.text('Reject this incident'), findsNothing);
       await tester.dragUntilVisible(
         find.text('ROUTE TO THE FIRE'),
         find.byType(ListView).last,
@@ -583,11 +583,11 @@ void main() {
       );
       expect(find.text('ROUTE TO THE FIRE'), findsOneWidget);
       await tester.dragUntilVisible(
-        find.textContaining('You follow this Area here'),
+        find.textContaining('You follow this incident here'),
         find.byType(ListView).last,
         const Offset(0, -200),
       );
-      expect(find.textContaining('You follow this Area here'), findsOneWidget);
+      expect(find.textContaining('You follow this incident here'), findsOneWidget);
       await done(tester);
     });
 
@@ -606,7 +606,7 @@ void main() {
         findsNothing,
         reason: 'going stays theirs',
       );
-      expect(find.text('REJECT THIS AREA'), findsNothing);
+      expect(find.text('REJECT THIS INCIDENT'), findsNothing);
       await done(tester);
     });
 
@@ -749,7 +749,7 @@ void main() {
       expect(find.text('REPORT FILED'), findsOneWidget);
       expect(find.text('AREA 1.2 · CLOSED'), findsOneWidget);
       expect(find.bySemanticsLabel(RegExp('^Report saved, done')), findsOne);
-      expect(find.bySemanticsLabel(RegExp('^Area closed, done')), findsOne);
+      expect(find.bySemanticsLabel(RegExp('^Incident closed, done')), findsOne);
       expect(
         find.bySemanticsLabel(RegExp('^Formal narrative, under way')),
         findsOne,

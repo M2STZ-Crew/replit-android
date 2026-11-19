@@ -112,7 +112,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     } catch (_) {
       if (mounted && _area == null) {
         setState(
-          () => _error = t('Could not load this Area. Check your signal.'),
+          () => _error = t('Could not load this incident. Check your signal.'),
         );
       }
     }
@@ -262,7 +262,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
               ? Column(
                   children: [
                     DetailHeader(
-                      title: t('Area'),
+                      title: t('Incident'),
                       onBack: () => Navigator.of(context).pop(_changed),
                     ),
                     Expanded(
@@ -379,8 +379,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
               : t('{name} was rejected', {'name': area.name}),
           body: area.status == 'merged'
               ? t(
-                  'Its reports joined a neighbouring Area. It has left the live '
-                  'feed.',
+                  'Its reports joined a neighbouring incident. It has left the live feed.',
                 )
               : t('Reason: {value}. It has left the live feed for everyone.', {
                   'value':
@@ -426,7 +425,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
             ),
             if (_powers.rejects)
               AppButton.secondary(
-                t('Reject this area'),
+                t('Reject this incident'),
                 onPressed: _busy ? null : _reject,
               ),
           ],
@@ -468,7 +467,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
                     ),
             if (_powers.rejects)
               AppButton.secondary(
-                t('Reject this area'),
+                t('Reject this incident'),
                 onPressed: _busy ? null : _reject,
               ),
           ],
@@ -661,7 +660,7 @@ class GoSheetState extends State<GoSheet> {
                   'reporter and shares your location until you arrive.',
                 )
               : t(
-                  'Accepting verifies the Area. Every agency the reporter asked for{value} sees it as verified.',
+                  'Accepting verifies the incident. Every agency the reporter asked for{value} sees it as verified.',
                   {'value': asked.isEmpty ? '' : ' — $asked —'},
                 ),
         ),
@@ -770,8 +769,7 @@ class _RejectSheetState extends State<RejectSheet> {
         'bandWord': area.bandWord,
       }),
       t(
-        'A rejected Area leaves the live feed for everyone and cannot be '
-        'reopened or versioned.',
+        'A rejected incident leaves the live feed for everyone and cannot be reopened or versioned.',
       ),
     ].join(' ');
   }

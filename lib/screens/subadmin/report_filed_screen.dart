@@ -9,6 +9,7 @@ import '../../theme.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../coordinator/coordinator_shell.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 
 /// What the AI summary of an Area is doing, as GET /ai-summaries says.
@@ -113,8 +114,7 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
   }
 
   String get _areaName {
-    final d = _designation ?? t('Incident');
-    return d.toLowerCase().startsWith('area') ? d : t('Area {d}', {'d': d});
+    return fireNameOr(_designation, t('Incident'));
   }
 
   void _backToQueue() {
@@ -172,7 +172,7 @@ class _ReportFiledScreenState extends State<ReportFiledScreen> {
                       state: closed
                           ? ProgressState.done
                           : ProgressState.current,
-                      title: t('Area closed'),
+                      title: t('Incident closed'),
                       detail: closed
                           ? t('It has left the live feed for every role')
                           : t('Closing it now'),

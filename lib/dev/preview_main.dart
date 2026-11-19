@@ -53,7 +53,7 @@ class _GalleryState extends State<_Gallery> {
     final picked = await showFrameSheet<FireClassification>(
       context,
       builder: (_) => const FireTypeSheet(
-        areaLabel: 'Example Area 1.2',
+        areaLabel: 'Near F. Victor Street',
         arrivedAt: '9:49 PM',
       ),
     );
@@ -65,7 +65,7 @@ class _GalleryState extends State<_Gallery> {
       context,
       builder: (_) => RequestSheet(
         type: type,
-        eyebrow: 'Example Area 1.2',
+        eyebrow: 'Near F. Victor Street',
         recipient: 'Example Fire Volunteers Admin',
         onSend: (request) async => _said('Preview: ${type.label} not sent'),
       ),
@@ -138,7 +138,7 @@ class _GalleryState extends State<_Gallery> {
             ),
             gap,
             const SafetyRollCallStrip(
-              title: 'Safety roll call · Example Area 1.2',
+              title: 'Safety roll call · Near F. Victor Street',
               rollCall: SafetyRollCall(safe: 12, needHelp: 1, notInArea: 4),
               updated: 'Updated just now',
             ),

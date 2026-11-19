@@ -28,6 +28,7 @@ import '../widgets/skeleton.dart';
 import '../widgets/responsive_frame.dart';
 import '../location/last_place.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../updates/update_banner.dart';
 import '../widgets/map_layer_gate.dart';
@@ -874,7 +875,7 @@ class _MapScreenState extends State<MapScreen> {
             // live one pulses (04 · Map marker, pass 3).
             child: MapMarker(
               kind: MapMarkerKind.incident,
-              label: (a['designation'] as String?) ?? t('Incident area'),
+              label: fireNameOr(a['designation'] as String?, t('Incident')),
               live: _isLive(a['status'] as String?),
               onTap: () => _openArea(a),
             ),
@@ -1313,7 +1314,7 @@ class _MapScreenState extends State<MapScreen> {
     return _SheetRow(
       tint: context.pal.accent,
       asset: Art.incident,
-      title: (a['designation'] as String?) ?? t('Incident area'),
+      title: fireNameOr(a['designation'] as String?, t('Incident')),
       subtitle:
           street ?? t('{distance} away', {'distance': _formatDistance(metres)}),
       signal: _AreaSignal(

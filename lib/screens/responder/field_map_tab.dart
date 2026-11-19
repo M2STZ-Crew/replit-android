@@ -76,7 +76,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
 
   /// The chip's word: short, as over a map it must be.
   static String _chipLabel(OpsLayer layer) => switch (layer.key) {
-    'incidents' => t('Areas'),
+    'incidents' => t('Fires'),
     'hydrants' => t('Hydrants'),
     'evac' => t('Shelters'),
     'water' => t('Water'),

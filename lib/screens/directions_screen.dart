@@ -1724,8 +1724,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                 const SizedBox(height: 4),
                 Text(
                   t(
-                    'The Area pin and your position are still live. Try again '
-                    'or drive there by sight.',
+                    'The fire\'s pin and your position are still live. Try again or drive there by sight.',
                   ),
                   style: context.type.detail.copyWith(color: pal.textSoft),
                 ),

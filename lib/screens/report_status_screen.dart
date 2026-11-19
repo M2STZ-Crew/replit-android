@@ -15,6 +15,7 @@ import '../widgets/app_nav_bar.dart';
 import '../widgets/design.dart';
 import 'live_update_screen.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 
 /// "09 Submitting" from the REPLIT-OVERHAUL Figma — "Getting you help" — and
@@ -118,7 +119,7 @@ class ReportStatusScreen extends StatefulWidget {
     required double lng,
   }) => MaterialPageRoute(
     builder: (_) => ReportStatusScreen(
-      designation: t('Practice area'),
+      designation: t('Near you (practice)'),
       lat: lat,
       lng: lng,
       submittedAt: DateTime.now(),
@@ -411,8 +412,8 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
     final matchLine = reports == null
         ? t('Grouped with reports within 50 m')
         : reports > 1
-        ? t('Within 50 m of an active area')
-        : t('A new area — the first report here');
+        ? t('Within 50 m of an active incident')
+        : t('A new incident — the first report here');
 
     final (String phase, double fraction) = switch (_stage) {
       'fire_out' => (t('Fire out'), 1.0),
@@ -523,8 +524,12 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                     _StepRow(
                       state: _Step.done,
                       title: reports == 1
-                          ? '$designation opened'
-                          : 'Matched to $designation',
+                          ? t('New incident: {name}', {
+                              'name': fireName(designation),
+                            })
+                          : t('Matched to {fire}', {
+                              'fire': fireAt(designation),
+                            }),
                       line: matchLine,
                       roomy: roomy,
                     ),

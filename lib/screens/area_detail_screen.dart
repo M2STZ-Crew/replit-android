@@ -19,6 +19,7 @@ import 'live_update_screen.dart';
 import '../widgets/fire_type_row.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/loading.dart';
+import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
 
@@ -190,7 +191,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     'arrived' => t('Responders are on scene.'),
     'fire_out' => t('Fire out. Responders have finished here.'),
     'rejected' => t('Closed — it could not be confirmed as an incident.'),
-    'merged' => t('Joined to a neighbouring area.'),
+    'merged' => t('Joined to a neighbouring incident.'),
     _ => '',
   };
 
@@ -223,8 +224,10 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   /// The screen, filling a tablet (v1.12.43: maps full, the rest
   /// centred).
   Widget _fullScreen(BuildContext context) {
-    final designation =
-        (_area?['designation'] as String?) ?? widget.designation ?? 'Area';
+    final designation = fireNameOr(
+      (_area?['designation'] as String?) ?? widget.designation,
+      t('Incident'),
+    );
     return Scaffold(
       backgroundColor: context.pal.background,
       body: SafeArea(
@@ -262,7 +265,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     final tone = residentTone(_status, context.pal);
     return [
       Text(
-        (_street ?? t('Incident area')).toUpperCase(),
+        (_street ?? t('Incident')).toUpperCase(),
         style: context.type.heading1,
       ),
       const SizedBox(height: 6),
@@ -476,8 +479,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       // would open a new incident where the reporter stands — not this one.
       return Text(
         t(
-          "You're {distance} away. A report joins this area only from "
-          'within 50 m — if you can see something where you are, use SOS.',
+          'You\'re {distance} away. A report joins this fire only from within 50 m — if you can see something where you are, use SOS.',
           {'distance': _distance(away)},
         ),
         textAlign: TextAlign.center,
