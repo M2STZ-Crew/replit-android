@@ -7,6 +7,20 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.54 — 20 November 2026 — The far-fire alert in the team's own voice
+
+App only; the backend stays at v1.12.42.
+
+- **"Fire verified" plays the team's own recordings** (19 Nov: "I have these
+  mp3 file for the english and tagalog sound of far notification"). They
+  replace 1.12.53's placeholders under the same names, in `res/raw/` and
+  `assets/sounds/`: `sound_far_en.mp3` (English) and `sound_far_tl.mp3`
+  (Tagalog). The channels name their files, so a phone that updates plays
+  the new recordings on the same channels; no channel changed. A fire within
+  100 m still asks "Do you see it too?" in the citizen recording.
+
+---
+
 ## v1.12.53 — 19 November 2026 — A fire is called by its street; a far fire has its own voice
 
 Goes with backend v1.12.42.
