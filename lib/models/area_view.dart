@@ -1,4 +1,5 @@
 import 'package:latlong2/latlong.dart';
+import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import 'field_ops.dart';
 
@@ -11,13 +12,13 @@ class AreaView {
 
   String get id => raw['id'] as String;
 
-  /// "1.2" — the server's designation, which is the Area and its version.
+  /// The fire's name as the server sends it: "Near F. Victor Street",
+  /// "Taft Avenue corner Gil Puyat Avenue" (v1.12.53; it was "Area 1.2").
   String get designation => (raw['designation'] as String?) ?? '';
 
-  /// "Area 1.2". Older rows already carry the word.
-  String get name => designation.toLowerCase().startsWith('area')
-      ? designation
-      : 'Area $designation';
+  /// The fire's name in the app's language ("Malapit sa ..." in
+  /// Tagalog), or "Incident" while it has none. Never the Area number.
+  String get name => fireNameOr(designation, t('Incident'));
 
   String get status => (raw['status'] as String?) ?? 'reported';
 

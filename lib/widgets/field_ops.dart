@@ -404,7 +404,7 @@ class _SafetyResult extends StatelessWidget {
         null,
         AppIcons.locationOff,
         t('You’re not in the area'),
-        t('No more alerts or roll call for this Area.'),
+        t('No more alerts or roll call for this incident.'),
       ),
     };
     return Semantics(
@@ -617,7 +617,7 @@ class SafetyQuestion extends StatelessWidget {
     (
       SafetyAnswer.notInArea,
       'Not in the area',
-      'No more alerts for this Area',
+      'No more alerts for this incident',
       AppIcons.locationOff,
     ),
   ];
@@ -1172,7 +1172,7 @@ class CiarStatusCard extends StatelessWidget {
       CiarState.ready => (
         t('CIAR attached'),
         t(
-          'Locked {value}. Every agency on this Area can read it. It is never edited — corrections go on record.',
+          'Locked {value}. Every agency on this incident can read it. It is never edited — corrections go on record.',
           {'value': lockedAt ?? ''},
         ),
       ),

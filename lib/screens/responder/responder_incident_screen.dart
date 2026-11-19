@@ -208,7 +208,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         if (_incident == null) {
           _error = e is ApiException
               ? e.message
-              : t('Could not load this Area. Check your signal.');
+              : t('Could not load this incident. Check your signal.');
         }
       });
     }
@@ -337,8 +337,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             const SizedBox(height: 16),
             InlineAlert(
               body: t(
-                'This Area is still Reported. Going now verifies it for '
-                'every agency — Coordinators can still reject it later.',
+                'This incident is still Reported. Going now verifies it for every agency — Coordinators can still reject it later.',
               ),
             ),
           ],
@@ -571,14 +570,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _header(title: t('Area')),
+          _header(title: t('Incident')),
           Expanded(
             child: _loading
                 ? const LoadingView()
                 : EmptyState(
                     icon: AppIcons.cloudOff,
                     tone: context.pal.live,
-                    title: t('Could not load this Area'),
+                    title: t('Could not load this incident'),
                     body: _error ?? t('Check your signal and try again.'),
                     action: AppButton.secondary(
                       t('Try again'),
@@ -705,7 +704,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             gap,
             ListRow(
               leading: const IconPlate(AppIcons.directions),
-              title: t('Route to the Area'),
+              title: t('Route to the fire'),
               subtitle: t('Directions only — going is I am going'),
               chevron: true,
               onTap: _navigate,
@@ -725,7 +724,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
               body: switch (area.status) {
                 'rejected' => t('A coordinator rejected it. Nobody goes.'),
                 'merged' => t(
-                  'Its reports joined a neighbouring Area. Go from that one.',
+                  'Its reports joined a neighbouring incident. Go from that one.',
                 ),
                 _ => t(
                   'The fire is out. Nothing is asked of a unit that did not '
@@ -860,7 +859,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       return InlineAlert(
         tone: AlertTone.success,
         title: t('Location sharing stopped'),
-        body: t('Nothing more is asked of you for this Area.'),
+        body: t('Nothing more is asked of you for this incident.'),
       );
     }
     if (!_streaming) {
@@ -900,8 +899,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             ? t('Arrived')
             : t('Arrived {clockText}', {'clockText': clockText(arrived)}),
         detail: arrived == null
-            ? t('Marked on its own when you reach the Area, or by you')
-            : t('The Area was marked arrived'),
+            ? t('Marked on its own when you reach the fire, or by you')
+            : t('The incident was marked arrived'),
       ),
       ProgressStep(
         state: out == null ? ProgressState.pending : ProgressState.done,
@@ -987,14 +986,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           AppIcons.waterDrop,
           pal.water,
           t('Need water'),
-          t('More water supply to this Area'),
+          t('More water supply to this fire'),
           () => _pressCode(t('FC-6'), t('Need water')),
         ),
       code(
         AppIcons.groupAdd,
         pal.warn,
         t('Need assistance'),
-        t('Backup responders to this Area'),
+        t('Backup responders to this fire'),
         () => _pressCode(t('FC-7'), t('Need assistance')),
       ),
       if (mayRequestAlarm(widget.agency))

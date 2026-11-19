@@ -1,3 +1,5 @@
+import '../i18n/fire_names.dart';
+import '../i18n/i18n.dart';
 import 'area_view.dart';
 
 /// The BFP alarm ladder, lowest first: the server's `alarm_level` enum
@@ -49,12 +51,10 @@ class AlarmRequest {
   String get id => raw['id'] as String;
   String get areaId => raw['area_id'] as String;
 
-  /// "Area 1.2".
-  String get areaName {
-    final d = ((raw['area_designation'] as String?) ?? '').trim();
-    if (d.isEmpty) return 'The Area';
-    return d.toLowerCase().startsWith('area') ? d : 'Area $d';
-  }
+  /// The fire's name: "Near F. Victor Street" (v1.12.53; it was "Area
+  /// 1.2"), or "The fire".
+  String get areaName =>
+      fireNameOr(raw['area_designation'] as String?, t('The fire'));
 
   String? get areaStatus => raw['area_status'] as String?;
   String? get areaLevel => raw['area_alarm_level'] as String?;

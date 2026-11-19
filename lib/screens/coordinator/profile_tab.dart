@@ -186,7 +186,7 @@ class _ProfileTabState extends State<ProfileTab> {
                             'can reject.',
                           )
                         : t(
-                            'Accepting acknowledges the Areas that ask for {asked}. Only Fire Volunteer and BFP can reject.',
+                            'Accepting acknowledges the incidents that ask for {asked}. Only Fire Volunteer and BFP can reject.',
                             {'asked': asked},
                           ),
                     chevron: true,
@@ -199,7 +199,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     leading: const IconPlate(AppIcons.volumeUp),
                     title: t('Fire alert sound'),
                     subtitle: t(
-                      'Rings in the app when a new Area asks for {asked}. With the app closed, Android\'s {asked2} alerts channel rings it.',
+                      'Rings in the app when a new incident asks for {asked}. With the app closed, Android\'s {asked2} alerts channel rings it.',
                       {'asked': asked, 'asked2': asked},
                     ),
                     trailing: Switch(
@@ -338,22 +338,22 @@ class PermissionsScreen extends StatelessWidget {
         }),
         can: [
           (
-            t('Accept an Area'),
+            t('Accept an incident'),
             t(
               'Acknowledges it for your organization when it asks for your '
               'agency',
             ),
           ),
-          (t('Merge or keep separate'), t('When two Areas overlap')),
+          (t('Merge or keep separate'), t('When two incidents overlap')),
           (
-            t('Follow an Area on LIVE and the map'),
+            t('Follow an incident on LIVE and the map'),
             t('Its units and its alarm level'),
           ),
-          (t('Route to an Area'), t('Directions, once it has been accepted')),
+          (t('Route to an incident'), t('Directions, once it has been accepted')),
           (t("Make your responders' accounts"), t('Under Profile, Responders')),
         ],
         cannot: [
-          (t('Reject an Area'), t('Fire Volunteer and BFP coordinators')),
+          (t('Reject an incident'), t('Fire Volunteer and BFP coordinators')),
           (t('Respond or mark fire out'), t('Fire Volunteer and BFP')),
           (t('Press fire codes'), t('Fire Volunteer and BFP coordinators')),
           (t('File the post-incident report'), t('The responding fire team')),
@@ -363,14 +363,14 @@ class PermissionsScreen extends StatelessWidget {
     }
     final can = <(String, String)>[
       (
-        t('Accept an Area'),
+        t('Accept an incident'),
         t(
           'Verifies it — and puts you on the way, on your unit, if you are '
           'going too',
         ),
       ),
-      (t('Reject an Area'), t('Fire Volunteer and BFP coordinators only')),
-      (t('Merge or keep separate'), t('When two Areas overlap')),
+      (t('Reject an incident'), t('Fire Volunteer and BFP coordinators only')),
+      (t('Merge or keep separate'), t('When two incidents overlap')),
       (
         t('Mark fire out'),
         t('Your units stand down and stop sharing location'),
@@ -378,7 +378,7 @@ class PermissionsScreen extends StatelessWidget {
       (t('Press fire codes'), t('Recorded as events on the incident')),
       (
         t('File the post-incident report'),
-        t('Once per Area for your team, no draft'),
+        t('Once per incident for your team, no draft'),
       ),
       (t("Make your responders' accounts"), t('Under Profile, Responders')),
       if (bfp)
@@ -392,7 +392,7 @@ class PermissionsScreen extends StatelessWidget {
     final cannot = <(String, String)>[
       if (!bfp) (t('Change the alarm level'), t('BFP coordinators only')),
       (t('Edit a filed report'), t('A post-incident report saves once')),
-      (t('Reopen a rejected Area'), t('It has left the live feed for good')),
+      (t('Reopen a rejected incident'), t('It has left the live feed for good')),
     ];
     return CapabilitiesScreen(
       eyebrow: t('Coordinator · {responderAgencyLabel}', {

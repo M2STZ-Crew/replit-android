@@ -32,7 +32,7 @@ void main() {
             {
               'id': 'r1',
               'area_id': 'a2',
-              'area_designation': 'Area 1.3',
+              'area_designation': 'Taft Avenue corner Gil Puyat Avenue',
               'device_lat': 14.54,
               'device_lng': 121.0,
             },
@@ -44,7 +44,7 @@ void main() {
       return http.Response(
         jsonEncode({
           'id': id,
-          'designation': id == 'a2' ? 'Area 1.3' : 'Area 1.2',
+          'designation': id == 'a2' ? 'Taft Avenue corner Gil Puyat Avenue' : 'Near F. Victor Street',
           'status': areas[id] ?? status,
           'report_count': reports,
           'centroid_lat': 14.54,
@@ -59,7 +59,7 @@ void main() {
     owner: me,
     reportId: 'r1',
     areaId: 'a1',
-    designation: 'Area 1.2',
+    designation: 'Near F. Victor Street',
     lat: 14.54,
     lng: 121.0,
     submittedAt: DateTime.now(),
@@ -75,7 +75,9 @@ void main() {
   /// A phone with room for the ring even in the test font, which draws every
   /// letter as a square; on a shorter one the ring steps aside, and the
   /// steps say the same (screen_fit_test.dart measures it in Inter).
-  const roomForTheRing = Size(402, 1400);
+  // 1450 (was 1400) since v1.12.53: the step names the fire's street, longer
+  // than "Area 1.2 opened".
+  const roomForTheRing = Size(402, 1450);
 
   Future<void> pump(
     WidgetTester tester,
@@ -136,8 +138,8 @@ void main() {
 
   testWidgets('the first report opens its own area', (tester) async {
     await pump(tester, api(reports: 1));
-    expect(find.text('Area 1.2 opened'), findsOneWidget);
-    expect(find.text('A new area — the first report here'), findsOneWidget);
+    expect(find.text('New incident: Near F. Victor Street'), findsOneWidget);
+    expect(find.text('A new incident — the first report here'), findsOneWidget);
   });
 
   testWidgets('accepted: responders are on the way', (tester) async {
@@ -232,7 +234,7 @@ void main() {
     await pump(tester, api(areas: {'a1': 'merged', 'a2': 'en_route'}));
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(find.text('Matched to Area 1.3'), findsOneWidget);
+    expect(find.text('Matched to the fire at Taft Avenue corner Gil Puyat Avenue'), findsOneWidget);
     expect(find.text('Responders are on the way'), findsOneWidget);
     expect(
       ActiveReportStore.mine?.areaId,

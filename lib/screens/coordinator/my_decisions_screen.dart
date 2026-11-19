@@ -8,6 +8,7 @@ import '../../widgets/design.dart';
 import 'area_decision_screen.dart';
 import 'coordinator_feed.dart';
 import '../../widgets/loading.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 
 /// The kinds of decision a coordinator makes, as the audit log names them.
@@ -45,14 +46,9 @@ class DecisionEntry {
   String? get areaId => raw['area_id'] as String?;
   DateTime? get at => parseTime(raw['created_at']);
 
-  String get area {
-    final d = (raw['area_designation'] as String?) ?? '';
-    return d.isEmpty
-        ? t('An Area')
-        : d.toLowerCase().startsWith('area')
-        ? d
-        : t('Area {d}', {'d': d});
-  }
+  /// The fire's name (v1.12.53; it was "Area 1.2").
+  String get area =>
+      fireNameOr(raw['area_designation'] as String?, t('An incident'));
 
   Map<String, dynamic> get meta =>
       (raw['metadata'] as Map?)?.cast<String, dynamic>() ?? const {};
@@ -73,8 +69,7 @@ class DecisionEntry {
     _ => '$area · ${t(kind.word)}',
   };
 
-  static String _area(String d) =>
-      d.toLowerCase().startsWith('area') ? d : t('Area {d}', {'d': d});
+  static String _area(String d) => fireNameOr(d, t('An incident'));
 }
 
 /// Every decision this coordinator made (06 · C16), from the audit log the

@@ -25,6 +25,7 @@ import 'directions_screen.dart';
 import 'report_status_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/app_icons.dart';
+import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
 
@@ -545,7 +546,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
       'report again or call a hotline.',
     ),
     'merged' => t(
-      'Joined to a neighbouring area — the same responders have it.',
+      'Joined to a neighbouring incident — the same responders have it.',
     ),
     _ => '',
   };
@@ -735,7 +736,10 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     final tone = over
         ? residentTone(status, context.pal)
         : context.pal.accentInk;
-    final designation = (_area?['designation'] as String?) ?? t('Your area');
+    final designation = fireNameOr(
+      _area?['designation'] as String?,
+      t('Your area'),
+    );
     final shape = BorderRadius.circular(AppRadius.card);
     return ClipRRect(
       borderRadius: shape,
@@ -904,7 +908,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                         title: others == 0
                             ? t('No neighbours have confirmed yet')
                             : '$others ${others == 1 ? 'neighbour' : 'neighbours'} confirmed',
-                        line: t('Asked within 100 m of the area'),
+                        line: t('Asked within 100 m of the fire'),
                       ),
                       if (_shelter != null) ...[
                         const SizedBox(height: 10),

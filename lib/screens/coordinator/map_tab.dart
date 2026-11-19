@@ -67,7 +67,7 @@ class _MapTabState extends State<MapTab> {
 
   /// The chip's word: short, as over a map it must be.
   static String _chipLabel(OpsLayer layer) => switch (layer.key) {
-    'incidents' => t('Areas'),
+    'incidents' => t('Fires'),
     'hydrants' => t('Hydrants'),
     'evac' => t('Shelters'),
     'water' => t('Water'),
@@ -351,7 +351,7 @@ class _MapTabState extends State<MapTab> {
                 if (areas.isEmpty)
                   Text(
                     t(
-                      'Nothing is running. New Areas appear here and on the map.',
+                      'Nothing is running. New incidents appear here and on the map.',
                     ),
                     style: context.type.bodySm,
                   ),

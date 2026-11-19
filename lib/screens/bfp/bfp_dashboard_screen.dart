@@ -17,6 +17,7 @@ import 'bfp_alarm_requests_screen.dart';
 import '../../widgets/you_are_here.dart';
 import '../../api/live_refresh.dart';
 import '../../widgets/app_icons.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 import '../../widgets/responsive_frame.dart';
 import '../../widgets/map_layer_gate.dart';
@@ -549,7 +550,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      (inc['designation'] as String?) ?? t('Incident'),
+                      fireNameOr(inc['designation'] as String?, t('Incident')),
                       style: TextStyle(
                         color: _ink,
                         fontSize: 22,

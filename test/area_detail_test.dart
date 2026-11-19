@@ -88,7 +88,7 @@ void main() {
 
         expect(find.text('AREA 1.2'), findsOneWidget);
         expect(
-          find.text('INCIDENT AREA'),
+          find.text('INCIDENT'),
           findsOneWidget,
           reason: 'no geocoder',
         );

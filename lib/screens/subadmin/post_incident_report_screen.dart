@@ -10,6 +10,7 @@ import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import 'report_filed_screen.dart';
 import '../../widgets/loading.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 import '../../widgets/no_emoji.dart';
 
@@ -38,9 +39,7 @@ Future<bool> offerPostIncidentReport(
           eyebrow: t('Fire out recorded'),
           title: t('File the report now?'),
           body: t(
-            'The trucks, the driver, the crew and what came off the units — '
-            'while the crew is fresh in mind. The Area closes when it is '
-            'filed. It also waits in the queue, under To file.',
+            'The trucks, the driver, the crew and what came off the units — while the crew is fresh in mind. The incident closes when it is filed. It also waits in the queue, under To file.',
           ),
         ),
         const SizedBox(height: 16),
@@ -261,8 +260,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
   }
 
   String get _areaName {
-    final d = _designation ?? t('Incident');
-    return d.toLowerCase().startsWith('area') ? d : t('Area {d}', {'d': d});
+    return fireNameOr(_designation, t('Incident'));
   }
 
   /// Change a time with the date and time pickers — picked, not typed.
@@ -428,13 +426,12 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
             eyebrow: t('Confirm · can\'t be undone'),
             title: t('Submit and close {_areaName}?', {'_areaName': _areaName}),
             body: t(
-              'The report saves once and cannot be edited. Filing it closes '
-              'the Area.',
+              'The report saves once and cannot be edited. Filing it closes the incident.',
             ),
           ),
           const SizedBox(height: 16),
           AppButton(
-            t('Submit and close Area'),
+            t('Submit and close the incident'),
             run: true,
             onPressed: () => Navigator.of(sheet).pop(true),
           ),
@@ -521,7 +518,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
                     ),
                   ),
                 AppButton(
-                  t('Submit and close Area'),
+                  t('Submit and close the incident'),
                   run: true,
                   busy: _submitting,
                   onPressed: missing.isEmpty ? _submit : null,
@@ -572,8 +569,7 @@ class _PostIncidentReportScreenState extends State<PostIncidentReportScreen> {
       InlineAlert(
         tone: AlertTone.warning,
         body: t(
-          'Fill it in one go. There is no draft — the Area closes when this '
-          'saves.',
+          'Fill it in one go. There is no draft — the incident closes when this saves.',
         ),
       ),
       gap,

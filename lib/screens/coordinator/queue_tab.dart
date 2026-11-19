@@ -15,6 +15,7 @@ import 'coordinator_feed.dart';
 import 'coordinator_shell.dart';
 import 'overlap_screen.dart';
 import '../../widgets/loading.dart';
+import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 
 /// Which part of the queue is showing.
@@ -196,7 +197,7 @@ class _QueueTabState extends State<QueueTab> {
     );
   }
 
-  String _areas(int n) => n == 1 ? t('1 area') : t('{n} areas', {'n': n});
+  String _areas(int n) => n == 1 ? t('1 incident') : t('{n} incidents', {'n': n});
 
   List<Widget> _decideList() {
     final areas = _feed.toDecide;
@@ -206,7 +207,7 @@ class _QueueTabState extends State<QueueTab> {
       if (areas.isEmpty)
         _Empty(
           title: t('Nothing to decide'),
-          body: t('A new Area that asks for {_askedWord} lands here first.', {
+          body: t('A new incident that asks for {_askedWord} lands here first.', {
             '_askedWord': _askedWord,
           }),
         )
@@ -233,7 +234,7 @@ class _QueueTabState extends State<QueueTab> {
         // 06 · C01P: a PNP Coordinator's queue.
         InlineAlert(
           body: t(
-            'These Areas asked for {_askedWord}. Accepting acknowledges them for {_team}. Only a Fire Volunteer or BFP Coordinator can reject.',
+            'These incidents asked for {_askedWord}. Accepting acknowledges them for {_team}. Only a Fire Volunteer or BFP Coordinator can reject.',
             {'_askedWord': _askedWord, '_team': _team},
           ),
         ),
@@ -301,8 +302,7 @@ class _QueueTabState extends State<QueueTab> {
         _Empty(
           title: t('Nothing under way'),
           body: t(
-            'An Area you or another agency accepts shows here until the '
-            'fire is out.',
+            'An incident you or another agency accepts shows here until the fire is out.',
           ),
         ),
       if (ground.isNotEmpty) ...[
@@ -391,8 +391,7 @@ class _QueueTabState extends State<QueueTab> {
       ],
       InlineAlert(
         body: t(
-          'An Area closes only after its post-incident report is filed. '
-          'There is no draft — the form saves once, when it is complete.',
+          'An incident closes only after its post-incident report is filed. There is no draft — the form saves once, when it is complete.',
         ),
       ),
     ];
@@ -447,10 +446,8 @@ class _QueueTabState extends State<QueueTab> {
   }
 }
 
-String _designation(Object? d) {
-  final s = (d as String?) ?? '';
-  return s.toLowerCase().startsWith('area') ? s : t('Area {s}', {'s': s});
-}
+/// The fire's name (v1.12.53; it was "Area 1.2").
+String _designation(Object? d) => fireNameOr(d as String?, t('Incident'));
 
 class _Empty extends StatelessWidget {
   const _Empty({required this.title, required this.body});

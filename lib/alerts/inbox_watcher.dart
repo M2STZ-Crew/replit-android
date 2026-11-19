@@ -169,6 +169,8 @@ class InboxWatcher with WidgetsBindingObserver {
     );
     return switch (item['type']) {
       'fire_alert' => 'citizen',
+      // A fire verified farther away (v1.12.53): its own voice, by language.
+      'fire_verified' => SoundCues.farVoice,
       'incident_new' ||
       'responder_dispatch' ||
       'incident_routed' ||

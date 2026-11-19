@@ -72,12 +72,12 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
       }),
       can: [
         (
-          t('Go to an Area'),
+          t('Go to an incident'),
           t('I am going — verifies it if it is still Reported'),
         ),
-        (t('Verify an Area'), t('Without going, while it is still Reported')),
+        (t('Verify an incident'), t('Without going, while it is still Reported')),
         (t('Choose your route'), t('Up to three, all passable by a truck')),
-        (t('Mark arrived'), t('Or arrive on your own when you reach the Area')),
+        (t('Mark arrived'), t('Or arrive on your own when you reach the fire')),
         (
           t('Share your position on a run'),
           t('Every 5 seconds, from going to fire out'),
@@ -88,7 +88,7 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
           (t('Ask BFP to raise the alarm'), t('BFP sets the level')),
       ],
       cannot: [
-        (t('Reject an Area'), t('Coordinators only')),
+        (t('Reject an incident'), t('Coordinators only')),
         (t('Mark fire out'), t('The Captain on scene')),
         (
           t('File the post-incident report'),
@@ -136,7 +136,7 @@ class _ResponderProfileTabState extends State<ResponderProfileTab> {
                     leading: const IconPlate(AppIcons.volumeUp),
                     title: t('Incident sounds'),
                     subtitle: t(
-                      'A longer alert when an Area asks for your agency',
+                      'A longer alert when an incident asks for your agency',
                     ),
                     trailing: Switch(
                       value: _alarmOn ?? true,
