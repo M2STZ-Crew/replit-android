@@ -23,6 +23,7 @@ import 'package:replit/screens/map_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/updates/app_updates.dart';
 import 'package:replit/updates/update_nudge.dart';
+import 'package:replit/widgets/map_layers.dart';
 
 /// The citizen map ("04 Map" and "05 Map — offline queue"): what the sheet
 /// says with signal, and what it says without.
@@ -204,7 +205,9 @@ void main() {
       expect(find.text('Evacuation site open'), findsOneWidget);
       expect(find.text('SPACE FOR 480'), findsOneWidget);
       expect(find.text('GPS accurate to 4 m'), findsOneWidget);
-      expect(find.text('WATCHING PASAY'), findsOneWidget);
+      // Gone while there is signal (v1.12.58: "remove the 'reponders
+      // watching pasay' in citizen because it is redundant").
+      expect(find.text('WATCHING PASAY'), findsNothing);
       expect(find.byKey(const ValueKey('map-offline-note')), findsNothing);
     });
 
@@ -243,7 +246,7 @@ void main() {
   }
 
   // 8 November: the map is the resident's home screen.
-  testWidgets('"There\'s a new update!" under the locality pill while one is '
+  testWidgets('"There\'s a new update!" above the chips while one is '
       'waiting', (tester) async {
     addTearDown(UpdateNudge.reset);
     UpdateNudge.waiting.value = const AvailableRelease(
@@ -254,9 +257,10 @@ void main() {
     expect(tester.takeException(), isNull);
     final banner = find.text("There's a new update!");
     expect(banner, findsOneWidget);
+    // The locality pill shows only offline since v1.12.58: the banner leads.
     expect(
       tester.getTopLeft(banner).dy,
-      greaterThan(tester.getTopLeft(find.text('RESPONDERS').first).dy),
+      lessThan(tester.getTopLeft(find.byType(MapLayerChip).first).dy),
     );
     UpdateNudge.waiting.value = null;
     await tester.pump();

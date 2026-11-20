@@ -171,6 +171,14 @@ class WaterSourceSheet extends StatelessWidget {
           ),
           if (hydrant) ...[
             const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Tag(
+                source.verified ? t('Verified') : t('Not verified'),
+                color: source.verified ? pal.ok : pal.muted,
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
               checkedAt == null
                   ? t('Not checked on the ground yet')

@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import '../api/api_client.dart';
 import '../api/tracking_socket.dart';
 import '../location/live_position.dart';
+import '../widgets/fire_ripple.dart';
 import '../models/active_report.dart';
 import '../models/resident_status.dart';
 import '../models/responder_unit.dart';
@@ -676,6 +677,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
               ),
             ],
           ),
+        if (centre != null) FireRipple(centres: [centre]),
         MarkerLayer(
           rotate: true,
           markers: [

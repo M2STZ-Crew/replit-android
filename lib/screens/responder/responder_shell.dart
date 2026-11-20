@@ -5,7 +5,7 @@ import '../../location/responder_tracker.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/app_nav_bar.dart';
-import '../notifications_screen.dart';
+import '../../widgets/report_fire_button.dart';
 import 'duty_tab.dart';
 import 'field_map_tab.dart';
 import 'responder_feed.dart';
@@ -22,11 +22,15 @@ import '../../widgets/responsive_frame.dart';
 /// endpoint lists a responder's past runs, so Runs stays on standby and the
 /// slot holds Alerts — the inbox of every call and stand-down sent to them,
 /// which the old console reached from the bell.
+///
+/// v1.12.58 (20 Nov 2026: "put the report a fire in the nav bar below"):
+/// Report takes the fourth slot and opens the camera, as the header button
+/// did; Alerts became the bell on Duty.
 enum ResponderTab {
   duty('Duty', AppIcons.inbox),
   map('Map', AppIcons.map),
   run('RUN', AppIcons.circle),
-  alerts('Alerts', AppIcons.notifications),
+  report('Report', AppIcons.localFireDepartment),
   profile('Profile', AppIcons.person);
 
   const ResponderTab(this.label, this.icon);
@@ -102,9 +106,8 @@ class ResponderShellState extends State<ResponderShell> {
     ResponderTab.run => ReadingColumn(
       child: RunTab(feed: feed, shell: this),
     ),
-    ResponderTab.alerts => ReadingColumn(
-      child: NotificationsScreen(api: feed.api, asTab: true),
-    ),
+    // Report opens the camera; it has no page of its own.
+    ResponderTab.report => const SizedBox.shrink(),
     ResponderTab.profile => ReadingColumn(
       child: ResponderProfileTab(feed: feed),
     ),
@@ -153,7 +156,9 @@ class ResponderShellState extends State<ResponderShell> {
                 icon: tab.icon,
                 label: t(tab.label),
                 selected: tab == _tab,
-                onTap: () => show(tab),
+                onTap: tab == ResponderTab.report
+                    ? () => openStaffReport(context)
+                    : () => show(tab),
               ),
           ],
         ),

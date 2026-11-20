@@ -139,6 +139,10 @@ class WaterSource {
   String? get checkedBy =>
       _text(row['checked_by_org']) ?? _text(row['checked_by_name']);
 
+  /// Checked on the ground in the last 6 months (backend v1.12.46); gray on
+  /// every map until then.
+  bool get verified => row['verified'] == true;
+
   /// What the sheet and a screen reader call it: "H-17", "Tripa de
   /// Gallina", else what it is.
   String get title => switch (kind) {

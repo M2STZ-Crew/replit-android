@@ -201,11 +201,13 @@ void main() {
   }
 
   group('the bar', () {
-    testWidgets('Duty, Map, the RUN disc, Alerts and Profile — no Runs', (
+    // v1.12.58: Report took Alerts' slot ("put the report a fire in the nav
+    // bar below"); Alerts is the bell on Duty.
+    testWidgets('Duty, Map, the RUN disc, Report and Profile — no Runs', (
       tester,
     ) async {
       await shell(tester);
-      for (final (i, label) in ['Duty', 'Map', 'Alerts', 'Profile'].indexed) {
+      for (final (i, label) in ['Duty', 'Map', 'Report', 'Profile'].indexed) {
         final position = i < 2 ? i + 1 : i + 2;
         expect(
           find.bySemanticsLabel('$label, tab $position of 5'),
@@ -239,7 +241,7 @@ void main() {
       expect(tester.takeException(), isNull);
       final banner = find.text("There's a new update!");
       expect(banner, findsOneWidget);
-      await tab(tester, 'Alerts');
+      await tab(tester, 'Profile');
       expect(banner, findsNothing);
       await tab(tester, 'Duty');
       expect(banner, findsOneWidget);
@@ -433,8 +435,10 @@ void main() {
       expect(chip('Shelters').tone, pal.ok);
       expect(chip('Risk zones').tone, pal.live);
 
+      // The Areas' circles; the ripple over them is its own layer (v1.12.58).
       final circles = tester
-          .widget<CircleLayer>(find.byType(CircleLayer))
+          .widgetList<CircleLayer>(find.byType(CircleLayer))
+          .first
           .circles;
       expect(circles, isNotEmpty);
       expect(circles.first.color, pal.accentInk.withValues(alpha: 0.10));

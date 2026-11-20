@@ -61,6 +61,7 @@ class MapMarker extends StatelessWidget {
     this.selected = false,
     this.live = false,
     this.dimmed = false,
+    this.muted = false,
     this.badge,
     this.onTap,
   });
@@ -78,6 +79,13 @@ class MapMarker extends StatelessWidget {
   /// Still marks the place, at half strength (a shelter that is closed).
   final bool dimmed;
 
+  /// Gray in place of the category's colour (v1.12.58): a hydrant nobody
+  /// has checked on the ground in the last 6 months.
+  final bool muted;
+
+  /// The gray a muted marker wears; the white glyph on it measures 4.8 : 1.
+  static const Color mutedSurface = Color(0xFF6B7280);
+
   /// A small sign on the corner (a shelter outside Pasay).
   final Widget? badge;
   final VoidCallback? onTap;
@@ -93,7 +101,7 @@ class MapMarker extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: kind.surface,
+        color: muted ? mutedSurface : kind.surface,
         borderRadius: BorderRadius.circular(selected ? 10 : 8),
         border: Border.all(color: Colors.white, width: selected ? 2 : 1.5),
       ),

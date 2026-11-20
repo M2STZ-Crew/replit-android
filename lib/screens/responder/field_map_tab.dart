@@ -11,6 +11,7 @@ import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/barangay_layer.dart';
 import '../../widgets/coordinator_kit.dart';
+import '../../widgets/fire_ripple.dart';
 import '../../widgets/design.dart';
 import '../../widgets/map_glass.dart';
 import '../../widgets/map_layers.dart';
@@ -346,6 +347,8 @@ class _FieldMapTabState extends State<FieldMapTab> {
                   ),
             ],
           ),
+        if (_on.contains('incidents'))
+          FireRipple(centres: [for (final a in areas) ?a.centre]),
         if (_on.contains(kBarangaysLayer) || _on.contains(kFireRiskLayer))
           BarangayLayer(
             shapes: _shapes(pal),

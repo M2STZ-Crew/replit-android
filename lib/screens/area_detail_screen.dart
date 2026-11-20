@@ -20,6 +20,7 @@ import '../widgets/fire_type_row.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/loading.dart';
 import '../i18n/fire_names.dart';
+import '../widgets/fire_ripple.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
 
@@ -335,6 +336,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
               ),
             ],
           ),
+          FireRipple(centres: [c]),
           MarkerLayer(
             rotate: true,
             markers: [

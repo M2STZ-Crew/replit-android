@@ -4,6 +4,7 @@ import '../../api/api_client.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/app_nav_bar.dart';
+import '../../widgets/report_fire_button.dart';
 import 'coordinator_feed.dart';
 import 'live_incident.dart';
 import 'map_tab.dart';
@@ -14,13 +15,15 @@ import '../../updates/update_banner.dart';
 import '../../widgets/responsive_frame.dart';
 
 /// The coordinator's destinations (REPLIT (MAIN) 06 · Coordinator
-/// Experience): Queue, Map, the raised LIVE disc, Profile. The fire codes
-/// left the bar for LIVE's incident drawer in v1.12.56 (19 Nov 2026: "the
-/// coordinator cannot change screen because of that thing").
+/// Experience): Queue, Map, the raised LIVE disc, Report, Profile. The fire
+/// codes left the bar for LIVE's incident drawer in v1.12.56; Report joined
+/// it in v1.12.58 (20 Nov 2026: "make it queue, map, report, and profile"):
+/// it opens the camera, as the header button did, and is never a page.
 enum CoordinatorTab {
   queue('Queue', AppIcons.inbox),
   map('Map', AppIcons.map),
   live('LIVE', AppIcons.circle),
+  report('Report', AppIcons.localFireDepartment),
   profile('Profile', AppIcons.person);
 
   const CoordinatorTab(this.label, this.icon);
@@ -133,6 +136,8 @@ class CoordinatorShellState extends State<CoordinatorShell> {
       onFocus: (id) => setState(() => _liveFocus = id),
     ),
     CoordinatorTab.profile => ReadingColumn(child: ProfileTab(feed: feed)),
+    // Report opens the camera; it has no page of its own.
+    CoordinatorTab.report => const SizedBox.shrink(),
   };
 
   @override
@@ -178,7 +183,9 @@ class CoordinatorShellState extends State<CoordinatorShell> {
                 icon: tab.icon,
                 label: t(tab.label),
                 selected: tab == _tab,
-                onTap: () => show(tab),
+                onTap: tab == CoordinatorTab.report
+                    ? () => openStaffReport(context)
+                    : () => show(tab),
               ),
           ],
         ),

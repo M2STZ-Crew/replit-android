@@ -7,6 +7,38 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.58 — 20 November 2026 — Fire codes heard; a ripple on every fire; Report in the bar
+
+Goes with backend v1.12.46.
+
+- **A fire code is shown and heard** (20 Nov: "if they press the fire code,
+  there's nothing happening"; answered "Show it and alert", "By what the code
+  asks"). LIVE's Fire codes row shows the latest press ("FC-6 · Water Supply
+  Needed · 3 min ago · Ana Cruz"), and the codes sheet lists what was pressed
+  on that incident. An alert for a code opens its incident.
+- **Every fire ripples out to 100 m** ("make the incident in the map has a
+  pulsing location marker through the whole 100m area"): a ring grows from
+  the fire to 100 m and fades, every 2 seconds, on the residents',
+  coordinators' and responders' maps, LIVE, Track it live and the route to a
+  fire (`lib/widgets/fire_ripple.dart`). Not drawn when the phone removes
+  animations.
+- **Hydrants are gray until checked** ("make all of the fire hydrants as
+  unverified and make it color gray"): a hydrant nobody checked on the ground
+  in the last 6 months is gray on every map; one checked is blue. Its sheet
+  says Verified or Not verified.
+- **Report in the staff bars** ("make it queue, map, report, and profile"):
+  the coordinator's bar is Queue, Map, LIVE, Report, Profile; the
+  responder's Duty, Map, RUN, Report, Profile, with Alerts as the bell on
+  Duty. Report opens the camera, as the header button did.
+- **No "Watching Pasay" pill** ("it is redundant"): the residents' map shows
+  the pill only without signal ("No signal", "Queued").
+- **Update notes say what's new** ("remove the 'merge pull request...'"): the
+  release workflow writes the notes from the release pull request's "What's
+  new" list (`.github/scripts/release_notes.py`), and the update sheet leaves
+  out any merge message or title line.
+
+---
+
 ## v1.12.57 — 20 November 2026 — Every fire in its barangay; the barangay layer
 
 Goes with backend v1.12.45.

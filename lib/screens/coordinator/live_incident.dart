@@ -18,6 +18,7 @@ import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../../widgets/fire_type_row.dart';
+import '../../widgets/fire_ripple.dart';
 import '../../widgets/map_marker.dart';
 import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
@@ -723,6 +724,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
             ),
           ],
         ),
+        FireRipple(centres: [centre]),
         MarkerLayer(
           rotate: true,
           markers: [
@@ -887,7 +889,10 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                     ListRow(
                       leading: const IconPlate(AppIcons.gridView),
                       title: t('Fire codes'),
-                      subtitle: _powers.pressesCodes
+                      // The latest press, when there is one (v1.12.58).
+                      subtitle: area.fireCodes.isNotEmpty
+                          ? codeLine(area.fireCodes.first)
+                          : _powers.pressesCodes
                           ? t('Press one to record it on this incident')
                           : t('What each code means'),
                       chevron: true,

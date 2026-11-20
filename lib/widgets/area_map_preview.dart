@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../theme.dart';
 import 'coordinator_kit.dart';
 import 'map_marker.dart';
+import 'fire_ripple.dart';
 import 'map_layers.dart';
 import 'map_tiles.dart';
 import 'you_are_here.dart';
@@ -92,6 +93,7 @@ class _AreaMapPreviewState extends State<AreaMapPreview> {
                       ),
                   ],
                 ),
+                FireRipple(centres: centres),
                 MarkerLayer(
                   rotate: true,
                   markers: [

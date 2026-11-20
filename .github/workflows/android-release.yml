@@ -40,6 +40,8 @@ jobs:
     # push to main (or the Run workflow button) can run it.
     permissions:
       contents: write
+      # To read the merged pull request's "What's new" for the notes.
+      pull-requests: read
     steps:
       - name: Check the secrets and variables are set
         env:
@@ -177,6 +179,22 @@ jobs:
         with:
           node-version: "22"
 
+      # The notes (v1.12.58; 20 Nov 2026: "remove the 'merge pull
+      # request...'. we want to see only here is the version and what are the
+      # new things. and type it in a professional way"): the "What's new:"
+      # list of the pull request this merge closed, never GitHub's merge
+      # message; "Improvements and fixes." without one. Read through the API
+      # and written to a file, never interpolated into a command.
+      - name: Write the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq '.[0].body // ""' > "$RUNNER_TEMP/pr-body.md" || : > "$RUNNER_TEMP/pr-body.md"
+          python3 .github/scripts/release_notes.py "$RUNNER_TEMP/pr-body.md" \
+            > "$RUNNER_TEMP/release-notes.txt"
+          cat "$RUNNER_TEMP/release-notes.txt"
+
       - name: Send to the team
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -184,14 +202,9 @@ jobs:
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$GOOGLE_APPLICATION_CREDENTIALS"
-          # Written to a file, never interpolated into the command, so a commit
-          # message cannot inject shell. The whole message, not only its first
-          # line: a release merge carries what changed, under "What's new:".
-          # The co-author trailer is for the history, not for the notes, and
-          # no build number shows anywhere (12 Nov 2026: "it is just the
-          # version of app will be remain seen in any platforms").
-          git log -1 --pretty='%B' |
-            grep -v '^Co-Authored-By:' > "$RUNNER_TEMP/release-notes.txt"
+          # The notes are the step above's; no build number shows anywhere
+          # (12 Nov 2026: "it is just the version of app will be remain seen
+          # in any platforms").
           npx --yes firebase-tools@15.30.0 appdistribution:distribute \
             build/app/outputs/flutter-apk/app-release.apk \
             --app "$FIREBASE_APP_ID" \
