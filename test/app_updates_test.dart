@@ -251,13 +251,30 @@ void main() {
       expect(calls, isEmpty);
     });
 
+    test("GitHub's merge message never reaches the update sheet", () {
+      expect(
+        cleanNotes(
+          'Merge pull request #36 from M2STZ-Crew/staff-fixes-1.12.56\n\n'
+          'v1.12.56: Your own report, codes in LIVE, shelters by car\n\n'
+          'Co-Authored-By: Claude <noreply@anthropic.com>',
+        ),
+        isNull,
+      );
+      expect(
+        cleanNotes("What's new\n- Fire codes alert who they ask for."),
+        "What's new\n• Fire codes alert who they ask for.",
+      );
+    });
+
     test('a newer build in the latest release is offered', () async {
       serve(latest: manifest());
       final found = await AppUpdates.check();
       expect(found, isA<UpdateAvailable>());
       final release = (found as UpdateAvailable).release;
       expect(release.label, '1.12.26');
-      expect(release.notes, startsWith('v1.12.26: '));
+      // The version is the sheet's heading; the notes are what's new
+      // (v1.12.58).
+      expect(release.notes, "What's new:\n• The splash says what it is doing.");
       expect(
         fetched.single.toString(),
         'https://github.com/M2STZ-Crew/replit-android/releases/latest/'

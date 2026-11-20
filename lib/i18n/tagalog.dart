@@ -2629,4 +2629,8 @@ const Map<String, String> kTagalog = {
   'High fire risk': 'Mataas na panganib sa sunog',
   'High fire-risk zone (research-based)':
       'Lugar na mataas ang panganib sa sunog (batay sa pananaliksik)',
+
+  // Fire codes pressed; gray hydrants (v1.12.58).
+  'Pressed on this incident': 'Pinindot sa insidenteng ito',
+  'Not verified': 'Hindi pa beripikado',
 };

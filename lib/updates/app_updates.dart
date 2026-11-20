@@ -16,6 +16,25 @@ import '../i18n/i18n.dart';
 import '../store_build.dart';
 
 /// A newer build of RepLiT, published on the repository's GitHub releases.
+/// A release's notes as the update sheet says them (v1.12.58; 20 Nov 2026:
+/// "remove the 'merge pull request...'. we want to see only here is the
+/// version and what are the new things"). GitHub's merge line, a release
+/// title ("v1.12.57: ...": the sheet already says the version) and
+/// co-author lines are left out, and "- " list marks become bullets. Null
+/// when nothing is left.
+String? cleanNotes(String raw) {
+  final kept = <String>[];
+  for (final line in raw.replaceAll('\r\n', '\n').split('\n')) {
+    final l = line.trimRight();
+    if (RegExp(r'^Merge pull request #\d+').hasMatch(l)) continue;
+    if (RegExp(r'^Co-Authored-By:', caseSensitive: false).hasMatch(l)) continue;
+    if (RegExp(r'^v?\d+\.\d+\.\d+: ').hasMatch(l)) continue;
+    kept.add(l.startsWith('- ') ? '• ${l.substring(2)}' : l);
+  }
+  final text = kept.join('\n').replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
+  return text.isEmpty ? null : text;
+}
+
 class AvailableRelease {
   const AvailableRelease({
     required this.version,
@@ -85,7 +104,7 @@ class AvailableRelease {
       apk: apk,
       size: size,
       sha256: sha256.toLowerCase(),
-      notes: notes is String ? notes.trim() : null,
+      notes: notes is String ? cleanNotes(notes) : null,
     );
   }
 }
@@ -796,7 +815,7 @@ class _UpdateSheetState extends State<UpdateSheet> {
               const SizedBox(height: 12),
               Text(
                 release.notes!,
-                maxLines: 8,
+                maxLines: 12,
                 overflow: TextOverflow.ellipsis,
                 style: context.type.bodySm.copyWith(color: pal.textSoft),
               ),

@@ -15,6 +15,7 @@ import '../models/field_ops.dart';
 import '../theme.dart';
 import '../widgets/design.dart';
 import '../widgets/field_ops.dart';
+import '../widgets/fire_ripple.dart';
 import '../widgets/map_layers.dart';
 import '../widgets/map_tiles.dart';
 import '../widgets/report_gate.dart';
@@ -447,6 +448,7 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
                         ),
                       ],
                     ),
+                    FireRipple(centres: [c]),
                     MarkerLayer(
                       rotate: true,
                       markers: [

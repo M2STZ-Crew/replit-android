@@ -31,6 +31,12 @@ class AreaView {
 
   String get status => (raw['status'] as String?) ?? 'reported';
 
+  /// The fire codes pressed on it, newest first (backend v1.12.46).
+  List<Map<String, dynamic>> get fireCodes => [
+    for (final c in (raw['fire_codes'] as List?) ?? const [])
+      if (c is Map) c.cast<String, dynamic>(),
+  ];
+
   LatLng? get centre {
     final lat = (raw['centroid_lat'] as num?)?.toDouble();
     final lng = (raw['centroid_lng'] as num?)?.toDouble();

@@ -286,7 +286,11 @@ void main() {
       expect(find.text('Choose a route'), findsNothing);
       expect(find.text('START NAVIGATION'), findsNothing);
       expect(find.text('Turn right onto Gil Puyat Avenue'), findsOneWidget);
-      expect(find.byType(CircleLayer), findsOneWidget, reason: 'Area radius');
+      expect(
+        find.byType(CircleLayer),
+        findsNWidgets(2),
+        reason: 'the Area radius, and its 100 m ripple (v1.12.58)',
+      );
       expect(voice.said, isNotEmpty, reason: 'guidance is on from the start');
       await moveTo(tester, at(1000));
       expect(find.text('1.0 km, about 2 min'), findsOneWidget);

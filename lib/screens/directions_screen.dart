@@ -20,6 +20,7 @@ import '../widgets/app_icons.dart';
 import '../widgets/coordinator_kit.dart';
 import '../widgets/design.dart';
 import '../widgets/drag_down_sheet.dart';
+import '../widgets/fire_ripple.dart';
 import '../widgets/lane_strip.dart';
 import '../widgets/maneuver_arrow.dart';
 import '../widgets/map_glass.dart';
@@ -509,6 +510,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                       ),
                     ],
                   ),
+                if (_toFire) FireRipple(centres: [_nav.destination]),
                 if (_toFire && _nav.alternative != null)
                   GestureDetector(
                     onTap: () {

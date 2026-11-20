@@ -149,8 +149,10 @@ void main() {
       expect(chip('Risk zones').tone, pal.live);
       expect(chip('Hydrants').tone, pal.water);
       expect(chip('Shelters').tone, pal.ok);
+      // The Areas' circles; the ripple over them is its own layer (v1.12.58).
       final circles = tester
-          .widget<CircleLayer>(find.byType(CircleLayer))
+          .widgetList<CircleLayer>(find.byType(CircleLayer))
+          .first
           .circles;
       expect(circles.single.color, pal.accentInk.withValues(alpha: 0.10));
       expect(circles.single.borderColor, pal.accentInk.withValues(alpha: 0.8));

@@ -9,6 +9,16 @@ import '../../widgets/design.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
+/// "FC-6 · Water Supply Needed · 2 min ago · Ana Cruz": one press.
+String codeLine(Map<String, dynamic> c) {
+  final at = parseTime(c['pressed_at']);
+  return [
+    '${c['code_number'] ?? ''} · ${c['name'] ?? ''}',
+    if (at != null) agoText(at),
+    ?c['pressed_by_name'] as String?,
+  ].join(' · ');
+}
+
 /// The fire codes of one incident (06 · C11b), from the Fire codes row in
 /// LIVE's incident drawer. A press records an event on that incident (and
 /// tells its units); it never changes the Area's status.
@@ -130,6 +140,16 @@ class _FireCodesSheetState extends State<FireCodesSheet> {
         else if (_recorded != null)
           InlineAlert(tone: AlertTone.success, body: _recorded!),
         if (!presses || _recorded != null) const SizedBox(height: 16),
+        // What was pressed already, newest first (v1.12.58).
+        if (widget.area.fireCodes.isNotEmpty) ...[
+          SectionHeader(t('Pressed on this incident')),
+          const SizedBox(height: 8),
+          for (final c in widget.area.fireCodes.take(5)) ...[
+            Text(codeLine(c), style: context.type.bodySm),
+            const SizedBox(height: 6),
+          ],
+          const SizedBox(height: 10),
+        ],
         if (codes == null)
           _error == null
               ? const LoadingInline()

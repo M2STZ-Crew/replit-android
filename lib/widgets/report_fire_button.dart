@@ -16,18 +16,23 @@ import 'motion.dart';
 /// photo, who should respond, anything else — and the report counts as fully
 /// trusted (v1.12.27). On the Queue and Duty headers, in the coral the SOS
 /// button wears.
+/// Opens a staff member's report: the camera at once, as residents report.
+/// The Report tab on the coordinator's and responder's bars (v1.12.58) and
+/// [ReportFireButton] both open it.
+Future<void> openStaffReport(BuildContext context) async {
+  HapticFeedback.mediumImpact();
+  // Start the location now: the report wants a fix by the time the photo is
+  // taken.
+  unawaited(SosLocation.instance.warmUp());
+  await Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => const CameraCaptureScreen()),
+  );
+}
+
 class ReportFireButton extends StatelessWidget {
   const ReportFireButton({super.key});
 
-  Future<void> _open(BuildContext context) async {
-    HapticFeedback.mediumImpact();
-    // Start the location now: the report wants a fix by the time the photo
-    // is taken.
-    unawaited(SosLocation.instance.warmUp());
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const CameraCaptureScreen()),
-    );
-  }
+  Future<void> _open(BuildContext context) => openStaffReport(context);
 
   @override
   Widget build(BuildContext context) {

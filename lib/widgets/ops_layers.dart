@@ -171,6 +171,8 @@ Marker opsMarker(
         kind: kind,
         label: p.name ?? (p.row?['code'] as String?) ?? layer.label,
         badge: p.outside ? const OutsidePasayBadge() : null,
+        // A hydrant unchecked for 6 months is gray (v1.12.58).
+        muted: kind == MapMarkerKind.hydrant && p.row?['verified'] != true,
         onTap: onTap,
       ),
     );

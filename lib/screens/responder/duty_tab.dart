@@ -5,7 +5,7 @@ import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
-import '../../widgets/report_fire_button.dart';
+import '../../widgets/notification_bell.dart';
 import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
 import 'responder_shell.dart';
@@ -59,8 +59,8 @@ class DutyTab extends StatelessWidget {
             TabHeader(
               eyebrow: '${feed.unit} — ${agencyLabel(feed.agency)}',
               title: t('Duty'),
-              // R20: staff report a fire the way residents do.
-              trailing: const ReportFireButton(),
+              // Alerts left the bar for Report (v1.12.58): the bell.
+              trailing: const NotificationBell(),
             ),
             Expanded(child: _body(context)),
           ],

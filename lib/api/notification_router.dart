@@ -108,6 +108,9 @@ NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
     // The hub's answer about a National ID.
     case 'national_id_reviewed':
       return NotificationTarget.verification;
+    // A fire code pressed on an incident (backend v1.12.46): the incident.
+    case 'fire_code':
+      return staff ? NotificationTarget.staffIncident : NotificationTarget.none;
     // A prank-report strike and what came of it (backend v1.12.41).
     case 'report_strike':
       return NotificationTarget.reporting;

@@ -17,6 +17,7 @@ import '../models/hotline.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
 import '../widgets/barangay_layer.dart';
+import '../widgets/fire_ripple.dart';
 import '../widgets/design.dart';
 import '../widgets/drag_down_sheet.dart';
 import '../widgets/map_glass.dart';
@@ -851,6 +852,16 @@ class _MapScreenState extends State<MapScreen> {
             outlines: _on.contains(kBarangaysLayer),
             risk: _on.contains(kFireRiskLayer),
           ),
+        if (_on.contains('incidents'))
+          FireRipple(
+            centres: [
+              for (final a in _areas)
+                LatLng(
+                  (a['centroid_lat'] as num).toDouble(),
+                  (a['centroid_lng'] as num).toDouble(),
+                ),
+            ],
+          ),
         ZoomGatedMarkers(markers: _layerMarkers()),
         MarkerLayer(rotate: true, markers: _markers()),
         YouAreHereLayer(follow: _follow),
@@ -909,6 +920,8 @@ class _MapScreenState extends State<MapScreen> {
             child: MapMarker(
               kind: layer.markerKind,
               label: (row['name'] as String?) ?? layer.label,
+              // A hydrant unchecked for 6 months is gray (v1.12.58).
+              muted: layer == _hydrants && row['verified'] != true,
               onTap: () => _showGisSheet(layer, row),
             ),
           ),
@@ -963,8 +976,12 @@ class _MapScreenState extends State<MapScreen> {
           children: [
             // Just the locality: "04 Map" has no avatar here - Profile is a
             // tab on the bar since the overhaul.
-            Align(alignment: Alignment.centerLeft, child: _localityPill()),
-            const SizedBox(height: 16),
+            // Only when there is no signal (v1.12.58: "remove the 'reponders
+            // watching pasay' in citizen because it is redundant").
+            if (_isOffline) ...[
+              Align(alignment: Alignment.centerLeft, child: _localityPill()),
+              const SizedBox(height: 16),
+            ],
             // "There's a new update!", while one is waiting: the map is the
             // resident's home screen.
             const UpdateBanner(padding: EdgeInsets.only(bottom: 16)),
