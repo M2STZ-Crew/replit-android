@@ -1414,6 +1414,47 @@ class ApiClient {
     return rows;
   }
 
+  /// A hydrant's status from the field (backend v1.12.43): POST
+  /// /map/hydrants/{id}/ground-truth. Fire Volunteer and BFP coordinators
+  /// and responders; it is on every map at once. Answers the hydrant.
+  Future<Map<String, dynamic>> setHydrantStatus(
+    String id,
+    String status, {
+    String? notes,
+  }) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/map/hydrants/$id/ground-truth'),
+      headers: _jsonAuth,
+      body: jsonEncode({'status': status, 'notes': ?notes}),
+    );
+    return _decode(resp);
+  }
+
+  /// A change to a water source for an Admin to approve (backend v1.12.43):
+  /// POST /map-layer-requests. Fire Volunteer and BFP coordinators add
+  /// ([operation] 'create', no [targetId]), change ('update') or switch off
+  /// one ('update' with `is_active: false`).
+  Future<Map<String, dynamic>> proposeMapChange({
+    required String layerType,
+    required String operation,
+    String? targetId,
+    required Map<String, dynamic> proposedData,
+    String? reason,
+  }) async {
+    final resp = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/map-layer-requests'),
+      headers: _jsonAuth,
+      body: jsonEncode({
+        'layer_type': layerType,
+        'operation': operation,
+        'target_id': ?targetId,
+        'proposed_data': proposedData,
+        'reason': ?reason,
+      }),
+    );
+    return _decode(resp);
+  }
+
   /// Trade the stored refresh token for a new session. True when it worked.
   ///
   /// Supabase rotates the refresh token on every use, so two concurrent
@@ -1559,6 +1600,12 @@ class ApiClient {
         // Paused or removed after prank reports (backend v1.12.41).
         ReportingStanding.errorCode => ReportingStanding.refusal(
           (body['details'] as Map?)?.cast<String, dynamic>(),
+        ),
+        // The server is ahead of its database (backend v1.12.43): a hydrant's
+        // "Low pressure" or "No access" before the update is in.
+        'migration_pending' => t(
+          'The server is not ready to save this yet. Try again later, or '
+          'choose Working, Broken or Under maintenance.',
         ),
         _ =>
           (body['message'] as String?) ??

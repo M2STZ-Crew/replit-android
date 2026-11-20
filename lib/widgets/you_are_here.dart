@@ -239,18 +239,23 @@ class YouAreHereLayer extends StatelessWidget {
 
 /// Google Maps' two map buttons, as a map child: a compass that appears once
 /// the map is turned (tap: north up again), and the location button, which
-/// steps free → follow → compass → follow.
+/// steps free → follow → compass → follow. A screen's own map controls
+/// ([extra], [MapControlButton]s) stack under them, so none overlaps.
 class MapLocationButtons extends StatelessWidget {
   const MapLocationButtons({
     super.key,
     required this.follow,
     this.alignment = Alignment.centerRight,
     this.padding = const EdgeInsets.all(16),
+    this.extra = const [],
   });
 
   final MapFollow follow;
   final AlignmentGeometry alignment;
   final EdgeInsetsGeometry padding;
+
+  /// Under the location button: a coordinator's Add a water source (v1.12.55).
+  final List<Widget> extra;
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +275,7 @@ class MapLocationButtons extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (turned) ...[
-                  _MapButton(
+                  MapControlButton(
                     label: t('Point the map north'),
                     onTap: () {
                       if (follow.mode == FollowMode.compass) follow.follow();
@@ -288,7 +293,7 @@ class MapLocationButtons extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
-                _MapButton(
+                MapControlButton(
                   label: switch (mode) {
                     FollowMode.free => t('Show where I am'),
                     FollowMode.follow => t('Turn the map with me'),
@@ -317,6 +322,10 @@ class MapLocationButtons extends StatelessWidget {
                         : context.pal.accent,
                   ),
                 ),
+                for (final control in extra) ...[
+                  const SizedBox(height: 10),
+                  control,
+                ],
               ],
             );
           },
@@ -326,8 +335,11 @@ class MapLocationButtons extends StatelessWidget {
   }
 }
 
-class _MapButton extends StatelessWidget {
-  const _MapButton({
+/// A map control (04 · Icon button, Overlay): a 48 px glass square with a
+/// hairline, its [label] said and shown as a tooltip.
+class MapControlButton extends StatelessWidget {
+  const MapControlButton({
+    super.key,
     required this.label,
     required this.onTap,
     required this.child,

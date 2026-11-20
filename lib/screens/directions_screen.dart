@@ -32,9 +32,11 @@ import '../widgets/responsive_frame.dart';
 
 Color _safeGreen = AppColors.ok;
 
-/// Where the directions lead: a citizen walking to a shelter, or a responder
-/// or coordinator driving to a fire.
-enum DirectionsTo { shelter, fire }
+/// Where the directions lead: a citizen walking to a shelter, a responder
+/// or coordinator driving to a fire, or staff driving to a place on their
+/// map, a hydrant or other water source (v1.12.55, 19 Nov 2026: "shelters
+/// and hydrants for staffs (4 wheeled car)").
+enum DirectionsTo { shelter, fire, place }
 
 /// What a run to a fire knows beyond the route (06 · C10): the Area, where
 /// it is in words, and — for someone responding — how to say they are there.
@@ -92,6 +94,28 @@ Future<void> openRouteToFire(
   );
 }
 
+/// Road directions for staff from the phone's live position to a place on
+/// their map: a hydrant, body of water or cistern ([kind] is its marker).
+Future<void> openRouteToPlace(
+  BuildContext context, {
+  required double lat,
+  required double lng,
+  required String name,
+  required MapMarkerKind kind,
+}) {
+  return Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => DirectionsScreen(
+        destLat: lat,
+        destLng: lng,
+        destName: name,
+        to: DirectionsTo.place,
+        placeKind: kind,
+      ),
+    ),
+  );
+}
+
 /// The incident's current centre, or null when it could not be read.
 Future<LatLng?> _areaCentre(String areaId) async {
   final area = await ApiClient().getArea(areaId);
@@ -141,6 +165,7 @@ class DirectionsScreen extends StatefulWidget {
     this.voice,
     this.to = DirectionsTo.shelter,
     this.run,
+    this.placeKind,
   });
 
   final double destLat;
@@ -165,6 +190,9 @@ class DirectionsScreen extends StatefulWidget {
 
   /// The Area being driven to, when there is one.
   final FireRun? run;
+
+  /// What a [DirectionsTo.place] is: its marker, colour and glyph.
+  final MapMarkerKind? placeKind;
 
   /// This close to a shelter counts as there.
   static const double arrivedWithinMetres = 30;
@@ -214,7 +242,15 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   bool get _toFire => widget.to == DirectionsTo.fire;
 
-  TravelMode get _mode => _toFire ? TravelMode.driving : TravelMode.walking;
+  /// Staff driving to a place on their map (v1.12.55): a drive like the
+  /// fire's, chosen and started like a shelter's.
+  bool get _toPlace => widget.to == DirectionsTo.place;
+
+  bool get _driving => _toFire || _toPlace;
+
+  MapMarkerKind get _placeKind => widget.placeKind ?? MapMarkerKind.water;
+
+  TravelMode get _mode => _driving ? TravelMode.driving : TravelMode.walking;
 
   @override
   void initState() {
@@ -512,11 +548,13 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                         ),
                     Marker(
                       point: _nav.destination,
-                      width: _toFire ? MapMarker.target : 36,
-                      height: _toFire ? MapMarker.target : 36,
-                      child: _toFire
+                      width: _driving ? MapMarker.target : 36,
+                      height: _driving ? MapMarker.target : 36,
+                      child: _driving
                           ? MapMarker(
-                              kind: MapMarkerKind.incident,
+                              kind: _toFire
+                                  ? MapMarkerKind.incident
+                                  : _placeKind,
                               label: widget.destName,
                               selected: true,
                             )
@@ -935,7 +973,11 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
     ),
   );
 
-  Color get _tone => _toFire ? context.pal.live : _safeGreen;
+  Color get _tone => _toFire
+      ? context.pal.live
+      : _toPlace
+      ? _placeKind.tone(context.pal)
+      : _safeGreen;
 
   Widget get _destIcon => _toFire
       ? IconWell(
@@ -944,6 +986,8 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
           size: 40,
           glyph: 20,
         )
+      : _toPlace
+      ? IconWell(tint: _tone, icon: _placeKind.glyph, size: 40, glyph: 20)
       : IconWell(tint: _safeGreen, asset: Art.evac, size: 40, glyph: 20);
 
   // ------------------------------------------------------------- card ---
@@ -982,7 +1026,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   /// absence said too, for a drive.
   String? get _trafficNote {
     final route = _nav.route;
-    if (!_toFire || route == null || route.approximate) return null;
+    if (!_driving || route == null || route.approximate) return null;
     if (_nav.trafficAware) return null;
     return t('No live traffic data — times are estimates.');
   }
@@ -991,7 +1035,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
   /// too narrow for it.
   String? get _widthNote {
     final route = _nav.route;
-    if (!_toFire || route == null || route.approximate) return null;
+    if (!_driving || route == null || route.approximate) return null;
     return _nav.provider == 'osrm'
         ? t(
             'This route is from the backup router, which cannot check street '
@@ -1104,7 +1148,11 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Eyebrow(
-                      _toFire ? t('Route to the fire') : t('Route to safety'),
+                      _toFire
+                          ? t('Route to the fire')
+                          : _toPlace
+                          ? t('Driving directions')
+                          : t('Route to safety'),
                       color: _tone,
                     ),
                     const SizedBox(height: 6),
@@ -1880,9 +1928,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         ),
         Expanded(
           child: _metric(
-            _toFire ? AppIcons.directionsCar : AppIcons.directionsWalk,
+            _driving ? AppIcons.directionsCar : AppIcons.directionsWalk,
             seconds == null ? '—' : '~${_minutes(seconds)} min',
-            _toFire ? 'driving' : 'on foot',
+            _driving ? 'driving' : 'on foot',
           ),
         ),
         if (arrival)

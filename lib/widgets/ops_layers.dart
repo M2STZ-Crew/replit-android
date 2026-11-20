@@ -25,7 +25,13 @@ import 'map_marker.dart';
 /// glance. A risk zone also carries its drawn [area] (GeoJSON), when the
 /// server has one.
 class OpsPoint {
-  const OpsPoint(this.point, {this.outside = false, this.name, this.area});
+  const OpsPoint(
+    this.point, {
+    this.outside = false,
+    this.name,
+    this.area,
+    this.row,
+  });
 
   final LatLng point;
   final bool outside;
@@ -35,6 +41,10 @@ class OpsPoint {
 
   /// A risk zone's Polygon or MultiPolygon, as `area_geojson` sends it.
   final Object? area;
+
+  /// The record as the server sent it, for the sheet a tap opens (a water
+  /// source's status and who checked it, v1.12.55).
+  final Map<String, dynamic>? row;
 }
 
 class OpsLayer {
@@ -67,6 +77,7 @@ List<OpsPoint> _points(
         LatLng((r[latKey] as num).toDouble(), (r[lngKey] as num).toDouble()),
         name: r['name'] as String?,
         area: areaKey == null ? null : r[areaKey],
+        row: r,
       ),
 ];
 
@@ -85,6 +96,7 @@ List<OpsLayer> opsLayers(ApiClient api) => [
             ),
             outside: r['outside_pasay'] == true,
             name: r['name'] as String?,
+            row: r,
           ),
     ];
   }),
@@ -137,8 +149,14 @@ List<OpsLayer> opsLayers(ApiClient api) => [
 
 /// The marker for one GIS point: the layer's map marker (04 · Map marker),
 /// a shelter outside Pasay badged with an outward arrow; a station without a
-/// marker kind is a small dot in the layer's tone.
-Marker opsMarker(AppPalette pal, OpsLayer layer, OpsPoint p) {
+/// marker kind is a small dot in the layer's tone. [onTap] opens what the
+/// point is (a water source's sheet, v1.12.55).
+Marker opsMarker(
+  AppPalette pal,
+  OpsLayer layer,
+  OpsPoint p, {
+  VoidCallback? onTap,
+}) {
   final kind = layer.kind;
   if (kind != null) {
     return Marker(
@@ -147,8 +165,9 @@ Marker opsMarker(AppPalette pal, OpsLayer layer, OpsPoint p) {
       height: MapMarker.target,
       child: MapMarker(
         kind: kind,
-        label: p.name ?? layer.label,
+        label: p.name ?? (p.row?['code'] as String?) ?? layer.label,
         badge: p.outside ? const OutsidePasayBadge() : null,
+        onTap: onTap,
       ),
     );
   }

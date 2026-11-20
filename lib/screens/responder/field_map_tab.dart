@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../location/live_position.dart';
 import '../../models/area_view.dart';
+import '../../models/water_source.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
@@ -14,6 +15,7 @@ import '../../widgets/map_marker.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/ops_layers.dart';
 import '../../widgets/sheet_grip.dart';
+import '../../widgets/water_source_sheet.dart';
 import '../../widgets/you_are_here.dart';
 import 'responder_feed.dart';
 import 'responder_incident_screen.dart';
@@ -28,6 +30,10 @@ const LatLng _pasay = LatLng(14.5378, 121.0014);
 /// — and the risk zones and stations, in the same legend as every other map
 /// ([MapLayerChip], [MapAreas]). The unit card says whether this phone's
 /// location is going out; the sheet lists what is within 500 m.
+///
+/// A water source, on the map or in the list, opens its sheet (v1.12.55):
+/// directions, and for Fire Volunteer and BFP responders a hydrant's
+/// status.
 class FieldMapTab extends StatefulWidget {
   const FieldMapTab({super.key, required this.feed, required this.shell});
 
@@ -52,6 +58,9 @@ class _FieldMapTabState extends State<FieldMapTab> {
   final DraggableScrollableController _sheetSize =
       DraggableScrollableController();
   final LivePosition _position = LivePosition.instance;
+
+  /// What this responder may do with water (backend v1.12.43).
+  late final WaterPowers _powers = WaterPowers.of(widget.feed.me);
 
   /// The staff layers in the design's chip order: Areas, then what a crew
   /// fights a fire with, then the rest.
@@ -145,6 +154,40 @@ class _FieldMapTabState extends State<FieldMapTab> {
     if (_on.contains(layer.key)) _fetch(layer);
   }
 
+  /// A water source's sheet, on a tap; other points open nothing.
+  VoidCallback? _tapFor(OpsLayer layer, OpsPoint p) {
+    final kind = WaterKind.ofLayer(layer.key);
+    final row = p.row;
+    final source = kind == null || row == null
+        ? null
+        : WaterSource.from(kind, row);
+    if (source == null) return null;
+    return () => _openWater(layer, source);
+  }
+
+  Future<void> _openWater(OpsLayer layer, WaterSource source) async {
+    final changed = await openWaterSource(
+      context,
+      source: source,
+      powers: _powers,
+      api: widget.feed.api,
+    );
+    if (changed) await _reload(layer);
+  }
+
+  /// Reads a layer again, keeping what is drawn until the new points come:
+  /// a status just saved shows at once.
+  Future<void> _reload(OpsLayer layer) async {
+    final load = layer.load;
+    if (load == null) return;
+    try {
+      final points = await load();
+      if (mounted) setState(() => _cache[layer.key] = points);
+    } catch (_) {
+      // What was drawn stays.
+    }
+  }
+
   Future<void> _open(AreaView a) async {
     if (a.id == widget.feed.runId) {
       widget.shell.show(ResponderTab.run);
@@ -210,7 +253,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
       for (final layer in _layers)
         if (layer.key != 'incidents' && _on.contains(layer.key))
           for (final p in _cache[layer.key] ?? const <OpsPoint>[])
-            opsMarker(pal, layer, p),
+            opsMarker(pal, layer, p, onTap: _tapFor(layer, p)),
     ];
     final markers = <Marker>[
       // The Areas last, so they sit on top.
@@ -453,6 +496,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
           title: _noun(f.layer.key),
           subtitle: line(f.point),
           trailing: RowValue(formatDistance(f.metres), color: pal.onBackground),
+          onTap: _tapFor(f.layer, f.point),
         ),
         const SizedBox(height: 8),
       ],

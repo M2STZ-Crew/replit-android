@@ -1474,9 +1474,11 @@ class _MapScreenState extends State<MapScreen> {
         if (r['description'] != null) {
           rows.add(_DetailRow(t('Notes'), r['description'] as String));
         }
+      // Where water is, never its status: a resident cannot use a hydrant,
+      // and a status read wrong could send them to one (19 Nov 2026,
+      // backend v1.12.43 sends them none).
       case 'hydrants':
         title = (r['code'] as String?) ?? t('Fire hydrant');
-        rows.add(_DetailRow(t('Status'), _pretty(r['effective_status'])));
         if (r['address'] != null) {
           rows.add(_DetailRow(t('Address'), r['address'] as String));
         }
@@ -1496,7 +1498,6 @@ class _MapScreenState extends State<MapScreen> {
             (r['name'] as String?) ??
             (r['code'] as String?) ??
             t('Underground cistern');
-        rows.add(_DetailRow(t('Status'), _pretty(r['status'])));
         final litres = (r['capacity_liters'] as num?)?.toInt();
         if (litres != null) rows.add(_DetailRow(t('Capacity'), '$litres L'));
         if (r['address'] != null) {

@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../models/area_view.dart';
+import '../../models/water_source.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
@@ -13,6 +14,7 @@ import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/ops_layers.dart';
 import '../../widgets/sheet_grip.dart';
+import '../../widgets/water_source_sheet.dart';
 import '../../widgets/you_are_here.dart';
 import '../responder/responder_status.dart';
 import 'area_decision_screen.dart';
@@ -26,6 +28,10 @@ const LatLng _pasay = LatLng(14.5378, 121.0014);
 /// The Map tab (06 · C08): every live Area the team can see, over the
 /// layers a coordinator plans with — hydrants, shelters, water, risk zones,
 /// stations — and a sheet listing the incidents running now.
+///
+/// A water source opens its sheet when tapped (v1.12.55): directions for
+/// everyone, and for Fire Volunteer and BFP coordinators its status, edits
+/// and switching it off; their + adds one at a pin.
 class MapTab extends StatefulWidget {
   const MapTab({super.key, required this.feed, required this.shell});
 
@@ -42,6 +48,13 @@ const double _sheetMax = 0.8;
 
 class _MapTabState extends State<MapTab> {
   final MapFollow _follow = MapFollow();
+  final MapController _mapController = MapController();
+
+  /// What this coordinator may do with water (backend v1.12.43).
+  late final WaterPowers _powers = WaterPowers.of(widget.feed.me);
+
+  /// Placing a new water source: the map moves under a pin at its centre.
+  bool _pinning = false;
 
   /// The incidents sheet, so its frozen grip can drag it.
   final DraggableScrollableController _sheetSize =
@@ -90,6 +103,7 @@ class _MapTabState extends State<MapTab> {
   @override
   void dispose() {
     _follow.dispose();
+    _mapController.dispose();
     _sheetSize.dispose();
     super.dispose();
   }
@@ -116,6 +130,59 @@ class _MapTabState extends State<MapTab> {
       if (!_on.remove(layer.key)) _on.add(layer.key);
     });
     if (_on.contains(layer.key)) _fetch(layer);
+  }
+
+  /// A water source's sheet, on a tap; other points open nothing.
+  VoidCallback? _tapFor(OpsLayer layer, OpsPoint p) {
+    final kind = WaterKind.ofLayer(layer.key);
+    final row = p.row;
+    final source = kind == null || row == null
+        ? null
+        : WaterSource.from(kind, row);
+    if (source == null) return null;
+    return () => _openWater(layer, source);
+  }
+
+  Future<void> _openWater(OpsLayer layer, WaterSource source) async {
+    final changed = await openWaterSource(
+      context,
+      source: source,
+      powers: _powers,
+      api: widget.feed.api,
+    );
+    if (changed) await _reload(layer);
+  }
+
+  /// Reads a layer again, keeping what is drawn until the new points come:
+  /// a status just saved shows at once.
+  Future<void> _reload(OpsLayer layer) async {
+    final load = layer.load;
+    if (load == null) return;
+    try {
+      final points = await load();
+      if (mounted) setState(() => _cache[layer.key] = points);
+    } catch (_) {
+      // What was drawn stays.
+    }
+  }
+
+  /// The + : the map holds still under a pin, close enough to place it.
+  void _startPin() {
+    _follow.release();
+    final camera = _mapController.camera;
+    if (camera.zoom < 17) _mapController.move(camera.center, 17);
+    setState(() => _pinning = true);
+  }
+
+  Future<void> _usePin() async {
+    final point = _mapController.camera.center;
+    setState(() => _pinning = false);
+    final sent = await proposeWaterSource(
+      context,
+      point: point,
+      api: widget.feed.api,
+    );
+    if (!sent && mounted) setState(() => _pinning = true);
   }
 
   Future<void> _open(AreaView a) async {
@@ -159,13 +226,17 @@ class _MapTabState extends State<MapTab> {
                 ],
               ),
             ),
-            DraggableScrollableSheet(
-              controller: _sheetSize,
-              initialChildSize: 0.36,
-              minChildSize: _sheetMin,
-              maxChildSize: _sheetMax,
-              builder: (context, scroll) => _sheet(areas, scroll),
-            ),
+            if (_pinning) ...[
+              const IgnorePointer(child: _Pin()),
+              _pinPanel(),
+            ] else
+              DraggableScrollableSheet(
+                controller: _sheetSize,
+                initialChildSize: 0.36,
+                minChildSize: _sheetMin,
+                maxChildSize: _sheetMax,
+                builder: (context, scroll) => _sheet(areas, scroll),
+              ),
           ],
         );
       },
@@ -179,7 +250,7 @@ class _MapTabState extends State<MapTab> {
       for (final layer in _layers)
         if (layer.key != 'incidents' && _on.contains(layer.key))
           for (final p in _cache[layer.key] ?? const <OpsPoint>[])
-            opsMarker(pal, layer, p),
+            opsMarker(pal, layer, p, onTap: _tapFor(layer, p)),
     ];
     final markers = <Marker>[
       if (_on.contains('incidents'))
@@ -198,6 +269,7 @@ class _MapTabState extends State<MapTab> {
             ),
     ];
     return FlutterMap(
+      mapController: _mapController,
       options: MapOptions(
         initialCenter: _pasay,
         initialZoom: 14,
@@ -238,9 +310,57 @@ class _MapTabState extends State<MapTab> {
             top: MediaQuery.paddingOf(context).top + 60,
             right: 16,
           ),
+          extra: [
+            if (_powers.propose && !_pinning)
+              MapControlButton(
+                label: t('Add a water source'),
+                onTap: _startPin,
+                child: Icon(AppIcons.add, size: 22, color: pal.water),
+              ),
+          ],
         ),
         MapTiles.attribution(),
       ],
+    );
+  }
+
+  /// While placing a new water source: what to do, and the two ways out.
+  Widget _pinPanel() {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          MediaQuery.paddingOf(context).bottom + 16,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: MapGlass.strong(context),
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: context.pal.line),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                t('Move the map until the pin is on the water source.'),
+                style: context.type.bodySm,
+              ),
+              const SizedBox(height: 12),
+              AppButton(t('Use this spot'), onPressed: _usePin),
+              const SizedBox(height: 10),
+              AppButton.secondary(
+                t('Cancel'),
+                onPressed: () => setState(() => _pinning = false),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -388,6 +508,26 @@ class _MapTabState extends State<MapTab> {
       child: MapGlass.blurs(context)
           ? BackdropFilter(filter: MapGlass.blur, child: body)
           : body,
+    );
+  }
+}
+
+/// The pin a new water source goes at: its point on the map's centre.
+class _Pin extends StatelessWidget {
+  const _Pin();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Transform.translate(
+        offset: const Offset(0, -20),
+        child: Icon(
+          AppIcons.locationOn,
+          size: 40,
+          color: context.pal.water,
+          shadows: const [Shadow(color: Colors.black54, blurRadius: 6)],
+        ),
+      ),
     );
   }
 }

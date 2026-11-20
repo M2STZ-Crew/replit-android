@@ -7,6 +7,32 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.55 — 20 November 2026 — Water sources from the staff map
+
+Goes with backend v1.12.43.
+
+- **Tap a water source on a staff map** (19 Nov: "From the map"). On the
+  coordinator's Map tab and the responder's field map, a hydrant, body of
+  water or cistern opens its sheet: what it is, its status ("Low pressure")
+  and who last checked it ("Checked 2 hours ago by BFP Pasay"). A row under
+  "Around you" opens the same sheet (`lib/widgets/water_source_sheet.dart`).
+- **Directions, by car, for every staff member** (19 Nov: "shelters and
+  hydrants for staffs (4 wheeled car)"). Directions has a third kind,
+  `DirectionsTo.place`: a drive like the fire's, with the routes to choose
+  from first, as a shelter's.
+- **A hydrant's status from the field.** Fire Volunteer and BFP coordinators
+  and responders choose Working, Low pressure, Broken, No access or Under
+  maintenance, with an optional note. It is on every map at once.
+- **Coordinators propose, an Admin approves.** A Fire Volunteer or BFP
+  coordinator edits a source's details or switches it off, saying why. Their
+  + on the map adds one at a pin: a hydrant, a body of water (named) or a
+  cistern. Each goes to an Admin, who approves or rejects it in the console's
+  Water resources, and the coordinator is told the answer in Alerts.
+- **Residents see where water is, never its status.** The resident map's
+  hydrant and cistern details no longer show a status.
+
+---
+
 ## v1.12.54 — 20 November 2026 — The far-fire alert in the team's own voice
 
 App only; the backend stays at v1.12.42.
