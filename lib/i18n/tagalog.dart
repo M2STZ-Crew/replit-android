@@ -2554,4 +2554,64 @@ const Map<String, String> kTagalog = {
   'The fire': 'Ang sunog',
   'An incident': 'Isang insidente',
   'Fires': 'Mga sunog',
+
+  // Water sources from the staff map (v1.12.55).
+  'Working': 'Gumagana',
+  'Low pressure': 'Mahina ang presyon',
+  'Broken': 'Sira',
+  'No access': 'Hindi malapitan',
+  'Under maintenance': 'Inaayos',
+  'Not checked': 'Hindi pa nasusuri',
+  'Status saved. It is on every map now.':
+      'Naka-save na ang status. Nasa bawat mapa na ito ngayon.',
+  'Sent to an Admin to approve. You will be told the answer.':
+      'Naipadala na sa isang Admin para aprubahan. Sasabihan ka sa sagot.',
+  'Not checked on the ground yet': 'Hindi pa nasusuri sa mismong lugar',
+  'Checked {when}': 'Nasuri {when}',
+  'Checked {when} by {by}': 'Nasuri {when} ng {by}',
+  '{n} litres': '{n} litro',
+  'Directions': 'Direksyon',
+  'Update status': 'I-update ang status',
+  'Edit details': 'I-edit ang detalye',
+  'Switch off': 'I-off',
+  'Edits and switching off wait for an Admin to approve. A status update is on every map at once.':
+      'Hinihintay muna ang pag-apruba ng Admin sa pag-edit at pag-off. Ang update ng status ay lalabas agad sa bawat mapa.',
+  'Edits and switching off wait for an Admin to approve.':
+      'Hinihintay muna ang pag-apruba ng Admin sa pag-edit at pag-off.',
+  'Could not reach the server. Check your connection and try again.':
+      'Hindi maabot ang server. Tingnan ang connection mo at subukan ulit.',
+  'How is this hydrant?': 'Kumusta ang hydrant na ito?',
+  'Say what you found when you checked it. Everyone on the map sees it at once, with your organization and the time.':
+      'Sabihin kung ano ang nakita mo nang suriin mo ito. Makikita agad ito ng lahat sa mapa, kasama ang organisasyon mo at ang oras.',
+  'What you saw (optional)': 'Ang nakita mo (opsyonal)',
+  'Weak flow at 8 PM': 'Mahina ang daloy nang 8 PM',
+  'Choose a status': 'Pumili ng status',
+  'Save: {status}': 'I-save: {status}',
+  'Switch this water source off?': 'I-off ang water source na ito?',
+  'Once an Admin approves, it leaves every map. It stays on record and can be switched back on.':
+      'Kapag inaprubahan ng Admin, mawawala ito sa bawat mapa. Mananatili itong nakatala at puwedeng i-on ulit.',
+  'Dried up since October': 'Natuyo na mula noong Oktubre',
+  'Send for approval': 'Ipadala para aprubahan',
+  'Say why to send': 'Sabihin kung bakit para maipadala',
+  'Add a water source': 'Magdagdag ng water source',
+  'An Admin checks it before it changes the map, and you are told the answer.':
+      'Susuriin ito ng isang Admin bago magbago ang mapa, at sasabihan ka sa sagot.',
+  'Name': 'Pangalan',
+  'Name (optional)': 'Pangalan (opsyonal)',
+  'Code (optional)': 'Code (opsyonal)',
+  'Type (optional)': 'Uri (opsyonal)',
+  'River, creek, pond': 'Ilog, sapa, lawa',
+  'A fire truck can reach it': 'Kaya itong abutin ng fire truck',
+  'Capacity in litres (optional)': 'Laman sa litro (opsyonal)',
+  'Address (optional)': 'Address (opsyonal)',
+  'Description (optional)': 'Paglalarawan (opsyonal)',
+  'Note for the Admin (optional)': 'Mensahe para sa Admin (opsyonal)',
+  'Name it to send': 'Lagyan ng pangalan para maipadala',
+  'Change something to send': 'Baguhin muna ang isang detalye para maipadala',
+  'Move the map until the pin is on the water source.':
+      'Galawin ang mapa hanggang nasa water source ang pin.',
+  'Use this spot': 'Gamitin ang puwestong ito',
+  'Driving directions': 'Direksyon sa pagmamaneho',
+  'The server is not ready to save this yet. Try again later, or choose Working, Broken or Under maintenance.':
+      'Hindi pa handa ang server na i-save ito. Subukan ulit mamaya, o piliin ang Gumagana, Sira o Inaayos.',
 };
