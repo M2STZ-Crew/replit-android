@@ -116,6 +116,19 @@ class NavBarShell extends StatelessWidget {
     return id == null ? disc : PracticeTarget(id: id, round: true, child: disc);
   }
 
+  /// A slot's share of the row, so the disc's slot stays under the disc,
+  /// which sits at the centre: equal shares when as many tabs flank it on
+  /// each side, and the shorter side's tabs wider when not (the
+  /// coordinator's Queue, Map, LIVE, Profile since v1.12.56).
+  int _flex(int i) {
+    final left = discSlot;
+    final right = items.length - discSlot - 1;
+    if (left == right || left <= 0 || right <= 0) return 1;
+    if (i < discSlot) return right;
+    if (i > discSlot) return left;
+    return left < right ? left : right;
+  }
+
   @override
   Widget build(BuildContext context) {
     // The design's bar is 102px: a 4px lip and a 64px tab row over the 34px
@@ -156,6 +169,7 @@ class NavBarShell extends StatelessWidget {
                       children: [
                         for (final (i, item) in items.indexed)
                           Expanded(
+                            flex: _flex(i),
                             child: i == discSlot
                                 // The disc owns this slot; it sits above the row.
                                 ? const SizedBox.shrink()

@@ -196,7 +196,7 @@ class NotificationRouter {
             ),
           );
         case NotificationTarget.staffIncident:
-          return await _openStaffIncident(nav, areaId!, me);
+          return await openStaffIncident(nav, areaId!, me);
         case NotificationTarget.alarmRequests:
           nav.push(
             MaterialPageRoute<void>(
@@ -231,7 +231,10 @@ class NotificationRouter {
   /// A responder lands on the incident, where Verify, Respond, En route and
   /// Arrived are; a coordinator where their dashboard would send them for its
   /// current state (review, command, or the report owed).
-  Future<bool> _openStaffIncident(
+  /// The incident as the staff account [me] works it: a responder's incident
+  /// screen, or a coordinator's. Also where a staff member's own report
+  /// lands (v1.12.56).
+  Future<bool> openStaffIncident(
     NavigatorState nav,
     String areaId,
     Map<String, dynamic> me,

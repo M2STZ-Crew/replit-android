@@ -23,6 +23,7 @@ import '../widgets/map_layers.dart';
 import '../widgets/map_marker.dart';
 import '../widgets/map_tiles.dart';
 import 'area_detail_screen.dart';
+import 'directions_screen.dart';
 import '../widgets/you_are_here.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/responsive_frame.dart';
@@ -1444,6 +1445,33 @@ class _MapScreenState extends State<MapScreen> {
         if (s['contact_info'] != null)
           _DetailRow(t('Contact'), s['contact_info'] as String),
       ],
+      // On foot, the way a resident leaves (19 Nov 2026: "shelters for
+      // citizens only walking by default"); water sources get none.
+      action: (sheet) => AppButton(
+        t('Directions'),
+        icon: AppIcons.directionsWalk,
+        onPressed: () {
+          Navigator.of(sheet).pop();
+          _walkTo(s);
+        },
+      ),
+    );
+  }
+
+  /// Walking directions to a shelter: the route screen residents get from
+  /// a report, with no report needed.
+  void _walkTo(Map<String, dynamic> s) {
+    final lat = (s['latitude'] as num?)?.toDouble();
+    final lng = (s['longitude'] as num?)?.toDouble();
+    if (lat == null || lng == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DirectionsScreen(
+          destLat: lat,
+          destLng: lng,
+          destName: (s['name'] as String?) ?? t('Evacuation site'),
+        ),
+      ),
     );
   }
 
@@ -1524,6 +1552,7 @@ class _MapScreenState extends State<MapScreen> {
     required String tag,
     required String title,
     required List<_DetailRow> rows,
+    Widget Function(BuildContext sheet)? action,
   }) {
     showAppSheet<void>(
       context: context,
@@ -1533,7 +1562,7 @@ class _MapScreenState extends State<MapScreen> {
           top: Radius.circular(AppRadius.sheet),
         ),
       ),
-      builder: (_) => SafeArea(
+      builder: (sheet) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
           child: Column(
@@ -1566,6 +1595,10 @@ class _MapScreenState extends State<MapScreen> {
               ),
               const SizedBox(height: 20),
               ...rows.map(_detailRowTile),
+              if (action != null) ...[
+                const SizedBox(height: 6),
+                SizedBox(width: double.infinity, child: action(sheet)),
+              ],
             ],
           ),
         ),

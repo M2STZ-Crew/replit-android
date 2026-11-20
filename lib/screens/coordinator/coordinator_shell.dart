@@ -4,7 +4,6 @@ import '../../api/api_client.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/app_nav_bar.dart';
-import 'codes_tab.dart';
 import 'coordinator_feed.dart';
 import 'live_incident.dart';
 import 'map_tab.dart';
@@ -14,13 +13,14 @@ import '../../i18n/i18n.dart';
 import '../../updates/update_banner.dart';
 import '../../widgets/responsive_frame.dart';
 
-/// The coordinator's five destinations (REPLIT (MAIN) 06 · Coordinator
-/// Experience): Queue, Map, the raised LIVE disc, Codes, Profile.
+/// The coordinator's destinations (REPLIT (MAIN) 06 · Coordinator
+/// Experience): Queue, Map, the raised LIVE disc, Profile. The fire codes
+/// left the bar for LIVE's incident drawer in v1.12.56 (19 Nov 2026: "the
+/// coordinator cannot change screen because of that thing").
 enum CoordinatorTab {
   queue('Queue', AppIcons.inbox),
   map('Map', AppIcons.map),
   live('LIVE', AppIcons.circle),
-  codes('Codes', AppIcons.gridView),
   profile('Profile', AppIcons.person);
 
   const CoordinatorTab(this.label, this.icon);
@@ -29,7 +29,7 @@ enum CoordinatorTab {
   final IconData icon;
 }
 
-/// Every organisation's coordinator app: one bar, five tabs, and the shared
+/// Every organisation's coordinator app: one bar, four tabs, and the shared
 /// [CoordinatorFeed] they read from. A Police, Medical or Barangay
 /// coordinator gets the same tabs (06 · C01P) with only what the server lets
 /// them do ([CoordinatorPowers]).
@@ -131,9 +131,6 @@ class CoordinatorShellState extends State<CoordinatorShell> {
       focus: _liveFocus,
       visible: _tab == CoordinatorTab.live,
       onFocus: (id) => setState(() => _liveFocus = id),
-    ),
-    CoordinatorTab.codes => ReadingColumn(
-      child: CodesTab(feed: feed, focus: _liveFocus),
     ),
     CoordinatorTab.profile => ReadingColumn(child: ProfileTab(feed: feed)),
   };

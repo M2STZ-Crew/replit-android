@@ -17,6 +17,7 @@ import 'package:replit/screens/live_update_screen.dart';
 import 'package:replit/screens/report_status_screen.dart';
 import 'package:replit/theme.dart';
 import 'package:replit/widgets/design.dart';
+import 'package:replit/widgets/map_marker.dart';
 import 'package:replit/widgets/unit_groups.dart';
 import 'package:replit/widgets/app_icons.dart';
 
@@ -106,6 +107,7 @@ void main() {
   late bool reporter;
   late String areaStatus;
   late Map<String, dynamic> served;
+  late List<Map<String, dynamic>> shelters;
 
   ApiClient api() => ApiClient(
     client: MockClient((req) async {
@@ -124,8 +126,10 @@ void main() {
                 403,
               );
       }
-      if (path.endsWith('/reports/mine') ||
-          path.endsWith('/map/evacuation-sites')) {
+      if (path.endsWith('/map/evacuation-sites')) {
+        return http.Response(jsonEncode(shelters), 200);
+      }
+      if (path.endsWith('/reports/mine')) {
         return http.Response('[]', 200);
       }
       return http.Response(
@@ -148,6 +152,7 @@ void main() {
     reporter = true;
     areaStatus = 'en_route';
     served = snapshot();
+    shelters = [];
     SharedPreferences.setMockInitialValues({});
     ActiveReportStore.reset();
     Session.instance.email = 'm.reyes@gmail.com';
@@ -190,6 +195,34 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1)); // the glide
   }
+
+  // 19 Nov 2026: "the evacuation centers bombarded the map so that the
+  // citizen cannot see where the firefighters are" (v1.12.56).
+  testWidgets('only the nearest open shelter is on the map', (tester) async {
+    Map<String, dynamic> site(String name, double north, {bool open = true}) =>
+        {
+          'id': name,
+          'name': name,
+          'latitude': _fireLat + north / 111195,
+          'longitude': _fireLng,
+          'is_active': open,
+        };
+    shelters = [
+      site('Far Gym', 3000),
+      site('Near Court', 250),
+      site('Closed Hall', 60, open: false),
+      site('Middle School', 900),
+    ];
+    final feed = FakeFeed()..liveNow.value = true;
+    await pump(tester, feed);
+    await push(tester, feed, snapshot());
+    expect(tester.takeException(), isNull);
+    final drawn = tester
+        .widgetList<MapMarker>(find.byType(MapMarker))
+        .where((m) => m.kind == MapMarkerKind.shelter)
+        .toList();
+    expect(drawn.map((m) => m.label), ['Near Court']);
+  });
 
   for (final scale in <double>[1.0, 1.5]) {
     testWidgets('each truck is named, placed and measured, at ${scale}x', (

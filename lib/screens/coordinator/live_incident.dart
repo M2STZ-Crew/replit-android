@@ -28,6 +28,7 @@ import '../bfp/bfp_alarm_requests_screen.dart';
 import '../responder/responder_status.dart';
 import '../subadmin/post_incident_report_screen.dart';
 import 'area_decision_screen.dart';
+import 'codes_tab.dart';
 import 'coordinator_feed.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
@@ -558,6 +559,21 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     );
   }
 
+  /// This incident's fire codes: pressed by Fire Volunteer and BFP
+  /// coordinators, read by everyone else.
+  Future<void> _codes() async {
+    final area = _area;
+    if (area == null) return;
+    await showFrameSheet<void>(
+      context,
+      builder: (_) => FireCodesSheet(
+        api: _api,
+        area: area,
+        presses: _powers.pressesCodes,
+      ),
+    );
+  }
+
   /// The Area's details — where it is, how sure, the summary, every report.
   Future<void> _details() async {
     final changed = await Navigator.of(context).push<bool>(
@@ -863,6 +879,19 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                               !(_powers.requestsAlarm || _powers.decidesAlarm)
                           ? null
                           : _alarm,
+                    ),
+                    const SizedBox(height: 12),
+                    // The fire codes, for this incident only (v1.12.56: they
+                    // were a tab of their own, tied to whichever fire LIVE
+                    // showed).
+                    ListRow(
+                      leading: const IconPlate(AppIcons.gridView),
+                      title: t('Fire codes'),
+                      subtitle: _powers.pressesCodes
+                          ? t('Press one to record it on this incident')
+                          : t('What each code means'),
+                      chevron: true,
+                      onTap: _codes,
                     ),
                     const SizedBox(height: 12),
                     ListRow(

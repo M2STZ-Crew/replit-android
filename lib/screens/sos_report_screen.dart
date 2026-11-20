@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../api/api_client.dart';
+import '../api/notification_router.dart';
 import '../api/reporting_standing.dart';
 import '../api/session.dart';
 import '../api/report_queue.dart';
@@ -281,6 +282,34 @@ class _SosReportScreenState extends State<SosReportScreen> {
     List<String> agencies,
     Position pos,
   ) async {
+    // A coordinator's or responder's report starts acknowledged by their
+    // organization (backend v1.12.44; 19 Nov 2026, "Acknowledged on
+    // sending"): it opens as the incident they work, where they respond,
+    // not as a resident's tracker.
+    final me = StaffAccount.current;
+    final areaId = data['area_id'] as String?;
+    if (areaId != null && worksIncidentsInApp(me)) {
+      final navigator = Navigator.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            data['acknowledged'] == true
+                ? t(
+                    'Reported, and acknowledged for your organization. Staff '
+                    'on duty were alerted.',
+                  )
+                : t('Reported. Staff on duty were alerted.'),
+          ),
+        ),
+      );
+      navigator.popUntil((route) => route.isFirst);
+      await NotificationRouter(api: _api).openStaffIncident(
+        navigator,
+        areaId,
+        me!,
+      );
+      return;
+    }
     final createdRaw = data['created_at'] as String?;
     DateTime when;
     try {
