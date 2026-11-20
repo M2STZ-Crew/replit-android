@@ -162,6 +162,12 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     }
   }
 
+  /// "Near F. Victor Street, Barangay 76 Zone 10, Pasay" (backend v1.12.45).
+  String? get _placeLine {
+    final line = (_area?['place_line'] as String?)?.trim();
+    return line == null || line.isEmpty ? null : fireName(line);
+  }
+
   LatLng? get _centre {
     final lat = (_area?['centroid_lat'] as num?)?.toDouble();
     final lng = (_area?['centroid_lng'] as num?)?.toDouble();
@@ -268,7 +274,12 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
         style: context.type.heading1,
       ),
       const SizedBox(height: 6),
-      Text(_place ?? t('Pasay City'), style: context.type.body),
+      // The server's full place (v1.12.45): street, barangay, district,
+      // city; else what the phone's geocoder said.
+      Text(
+        _placeLine ?? _place ?? t('Pasay City'),
+        style: context.type.body,
+      ),
       const SizedBox(height: 18),
       Wrap(
         spacing: 8,

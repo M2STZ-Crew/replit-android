@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,6 +8,7 @@ import '../../models/area_view.dart';
 import '../../models/water_source.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/barangay_layer.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
 import '../../widgets/map_glass.dart';
@@ -75,6 +78,8 @@ class _MapTabState extends State<MapTab> {
     'water',
     'cisterns',
     'risk',
+    kFireRiskLayer,
+    kBarangaysLayer,
     'fire',
     'police',
   ];
@@ -86,11 +91,41 @@ class _MapTabState extends State<MapTab> {
     'evac' => t('Shelters'),
     'water' => t('Water'),
     'risk' => t('Risk zones'),
+    kFireRiskLayer => t('High fire risk'),
+    kBarangaysLayer => t('Barangays'),
     'fire' => t('Fire stations'),
     'police' => t('Police'),
     _ => layer.label,
   };
-  final Set<String> _on = {'incidents', 'hydrants', 'evac'};
+  final Set<String> _on = {'incidents', 'hydrants', 'evac', kFireRiskLayer};
+
+  /// The barangay layer's polygons (v1.12.57), read once either chip is on.
+  List<Map<String, dynamic>> _barangayRows = const [];
+  BarangayShapes _barangayShapes = BarangayShapes.empty;
+  Brightness? _barangayShade;
+  bool _barangaysAsked = false;
+
+  Future<void> _loadBarangays() async {
+    if (_barangaysAsked) return;
+    _barangaysAsked = true;
+    try {
+      final rows = (await widget.feed.api.getBarangays())
+          .cast<Map<String, dynamic>>();
+      if (mounted) setState(() => _barangayRows = rows);
+    } catch (_) {
+      _barangaysAsked = false; // try again when a chip is next turned on
+    }
+  }
+
+  BarangayShapes _shapes(AppPalette pal) {
+    final shade = pal.isLight ? Brightness.light : Brightness.dark;
+    if (_barangayShade != shade ||
+        (_barangayShapes.outlines.isEmpty && _barangayRows.isNotEmpty)) {
+      _barangayShade = shade;
+      _barangayShapes = BarangayShapes.from(_barangayRows, pal);
+    }
+    return _barangayShapes;
+  }
   final Map<String, List<OpsPoint>> _cache = {};
 
   @override
@@ -99,6 +134,7 @@ class _MapTabState extends State<MapTab> {
     for (final l in _layers) {
       if (_on.contains(l.key)) _fetch(l);
     }
+    unawaited(_loadBarangays());
   }
 
   @override
@@ -131,6 +167,9 @@ class _MapTabState extends State<MapTab> {
       if (!_on.remove(layer.key)) _on.add(layer.key);
     });
     if (_on.contains(layer.key)) _fetch(layer);
+    if (_on.contains(kFireRiskLayer) || _on.contains(kBarangaysLayer)) {
+      unawaited(_loadBarangays());
+    }
   }
 
   /// A water source's or shelter's sheet, on a tap (v1.12.55, v1.12.56);
@@ -304,6 +343,12 @@ class _MapTabState extends State<MapTab> {
                     metres: kAreaRadiusMetres,
                   ),
             ],
+          ),
+        if (_on.contains(kBarangaysLayer) || _on.contains(kFireRiskLayer))
+          BarangayLayer(
+            shapes: _shapes(pal),
+            outlines: _on.contains(kBarangaysLayer),
+            risk: _on.contains(kFireRiskLayer),
           ),
         ZoomGatedMarkers(markers: layerMarkers),
         MarkerLayer(rotate: true, markers: markers),

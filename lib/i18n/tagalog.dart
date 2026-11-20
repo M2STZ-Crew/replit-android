@@ -2623,4 +2623,10 @@ const Map<String, String> kTagalog = {
   'Press one to record it on this incident':
       'Pumindot ng isa para maitala ito sa insidenteng ito',
   'What each code means': 'Ano ang ibig sabihin ng bawat code',
+
+  // The barangay layer (v1.12.57).
+  'Barangays': 'Mga barangay',
+  'High fire risk': 'Mataas na panganib sa sunog',
+  'High fire-risk zone (research-based)':
+      'Lugar na mataas ang panganib sa sunog (batay sa pananaliksik)',
 };

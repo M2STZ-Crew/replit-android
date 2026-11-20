@@ -299,7 +299,8 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     final c = area.centre;
     final eyebrow = [area.name, ?place.place?.split(',').first].join(' · ');
     final subtitle = [
-      ?place.line,
+      // The server's full place (v1.12.45), else the phone's lookup.
+      ?(area.placeLine ?? place.line),
       if (c != null) degrees(c.latitude, c.longitude),
     ].join(' · ');
     return Column(

@@ -16,6 +16,7 @@ import '../location/live_position.dart';
 import '../models/hotline.dart';
 import '../theme.dart';
 import '../widgets/app_nav_bar.dart';
+import '../widgets/barangay_layer.dart';
 import '../widgets/design.dart';
 import '../widgets/drag_down_sheet.dart';
 import '../widgets/map_glass.dart';
@@ -53,7 +54,7 @@ const Duration _fixWait = Duration(seconds: 20);
 /// One chip in the "Map layers" row, and the layer it switches.
 /// What a layer is drawn in. A role rather than a swatch, so the light and
 /// dark palettes each give it their own value.
-enum _Tone { incident, shelter, hydrant, risk, water, cistern }
+enum _Tone { incident, shelter, hydrant, risk, water, cistern, barangay }
 
 class _Layer {
   const _Layer(
@@ -81,6 +82,7 @@ class _Layer {
     _Tone.shelter => MapMarkerKind.shelter,
     _Tone.risk => MapMarkerKind.risk,
     _Tone.incident => MapMarkerKind.incident,
+    _Tone.barangay => MapMarkerKind.barangay,
   };
 
   /// The shared legend tone (MapMarkerKind.tone), so this map and the staff
@@ -137,6 +139,10 @@ const _cisterns = _Layer(
   icon: AppIcons.waterDamage,
 );
 
+// The barangay layer (v1.12.57): outlines, and Pasay's High fire-risk zones.
+const _barangays = _Layer(kBarangaysLayer, 'Barangays', _Tone.barangay);
+const _fireRisk = _Layer(kFireRiskLayer, 'High fire risk', _Tone.risk);
+
 List<_Layer> _layers = [
   _incidents,
   _shelters,
@@ -144,6 +150,8 @@ List<_Layer> _layers = [
   _risk,
   _water,
   _cisterns,
+  _fireRisk,
+  _barangays,
 ];
 List<_Layer> _gisLayers = [_risk, _hydrants, _water, _cisterns];
 
@@ -215,7 +223,13 @@ class _MapScreenState extends State<MapScreen> {
   /// means "not known yet", not "nothing active".
   bool _areasLoaded = false;
 
-  final Set<String> _on = {'incidents', 'evac'};
+  final Set<String> _on = {'incidents', 'evac', kFireRiskLayer};
+
+  /// The barangay layer's rows, and its polygons made from them once.
+  List<Map<String, dynamic>> _barangayRows = const [];
+  BarangayShapes _barangayShapes = BarangayShapes.empty;
+  Brightness? _barangayShade;
+  bool _barangaysAsked = false;
   List<Map<String, dynamic>> _areas = [];
   List<Map<String, dynamic>> _evac = [];
   final Map<String, List<Map<String, dynamic>>> _gis = {};
@@ -359,6 +373,9 @@ class _MapScreenState extends State<MapScreen> {
     if (mounted) setState(() => _cacheSavedAt = savedAt);
     await Future.wait([_loadAreas(), _loadEvac()]);
     if (mounted) setState(() => _loading = false);
+    if (_on.contains(kFireRiskLayer) || _on.contains(kBarangaysLayer)) {
+      unawaited(_loadBarangays());
+    }
     unawaited(_refreshStaleLayers());
     await _locateQuietly(recenter: true);
   }
@@ -424,6 +441,10 @@ class _MapScreenState extends State<MapScreen> {
     setState(() {
       if (!_on.remove(layer.key)) _on.add(layer.key);
     });
+    if (layer == _barangays || layer == _fireRisk) {
+      if (_on.contains(layer.key)) unawaited(_loadBarangays());
+      return;
+    }
     if (_on.contains(layer.key) &&
         layer.isGis &&
         !_gis.containsKey(layer.key)) {
@@ -452,6 +473,40 @@ class _MapScreenState extends State<MapScreen> {
 
   /// Once a day, fetch every reference layer — chip on or not — so it is on
   /// the phone before the signal is gone rather than after.
+  /// The barangay layer: the saved copy at once, then a fresh one, once.
+  Future<void> _loadBarangays() async {
+    if (_barangaysAsked) return;
+    _barangaysAsked = true;
+    final cached = await MapCache.instance.get('barangays');
+    if (cached != null && mounted && _barangayRows.isEmpty) {
+      setState(() => _barangayRows = cached);
+    }
+    await _fetchBarangays();
+  }
+
+  Future<void> _fetchBarangays() async {
+    try {
+      final rows = (await _api.getBarangays()).cast<Map<String, dynamic>>();
+      if (rows.isEmpty) return;
+      unawaited(_save('barangays', rows));
+      if (mounted) setState(() => _barangayRows = rows);
+    } catch (_) {
+      // Offline or failing: the saved copy stands.
+    }
+  }
+
+  /// The polygons for this palette, made again only when the rows or the
+  /// theme change.
+  BarangayShapes _shapes(AppPalette pal) {
+    final shade = pal.isLight ? Brightness.light : Brightness.dark;
+    if (_barangayShade != shade ||
+        (_barangayShapes.outlines.isEmpty && _barangayRows.isNotEmpty)) {
+      _barangayShade = shade;
+      _barangayShapes = BarangayShapes.from(_barangayRows, pal);
+    }
+    return _barangayShapes;
+  }
+
   Future<void> _refreshStaleLayers() async {
     if (_offline) return;
     final stale = await MapCache.instance.stale();
@@ -789,6 +844,12 @@ class _MapScreenState extends State<MapScreen> {
               for (final r in _gis['risk'] ?? const <Map<String, dynamic>>[])
                 ...MapAreas.riskZone(context.pal, r['area_geojson']),
             ],
+          ),
+        if (_on.contains(kBarangaysLayer) || _on.contains(kFireRiskLayer))
+          BarangayLayer(
+            shapes: _shapes(context.pal),
+            outlines: _on.contains(kBarangaysLayer),
+            risk: _on.contains(kFireRiskLayer),
           ),
         ZoomGatedMarkers(markers: _layerMarkers()),
         MarkerLayer(rotate: true, markers: _markers()),
