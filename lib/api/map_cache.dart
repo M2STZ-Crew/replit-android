@@ -19,13 +19,15 @@ class MapCache {
 
   static const String _prefix = 'map_cache_v1_';
 
-  /// Layer keys, matching the endpoints: evac, risk, hydrants, water, cisterns.
+  /// Layer keys, matching the endpoints: evac, risk, hydrants, water,
+  /// cisterns, and (v1.12.57) the barangay outlines.
   static const List<String> layers = [
     'evac',
     'risk',
     'hydrants',
     'water',
     'cisterns',
+    'barangays',
   ];
 
   /// How old a layer may get before the map refreshes it in the background,

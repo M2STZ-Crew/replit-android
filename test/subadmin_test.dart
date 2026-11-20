@@ -18,6 +18,7 @@ import 'package:replit/screens/subadmin/post_incident_report_screen.dart';
 import 'package:replit/screens/subadmin/subadmin_incident_command_screen.dart';
 import 'package:replit/screens/subadmin/subadmin_incident_report_screen.dart';
 import 'package:replit/theme.dart';
+import 'package:replit/widgets/barangay_layer.dart';
 import 'package:replit/widgets/ops_layers.dart';
 import 'package:replit/widgets/photo_viewer.dart';
 import 'package:replit/widgets/app_icons.dart';
@@ -257,7 +258,12 @@ void main() {
     test('every chip has data behind it', () {
       final layers = opsLayers(ApiClient());
       expect(layers.first.key, 'incidents');
+      // The barangay chips (v1.12.57) draw outlines from GET /map/barangays
+      // ([BarangayLayer]), not points; every other chip loads points.
+      const polygons = {kFireRiskLayer, kBarangaysLayer};
+      expect(layers.map((l) => l.key), containsAll(polygons));
       for (final layer in layers.skip(1)) {
+        if (polygons.contains(layer.key)) continue;
         expect(layer.load, isNotNull, reason: layer.key);
       }
       // The data-less chips the dashboards used to carry are gone.

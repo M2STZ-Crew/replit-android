@@ -20,6 +20,15 @@ class AreaView {
   /// Tagalog), or "Incident" while it has none. Never the Area number.
   String get name => fireNameOr(designation, t('Incident'));
 
+  /// Where it is in full, from the server (backend v1.12.45): "Near F.
+  /// Victor Street, Barangay 76 Zone 10, Pasay"; "Malapit sa ..." in
+  /// Tagalog. Null for a fire named before the barangays, or outside Metro
+  /// Manila: the phone's own street lookup stands in.
+  String? get placeLine {
+    final line = (raw['place_line'] as String?)?.trim();
+    return line == null || line.isEmpty ? null : fireName(line);
+  }
+
   String get status => (raw['status'] as String?) ?? 'reported';
 
   LatLng? get centre {

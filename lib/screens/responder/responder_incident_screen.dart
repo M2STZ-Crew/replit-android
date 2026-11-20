@@ -635,7 +635,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
         : t('{formatDistance} from you', {
             'formatDistance': formatDistance(metresBetween(here, centre)),
           });
-    final subtitle = [?place.line, ?away].join(' — ');
+    // The server's full place (v1.12.45), else the phone's lookup.
+    final subtitle = [?(area.placeLine ?? place.line), ?away].join(' — ');
     final reported = area.reportedAt;
     final asked = askedFor(area.requested);
     final routing = routingLabel(

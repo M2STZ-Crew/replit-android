@@ -1401,6 +1401,10 @@ class ApiClient {
   Future<List<dynamic>> getUndergroundCisterns() =>
       _mapLayer('underground-cisterns');
 
+  /// Metro Manila's barangay outlines, with Pasay's High fire-risk zones
+  /// (backend v1.12.45): about 1.3 MB, sent gzipped.
+  Future<List<dynamic>> getBarangays() => _mapLayer('barangays');
+
   Future<List<dynamic>> _mapLayer(String layer) async {
     final resp = await _client.get(
       Uri.parse('${ApiConfig.baseUrl}/map/$layer'),

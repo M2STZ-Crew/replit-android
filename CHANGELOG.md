@@ -7,6 +7,30 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.57 — 20 November 2026 — Every fire in its barangay; the barangay layer
+
+Goes with backend v1.12.45.
+
+- **A fire says its barangay** (19 Nov: "Concha Street corner Camba Street,
+  Barangay 70 Zone 10, Tondo, Manila ... we are covering metro manila for
+  now"). Alerts and lists show the server's short name ("Near F. Victor St.,
+  Brgy 76, Pasay"); the incident's detail screens, for residents,
+  coordinators and responders, show the full place under its title ("Near F.
+  Victor Street, Barangay 76 Zone 10, Pasay"), else the phone's own street
+  lookup as before. Tagalog says "Malapit sa ...".
+- **The barangay layer on every map** (19 Nov: "displayed as a clean layer
+  so you can color-code and highlight fire risk zones"). Two chips, on the
+  resident map and the coordinator's and responder's maps:
+  - **High fire risk**, on at first: Pasay's eight High fire-risk zones (86
+    barangays) filled red. A tap on one says "Barangay 51 Zone 8, Pasay ·
+    High fire-risk zone (research-based)": never a BFP designation.
+  - **Barangays**: every barangay's border in Metro Manila, dashed, from
+    street level in (`lib/widgets/barangay_layer.dart`).
+  The admin-drawn Risk zones stay their own chip. The layer is kept on the
+  phone with the others for maps without signal.
+
+---
+
 ## v1.12.56 — 20 November 2026 — Your own report, codes in LIVE, shelters by car
 
 Goes with backend v1.12.44.

@@ -130,6 +130,10 @@ List<OpsLayer> opsLayers(ApiClient api) => [
     () async =>
         _points(await api.getUndergroundCisterns(), 'latitude', 'longitude'),
   ),
+  // The barangay layer (v1.12.57): drawn by each map ([BarangayLayer]) from
+  // GET /map/barangays, not as points.
+  const OpsLayer('fireRisk', 'High fire risk', MapMarkerKind.risk, null),
+  const OpsLayer('barangays', 'Barangays', MapMarkerKind.barangay, null),
   // Static reference lists held in the app — there is no station GIS table.
   OpsLayer(
     'fire',
