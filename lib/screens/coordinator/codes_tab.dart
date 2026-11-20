@@ -1,36 +1,43 @@
 import 'package:flutter/material.dart';
 
 import '../../api/api_client.dart';
-import '../../location/responder_tracker.dart';
 import '../../models/area_view.dart';
-import '../../models/coordinator_powers.dart';
 import '../../theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/coordinator_kit.dart';
 import '../../widgets/design.dart';
-import 'coordinator_feed.dart';
-import 'live_incident.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 
-/// The Codes tab (06 · C11b): the fire codes, pressed on the incident LIVE
-/// is showing. A press records an event on the incident (and tells its
-/// units); it never changes the Area's status.
-class CodesTab extends StatefulWidget {
-  const CodesTab({super.key, required this.feed, required this.focus});
+/// The fire codes of one incident (06 · C11b), from the Fire codes row in
+/// LIVE's incident drawer. A press records an event on that incident (and
+/// tells its units); it never changes the Area's status.
+///
+/// Until v1.12.56 this was the Codes tab, pressed on whichever incident LIVE
+/// showed, and a coordinator could get stuck there (19 Nov 2026: "fire code
+/// logical flaw. put it in the incident details drawer"; answered "In the
+/// incident's details only"). Opened from an incident, it can only ever be
+/// that incident's.
+class FireCodesSheet extends StatefulWidget {
+  const FireCodesSheet({
+    super.key,
+    required this.api,
+    required this.area,
+    required this.presses,
+  });
 
-  final CoordinatorFeed feed;
+  final ApiClient api;
+  final AreaView area;
 
-  /// The Area LIVE is showing, if one was chosen.
-  final String? focus;
+  /// Fire Volunteer and BFP coordinators press codes ([CoordinatorPowers]);
+  /// everyone else reads them.
+  final bool presses;
 
   @override
-  State<CodesTab> createState() => _CodesTabState();
+  State<FireCodesSheet> createState() => _FireCodesSheetState();
 }
 
-class _CodesTabState extends State<CodesTab> {
-  ApiClient get _api => widget.feed.api;
-
+class _FireCodesSheetState extends State<FireCodesSheet> {
   List<Map<String, dynamic>>? _codes;
   String? _error;
   String? _pressing;
@@ -46,7 +53,7 @@ class _CodesTabState extends State<CodesTab> {
 
   Future<void> _load() async {
     try {
-      final rows = (await _api.getFireCodes()).cast<Map<String, dynamic>>()
+      final rows = (await widget.api.getFireCodes()).cast<Map<String, dynamic>>()
         ..sort(
           (a, b) => ((a['display_order'] as num?) ?? 0).compareTo(
             (b['display_order'] as num?) ?? 0,
@@ -66,11 +73,11 @@ class _CodesTabState extends State<CodesTab> {
     }
   }
 
-  Future<void> _press(Map<String, dynamic> code, AreaView area) async {
+  Future<void> _press(Map<String, dynamic> code) async {
     final id = code['id'] as String;
     setState(() => _pressing = id);
     try {
-      await _api.pressFireCode(id, areaId: area.id);
+      await widget.api.pressFireCode(id, areaId: widget.area.id);
       if (!mounted) return;
       setState(
         () => _recorded = t(
@@ -82,6 +89,7 @@ class _CodesTabState extends State<CodesTab> {
         ),
       );
     } on ApiException catch (e) {
+      if (mounted) setState(() => _recorded = null);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -100,79 +108,37 @@ class _CodesTabState extends State<CodesTab> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        widget.feed,
-        ResponderTracker.instance.sharingFor,
-      ]),
-      builder: (context, _) {
-        final live = [
-          for (final a in widget.feed.active)
-            if (a.live) a,
-          for (final a in widget.feed.active)
-            if (!a.live) a,
-        ];
-        final area = liveFocus(live, widget.focus);
-        return SafeArea(
-          bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TabHeader(
-                eyebrow: area?.name ?? t('No live incident'),
-                title: t('Fire codes'),
-                subtitle: t(
-                  'Pressing a code records an event on this incident. It does not change the incident\'s status.',
-                ),
-              ),
-              Expanded(child: _list(area)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _list(AreaView? live) {
-    // Fire codes direct the fire response: only Fire Volunteer and BFP
-    // coordinators press them (fire_codes.py). Everyone else sees them.
-    final presses = CoordinatorPowers.of(widget.feed.me).pressesCodes;
-    final area = presses ? live : null;
     final codes = _codes;
-    if (codes == null) {
-      return _error == null
-          ? const LoadingView()
-          : EmptyState(
-              title: t('Codes unavailable'),
-              body: _error!,
-              action: AppButton.secondary(t('Try again'), onPressed: _load),
-            );
-    }
-    return ScrollFade(
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          8,
-          24,
-          MediaQuery.paddingOf(context).bottom + kScrollFadeEndPadding,
+    final presses = widget.presses;
+    return SheetFrame(
+      children: [
+        SheetTitles(
+          eyebrow: widget.area.name,
+          title: t('Fire codes'),
+          body: t(
+            'Pressing a code records an event on this incident. It does not change the incident\'s status.',
+          ),
         ),
-        children: [
-          if (!presses)
-            InlineAlert(
-              body: t(
-                'Fire codes are pressed by Fire Volunteer and BFP '
-                'Coordinators. You can see each one here.',
-              ),
-            )
-          else if (area == null)
-            InlineAlert(
-              body: t(
-                'Codes are pressed on a live incident. When an incident is under way, LIVE shows it and its codes work here.',
-              ),
-            )
-          else if (_recorded != null)
-            InlineAlert(tone: AlertTone.success, body: _recorded!),
-          const SizedBox(height: 16),
+        const SizedBox(height: 16),
+        if (!presses)
+          InlineAlert(
+            body: t(
+              'Fire codes are pressed by Fire Volunteer and BFP '
+              'Coordinators. You can see each one here.',
+            ),
+          )
+        else if (_recorded != null)
+          InlineAlert(tone: AlertTone.success, body: _recorded!),
+        if (!presses || _recorded != null) const SizedBox(height: 16),
+        if (codes == null)
+          _error == null
+              ? const LoadingInline()
+              : EmptyState(
+                  title: t('Codes unavailable'),
+                  body: _error!,
+                  action: AppButton.secondary(t('Try again'), onPressed: _load),
+                )
+        else ...[
           SectionHeader(
             t('All codes'),
             meta: codes.length == 1
@@ -182,7 +148,7 @@ class _CodesTabState extends State<CodesTab> {
           const SizedBox(height: 12),
           for (final c in codes) ...[
             Opacity(
-              opacity: area == null ? AppColors.disabledOpacity : 1,
+              opacity: presses ? 1 : AppColors.disabledOpacity,
               child: ListRow(
                 leading: const _CodePlate(),
                 title: (c['name'] as String?) ?? t('Code'),
@@ -199,15 +165,13 @@ class _CodesTabState extends State<CodesTab> {
                         (c['code_number'] as String?) ?? '',
                         color: context.pal.accentInk,
                       ),
-                onTap: area == null || _pressing != null
-                    ? null
-                    : () => _press(c, area),
+                onTap: !presses || _pressing != null ? null : () => _press(c),
               ),
             ),
             const SizedBox(height: 8),
           ],
         ],
-      ),
+      ],
     );
   }
 }

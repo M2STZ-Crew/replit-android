@@ -19,6 +19,7 @@ import 'package:replit/theme.dart';
 import 'package:replit/widgets/app_icons.dart';
 import 'package:replit/widgets/coordinator_kit.dart';
 import 'package:replit/widgets/map_marker.dart';
+import 'package:replit/widgets/shelter_sheet.dart';
 import 'package:replit/widgets/water_source_sheet.dart';
 
 import 'navigation_test.dart' as nt;
@@ -341,6 +342,40 @@ void main() {
       'target_id': 'h1',
       'proposed_data': {'address': 'F. Victor Street corner Taft Avenue'},
     });
+  });
+
+  testWidgets('staff tap a shelter for its details and car directions', (
+    tester,
+  ) async {
+    GeolocatorPlatform.instance = _Geo();
+    await _open(
+      tester,
+      (context) => openStaffShelter(context, {
+        'id': 's1',
+        'name': 'Pasay Sports Complex',
+        'latitude': 14.5450,
+        'longitude': 121.0014,
+        'address': 'P. Burgos Street',
+        'city': 'Pasay City',
+        'capacity': 300,
+        'outside_pasay': false,
+      }),
+    );
+    expect(find.text('Pasay Sports Complex'), findsOneWidget);
+    expect(find.text('P. Burgos Street, Pasay City'), findsOneWidget);
+    expect(find.text('300 people'), findsOneWidget);
+    await tester.tap(find.text('DIRECTIONS'));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    final screen = tester.widget<DirectionsScreen>(
+      find.byType(DirectionsScreen),
+    );
+    expect(screen.to, DirectionsTo.place);
+    expect(screen.placeKind, MapMarkerKind.shelter);
+    expect(screen.destName, 'Pasay Sports Complex');
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('directions to a hydrant are by car', (tester) async {

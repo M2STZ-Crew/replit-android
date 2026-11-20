@@ -258,7 +258,9 @@ void main() {
         tester.getTopLeft(banner).dy,
         lessThan(tester.getTopLeft(find.text('QUEUE')).dy),
       );
-      await tester.tap(find.bySemanticsLabel(RegExp('^Codes, tab ')));
+      // Four tabs since v1.12.56: the fire codes are in LIVE's drawer.
+      expect(find.bySemanticsLabel(RegExp('^Codes, tab ')), findsNothing);
+      await tester.tap(find.bySemanticsLabel(RegExp('^Profile, tab ')));
       await settle(tester);
       expect(banner, findsNothing);
       await done(tester);
@@ -271,6 +273,12 @@ void main() {
       await tester.tap(find.text('OPEN'));
       await settle(tester);
       expect(find.text('NOBODY GOING YET'), findsOneWidget);
+      // Under Alarm level and, since v1.12.56, Fire codes.
+      await tester.dragUntilVisible(
+        find.text('I AM GOING'),
+        find.byType(ListView).last,
+        const Offset(0, -200),
+      );
       expect(find.text('I AM GOING'), findsOneWidget);
       await done(tester);
     });
@@ -381,12 +389,15 @@ void main() {
       ),
     );
 
-    Future<void> scrollSheetTo(WidgetTester tester, Finder target) =>
-        tester.dragUntilVisible(
-          target,
-          find.byType(ListView).last,
-          const Offset(0, -200),
-        );
+    Future<void> scrollSheetTo(WidgetTester tester, Finder target) async {
+      await tester.dragUntilVisible(
+        target,
+        find.byType(ListView).last,
+        const Offset(0, -200),
+      );
+      await tester.ensureVisible(target);
+      await settle(tester);
+    }
 
     testWidgets('Reject this Area opens the reject sheet, and rejects', (
       tester,
@@ -403,6 +414,22 @@ void main() {
       await settle(tester);
       expect(posted.single.$2, '/incidents/a3/reject');
       expect(posted.single.$3['reason'], 'Duplicate of another incident');
+      await done(tester);
+    });
+
+    testWidgets("Fire codes opens this incident's codes, pressed on it", (
+      tester,
+    ) async {
+      await openLive(tester);
+      await scrollSheetTo(tester, find.text('Fire codes'));
+      await tester.tap(find.text('Fire codes'));
+      await settle(tester);
+      expect(find.text('AREA 3.1'), findsOneWidget);
+      await tester.tap(find.text('Water supply established'));
+      await settle(tester);
+      expect(posted.single.$2, '/fire-codes/c1/press');
+      expect(posted.single.$3['area_id'], 'a3');
+      expect(find.textContaining('Code A recorded at'), findsOneWidget);
       await done(tester);
     });
 
@@ -475,7 +502,14 @@ void main() {
     ) async {
       final feed = CoordinatorFeed(me: me, api: api());
       await feed.load();
-      await pump(tester, Scaffold(body: CodesTab(feed: feed, focus: null)));
+      // In LIVE's incident drawer since v1.12.56, for that incident only.
+      final area = feed.active.firstWhere((a) => a.id == 'a3');
+      await pump(
+        tester,
+        Scaffold(
+          body: FireCodesSheet(api: feed.api, area: area, presses: true),
+        ),
+      );
       expect(find.text('AREA 3.1'), findsOneWidget);
       await tester.tap(find.text('Water supply established'));
       await settle(tester);
@@ -625,7 +659,16 @@ void main() {
     testWidgets('Codes: they see them; a tap records nothing', (tester) async {
       final feed = CoordinatorFeed(me: police, api: api());
       await feed.load();
-      await pump(tester, Scaffold(body: CodesTab(feed: feed, focus: null)));
+      await pump(
+        tester,
+        Scaffold(
+          body: FireCodesSheet(
+            api: feed.api,
+            area: feed.active.first,
+            presses: CoordinatorPowers.of(police).pressesCodes,
+          ),
+        ),
+      );
       expect(
         find.textContaining('Fire codes are pressed by Fire Volunteer and BFP'),
         findsOneWidget,

@@ -7,6 +7,33 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.56 — 20 November 2026 — Your own report, codes in LIVE, shelters by car
+
+Goes with backend v1.12.44.
+
+- **A staff report opens the incident you work** (19 Nov: "there's an
+  unexpected error when the coordinator report a fire incident himself and
+  he acknowledge it by himself too"; answered "Acknowledged on sending"). A
+  coordinator's or responder's report starts acknowledged by their
+  organization, so it opens as their incident, ready for I am going, not as
+  a resident's tracker. The error was the server's: see backend v1.12.44.
+- **Fire codes are in LIVE's incident drawer** (19 Nov: "fire code logical
+  flaw. put it in the incident details drawer. the coordinator cannot change
+  screen because of that thing"). A Fire codes row under Alarm level opens
+  that incident's codes; the Codes tab is gone, so the bar is Queue, Map,
+  LIVE and Profile, with LIVE still in the middle.
+- **Shelters can be tapped on staff maps** (19 Nov: "in citizen, the hydrants
+  and evacuation sites can be touched. but in coordinator and responder
+  cannot"). A shelter opens its details with Directions by car, as water
+  sources do since 1.12.55. Residents get Directions on foot to a shelter
+  ("shelters for citizens only walking by default").
+- **Track it live shows one shelter** (19 Nov: "the evacuation centers
+  bombarded the map so that the citizen cannot see where the firefighters
+  are"): the nearest open one to where the resident is now, else to the
+  fire, and it changes as they move.
+
+---
+
 ## v1.12.55 — 20 November 2026 — Water sources from the staff map
 
 Goes with backend v1.12.43.

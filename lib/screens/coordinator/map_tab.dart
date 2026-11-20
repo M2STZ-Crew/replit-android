@@ -14,6 +14,7 @@ import '../../widgets/map_layers.dart';
 import '../../widgets/map_tiles.dart';
 import '../../widgets/ops_layers.dart';
 import '../../widgets/sheet_grip.dart';
+import '../../widgets/shelter_sheet.dart';
 import '../../widgets/water_source_sheet.dart';
 import '../../widgets/you_are_here.dart';
 import '../responder/responder_status.dart';
@@ -132,10 +133,14 @@ class _MapTabState extends State<MapTab> {
     if (_on.contains(layer.key)) _fetch(layer);
   }
 
-  /// A water source's sheet, on a tap; other points open nothing.
+  /// A water source's or shelter's sheet, on a tap (v1.12.55, v1.12.56);
+  /// risk zones and stations open nothing.
   VoidCallback? _tapFor(OpsLayer layer, OpsPoint p) {
     final kind = WaterKind.ofLayer(layer.key);
     final row = p.row;
+    if (layer.key == 'evac' && row != null) {
+      return () => openStaffShelter(context, row);
+    }
     final source = kind == null || row == null
         ? null
         : WaterSource.from(kind, row);

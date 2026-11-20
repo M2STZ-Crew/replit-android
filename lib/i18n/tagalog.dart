@@ -2614,4 +2614,13 @@ const Map<String, String> kTagalog = {
   'Driving directions': 'Direksyon sa pagmamaneho',
   'The server is not ready to save this yet. Try again later, or choose Working, Broken or Under maintenance.':
       'Hindi pa handa ang server na i-save ito. Subukan ulit mamaya, o piliin ang Gumagana, Sira o Inaayos.',
+
+  // A staff report, fire codes in LIVE (v1.12.56).
+  'Reported, and acknowledged for your organization. Staff on duty were alerted.':
+      'Naiulat na, at kinilala na para sa organisasyon mo. Naabisuhan na ang mga staff na naka-duty.',
+  'Reported. Staff on duty were alerted.':
+      'Naiulat na. Naabisuhan na ang mga staff na naka-duty.',
+  'Press one to record it on this incident':
+      'Pumindot ng isa para maitala ito sa insidenteng ito',
+  'What each code means': 'Ano ang ibig sabihin ng bawat code',
 };

@@ -134,9 +134,13 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   /// that the resident decides where the map looks.
   bool _framed = false;
 
+  /// The one shelter on the map: the nearest open one (v1.12.56).
   Map<String, dynamic>? _shelter;
   double? _shelterMetres;
-  final List<LatLng> _shelters = [];
+
+  /// Every open shelter, kept to pick the nearest again as the resident
+  /// moves.
+  List<Map<String, dynamic>> _sites = const [];
 
   /// Every agency already asked for on this incident. Null until the
   /// server has said, so "add more help" never flashes up with one that was
@@ -175,6 +179,9 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     _feed.live.addListener(_rebuild);
     _feed.denied.addListener(_onFeedDenied);
     _feed.start();
+    // Where the resident is now, for the nearest shelter as they move.
+    LivePosition.instance.acquire();
+    LivePosition.instance.here.addListener(_pickNearestShelter);
     _load();
     _startPolling();
   }
@@ -189,6 +196,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     // The screen closes only the socket it opened; a feed handed in belongs
     // to whoever handed it in.
     if (widget.feed == null) unawaited(_feed.dispose());
+    LivePosition.instance.here.removeListener(_pickNearestShelter);
+    LivePosition.instance.release();
     _sheetSize.dispose();
     _camera.dispose();
     _follow.dispose();
@@ -405,44 +414,56 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
 
   Future<void> _loadNearestShelter() async {
     try {
-      final sites = (await _api.getEvacuationSites())
+      _sites = (await _api.getEvacuationSites())
           .cast<Map<String, dynamic>>()
-          .where((s) => s['latitude'] != null && s['longitude'] != null)
+          .where(
+            (s) =>
+                s['latitude'] != null &&
+                s['longitude'] != null &&
+                s['is_active'] != false,
+          )
           .toList();
-      Map<String, dynamic>? best;
-      double? bestM;
-      for (final s in sites) {
-        final m = const Distance().as(
-          LengthUnit.Meter,
-          _from,
-          LatLng(
-            (s['latitude'] as num).toDouble(),
-            (s['longitude'] as num).toDouble(),
-          ),
-        );
-        if (s['is_active'] != false && (bestM == null || m < bestM)) {
-          best = s;
-          bestM = m;
-        }
-      }
-      if (!mounted) return;
-      setState(() {
-        _shelter = best;
-        _shelterMetres = bestM;
-        _shelters
-          ..clear()
-          ..addAll(
-            sites.map(
-              (s) => LatLng(
-                (s['latitude'] as num).toDouble(),
-                (s['longitude'] as num).toDouble(),
-              ),
-            ),
-          );
-      });
+      if (mounted) _pickNearestShelter();
     } catch (_) {
       // leave the shelter row out
     }
+  }
+
+  /// The one shelter this map shows (19 Nov 2026: "the evacuation centers
+  /// bombarded the map so that the citizen cannot see where the firefighters
+  /// are"): the nearest open one to the resident, else to the fire, else to
+  /// where they reported. Redrawn only when it changes, or its distance by
+  /// more than 25 m.
+  void _pickNearestShelter() {
+    if (!mounted || _sites.isEmpty) return;
+    final from = LivePosition.instance.here.value ?? _centre ?? _from;
+    Map<String, dynamic>? best;
+    double? bestM;
+    for (final s in _sites) {
+      final m = const Distance().as(
+        LengthUnit.Meter,
+        from,
+        LatLng(
+          (s['latitude'] as num).toDouble(),
+          (s['longitude'] as num).toDouble(),
+        ),
+      );
+      if (bestM == null || m < bestM) {
+        best = s;
+        bestM = m;
+      }
+    }
+    final was = _shelterMetres;
+    if (identical(best, _shelter) &&
+        was != null &&
+        bestM != null &&
+        (bestM - was).abs() <= 25) {
+      return;
+    }
+    setState(() {
+      _shelter = best;
+      _shelterMetres = bestM;
+    });
   }
 
   void _toast(String message) {
@@ -658,14 +679,17 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         MarkerLayer(
           rotate: true,
           markers: [
-            for (final s in _shelters)
+            if (_shelter case final s?)
               Marker(
-                point: s,
+                point: LatLng(
+                  (s['latitude'] as num).toDouble(),
+                  (s['longitude'] as num).toDouble(),
+                ),
                 width: MapMarker.target,
                 height: MapMarker.target,
                 child: MapMarker(
                   kind: MapMarkerKind.shelter,
-                  label: t('Evacuation site'),
+                  label: (s['name'] as String?) ?? t('Evacuation site'),
                 ),
               ),
             if (centre != null)
