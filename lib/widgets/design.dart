@@ -1280,6 +1280,7 @@ class FitPage extends StatelessWidget {
     this.flexMin = 0,
     this.flexMax = double.infinity,
     this.keepFlex = false,
+    this.flexFloor,
   });
 
   final Widget top;
@@ -1293,6 +1294,12 @@ class FitPage extends StatelessWidget {
   final double flexMin;
   final double flexMax;
   final bool keepFlex;
+
+  /// With it, [flex] never leaves the page (v1.12.61). [bottom] is told
+  /// the height that leaves [flex] its [flexMin], to tighten into (a
+  /// [FirstThatFits]); then the [gap] closes to 8 and [flex] shrinks to
+  /// this; only then does the page scroll.
+  final double? flexFloor;
 
   /// How roomy a page of [height] is, from 0 on a short phone (680 or less)
   /// to 1 on a tall one (840 or more), for a page to ease its spacing
@@ -1316,6 +1323,7 @@ class FitPage extends StatelessWidget {
           flexMin: flexMin,
           flexMax: flexMax,
           keepFlex: keepFlex,
+          flexFloor: flexFloor,
           children: [top, flex, bottom, footer],
         ),
       ),
@@ -1331,6 +1339,7 @@ class _FitLayout extends MultiChildRenderObjectWidget {
     required this.flexMin,
     required this.flexMax,
     required this.keepFlex,
+    required this.flexFloor,
     required super.children,
   });
 
@@ -1339,6 +1348,7 @@ class _FitLayout extends MultiChildRenderObjectWidget {
   final double flexMin;
   final double flexMax;
   final bool keepFlex;
+  final double? flexFloor;
 
   @override
   _RenderFitLayout createRenderObject(BuildContext context) => _RenderFitLayout(
@@ -1347,6 +1357,7 @@ class _FitLayout extends MultiChildRenderObjectWidget {
     flexMin: flexMin,
     flexMax: flexMax,
     keepFlex: keepFlex,
+    flexFloor: flexFloor,
   );
 
   @override
@@ -1356,7 +1367,8 @@ class _FitLayout extends MultiChildRenderObjectWidget {
       ..gap = gap
       ..flexMin = flexMin
       ..flexMax = flexMax
-      ..keepFlex = keepFlex;
+      ..keepFlex = keepFlex
+      ..flexFloor = flexFloor;
   }
 }
 
@@ -1370,11 +1382,13 @@ class _RenderFitLayout extends RenderBox
     required double flexMin,
     required double flexMax,
     required bool keepFlex,
+    required double? flexFloor,
   }) : _minHeight = minHeight,
        _gap = gap,
        _flexMin = flexMin,
        _flexMax = flexMax,
-       _keepFlex = keepFlex;
+       _keepFlex = keepFlex,
+       _flexFloor = flexFloor;
 
   double _minHeight;
   set minHeight(double value) {
@@ -1411,6 +1425,16 @@ class _RenderFitLayout extends RenderBox
     markNeedsLayout();
   }
 
+  double? _flexFloor;
+  set flexFloor(double? value) {
+    if (value == _flexFloor) return;
+    _flexFloor = value;
+    markNeedsLayout();
+  }
+
+  /// The least a [_gap] closes to, where there is a [_flexFloor].
+  double get _gapLeast => math.min(_gap, 8);
+
   /// Whether the flex part made it onto the page at the last layout.
   bool _flexShown = true;
 
@@ -1432,6 +1456,30 @@ class _RenderFitLayout extends RenderBox
     return _keepFlex ? _flexMin : 0;
   }
 
+  /// What the bottom part may take: as tall as it likes, or with a
+  /// [_flexFloor] what leaves the flex part its least, but never under its
+  /// own tightest.
+  BoxConstraints _bottomRoom(double width, double others) {
+    if (_flexFloor == null) return BoxConstraints.tightFor(width: width);
+    final tightest = _bottom.getMinIntrinsicHeight(width);
+    final left = _minHeight - others - _gap - _flexMin;
+    return BoxConstraints(
+      minWidth: width,
+      maxWidth: width,
+      maxHeight: math.max(tightest, left),
+    );
+  }
+
+  /// The gap and the flex part, with [room] left for the two.
+  ({double gap, double flex}) _share(double room) {
+    final floor = _flexFloor;
+    if (floor == null || room >= _gap + _flexMin) {
+      return (gap: _gap, flex: _flexHeight(room - _gap));
+    }
+    final gap = (room - _flexMin).clamp(_gapLeast, _gap).toDouble();
+    return (gap: gap, flex: math.max(floor, room - gap));
+  }
+
   double _height(BoxConstraints constraints, double needed) =>
       constraints.constrainHeight(math.max(needed, _minHeight));
 
@@ -1443,14 +1491,14 @@ class _RenderFitLayout extends RenderBox
     final width = constraints.maxWidth;
     final inner = BoxConstraints.tightFor(width: width);
     _top.layout(inner, parentUsesSize: true);
-    _bottom.layout(inner, parentUsesSize: true);
     _footer.layout(inner, parentUsesSize: true);
-    final fixed =
-        _top.size.height + _bottom.size.height + _gap + _footer.size.height;
-    final flex = _flexHeight(_minHeight - fixed);
+    final others = _top.size.height + _footer.size.height;
+    _bottom.layout(_bottomRoom(width, others), parentUsesSize: true);
+    final used = others + _bottom.size.height;
+    final (:gap, :flex) = _share(_minHeight - used);
     _flexShown = flex > 0;
     _flex.layout(BoxConstraints.tightFor(width: width, height: flex));
-    final height = _height(constraints, fixed + flex);
+    final height = _height(constraints, used + gap + flex);
     _place(_top, 0);
     _place(_flex, _top.size.height);
     _place(_bottom, _top.size.height + flex);
@@ -1460,14 +1508,14 @@ class _RenderFitLayout extends RenderBox
 
   @override
   Size computeDryLayout(covariant BoxConstraints constraints) {
-    final inner = BoxConstraints.tightFor(width: constraints.maxWidth);
-    final fixed =
-        _top.getDryLayout(inner).height +
-        _bottom.getDryLayout(inner).height +
-        _gap +
-        _footer.getDryLayout(inner).height;
-    final flex = _flexHeight(_minHeight - fixed);
-    return Size(constraints.maxWidth, _height(constraints, fixed + flex));
+    final width = constraints.maxWidth;
+    final inner = BoxConstraints.tightFor(width: width);
+    final others =
+        _top.getDryLayout(inner).height + _footer.getDryLayout(inner).height;
+    final used =
+        others + _bottom.getDryLayout(_bottomRoom(width, others)).height;
+    final (:gap, :flex) = _share(_minHeight - used);
+    return Size(width, _height(constraints, used + gap + flex));
   }
 
   double _fixed(double Function(RenderBox child) measure) =>
@@ -1482,10 +1530,17 @@ class _RenderFitLayout extends RenderBox
   }
 
   @override
-  double computeMinIntrinsicHeight(double width) => math.max(
-    _minHeight,
-    _fixed((c) => c.getMinIntrinsicHeight(width)) + (_keepFlex ? _flexMin : 0),
-  );
+  double computeMinIntrinsicHeight(double width) =>
+      math.max(_minHeight, switch (_flexFloor) {
+        final floor? =>
+          _fixed((c) => c.getMinIntrinsicHeight(width)) -
+              _gap +
+              _gapLeast +
+              floor,
+        null =>
+          _fixed((c) => c.getMinIntrinsicHeight(width)) +
+              (_keepFlex ? _flexMin : 0),
+      });
 
   @override
   double computeMaxIntrinsicHeight(double width) => math.max(
@@ -1522,6 +1577,111 @@ class _RenderFitLayout extends RenderBox
       if (child == _flex && !_flexShown) continue;
       visitor(child);
     }
+  }
+}
+
+/// The first of [children] no taller than the height it is given, else the
+/// last: one thing drawn from roomy to tight (v1.12.61). Only that one is
+/// painted, pressed and read out.
+class FirstThatFits extends MultiChildRenderObjectWidget {
+  const FirstThatFits({super.key, required super.children});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderFirstThatFits();
+
+  @override
+  MultiChildRenderObjectElement createElement() => _FirstThatFitsElement(this);
+}
+
+class _FirstThatFitsElement extends MultiChildRenderObjectElement {
+  _FirstThatFitsElement(FirstThatFits super.widget);
+
+  // So a test finds what is on the screen, not the forms waiting behind it.
+  @override
+  void debugVisitOnstageChildren(ElementVisitor visitor) {
+    final shown = (renderObject as _RenderFirstThatFits)._shown;
+    for (final child in children) {
+      if (identical(child.renderObject, shown)) visitor(child);
+    }
+  }
+}
+
+class _FitsParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderFirstThatFits extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _FitsParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _FitsParentData> {
+  RenderBox? _shown;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _FitsParentData) {
+      child.parentData = _FitsParentData();
+    }
+  }
+
+  /// The child to show, with each as tall as [measure] says.
+  (RenderBox?, Size) _pick(BoxConstraints constraints, ChildLayouter measure) {
+    final inner = BoxConstraints.tightFor(width: constraints.maxWidth);
+    RenderBox? picked;
+    var height = 0.0;
+    for (var child = firstChild; child != null; child = childAfter(child)) {
+      final tall = measure(child, inner).height;
+      if (picked != null) continue;
+      // A hundredth of a pixel is rounding, not a want of room.
+      if (tall <= constraints.maxHeight + 0.01 || child == lastChild) {
+        picked = child;
+        height = tall;
+      }
+    }
+    return (picked, constraints.constrain(Size(constraints.maxWidth, height)));
+  }
+
+  @override
+  void performLayout() {
+    final (picked, box) = _pick(constraints, ChildLayoutHelper.layoutChild);
+    if (!identical(picked, _shown)) {
+      _shown = picked;
+      markNeedsPaint();
+      markNeedsSemanticsUpdate();
+    }
+    size = box;
+  }
+
+  @override
+  Size computeDryLayout(covariant BoxConstraints constraints) =>
+      _pick(constraints, ChildLayoutHelper.dryLayoutChild).$2;
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      lastChild?.getMinIntrinsicHeight(width) ?? 0;
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      firstChild?.getMaxIntrinsicHeight(width) ?? 0;
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      lastChild?.getMinIntrinsicWidth(height) ?? 0;
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      firstChild?.getMaxIntrinsicWidth(height) ?? 0;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (_shown case final shown?) context.paintChild(shown, offset);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      _shown?.hitTest(result, position: position) ?? false;
+
+  @override
+  void visitChildrenForSemantics(RenderObjectVisitor visitor) {
+    if (_shown case final shown?) visitor(shown);
   }
 }
 

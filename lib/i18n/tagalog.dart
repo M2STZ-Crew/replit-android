@@ -705,6 +705,7 @@ const Map<String, String> kTagalog = {
   'Report done': 'Tapos na ang report',
   'Report closed': 'Sarado na ang report',
   'Report sent': 'Naipadala ang report',
+  'Confirming': 'Kinukumpirma',
   'FIRE OUT': 'PATAY NA ANG SUNOG',
   'NOT CONFIRMED': 'HINDI NAKUMPIRMA',
   'GETTING YOU HELP': 'PINAPADALHAN KA NG TULONG',

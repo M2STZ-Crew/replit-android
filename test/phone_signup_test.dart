@@ -396,7 +396,7 @@ void main() {
       expect(find.text('Want to be an affiliate?'), findsOneWidget);
       await tap(tester, find.text('REGISTER HERE'));
       expect(opened, [
-        Uri.parse('https://replit-backend-5u9u.vercel.app/register'),
+        Uri.parse('https://reportwhatslit.vercel.app/register'),
       ]);
     });
 
@@ -408,7 +408,7 @@ void main() {
       expect(
         find.text(
           'Could not open the page. Visit '
-          'replit-backend-5u9u.vercel.app/register.',
+          'reportwhatslit.vercel.app/register.',
         ),
         findsOneWidget,
       );
