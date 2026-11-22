@@ -427,6 +427,11 @@ void main() {
       expect(find.text('AREA 3.1'), findsOneWidget);
       await tester.tap(find.text('Water supply established'));
       await settle(tester);
+      // Asked first since v1.12.59: nothing is sent before Send.
+      expect(posted, isEmpty);
+      await settle(tester); // Send arms after half a second
+      await tester.tap(find.text('SEND CODE A'));
+      await settle(tester);
       expect(posted.single.$2, '/fire-codes/c1/press');
       expect(posted.single.$3['area_id'], 'a3');
       expect(find.textContaining('Code A recorded at'), findsOneWidget);
@@ -512,6 +517,11 @@ void main() {
       );
       expect(find.text('AREA 3.1'), findsOneWidget);
       await tester.tap(find.text('Water supply established'));
+      await settle(tester);
+      // Asked first since v1.12.59: nothing is sent before Send.
+      expect(posted, isEmpty);
+      await settle(tester); // Send arms after half a second
+      await tester.tap(find.text('SEND CODE A'));
       await settle(tester);
       expect(posted.single.$2, '/fire-codes/c1/press');
       expect(posted.single.$3['area_id'], 'a3');

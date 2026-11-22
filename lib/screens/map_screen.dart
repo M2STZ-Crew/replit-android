@@ -35,6 +35,7 @@ import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../updates/update_banner.dart';
 import '../widgets/map_layer_gate.dart';
+import '../widgets/sheet_grip.dart';
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
@@ -1641,44 +1642,40 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
       builder: (sheet) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(child: SheetHandle()),
-              Row(
-                children: [
-                  IconWell(
-                    tint: accent,
-                    icon: icon,
-                    asset: asset,
-                    size: 48,
-                    glyph: 24,
+        child: FrozenHandleSheet(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                IconWell(
+                  tint: accent,
+                  icon: icon,
+                  asset: asset,
+                  size: 48,
+                  glyph: 24,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Eyebrow(tag, color: accent),
+                      const SizedBox(height: 6),
+                      Text(title.toUpperCase(), style: context.type.title),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Eyebrow(tag, color: accent),
-                        const SizedBox(height: 6),
-                        Text(title.toUpperCase(), style: context.type.title),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              ...rows.map(_detailRowTile),
-              if (action != null) ...[
-                const SizedBox(height: 6),
-                SizedBox(width: double.infinity, child: action(sheet)),
+                ),
               ],
+            ),
+            const SizedBox(height: 20),
+            ...rows.map(_detailRowTile),
+            if (action != null) ...[
+              const SizedBox(height: 6),
+              SizedBox(width: double.infinity, child: action(sheet)),
             ],
-          ),
+          ],
         ),
       ),
     );

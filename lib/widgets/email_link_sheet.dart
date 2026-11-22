@@ -10,6 +10,7 @@ import '../i18n/i18n.dart';
 import '../models/verification_state.dart';
 import '../theme.dart';
 import 'design.dart';
+import 'sheet_grip.dart';
 
 /// Confirming the email with a link (+10%), in a sheet.
 ///
@@ -355,92 +356,94 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
   @override
   Widget build(BuildContext context) {
     final canResend = !_busy && !_spent && _resendIn <= 0;
+    final content = <Widget>[
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text(_title, style: context.type.screenTitle)),
+          const SizedBox(width: 12),
+          Text(
+            '+10%',
+            style: context.type.cardTitleSm.copyWith(
+              color: _step == _Step.confirmed
+                  ? context.pal.ok
+                  : context.pal.accent,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Text(_body, style: context.type.body),
+      if (_step == _Step.sent) ...[
+        const SizedBox(height: 8),
+        Text(
+          t('Not in your inbox? Look in Spam or Promotions.'),
+          style: context.type.caption,
+        ),
+      ],
+      if (_error != null) ...[
+        const SizedBox(height: 10),
+        Text(_error!, style: TextStyle(color: context.pal.live, fontSize: 13)),
+      ],
+      const SizedBox(height: 18),
+      _button(),
+      if (_step != _Step.confirmed) ...[
+        const SizedBox(height: 6),
+        // A Wrap, not a Row: at a large font the two do not fit side by
+        // side, and "Later" drops under "Send again" instead of off-screen.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (_step == _Step.sent)
+              TextButton(
+                onPressed: canResend ? _send : null,
+                child: Text(
+                  _resendIn > 0
+                      ? t('Send again in {s} s', {'s': _resendIn})
+                      : t('Send the link again'),
+                  style: TextStyle(
+                    color: canResend ? context.pal.accent : context.pal.muted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            // Confirming is required: no Later, only a way back to fix a
+            // mistyped address (the account made with it goes in a day).
+            if (widget.onStartOver != null)
+              TextButton(
+                key: const ValueKey('email-start-over'),
+                onPressed: widget.onStartOver,
+                child: Text(
+                  t('Wrong email? Start over'),
+                  style: TextStyle(color: context.pal.muted),
+                ),
+              )
+            else
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  t('Later'),
+                  style: TextStyle(color: context.pal.muted),
+                ),
+              ),
+          ],
+        ),
+      ],
+    ];
+    if (widget.handle) {
+      return FrozenHandleSheet(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        children: content,
+      );
+    }
+    // Inside a page (the email gate): no drawer to close.
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (widget.handle) const Center(child: SheetHandle()),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: Text(_title, style: context.type.screenTitle)),
-              const SizedBox(width: 12),
-              Text(
-                '+10%',
-                style: context.type.cardTitleSm.copyWith(
-                  color: _step == _Step.confirmed
-                      ? context.pal.ok
-                      : context.pal.accent,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(_body, style: context.type.body),
-          if (_step == _Step.sent) ...[
-            const SizedBox(height: 8),
-            Text(
-              t('Not in your inbox? Look in Spam or Promotions.'),
-              style: context.type.caption,
-            ),
-          ],
-          if (_error != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              _error!,
-              style: TextStyle(color: context.pal.live, fontSize: 13),
-            ),
-          ],
-          const SizedBox(height: 18),
-          _button(),
-          if (_step != _Step.confirmed) ...[
-            const SizedBox(height: 6),
-            // A Wrap, not a Row: at a large font the two do not fit side by
-            // side, and "Later" drops under "Send again" instead of off-screen.
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (_step == _Step.sent)
-                  TextButton(
-                    onPressed: canResend ? _send : null,
-                    child: Text(
-                      _resendIn > 0
-                          ? t('Send again in {s} s', {'s': _resendIn})
-                          : t('Send the link again'),
-                      style: TextStyle(
-                        color: canResend
-                            ? context.pal.accent
-                            : context.pal.muted,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                // Confirming is required: no Later, only a way back to fix a
-                // mistyped address (the account made with it goes in a day).
-                if (widget.onStartOver != null)
-                  TextButton(
-                    key: const ValueKey('email-start-over'),
-                    onPressed: widget.onStartOver,
-                    child: Text(
-                      t('Wrong email? Start over'),
-                      style: TextStyle(color: context.pal.muted),
-                    ),
-                  )
-                else
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: Text(
-                      t('Later'),
-                      style: TextStyle(color: context.pal.muted),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ],
+        children: content,
       ),
     );
   }

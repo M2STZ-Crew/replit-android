@@ -1301,49 +1301,44 @@ class _UnitsLayerState extends State<_UnitsLayer>
         ),
       ),
       builder: (sheet) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Center(child: SheetHandle()),
-              Text('${members.length} TRUCKS HERE', style: sheet.type.headline),
-              const SizedBox(height: 14),
-              for (final m in members) ...[
-                Row(
-                  children: [
-                    IconWell(
-                      tint: _colourOf(context, m.unit),
-                      icon: AppIcons.fireTruck,
-                      size: 36,
-                      glyph: 18,
+        child: FrozenHandleSheet(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          children: [
+            Text('${members.length} TRUCKS HERE', style: sheet.type.headline),
+            const SizedBox(height: 14),
+            for (final m in members) ...[
+              Row(
+                children: [
+                  IconWell(
+                    tint: _colourOf(context, m.unit),
+                    icon: AppIcons.fireTruck,
+                    size: 36,
+                    glyph: 18,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(m.unit.label, style: sheet.type.rowTitleLg),
+                        if (m.unit.organization != null ||
+                            widget.snapshot.isStale(m.unit))
+                          Text(
+                            [
+                              ?m.unit.organization,
+                              if (widget.snapshot.isStale(m.unit))
+                                'Location lost',
+                            ].join(' · '),
+                            style: sheet.type.caption,
+                          ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(m.unit.label, style: sheet.type.rowTitleLg),
-                          if (m.unit.organization != null ||
-                              widget.snapshot.isStale(m.unit))
-                            Text(
-                              [
-                                ?m.unit.organization,
-                                if (widget.snapshot.isStale(m.unit))
-                                  'Location lost',
-                              ].join(' · '),
-                              style: sheet.type.caption,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-              ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
             ],
-          ),
+          ],
         ),
       ),
     );

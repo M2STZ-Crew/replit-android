@@ -9,6 +9,7 @@ import '../theme.dart';
 import 'design.dart';
 import '../i18n/i18n.dart';
 import 'no_emoji.dart';
+import 'sheet_grip.dart';
 
 /// The last step of sign-up: text a code to the number just given, and take
 /// it back, in a sheet over the form.
@@ -146,103 +147,89 @@ class _PhoneCodeSheetState extends State<PhoneCodeSheet> {
     return Padding(
       // Above the keyboard, which opens with the code field.
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 38,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.pal.label.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(t('ENTER THE CODE'), style: context.type.screenTitle),
-            const SizedBox(height: 8),
-            Text(
-              _sending && _resendIn == 0
-                  ? t('Sending a code to {phone}…', {'phone': _shown})
-                  : t(
-                      'We sent a 6-digit code to {phone}. It works for 5 '
-                      'minutes.',
-                      {'phone': _shown},
-                    ),
-              style: context.type.body,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _code,
-              autofocus: true,
-              keyboardType: TextInputType.number,
-              maxLength: 8,
-              textAlign: TextAlign.center,
-              autofillHints: const [AutofillHints.oneTimeCode],
-              inputFormatters: [
-                const NoEmojiFormatter(),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-              onSubmitted: (_) => busy ? null : _verify(),
-              style: context.type.input.copyWith(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 8,
-              ),
-              decoration: const InputDecoration(
-                hintText: '••••••',
-                counterText: '',
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                _error!,
-                style: TextStyle(color: context.pal.live, fontSize: 13),
-              ),
+      child: FrozenHandleSheet(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(t('ENTER THE CODE'), style: context.type.screenTitle),
+          const SizedBox(height: 8),
+          Text(
+            _sending && _resendIn == 0
+                ? t('Sending a code to {phone}…', {'phone': _shown})
+                : t(
+                    'We sent a 6-digit code to {phone}. It works for 5 '
+                    'minutes.',
+                    {'phone': _shown},
+                  ),
+            style: context.type.body,
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _code,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            maxLength: 8,
+            textAlign: TextAlign.center,
+            autofillHints: const [AutofillHints.oneTimeCode],
+            inputFormatters: [
+              const NoEmojiFormatter(),
+              FilteringTextInputFormatter.digitsOnly,
             ],
-            const SizedBox(height: 18),
-            AppButton(
-              t('Verify'),
-              busy: _checking,
-              onPressed: busy ? null : _verify,
+            onSubmitted: (_) => busy ? null : _verify(),
+            style: context.type.input.copyWith(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 8,
             ),
-            const SizedBox(height: 6),
-            // A Wrap, not a Row: at a large font the two do not fit side by
-            // side, and "Later" drops under "Send again" instead of off-screen.
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                TextButton(
-                  onPressed: busy || _resendIn > 0 ? null : _send,
-                  child: Text(
-                    _resendIn > 0
-                        ? t('Send again in {s} s', {'s': _resendIn})
-                        : t('Send the code again'),
-                    style: TextStyle(
-                      color: _resendIn > 0
-                          ? context.pal.muted
-                          : context.pal.accent,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: Text(
-                    t('Later'),
-                    style: TextStyle(color: context.pal.muted),
-                  ),
-                ),
-              ],
+            decoration: const InputDecoration(
+              hintText: '••••••',
+              counterText: '',
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _error!,
+              style: TextStyle(color: context.pal.live, fontSize: 13),
             ),
           ],
-        ),
+          const SizedBox(height: 18),
+          AppButton(
+            t('Verify'),
+            busy: _checking,
+            onPressed: busy ? null : _verify,
+          ),
+          const SizedBox(height: 6),
+          // A Wrap, not a Row: at a large font the two do not fit side by
+          // side, and "Later" drops under "Send again" instead of off-screen.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton(
+                onPressed: busy || _resendIn > 0 ? null : _send,
+                child: Text(
+                  _resendIn > 0
+                      ? t('Send again in {s} s', {'s': _resendIn})
+                      : t('Send the code again'),
+                  style: TextStyle(
+                    color: _resendIn > 0
+                        ? context.pal.muted
+                        : context.pal.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  t('Later'),
+                  style: TextStyle(color: context.pal.muted),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

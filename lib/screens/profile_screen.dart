@@ -36,6 +36,7 @@ import '../i18n/i18n.dart';
 import '../i18n/language_switch.dart';
 import '../widgets/responsive_frame.dart';
 import '../widgets/confirm_log_out.dart';
+import '../widgets/sheet_grip.dart';
 
 /// "15 Profile" from the REPLIT-OVERHAUL Figma — "Your profile", now a tab.
 ///
@@ -332,31 +333,27 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
       ),
       builder: (_) => SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(24, 10, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(child: SheetHandle()),
-              Text(t('ABOUT REPLIT'), style: context.type.title),
-              SizedBox(height: 14),
-              Text(
-                t(
-                  'RepLiT is the emergency reporting network for Pasay City. '
-                  'Report an incident, see what is happening near '
-                  'you and where the shelters are, learn the basics, and reach '
-                  'responders fast.',
-                ),
-                style: context.type.body,
+        child: FrozenHandleSheet(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(t('ABOUT REPLIT'), style: context.type.title),
+            SizedBox(height: 14),
+            Text(
+              t(
+                'RepLiT is the emergency reporting network for Pasay City. '
+                'Report an incident, see what is happening near '
+                'you and where the shelters are, learn the basics, and reach '
+                'responders fast.',
               ),
-              SizedBox(height: 14),
-              Text(
-                t('In a real emergency, hold SOS or call 911.'),
-                style: context.type.bodySm,
-              ),
-            ],
-          ),
+              style: context.type.body,
+            ),
+            SizedBox(height: 14),
+            Text(
+              t('In a real emergency, hold SOS or call 911.'),
+              style: context.type.bodySm,
+            ),
+          ],
         ),
       ),
     );

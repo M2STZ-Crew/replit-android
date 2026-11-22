@@ -105,43 +105,38 @@ class _TeamScreenState extends State<TeamScreen> {
         ),
       ),
       builder: (sheet) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Center(child: SheetHandle()),
-              Text(
-                (r['full_name'] as String?) ?? t('Responder'),
-                style: context.type.cardTitle,
+        child: FrozenHandleSheet(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          children: [
+            Text(
+              (r['full_name'] as String?) ?? t('Responder'),
+              style: context.type.cardTitle,
+            ),
+            const SizedBox(height: 6),
+            Text('${r['email']}', style: context.type.caption),
+            const SizedBox(height: 20),
+            if (active) ...[
+              AppButton.secondary(
+                t('Reset password'),
+                icon: AppIcons.key,
+                height: 50,
+                onPressed: () => Navigator.of(sheet).pop('reset'),
               ),
-              const SizedBox(height: 6),
-              Text('${r['email']}', style: context.type.caption),
-              const SizedBox(height: 20),
-              if (active) ...[
-                AppButton.secondary(
-                  t('Reset password'),
-                  icon: AppIcons.key,
-                  height: 50,
-                  onPressed: () => Navigator.of(sheet).pop('reset'),
-                ),
-                const SizedBox(height: 10),
-                AppButton.danger(
-                  t('Deactivate account'),
-                  icon: AppIcons.block,
-                  height: 50,
-                  onPressed: () => Navigator.of(sheet).pop('deactivate'),
-                ),
-              ] else
-                AppButton(
-                  t('Reactivate account'),
-                  icon: AppIcons.restartAlt,
-                  height: 50,
-                  onPressed: () => Navigator.of(sheet).pop('reactivate'),
-                ),
-            ],
-          ),
+              const SizedBox(height: 10),
+              AppButton.danger(
+                t('Deactivate account'),
+                icon: AppIcons.block,
+                height: 50,
+                onPressed: () => Navigator.of(sheet).pop('deactivate'),
+              ),
+            ] else
+              AppButton(
+                t('Reactivate account'),
+                icon: AppIcons.restartAlt,
+                height: 50,
+                onPressed: () => Navigator.of(sheet).pop('reactivate'),
+              ),
+          ],
         ),
       ),
     );

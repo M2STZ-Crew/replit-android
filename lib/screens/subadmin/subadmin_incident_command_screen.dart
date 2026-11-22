@@ -26,6 +26,7 @@ import '../../widgets/loading.dart';
 import '../../i18n/fire_names.dart';
 import '../../i18n/i18n.dart';
 import '../../widgets/no_emoji.dart';
+import '../../widgets/code_confirm_sheet.dart';
 
 Color get _ink => ThemeChoice.palette.onBackground;
 Color get _sheet => ThemeChoice.palette.surfaceSolid;
@@ -255,6 +256,13 @@ class _SubAdminIncidentCommandScreenState
       _toast(t('{label} is unavailable.', {'label': label}));
       return;
     }
+    final send = await confirmFireCode(
+      context,
+      number: codeNumber,
+      name: label,
+      fire: t('This incident'),
+    );
+    if (!send || !mounted) return;
     try {
       await _api.pressFireCode(id, areaId: widget.areaId);
       if (mounted) _toast(t('{label} broadcast to units.', {'label': label}));

@@ -104,23 +104,38 @@ class _PressableState extends State<Pressable> {
   }
 }
 
+/// The most of the screen a drawer takes: what is under it stays in view,
+/// and its handle stays clear of the status bar (v1.12.59).
+const double kSheetMaxHeight = 0.9;
+
 /// [showModalBottomSheet] with the design's sheet timing — 280 ms in,
 /// decelerating; 200 ms out, accelerating; a snap under reduced motion —
 /// over the scrim (color/surface/scrim, black at 64 %).
+///
+/// Every drawer stops below the status bar and at [kSheetMaxHeight] of the
+/// screen (v1.12.59; 22 Nov 2026: "fire code drawer slider can be slide down
+/// like alarm level to get back to incident detail but it isn't"). A long
+/// one used to fill the screen, its handle under the status bar, where a
+/// swipe down pulls the phone's own notifications instead.
 Future<T?> showAppSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   Color? backgroundColor,
   ShapeBorder? shape,
-  bool isScrollControlled = false,
-  bool useSafeArea = false,
+  bool isScrollControlled = true,
+  bool useSafeArea = true,
   bool isDismissible = true,
   bool enableDrag = true,
   bool useRootNavigator = false,
   BoxConstraints? constraints,
 }) => showModalBottomSheet<T>(
   context: context,
-  builder: builder,
+  builder: (sheet) => ConstrainedBox(
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.sizeOf(sheet).height * kSheetMaxHeight,
+    ),
+    child: Builder(builder: builder),
+  ),
   backgroundColor: backgroundColor,
   shape: shape,
   isScrollControlled: isScrollControlled,

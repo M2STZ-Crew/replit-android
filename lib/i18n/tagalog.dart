@@ -2633,4 +2633,28 @@ const Map<String, String> kTagalog = {
   // Fire codes pressed; gray hydrants (v1.12.58).
   'Pressed on this incident': 'Pinindot sa insidenteng ito',
   'Not verified': 'Hindi pa beripikado',
+
+  // Drawers, the fire code warning, responders' codes (v1.12.59).
+  'Send {code}?': 'Ipadala ang {code}?',
+  'Send {code}': 'I-send {code}',
+  'Check before sending': 'Suriin muna bago ipadala',
+  'It alerts Fire Volunteer and BFP coordinators with a sound.':
+      'Aalertuhan nito nang may tunog ang mga coordinator ng Fire Volunteer at BFP.',
+  'It alerts the coordinators of every agency on this fire with a sound.':
+      'Aalertuhan nito nang may tunog ang mga coordinator ng lahat ng ahensya sa sunog na ito.',
+  'It alerts medical coordinators and the central hub with a sound.':
+      'Aalertuhan nito nang may tunog ang mga medical coordinator at ang central hub.',
+  "It tells this fire's crews and coordinators, without a sound.":
+      'Sasabihan nito nang walang tunog ang mga crew at coordinator ng sunog na ito.',
+  'It does not mark the fire out.':
+      'Hindi nito minamarkahang patay na ang sunog.',
+  "Nothing is sent until you press Send. Once sent, it stays on the incident's record.":
+      'Walang ipapadala hangga\'t hindi mo pinipindot ang Send. Kapag naipadala na, mananatili ito sa rekord ng insidente.',
+  'You can press the codes your team may send on this fire. The rest are here to read.':
+      'Mapipindot mo ang mga code na puwedeng ipadala ng team mo sa sunog na ito. Pambasa lang ang iba.',
+  'You can press codes while you are on this fire. You can see each one here.':
+      'Makakapindot ka ng code habang nasa sunog na ito ka. Makikita mo rito ang bawat isa.',
+  'What was pressed, and every code': 'Ang mga napindot, at lahat ng code',
+  'Show all {count}': 'Ipakita lahat ng {count}',
+  'This incident': 'Ang insidenteng ito',
 };

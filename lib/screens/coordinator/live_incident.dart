@@ -573,6 +573,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         presses: _powers.pressesCodes,
       ),
     );
+    if (mounted) await _load();
   }
 
   /// The Area's details — where it is, how sure, the summary, every report.
