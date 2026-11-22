@@ -7,6 +7,25 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.60 — 22 November 2026 — The alarm status, highlighted, for everyone; Alarm Escalations
+
+Goes with backend v1.12.49.
+
+- **The alarm status on every detail screen** ("fire alarm status can be seen
+  in any details info. because it is essential to be seen by anyone. and
+  highlight it in the details because it is crucial"; answered "Everyone,
+  everywhere"; `lib/widgets/alarm_status_banner.dart`): a banner with the
+  level, or Under control or Fire out, in color, icon and words, and a badge on
+  lists and map cards. A raised alarm is solid red. Staff read who set it;
+  residents read what it means, never a name.
+- **Under control:** a Fire Volunteer or BFP coordinator's FC-2 warns that
+  everyone will see it, and the banner has Withdraw for them.
+- **A raised alarm opens the fire** when its notification is tapped.
+- **Requests are Alarm Escalations** on BFP's screen, the Profile and queue
+  rows, the sheet and the notification, in English and Tagalog.
+
+---
+
 ## v1.12.59 — 22 November 2026 — Drawers slide down and close; a warning before every fire code; responders' codes
 
 Goes with backend v1.12.48.
