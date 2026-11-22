@@ -191,7 +191,7 @@ void main() {
       ];
       await pump(tester, BfpAlarmRequestsScreen(api: api()));
 
-      expect(find.text('ALARM REQUESTS'), findsOneWidget);
+      expect(find.text('ALARM ESCALATIONS'), findsOneWidget);
       expect(find.bySemanticsLabel('2 Waiting'), findsOneWidget);
       expect(find.bySemanticsLabel('0 Answered'), findsOneWidget);
       expect(
@@ -274,7 +274,7 @@ void main() {
       await pump(tester, BfpAlarmRequestsScreen(api: api()));
       await tester.tap(find.text('DECLINE'));
       await settle(tester);
-      expect(find.text('Decline this request?'), findsOneWidget);
+      expect(find.text('Decline this escalation?'), findsOneWidget);
       expect(find.text('Reason (optional)'), findsOneWidget);
       await tester.enterText(find.byType(TextField), 'Contained at 1st alarm');
       await tester.tap(find.text('DECLINE').last);

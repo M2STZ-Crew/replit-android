@@ -547,7 +547,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       if (level == null) {
         if (waiting == null) return;
         await _api.cancelAlarmRequest(waiting.id);
-        if (mounted) _toast(t('Request taken back. BFP no longer sees it.'));
+        if (mounted) _toast(t('Escalation taken back. BFP no longer sees it.'));
         return;
       }
       await _api.createAlarmRequest(

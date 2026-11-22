@@ -897,7 +897,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, t('Failed to load alarm requests.'));
+      throw ApiException(resp.statusCode, t('Failed to load alarm escalations.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }

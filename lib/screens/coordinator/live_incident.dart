@@ -480,7 +480,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
       if (waiting == null) return;
       await _act(
         () => _api.cancelAlarmRequest(waiting.id),
-        t('Request taken back. BFP no longer sees it.'),
+        t('Escalation taken back. BFP no longer sees it.'),
       );
       return;
     }
@@ -502,8 +502,8 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
       final n = _asks.where((r) => r.waiting).length;
       return switch (n) {
         0 => t('Set by BFP · nothing waiting on you'),
-        1 => t('1 request waiting on you'),
-        _ => t('{n} requests waiting on you', {'n': n}),
+        1 => t('1 escalation waiting on you'),
+        _ => t('{n} escalations waiting on you', {'n': n}),
       };
     }
     if (!_powers.requestsAlarm) return t('Set by BFP');

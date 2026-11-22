@@ -255,7 +255,7 @@ class _QueueTabState extends State<QueueTab> {
               'areaName': first.areaName,
               'alarmWord': alarmWord(first.level),
             })
-          : t('{count} alarm requests waiting', {'count': asks.length}),
+          : t('{count} alarm escalations waiting', {'count': asks.length}),
       body: asks.length == 1
           ? t('{who}. Only BFP sets the alarm level.', {'who': who})
           : t('Newest: {areaName} asks for {alarmWord} · {who}.', {

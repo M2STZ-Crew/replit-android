@@ -178,7 +178,7 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.text('Raise the alarm?'), findsOneWidget);
-    expect(find.text('2 requests waiting'), findsOneWidget);
+    expect(find.text('2 escalations waiting'), findsOneWidget);
     await tester.tap(find.text('2nd alarm'));
     await tester.pump();
     await tester.tap(

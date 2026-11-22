@@ -100,10 +100,10 @@ class _AlarmAskSheetState extends State<AlarmAskSheet> {
             InlineAlert(
               tone: AlertTone.warning,
               title: widget.requestsWaiting == 1
-                  ? t('1 request waiting')
-                  : t('{n} requests waiting', {'n': widget.requestsWaiting}),
+                  ? t('1 escalation waiting')
+                  : t('{n} escalations waiting', {'n': widget.requestsWaiting}),
               body: t('Fire Volunteers asked for a higher level.'),
-              action: t('See requests'),
+              action: t('See escalations'),
               onAction: () =>
                   Navigator.of(context).pop(const AlarmAsk.requests()),
             ),

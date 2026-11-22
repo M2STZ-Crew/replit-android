@@ -2699,4 +2699,23 @@ const Map<String, String> kTagalog = {
       'Idedeklara nitong under control ang sunog: makikita ito ng lahat, pati ng mga residente.',
   'It tells command. A Fire Volunteer or BFP coordinator declares the fire under control.':
       'Sasabihan nito ang command. Ang coordinator ng Fire Volunteer o BFP ang nagdedeklarang under control ang sunog.',
+
+  // Requests became Alarm Escalations (v1.12.60).
+  'Failed to load alarm escalations.': 'Hindi ma-load ang mga alarm escalation.',
+  'Alarm escalation': 'Alarm escalation',
+  'Could not load the alarm escalations. Check your signal.': 'Hindi ma-load ang mga alarm escalation. Tingnan ang signal mo.',
+  'Alarm Escalations': 'Mga Alarm Escalation',
+  'Escalations unavailable': 'Hindi available ang mga escalation',
+  'Escalations move here once BFP sets the level or declines, or the coordinator takes one back.': 'Lumilipat dito ang mga escalation kapag itinakda ng BFP ang antas o tumanggi ito, o binawi ng coordinator.',
+  'An escalation lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise a fire\'s alarm.': 'Dumarating dito ang escalation, kasama ang fire alert, kapag hiniling ng isang Fire Volunteer coordinator sa BFP na itaas ang alarma ng isang sunog.',
+  'Decline this escalation?': 'Tanggihan ang escalation na ito?',
+  'No pending escalations': 'Walang naghihintay na escalation',
+  'Escalation taken back. BFP no longer sees it.': 'Binawi ang escalation. Hindi na ito nakikita ng BFP.',
+  '1 escalation waiting on you': '1 escalation ang naghihintay sa iyo',
+  '{n} escalations waiting on you': '{n} escalation ang naghihintay sa iyo',
+  'From the alarm escalations Fire Volunteer sends': 'Mula sa mga alarm escalation na ipinapadala ng Fire Volunteer',
+  '{count} alarm escalations waiting': '{count} alarm escalation ang naghihintay',
+  '1 escalation waiting': '1 escalation ang naghihintay',
+  '{n} escalations waiting': '{n} escalation ang naghihintay',
+  'See escalations': 'Tingnan ang mga escalation',
 };
