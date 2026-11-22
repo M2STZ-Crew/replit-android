@@ -13,6 +13,8 @@ import '../widgets/app_icons.dart';
 import '../widgets/loading.dart';
 import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
+import '../models/alarm_status.dart';
+import '../widgets/alarm_status_banner.dart';
 
 /// What each agency a report asked for is called on its card, and its glyph.
 const Map<String, ({String word, String glyph})> _agencies = {
@@ -424,6 +426,14 @@ class _ReportCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (AlarmStatus.of(report) case final alarm
+                when report['area_status'] != null && alarm.known) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: AlarmBadge(alarm),
+              ),
+            ],
             // QA H-16 (v1.12.44): the photo the report was sent with.
             if (_photoUrl(report) case final url?) ...[
               const SizedBox(height: 13),

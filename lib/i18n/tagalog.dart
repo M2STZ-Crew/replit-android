@@ -2657,4 +2657,46 @@ const Map<String, String> kTagalog = {
   'What was pressed, and every code': 'Ang mga napindot, at lahat ng code',
   'Show all {count}': 'Ipakita lahat ng {count}',
   'This incident': 'Ang insidenteng ito',
+
+  // The alarm status (v1.12.60).
+  'Alarm status':
+      'Antas ng alarma',
+  'No alarm yet':
+      'Wala pang alarma',
+  'Under control':
+      'Under control',
+  'Was {level}':
+      'Dating {level}',
+  'Raised {time}':
+      'Itinaas {time}',
+  'Raised {time} by {who}':
+      'Itinaas {time} ng {who}',
+  'Set {time}':
+      'Itinakda {time}',
+  'Set {time} by {who}':
+      'Itinakda {time} ng {who}',
+  'The fire is out.':
+      'Patay na ang sunog.',
+  'It is no longer spreading. Stay away until the fire is out.':
+      'Hindi na ito kumakalat. Lumayo hanggang sa mapatay ang sunog.',
+  'The highest alarm. Stay far away and keep the roads clear.':
+      'Ang pinakamataas na alarma. Lumayo nang husto at panatilihing bukas ang mga daan.',
+  'It needs more firefighters and trucks. Stay away and keep the roads clear.':
+      'Kailangan nito ng mas maraming bumbero at trak. Lumayo at panatilihing bukas ang mga daan.',
+  'A confirmed fire. Stay away from it and keep the roads clear.':
+      'Kumpirmadong sunog. Lumayo rito at panatilihing bukas ang mga daan.',
+  'An alarm is set once responders confirm the fire.':
+      'Itinatakda ang alarma kapag nakumpirma ng mga responder ang sunog.',
+  'Withdraw':
+      'Bawiin',
+  'Withdraw Under control?':
+      'Bawiin ang Under control?',
+  "Everyone sees the fire's alarm level again, and its crews and coordinators are told without a sound.":
+      'Makikita ulit ng lahat ang antas ng alarma ng sunog, at sasabihan nang walang tunog ang mga crew at coordinator nito.',
+  'Under control withdrawn.':
+      'Binawi ang Under control.',
+  'This declares the fire under control: everyone, residents too, will see it.':
+      'Idedeklara nitong under control ang sunog: makikita ito ng lahat, pati ng mga residente.',
+  'It tells command. A Fire Volunteer or BFP coordinator declares the fire under control.':
+      'Sasabihan nito ang command. Ang coordinator ng Fire Volunteer o BFP ang nagdedeklarang under control ang sunog.',
 };

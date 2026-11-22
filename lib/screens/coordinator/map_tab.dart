@@ -27,6 +27,7 @@ import 'coordinator_feed.dart';
 import 'coordinator_shell.dart';
 import '../../i18n/i18n.dart';
 import '../../widgets/map_layer_gate.dart';
+import '../../widgets/alarm_status_banner.dart';
 
 const LatLng _pasay = LatLng(14.5378, 121.0014);
 
@@ -610,6 +611,13 @@ class _Standing extends StatelessWidget {
           color: pal.forStatus(area.status),
         ),
         const SizedBox(height: 4),
+        if (area.alarm.known) ...[
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 120),
+            child: AlarmBadge(area.alarm),
+          ),
+          const SizedBox(height: 4),
+        ],
         Eyebrow(
           area.reports == 1
               ? t('1 report')

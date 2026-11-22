@@ -18,17 +18,30 @@ Future<bool> confirmFireCode(
   required String number,
   required String name,
   required String fire,
+  bool declares = false,
 }) async {
   final send = await showFrameSheet<bool>(
     context,
-    builder: (_) => CodeConfirmSheet(number: number, name: name, fire: fire),
+    builder: (_) => CodeConfirmSheet(
+      number: number,
+      name: name,
+      fire: fire,
+      declares: declares,
+    ),
   );
   return send == true;
 }
 
 /// Who a code is for, as the server sends it
 /// (app/services/fire_code_notify.py).
-String codeAudience(String number) => switch (number) {
+String codeAudience(String number, {bool declares = false}) => switch (number) {
+  // v1.12.60: a coordinator's FC-2 is seen by everyone.
+  'FC-2' when declares => t(
+    'This declares the fire under control: everyone, residents too, will see it.',
+  ),
+  'FC-2' => t(
+    'It tells command. A Fire Volunteer or BFP coordinator declares the fire under control.',
+  ),
   'FC-6' => t('It alerts Fire Volunteer and BFP coordinators with a sound.'),
   'FC-7' => t(
     'It alerts the coordinators of every agency on this fire with a sound.',
@@ -45,11 +58,15 @@ class CodeConfirmSheet extends StatefulWidget {
     required this.number,
     required this.name,
     required this.fire,
+    this.declares = false,
   });
 
   final String number;
   final String name;
   final String fire;
+
+  /// This press declares the fire under control (v1.12.60).
+  final bool declares;
 
   /// Send waits this long, so the second tap of an accidental double tap
   /// cannot land on it.
@@ -102,7 +119,7 @@ class _CodeConfirmSheetState extends State<CodeConfirmSheet> {
           tone: AlertTone.warning,
           title: t('Check before sending'),
           body: [
-            codeAudience(widget.number),
+            codeAudience(widget.number, declares: widget.declares),
             if (widget.number == 'FC-3') t('It does not mark the fire out.'),
             t(
               "Nothing is sent until you press Send. Once sent, it stays on the incident's record.",

@@ -34,6 +34,9 @@ import 'coordinator_feed.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
 import '../../widgets/responsive_frame.dart';
+import '../../models/alarm_status.dart';
+import '../../widgets/alarm_status_banner.dart';
+import '../../widgets/withdraw_control_sheet.dart';
 
 /// A unit within this distance of the Area's centre is on scene.
 const double _onSceneMetres = 100;
@@ -560,6 +563,25 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     );
   }
 
+  /// Take Under control back, once asked (v1.12.60).
+  Future<void> _withdrawControl(AreaView area) async {
+    final yes = await confirmWithdrawUnderControl(context, fire: area.name);
+    if (!yes || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    String said;
+    try {
+      await _api.withdrawUnderControl(area.id);
+      said = t('Under control withdrawn.');
+    } on ApiException catch (e) {
+      said = e.message;
+    } catch (_) {
+      said = t('That did not go through. Check your signal.');
+    }
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text(said)));
+    await _load();
+  }
+
   /// This incident's fire codes: pressed by Fire Volunteer and BFP
   /// coordinators, read by everyone else.
   Future<void> _codes() async {
@@ -571,6 +593,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
         api: _api,
         area: area,
         presses: _powers.pressesCodes,
+        declares: _powers.declaresUnderControl,
       ),
     );
     if (mounted) await _load();
@@ -800,6 +823,18 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
                     MediaQuery.paddingOf(context).bottom + 24,
                   ),
                   children: [
+                    AlarmStatusBanner(
+                      area.alarm,
+                      staff: true,
+                      compact: true,
+                      spacing: 12,
+                      action:
+                          _powers.declaresUnderControl &&
+                              area.alarm.situation == FireSituation.underControl
+                          ? t('Withdraw')
+                          : null,
+                      onAction: _busy ? null : () => _withdrawControl(area),
+                    ),
                     Row(
                       children: [
                         LifecycleChip(area.status),

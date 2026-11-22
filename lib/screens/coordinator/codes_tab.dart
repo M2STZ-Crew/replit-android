@@ -41,6 +41,7 @@ class FireCodesSheet extends StatefulWidget {
     required this.presses,
     this.allowed,
     this.readOnlyNote,
+    this.declares = false,
   });
 
   final ApiClient api;
@@ -56,6 +57,10 @@ class FireCodesSheet extends StatefulWidget {
 
   /// Why a reader who presses none can only read; null for a coordinator's.
   final String? readOnlyNote;
+
+  /// This reader's FC-2 declares the fire under control (v1.12.60): a Fire
+  /// Volunteer or BFP coordinator's, not a responder's.
+  final bool declares;
 
   @override
   State<FireCodesSheet> createState() => _FireCodesSheetState();
@@ -117,6 +122,7 @@ class _FireCodesSheetState extends State<FireCodesSheet> {
       number: number,
       name: (code['name'] as String?) ?? '',
       fire: widget.area.name,
+      declares: widget.declares && number == 'FC-2',
     );
     _asking = false;
     if (!send || !mounted) return;

@@ -320,6 +320,14 @@ void main() {
         ),
       );
       expect(find.text('BACK TO DUTY'), findsOneWidget);
+      // Under the alarm status since v1.12.60: scrolled to.
+      await tester.scrollUntilVisible(
+        find.text('Reports'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('Reports'));
+      await settle(tester);
       await tester.tap(find.text('Reports'));
       await settle(tester);
       expect(find.text('1 report'), findsOneWidget);

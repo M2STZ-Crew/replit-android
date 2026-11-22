@@ -59,6 +59,7 @@ const fireAlertTypes = {
   'fire_alert',
   'fire_verified',
   'alarm_request',
+  'alarm_raised',
 };
 
 /// Whoever works incidents in this app: every responder and every
@@ -110,6 +111,14 @@ NotificationTarget targetFor(String? type, Map<String, dynamic>? me) {
       return NotificationTarget.verification;
     // A fire code pressed on an incident (backend v1.12.46): the incident.
     case 'fire_code':
+      return staff ? NotificationTarget.staffIncident : NotificationTarget.none;
+    // The alarm was raised (backend v1.12.49): the fire, where it now shows.
+    case 'alarm_raised':
+      return staff
+          ? NotificationTarget.staffIncident
+          : NotificationTarget.verifiedFire;
+    // Under control taken back: told to staff only.
+    case 'under_control_withdrawn':
       return staff ? NotificationTarget.staffIncident : NotificationTarget.none;
     // A prank-report strike and what came of it (backend v1.12.41).
     case 'report_strike':

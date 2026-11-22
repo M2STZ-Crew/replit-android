@@ -186,6 +186,7 @@ class DutyTab extends StatelessWidget {
       area: a,
       builder: (context, place) => AreaCard(
         status: a.status,
+        alarm: a.alarm,
         title: a.name,
         place: placeLine(a, place),
         facts: [

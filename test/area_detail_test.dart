@@ -136,7 +136,8 @@ void main() {
       ),
     );
     // A crew's Post-Incident Report is internal: residents see "resolved".
-    expect(find.text('FIRE OUT'), findsNWidgets(2));
+    // The fact, the progress and the alarm status banner (v1.12.60).
+    expect(find.text('FIRE OUT'), findsNWidgets(3));
     expect(find.text('I SEE IT TOO — ADD MY REPORT'), findsNothing);
   });
 }

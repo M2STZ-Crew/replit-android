@@ -18,6 +18,7 @@ import 'report_detail_screen.dart';
 import '../../widgets/loading.dart';
 import '../../widgets/no_emoji.dart';
 import '../../i18n/i18n.dart';
+import '../../widgets/alarm_status_banner.dart';
 
 /// An Area and the decision on it (06 · C04): where it is, how sure the
 /// system is and why, the summary, every report, and the one decision —
@@ -339,6 +340,7 @@ class _AreaDecisionScreenState extends State<AreaDecisionScreen> {
     final n = _reports.isEmpty ? area.reports : _reports.length;
     final gap = const SizedBox(height: 16);
     return [
+      AlarmStatusBanner(area.alarm, staff: true, compact: true),
       Wrap(
         spacing: 8,
         runSpacing: 8,

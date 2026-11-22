@@ -424,6 +424,7 @@ class _QueueTabState extends State<QueueTab> {
       area: a,
       builder: (context, place) => AreaCard(
         status: a.status,
+        alarm: a.alarm,
         agency: _feed.agency ?? 'fire_volunteer',
         title: a.name,
         place: placeLine(a, place),

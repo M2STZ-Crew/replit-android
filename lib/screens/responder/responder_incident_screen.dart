@@ -28,6 +28,7 @@ import '../../i18n/i18n.dart';
 import '../../models/fire_code_rules.dart';
 import '../../widgets/code_confirm_sheet.dart';
 import '../coordinator/codes_tab.dart';
+import '../../widgets/alarm_status_banner.dart';
 
 /// One Area, as a responder sees it (REPLIT (MAIN) 07).
 ///
@@ -723,6 +724,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           subtitle: subtitle.isEmpty ? null : subtitle,
         ),
         _list([
+          AlarmStatusBanner(area.alarm, staff: true, compact: true),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -857,6 +859,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           subtitle: subtitle.isEmpty ? null : subtitle,
         ),
         _list([
+          AlarmStatusBanner(area.alarm, staff: true, compact: true),
           if (_status == 'rejected')
             InlineAlert(
               tone: AlertTone.danger,

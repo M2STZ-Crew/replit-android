@@ -81,6 +81,10 @@ class TrackingSnapshot {
     this.verifiedBy,
     this.verifiedByAgency,
     this.verifiedAt,
+    this.hasAlarm = false,
+    this.alarmLevel,
+    this.alarmSetAt,
+    this.underControlAt,
   });
 
   /// Null for anything that is not a snapshot, rather than a crash: an older
@@ -115,6 +119,12 @@ class TrackingSnapshot {
       verifiedBy: json['verified_by'] as String?,
       verifiedByAgency: json['verified_by_agency'] as String?,
       verifiedAt: DateTime.tryParse('${json['verified_at']}'),
+      hasAlarm: json.containsKey('alarm_level'),
+      alarmLevel: json['alarm_level'] as String?,
+      alarmSetAt: DateTime.tryParse('${json['alarm_level_set_at']}')?.toLocal(),
+      underControlAt: DateTime.tryParse(
+        '${json['under_control_at']}',
+      )?.toLocal(),
     );
   }
 
@@ -140,6 +150,12 @@ class TrackingSnapshot {
   /// That team's agency, for its colour; null when an Admin verified it.
   final String? verifiedByAgency;
   final DateTime? verifiedAt;
+
+  /// The alarm status, from backend v1.12.49 ([hasAlarm]).
+  final bool hasAlarm;
+  final String? alarmLevel;
+  final DateTime? alarmSetAt;
+  final DateTime? underControlAt;
 
   /// How old [unit]'s position is now: its age when the snapshot was made,
   /// plus the time since the snapshot arrived.

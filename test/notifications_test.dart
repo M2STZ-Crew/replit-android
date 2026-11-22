@@ -133,6 +133,8 @@ void main() {
         // A verified fire, told to every resident (v1.12.49).
         'fire_verified',
         'alarm_request',
+        // BFP raised it (v1.12.60).
+        'alarm_raised',
       });
       expect(fireAlertTypes.contains('incident_update'), isFalse);
     });
