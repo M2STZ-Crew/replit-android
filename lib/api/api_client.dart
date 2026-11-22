@@ -822,6 +822,18 @@ class ApiClient {
     return _decode(resp);
   }
 
+  /// Withdraw Under control (backend v1.12.49): POST
+  /// /incidents/{id}/under-control/withdraw.
+  Future<Map<String, dynamic>> withdrawUnderControl(String areaId) async {
+    final resp = await _client.post(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/incidents/$areaId/under-control/withdraw',
+      ),
+      headers: _jsonAuth,
+    );
+    return _decode(resp);
+  }
+
   /// BFP raises an Area's alarm itself, with no request to answer (backend
   /// v1.12.38): POST /alarm-requests/raise. Waiting requests it meets are
   /// answered with it.
@@ -885,7 +897,7 @@ class ApiClient {
       headers: _auth,
     );
     if (resp.statusCode >= 400) {
-      throw ApiException(resp.statusCode, t('Failed to load alarm requests.'));
+      throw ApiException(resp.statusCode, t('Failed to load alarm escalations.'));
     }
     return jsonDecode(resp.body) as List<dynamic>;
   }

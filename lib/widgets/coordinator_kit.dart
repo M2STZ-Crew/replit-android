@@ -7,6 +7,8 @@ import 'app_icons.dart';
 import 'design.dart';
 import 'sheet_grip.dart';
 import '../i18n/i18n.dart';
+import '../models/alarm_status.dart';
+import 'alarm_status_banner.dart';
 
 /// The REPLIT (MAIN) 04 components the Coordinator Experience (06) is built
 /// from and the rest of the app had not needed yet: the tab and detail screen
@@ -426,6 +428,7 @@ class AreaCard extends StatelessWidget {
     this.facts = const [],
     this.note,
     this.action,
+    this.alarm,
     this.onTap,
     this.emphasis = AreaEmphasis.normal,
   });
@@ -443,6 +446,9 @@ class AreaCard extends StatelessWidget {
 
   /// The button's words: Decide, Open, File report.
   final String? action;
+
+  /// The badge beside the status (v1.12.60).
+  final AlarmStatus? alarm;
   final VoidCallback? onTap;
   final AreaEmphasis emphasis;
 
@@ -480,7 +486,16 @@ class AreaCard extends StatelessWidget {
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: LifecycleChip(status),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      LifecycleChip(status),
+                      if (alarm case final alarm? when alarm.known)
+                        AlarmBadge(alarm),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(

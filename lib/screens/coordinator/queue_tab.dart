@@ -255,7 +255,7 @@ class _QueueTabState extends State<QueueTab> {
               'areaName': first.areaName,
               'alarmWord': alarmWord(first.level),
             })
-          : t('{count} alarm requests waiting', {'count': asks.length}),
+          : t('{count} alarm escalations waiting', {'count': asks.length}),
       body: asks.length == 1
           ? t('{who}. Only BFP sets the alarm level.', {'who': who})
           : t('Newest: {areaName} asks for {alarmWord} · {who}.', {
@@ -424,6 +424,7 @@ class _QueueTabState extends State<QueueTab> {
       area: a,
       builder: (context, place) => AreaCard(
         status: a.status,
+        alarm: a.alarm,
         agency: _feed.agency ?? 'fire_volunteer',
         title: a.name,
         place: placeLine(a, place),

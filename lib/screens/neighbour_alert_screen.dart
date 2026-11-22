@@ -25,6 +25,8 @@ import '../widgets/loading.dart';
 import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
+import '../models/alarm_status.dart';
+import '../widgets/alarm_status_banner.dart';
 
 /// How far from a fire a neighbour is asked about it: the server's
 /// NEIGHBORHOOD_RADIUS_M (app/workers/neighborhood.py; PRD v14 §4.2).
@@ -283,6 +285,12 @@ class _NeighbourAlertScreenState extends State<NeighbourAlertScreen> {
             ..._whereLine(),
             Text(t('DO YOU SEE IT TOO?'), style: context.type.display),
             const SizedBox(height: 14),
+            AlarmStatusBanner(
+              AlarmStatus.of(_area),
+              compact: true,
+              showNone: false,
+              spacing: 14,
+            ),
             Text(_sentence, style: context.type.body),
             const SizedBox(height: 26),
             _proximityMap(),

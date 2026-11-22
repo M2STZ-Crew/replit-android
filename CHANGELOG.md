@@ -7,6 +7,50 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.60 — 22 November 2026 — The alarm status, highlighted, for everyone; Alarm Escalations
+
+Goes with backend v1.12.49.
+
+- **The alarm status on every detail screen** ("fire alarm status can be seen
+  in any details info. because it is essential to be seen by anyone. and
+  highlight it in the details because it is crucial"; answered "Everyone,
+  everywhere"; `lib/widgets/alarm_status_banner.dart`): a banner with the
+  level, or Under control or Fire out, in color, icon and words, and a badge on
+  lists and map cards. A raised alarm is solid red. Staff read who set it;
+  residents read what it means, never a name.
+- **Under control:** a Fire Volunteer or BFP coordinator's FC-2 warns that
+  everyone will see it, and the banner has Withdraw for them.
+- **A raised alarm opens the fire** when its notification is tapped.
+- **Requests are Alarm Escalations** on BFP's screen, the Profile and queue
+  rows, the sheet and the notification, in English and Tagalog.
+
+---
+
+## v1.12.59 — 22 November 2026 — Drawers slide down and close; a warning before every fire code; responders' codes
+
+Goes with backend v1.12.48.
+
+- **Every drawer slides down** ("fire code drawer slider can be slide down
+  like alarm level to get back to incident detail but it isn't"; answered
+  "All drawers + X"). A long drawer filled the screen: its list took the
+  swipe and its handle was under the status bar, where a swipe pulls the
+  phone's notifications. Drawers now stop below the status bar at 90% of the
+  screen, follow a pull down from the top of their list or from anywhere on
+  their header, and have a Close (48 px) unless they must be answered
+  (`lib/widgets/sheet_grip.dart`, `showAppSheet`). The truck list, map
+  details, About, phone and email code drawers now use the same body.
+- **A warning before every fire code** ("when the firecode is pressed please
+  make a warning interface first because what if it's mistouched?"; answered
+  "Confirm sheet"; `lib/widgets/code_confirm_sheet.dart`): the code, the fire
+  and who is alerted, then Cancel or Send. Send arms after half a second, so a
+  double tap cannot send. Nothing is sent by a swipe or a tap outside.
+- **Responders have the Fire codes drawer** (answered "Same drawer"; missed in
+  v1.12.58, where a press was to show everywhere): everything pressed, by whom
+  and when, and the codes they may press (`lib/models/fire_code_rules.dart`,
+  as the server's rule). The shortcuts stay, and ask first.
+
+---
+
 ## v1.12.58 — 20 November 2026 — Fire codes heard; a ripple on every fire; Report in the bar
 
 Goes with backend v1.12.46.

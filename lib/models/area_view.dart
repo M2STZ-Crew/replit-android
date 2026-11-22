@@ -2,6 +2,7 @@ import 'package:latlong2/latlong.dart';
 import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import 'field_ops.dart';
+import 'alarm_status.dart';
 
 /// One incident Area as the coordinator screens read it, from a GET
 /// /incidents row (IncidentSummary) or GET /incidents/{id} (IncidentDetail).
@@ -64,6 +65,9 @@ class AreaView {
       (raw['active_dispatch_count'] as num?)?.toInt() ?? 0;
 
   String? get alarmLevel => raw['alarm_level'] as String?;
+
+  /// The level and where the fire stands (v1.12.60).
+  AlarmStatus get alarm => AlarmStatus.of(raw);
 
   /// What is burning, once someone on scene has said (PRD v14 §4.5.3).
   FireClassification? get fireType => FireClassification.fromIncident(raw);

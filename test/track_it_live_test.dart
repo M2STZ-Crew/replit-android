@@ -243,11 +243,28 @@ void main() {
       );
       expect(tester.takeException(), isNull);
 
+      // Under the alarm status since v1.12.60: scrolled to at a large type.
+      await tester.scrollUntilVisible(
+        find.text('Apollo'),
+        60,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
       expect(find.text('RESPONDERS'), findsOneWidget);
       expect(find.text('Apollo'), findsOneWidget);
       expect(
         find.text('Hercules Fire Brigade · On the way · 1.5 km from the fire'),
         findsOneWidget,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Unit 2'),
+        40,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
       );
       expect(find.text('Unit 2'), findsOneWidget);
       expect(find.text('Location lost · last seen 2 min ago'), findsOneWidget);

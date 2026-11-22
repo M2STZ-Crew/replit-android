@@ -17,6 +17,8 @@ import 'live_update_screen.dart';
 import '../widgets/app_icons.dart';
 import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
+import '../models/alarm_status.dart';
+import '../widgets/alarm_status_banner.dart';
 
 /// "09 Submitting" from the REPLIT-OVERHAUL Figma — "Getting you help" — and
 /// the screen a resident stays on until the fire is out.
@@ -485,6 +487,12 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
               top: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  AlarmStatusBanner(
+                    AlarmStatus.of(_area),
+                    compact: true,
+                    showNone: false,
+                    spacing: 12,
+                  ),
                   Eyebrow(eyebrow, color: eyebrowTone),
                   SizedBox(height: ease(8, 10)),
                   Text(

@@ -356,7 +356,7 @@ class _StaffDrawerState extends State<StaffDrawer> {
             if (_bfp)
               _item(
                 AppIcons.campaign,
-                t('Alarm requests'),
+                t('Alarm Escalations'),
                 StaffPage.alarms,
                 count: _alarmsPending,
               ),

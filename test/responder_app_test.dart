@@ -16,6 +16,7 @@ import 'package:replit/api/api_client.dart';
 import 'package:replit/location/live_position.dart';
 import 'package:replit/location/place_names.dart';
 import 'package:replit/location/responder_tracker.dart';
+import 'package:replit/screens/coordinator/codes_tab.dart';
 import 'package:replit/screens/responder/responder_incident_screen.dart';
 import 'package:replit/screens/responder/responder_shell.dart';
 import 'package:replit/theme.dart';
@@ -319,6 +320,14 @@ void main() {
         ),
       );
       expect(find.text('BACK TO DUTY'), findsOneWidget);
+      // Under the alarm status since v1.12.60: scrolled to.
+      await tester.scrollUntilVisible(
+        find.text('Reports'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('Reports'));
+      await settle(tester);
       await tester.tap(find.text('Reports'));
       await settle(tester);
       expect(find.text('1 report'), findsOneWidget);
@@ -386,7 +395,27 @@ void main() {
       await tester.scrollUntilVisible(find.text('Fire is out'), 200);
       await tester.tap(find.text('Fire is out'));
       await settle(tester);
+      // A shortcut asks first (v1.12.59).
+      expect(posted, isEmpty);
+      await settle(tester); // Send arms after half a second
+      await tester.tap(find.text('SEND FC-3'));
+      await settle(tester);
       expect(posted, ['/fire-codes/c3/press']);
+      await done(tester);
+    });
+
+    testWidgets("the run has the coordinator's Fire codes drawer (v1.12.59)", (
+      tester,
+    ) async {
+      await run(tester, 'arrived');
+      await tester.scrollUntilVisible(find.text('Fire codes'), 150);
+      await tester.ensureVisible(find.text('Fire codes'));
+      await settle(tester);
+      await tester.tap(find.text('Fire codes'));
+      await settle(tester);
+      expect(find.byType(FireCodesSheet), findsOneWidget);
+      expect(find.textContaining('are pressed by Fire Volunteer'), findsNothing);
+      expect(posted, isEmpty);
       await done(tester);
     });
 

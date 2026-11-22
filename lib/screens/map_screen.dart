@@ -35,6 +35,9 @@ import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../updates/update_banner.dart';
 import '../widgets/map_layer_gate.dart';
+import '../widgets/sheet_grip.dart';
+import '../models/alarm_status.dart';
+import '../widgets/alarm_status_banner.dart';
 
 /// Pasay City centre — the map's home view when the user's GPS is unavailable.
 const LatLng _pasayCenter = LatLng(14.5378, 121.0014);
@@ -1402,6 +1405,7 @@ class _MapScreenState extends State<MapScreen> {
         reports: reports,
         band: a['confidence_band'] as String?,
       ),
+      badge: AlarmStatus.of(a).known ? AlarmBadge(AlarmStatus.of(a)) : null,
       onTap: () => _openArea(a),
     );
   }
@@ -1641,44 +1645,40 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
       builder: (sheet) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(child: SheetHandle()),
-              Row(
-                children: [
-                  IconWell(
-                    tint: accent,
-                    icon: icon,
-                    asset: asset,
-                    size: 48,
-                    glyph: 24,
+        child: FrozenHandleSheet(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                IconWell(
+                  tint: accent,
+                  icon: icon,
+                  asset: asset,
+                  size: 48,
+                  glyph: 24,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Eyebrow(tag, color: accent),
+                      const SizedBox(height: 6),
+                      Text(title.toUpperCase(), style: context.type.title),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Eyebrow(tag, color: accent),
-                        const SizedBox(height: 6),
-                        Text(title.toUpperCase(), style: context.type.title),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              ...rows.map(_detailRowTile),
-              if (action != null) ...[
-                const SizedBox(height: 6),
-                SizedBox(width: double.infinity, child: action(sheet)),
+                ),
               ],
+            ),
+            const SizedBox(height: 20),
+            ...rows.map(_detailRowTile),
+            if (action != null) ...[
+              const SizedBox(height: 6),
+              SizedBox(width: double.infinity, child: action(sheet)),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -1815,6 +1815,7 @@ class _SheetRow extends StatelessWidget {
     this.asset,
     this.icon,
     this.signal,
+    this.badge,
     this.edge,
     this.onTap,
   });
@@ -1825,6 +1826,9 @@ class _SheetRow extends StatelessWidget {
   final String? asset;
   final IconData? icon;
   final Widget? signal;
+
+  /// Under the subtitle: a fire's alarm status (v1.12.60).
+  final Widget? badge;
   final Color? edge;
   final VoidCallback? onTap;
 
@@ -1883,6 +1887,7 @@ class _SheetRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: context.type.caption,
                     ),
+                    if (badge != null) ...[const SizedBox(height: 6), badge!],
                   ],
                 ),
               ),

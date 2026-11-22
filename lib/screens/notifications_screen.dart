@@ -161,7 +161,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context.pal.ok,
     ),
     'alarm_request' => (
-      t('Alarm request'),
+      t('Alarm escalation'),
       AppIcons.notificationsActive,
       context.pal.live,
     ),

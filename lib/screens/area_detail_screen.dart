@@ -23,6 +23,8 @@ import '../i18n/fire_names.dart';
 import '../widgets/fire_ripple.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
+import '../models/alarm_status.dart';
+import '../widgets/alarm_status_banner.dart';
 
 /// Reports join an area only from within this distance of its centre
 /// (clustering, Master Context §3.4) — the circle on the map extract.
@@ -282,6 +284,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
         style: context.type.body,
       ),
       const SizedBox(height: 18),
+      AlarmStatusBanner(AlarmStatus.of(_area)),
       Wrap(
         spacing: 8,
         runSpacing: 8,

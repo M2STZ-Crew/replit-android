@@ -29,6 +29,8 @@ import '../widgets/app_icons.dart';
 import '../i18n/fire_names.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
+import '../models/alarm_status.dart';
+import '../widgets/alarm_status_banner.dart';
 
 /// How much of the screen the sheet covers when open: the map keeps the top
 /// 44%, where the fire and the trucks are framed.
@@ -753,6 +755,20 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     );
   }
 
+  /// The alarm status: the snapshot follows a raise at once, the slower
+  /// area read adds who set it (v1.12.60).
+  AlarmStatus _alarmStatus(String? status) {
+    final read = AlarmStatus.of({...?_area, 'status': ?status});
+    final snap = _snap;
+    if (snap == null || !snap.hasAlarm) return read;
+    return read.withLive(
+      status: read.status,
+      level: snap.alarmLevel,
+      setAt: snap.alarmSetAt,
+      underControlAt: snap.underControlAt,
+    );
+  }
+
   /// "Your report is live" — or, once it is over, what became of it.
   Widget _banner() {
     final status = _status;
@@ -872,6 +888,12 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                     controller: scroll,
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     children: [
+                      AlarmStatusBanner(
+                        _alarmStatus(status),
+                        compact: true,
+                        showNone: _area != null,
+                        spacing: 12,
+                      ),
                       Eyebrow(t('Status'), color: context.pal.muted),
                       const SizedBox(height: 10),
                       // A Wrap, not a Row: at a large font scale the two do not fit
@@ -1301,49 +1323,44 @@ class _UnitsLayerState extends State<_UnitsLayer>
         ),
       ),
       builder: (sheet) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Center(child: SheetHandle()),
-              Text('${members.length} TRUCKS HERE', style: sheet.type.headline),
-              const SizedBox(height: 14),
-              for (final m in members) ...[
-                Row(
-                  children: [
-                    IconWell(
-                      tint: _colourOf(context, m.unit),
-                      icon: AppIcons.fireTruck,
-                      size: 36,
-                      glyph: 18,
+        child: FrozenHandleSheet(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          children: [
+            Text('${members.length} TRUCKS HERE', style: sheet.type.headline),
+            const SizedBox(height: 14),
+            for (final m in members) ...[
+              Row(
+                children: [
+                  IconWell(
+                    tint: _colourOf(context, m.unit),
+                    icon: AppIcons.fireTruck,
+                    size: 36,
+                    glyph: 18,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(m.unit.label, style: sheet.type.rowTitleLg),
+                        if (m.unit.organization != null ||
+                            widget.snapshot.isStale(m.unit))
+                          Text(
+                            [
+                              ?m.unit.organization,
+                              if (widget.snapshot.isStale(m.unit))
+                                'Location lost',
+                            ].join(' · '),
+                            style: sheet.type.caption,
+                          ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(m.unit.label, style: sheet.type.rowTitleLg),
-                          if (m.unit.organization != null ||
-                              widget.snapshot.isStale(m.unit))
-                            Text(
-                              [
-                                ?m.unit.organization,
-                                if (widget.snapshot.isStale(m.unit))
-                                  'Location lost',
-                              ].join(' · '),
-                              style: sheet.type.caption,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-              ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
             ],
-          ),
+          ],
         ),
       ),
     );

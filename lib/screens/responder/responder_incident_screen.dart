@@ -25,6 +25,10 @@ import '../coordinator/report_detail_screen.dart';
 import 'responder_status.dart';
 import '../../widgets/loading.dart';
 import '../../i18n/i18n.dart';
+import '../../models/fire_code_rules.dart';
+import '../../widgets/code_confirm_sheet.dart';
+import '../coordinator/codes_tab.dart';
+import '../../widgets/alarm_status_banner.dart';
 
 /// One Area, as a responder sees it (REPLIT (MAIN) 07).
 ///
@@ -97,6 +101,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   Map<String, dynamic>? _myDispatch;
   final Map<String, FleetUnit> _fleetByName = {};
   final Map<String, String> _fireCodeIds = {};
+  final Map<String, String> _fireCodeNames = {};
 
   String? _etaText;
   DateTime? _lastEta;
@@ -104,6 +109,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
   String? _error;
   bool _busy = false;
   bool _pressing = false;
+
+  /// A code's warning is up.
+  bool _confirming = false;
 
   @override
   void initState() {
@@ -258,7 +266,11 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       for (final c in codes.cast<Map<String, dynamic>>()) {
         final n = c['code_number'] as String?;
         final id = c['id'] as String?;
-        if (n != null && id != null) _fireCodeIds[n] = id;
+        if (n != null && id != null) {
+          _fireCodeIds[n] = id;
+          final name = c['name'] as String?;
+          if (name != null) _fireCodeNames[n] = name;
+        }
       }
     } catch (_) {
       // The code rows say they are unavailable when pressed.
@@ -438,6 +450,18 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       _toast(t('{label} is unavailable.', {'label': label}));
       return;
     }
+    final area = _area;
+    if (_confirming || area == null) return;
+    // A shortcut asks first, like the drawer (v1.12.59).
+    _confirming = true;
+    final send = await confirmFireCode(
+      context,
+      number: codeNumber,
+      name: _fireCodeNames[codeNumber] ?? label,
+      fire: area.name,
+    );
+    _confirming = false;
+    if (!send || !mounted) return;
     setState(() => _pressing = true);
     try {
       await _api.pressFireCode(id, areaId: widget.incidentId);
@@ -450,6 +474,51 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       if (mounted) setState(() => _pressing = false);
     }
   }
+
+  /// Fire out completed this responder's response on it.
+  bool get _finished => _dispatches.any(
+    (d) => d['responder_id'] == widget.myId && d['status'] == 'completed',
+  );
+
+  bool _mayPressCode(String? code) => responderMayPress(
+    code,
+    fireCrew: _fireCrew,
+    going: _hasActiveDispatch,
+    finished: _finished,
+  );
+
+  /// The same Fire codes drawer as a coordinator's (v1.12.59; 22 Nov 2026,
+  /// answered "Same drawer"): what was pressed, by whom and when, and the
+  /// codes this responder may press.
+  Future<void> _openCodes(AreaView area) async {
+    final presses = [
+      ...kCallForHelpCodes,
+      ...kAfterFireCodes,
+    ].any(_mayPressCode);
+    await showFrameSheet<void>(
+      context,
+      builder: (_) => FireCodesSheet(
+        api: _api,
+        area: area,
+        presses: presses,
+        allowed: _mayPressCode,
+        readOnlyNote: t(
+          'You can press codes while you are on this fire. You can see each one here.',
+        ),
+      ),
+    );
+    if (mounted) await _load(silent: true);
+  }
+
+  Widget _codesRow(AreaView area) => ListRow(
+    leading: const IconPlate(AppIcons.gridView),
+    title: t('Fire codes'),
+    subtitle: area.fireCodes.isEmpty
+        ? t('What was pressed, and every code')
+        : codeLine(area.fireCodes.first),
+    chevron: true,
+    onTap: () => _openCodes(area),
+  );
 
   /// Ask BFP to raise the alarm: the levels above the Area's now, and this
   /// responder's request still waiting, if any, to change or take back.
@@ -478,7 +547,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
       if (level == null) {
         if (waiting == null) return;
         await _api.cancelAlarmRequest(waiting.id);
-        if (mounted) _toast(t('Request taken back. BFP no longer sees it.'));
+        if (mounted) _toast(t('Escalation taken back. BFP no longer sees it.'));
         return;
       }
       await _api.createAlarmRequest(
@@ -655,6 +724,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           subtitle: subtitle.isEmpty ? null : subtitle,
         ),
         _list([
+          AlarmStatusBanner(area.alarm, staff: true, compact: true),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -701,6 +771,8 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             gap,
             ListRow(title: t('Acknowledged by'), subtitle: verifier),
           ],
+          gap,
+          _codesRow(area),
           if (centre != null && area.active) ...[
             gap,
             ListRow(
@@ -787,6 +859,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           subtitle: subtitle.isEmpty ? null : subtitle,
         ),
         _list([
+          AlarmStatusBanner(area.alarm, staff: true, compact: true),
           if (_status == 'rejected')
             InlineAlert(
               tone: AlertTone.danger,
@@ -845,7 +918,9 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
             ),
             const SizedBox(height: 12),
             ..._codes(area),
-          ],
+          ] else
+            const SizedBox(height: 20),
+          _codesRow(area),
           if (over || _status == 'rejected') ...[
             const SizedBox(height: 20),
             AppButton.secondary(t('Back to duty'), onPressed: _backToDuty),
@@ -988,14 +1063,14 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           pal.water,
           t('Need water'),
           t('More water supply to this fire'),
-          () => _pressCode(t('FC-6'), t('Need water')),
+          () => _pressCode('FC-6', t('Need water')),
         ),
       code(
         AppIcons.groupAdd,
         pal.warn,
         t('Need assistance'),
         t('Backup responders to this fire'),
-        () => _pressCode(t('FC-7'), t('Need assistance')),
+        () => _pressCode('FC-7', t('Need assistance')),
       ),
       if (mayRequestAlarm(widget.agency))
         code(
@@ -1012,7 +1087,7 @@ class _ResponderIncidentScreenState extends State<ResponderIncidentScreen> {
           pal.ok,
           t('Fire is out'),
           t('Tell command — the Captain marks it'),
-          () => _pressCode(t('FC-3'), t('Fire out')),
+          () => _pressCode('FC-3', t('Fire out')),
         ),
     ];
   }

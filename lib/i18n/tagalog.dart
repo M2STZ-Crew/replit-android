@@ -2633,4 +2633,89 @@ const Map<String, String> kTagalog = {
   // Fire codes pressed; gray hydrants (v1.12.58).
   'Pressed on this incident': 'Pinindot sa insidenteng ito',
   'Not verified': 'Hindi pa beripikado',
+
+  // Drawers, the fire code warning, responders' codes (v1.12.59).
+  'Send {code}?': 'Ipadala ang {code}?',
+  'Send {code}': 'I-send {code}',
+  'Check before sending': 'Suriin muna bago ipadala',
+  'It alerts Fire Volunteer and BFP coordinators with a sound.':
+      'Aalertuhan nito nang may tunog ang mga coordinator ng Fire Volunteer at BFP.',
+  'It alerts the coordinators of every agency on this fire with a sound.':
+      'Aalertuhan nito nang may tunog ang mga coordinator ng lahat ng ahensya sa sunog na ito.',
+  'It alerts medical coordinators and the central hub with a sound.':
+      'Aalertuhan nito nang may tunog ang mga medical coordinator at ang central hub.',
+  "It tells this fire's crews and coordinators, without a sound.":
+      'Sasabihan nito nang walang tunog ang mga crew at coordinator ng sunog na ito.',
+  'It does not mark the fire out.':
+      'Hindi nito minamarkahang patay na ang sunog.',
+  "Nothing is sent until you press Send. Once sent, it stays on the incident's record.":
+      'Walang ipapadala hangga\'t hindi mo pinipindot ang Send. Kapag naipadala na, mananatili ito sa rekord ng insidente.',
+  'You can press the codes your team may send on this fire. The rest are here to read.':
+      'Mapipindot mo ang mga code na puwedeng ipadala ng team mo sa sunog na ito. Pambasa lang ang iba.',
+  'You can press codes while you are on this fire. You can see each one here.':
+      'Makakapindot ka ng code habang nasa sunog na ito ka. Makikita mo rito ang bawat isa.',
+  'What was pressed, and every code': 'Ang mga napindot, at lahat ng code',
+  'Show all {count}': 'Ipakita lahat ng {count}',
+  'This incident': 'Ang insidenteng ito',
+
+  // The alarm status (v1.12.60).
+  'Alarm status':
+      'Antas ng alarma',
+  'No alarm yet':
+      'Wala pang alarma',
+  'Under control':
+      'Under control',
+  'Was {level}':
+      'Dating {level}',
+  'Raised {time}':
+      'Itinaas {time}',
+  'Raised {time} by {who}':
+      'Itinaas {time} ng {who}',
+  'Set {time}':
+      'Itinakda {time}',
+  'Set {time} by {who}':
+      'Itinakda {time} ng {who}',
+  'The fire is out.':
+      'Patay na ang sunog.',
+  'It is no longer spreading. Stay away until the fire is out.':
+      'Hindi na ito kumakalat. Lumayo hanggang sa mapatay ang sunog.',
+  'The highest alarm. Stay far away and keep the roads clear.':
+      'Ang pinakamataas na alarma. Lumayo nang husto at panatilihing bukas ang mga daan.',
+  'It needs more firefighters and trucks. Stay away and keep the roads clear.':
+      'Kailangan nito ng mas maraming bumbero at trak. Lumayo at panatilihing bukas ang mga daan.',
+  'A confirmed fire. Stay away from it and keep the roads clear.':
+      'Kumpirmadong sunog. Lumayo rito at panatilihing bukas ang mga daan.',
+  'An alarm is set once responders confirm the fire.':
+      'Itinatakda ang alarma kapag nakumpirma ng mga responder ang sunog.',
+  'Withdraw':
+      'Bawiin',
+  'Withdraw Under control?':
+      'Bawiin ang Under control?',
+  "Everyone sees the fire's alarm level again, and its crews and coordinators are told without a sound.":
+      'Makikita ulit ng lahat ang antas ng alarma ng sunog, at sasabihan nang walang tunog ang mga crew at coordinator nito.',
+  'Under control withdrawn.':
+      'Binawi ang Under control.',
+  'This declares the fire under control: everyone, residents too, will see it.':
+      'Idedeklara nitong under control ang sunog: makikita ito ng lahat, pati ng mga residente.',
+  'It tells command. A Fire Volunteer or BFP coordinator declares the fire under control.':
+      'Sasabihan nito ang command. Ang coordinator ng Fire Volunteer o BFP ang nagdedeklarang under control ang sunog.',
+
+  // Requests became Alarm Escalations (v1.12.60).
+  'Failed to load alarm escalations.': 'Hindi ma-load ang mga alarm escalation.',
+  'Alarm escalation': 'Alarm escalation',
+  'Could not load the alarm escalations. Check your signal.': 'Hindi ma-load ang mga alarm escalation. Tingnan ang signal mo.',
+  'Alarm Escalations': 'Mga Alarm Escalation',
+  'Escalations unavailable': 'Hindi available ang mga escalation',
+  'Escalations move here once BFP sets the level or declines, or the coordinator takes one back.': 'Lumilipat dito ang mga escalation kapag itinakda ng BFP ang antas o tumanggi ito, o binawi ng coordinator.',
+  'An escalation lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise a fire\'s alarm.': 'Dumarating dito ang escalation, kasama ang fire alert, kapag hiniling ng isang Fire Volunteer coordinator sa BFP na itaas ang alarma ng isang sunog.',
+  'Decline this escalation?': 'Tanggihan ang escalation na ito?',
+  'No pending escalations': 'Walang naghihintay na escalation',
+  'Escalation taken back. BFP no longer sees it.': 'Binawi ang escalation. Hindi na ito nakikita ng BFP.',
+  '1 escalation waiting on you': '1 escalation ang naghihintay sa iyo',
+  '{n} escalations waiting on you': '{n} escalation ang naghihintay sa iyo',
+  'From the alarm escalations Fire Volunteer sends': 'Mula sa mga alarm escalation na ipinapadala ng Fire Volunteer',
+  '{count} alarm escalations waiting': '{count} alarm escalation ang naghihintay',
+  '1 escalation waiting': '1 escalation ang naghihintay',
+  '{n} escalations waiting': '{n} escalation ang naghihintay',
+  'See escalations': 'Tingnan ang mga escalation',
 };

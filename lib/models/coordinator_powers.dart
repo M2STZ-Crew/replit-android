@@ -45,6 +45,9 @@ class CoordinatorPowers {
   /// Press fire codes on an incident.
   bool get pressesCodes => coordinates;
 
+  /// Declare a fire under control with FC-2, and withdraw it (v1.12.60).
+  bool get declaresUnderControl => coordinates;
+
   /// File the Post-Incident Report for the team.
   bool get files => coordinates;
 

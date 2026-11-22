@@ -30,6 +30,8 @@ import '../widgets/map_tiles.dart';
 import '../widgets/you_are_here.dart';
 import '../i18n/i18n.dart';
 import '../widgets/responsive_frame.dart';
+import '../models/alarm_status.dart';
+import '../widgets/alarm_status_banner.dart';
 
 Color _safeGreen = AppColors.ok;
 
@@ -232,6 +234,9 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
 
   /// The Area's status, as last read ([FireRun]).
   String? _areaStatus;
+
+  /// The fire's alarm status, read with it (v1.12.60).
+  AlarmStatus? _alarm;
   bool _arriving = false;
 
   /// The run reached the fire and that has been acted on, once.
@@ -396,8 +401,16 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         final area =
             await (run.readArea ?? () => ApiClient().getArea(run.areaId))();
         final status = area['status'] as String?;
-        if (mounted && status != null && status != _areaStatus) {
-          setState(() => _areaStatus = status);
+        final alarm = AlarmStatus.of(area);
+        if (mounted &&
+            status != null &&
+            (status != _areaStatus ||
+                alarm.level != _alarm?.level ||
+                alarm.underControlAt != _alarm?.underControlAt)) {
+          setState(() {
+            _areaStatus = status;
+            _alarm = alarm;
+          });
         }
         final lat = (area['centroid_lat'] as num?)?.toDouble();
         final lng = (area['centroid_lng'] as num?)?.toDouble();
@@ -1566,6 +1579,11 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
         Row(
           children: [
             if (run != null) LifecycleChip(_areaStatus ?? 'en_route'),
+            if (run != null)
+              if (_alarm case final alarm? when alarm.known) ...[
+                const SizedBox(width: 8),
+                Flexible(child: AlarmBadge(alarm)),
+              ],
             const Spacer(),
             ValueListenableBuilder<String?>(
               valueListenable: ResponderTracker.instance.sharingFor,

@@ -103,7 +103,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
         if (_requests.isEmpty) {
           _error = e is ApiException
               ? e.message
-              : t('Could not load the alarm requests. Check your signal.');
+              : t('Could not load the alarm escalations. Check your signal.');
         }
         _loading = false;
       });
@@ -241,7 +241,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
           children: [
             DetailHeader(
               eyebrow: t('BFP'),
-              title: t('Alarm requests'),
+              title: t('Alarm Escalations'),
               subtitle: t(
                 'Fire Volunteer coordinators ask. Only BFP sets the alarm '
                 'level.',
@@ -291,7 +291,7 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
     if (_error != null) {
       return EmptyState(
         icon: AppIcons.cloudOff,
-        title: t('Requests unavailable'),
+        title: t('Escalations unavailable'),
         body: _error!,
         action: AppButton.secondary(t('Try again'), onPressed: _load),
       );
@@ -320,11 +320,11 @@ class _BfpAlarmRequestsScreenState extends State<BfpAlarmRequestsScreen> {
                       : t('Nothing waiting'),
                   body: _answered
                       ? t(
-                          'Requests move here once BFP sets the level or '
+                          'Escalations move here once BFP sets the level or '
                           'declines, or the coordinator takes one back.',
                         )
                       : t(
-                          'A request lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise a fire\'s alarm.',
+                          'An escalation lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise a fire\'s alarm.',
                         ),
                 ),
               )
@@ -547,7 +547,7 @@ class _DeclineSheetState extends State<_DeclineSheet> {
               'areaName': r.areaName,
               'alarmWord': alarmWord(r.level),
             }),
-            title: t('Decline this request?'),
+            title: t('Decline this escalation?'),
             body: t(
               '{areaName} stays at {alarmWord}. {askedBy} is told, with your reason.',
               {

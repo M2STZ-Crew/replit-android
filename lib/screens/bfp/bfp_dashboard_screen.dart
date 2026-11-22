@@ -287,7 +287,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    t('Alarm Requests'),
+                    t('Alarm Escalations'),
                     style: TextStyle(
                       color: _ink,
                       fontSize: 16,
@@ -300,7 +300,7 @@ class _BfpDashboardScreenState extends State<BfpDashboardScreen> {
                         ? t('{_pendingAlarms} pending • review & execute', {
                             '_pendingAlarms': _pendingAlarms,
                           })
-                        : t('No pending requests'),
+                        : t('No pending escalations'),
                     style: const TextStyle(
                       color: Color(0xFF71717B),
                       fontSize: 11,

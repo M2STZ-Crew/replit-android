@@ -125,7 +125,24 @@ void main() {
       expect(find.text('Area 1.2'), findsOneWidget);
       expect(find.text('ON THE WAY'), findsOneWidget);
       expect(find.text('Reported 4 min ago'), findsOneWidget);
+      // Under the alarm status since v1.12.60: scrolled to at a large type.
+      await tester.scrollUntilVisible(
+        find.text('WHAT HAPPENS NEXT'),
+        80,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
       expect(find.text('WHAT HAPPENS NEXT'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('2 neighbours confirmed'),
+        80,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
       expect(find.text('2 neighbours confirmed'), findsOneWidget);
       // Below the fold at a large font scale; the sheet scrolls to it.
       await tester.scrollUntilVisible(

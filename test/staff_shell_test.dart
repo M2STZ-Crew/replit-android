@@ -96,7 +96,7 @@ void main() {
       findsNothing,
       reason: 'coordinators only',
     );
-    expect(find.text('Alarm requests'), findsNothing);
+    expect(find.text('Alarm Escalations'), findsNothing);
   });
 
   testWidgets('a coordinator: the COORDINATOR tag and the coordinator menu', (
@@ -111,13 +111,13 @@ void main() {
     expect(find.text('Responders'), findsOneWidget, reason: 'their accounts');
     expect(find.text('AI summaries'), findsOneWidget);
     expect(find.text('My duty'), findsNothing);
-    expect(find.text('Alarm requests'), findsNothing, reason: 'BFP only');
+    expect(find.text('Alarm Escalations'), findsNothing, reason: 'BFP only');
   });
 
   testWidgets('BFP also has the alarm queue', (tester) async {
     await pump(tester, bfp);
     await openMenu(tester);
-    expect(find.text('Alarm requests'), findsOneWidget);
+    expect(find.text('Alarm Escalations'), findsOneWidget);
     expect(find.text('Pending reports'), findsOneWidget);
     expect(find.text('AI summaries'), findsOneWidget);
   });

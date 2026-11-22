@@ -268,7 +268,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     gap,
                     ListRow(
                       leading: const IconPlate(AppIcons.campaign),
-                      title: t('Alarm requests'),
+                      title: t('Alarm Escalations'),
                       subtitle: t('Fire Volunteer asks to raise the alarm'),
                       chevron: true,
                       onTap: () => _push(const BfpAlarmRequestsScreen()),
@@ -384,7 +384,7 @@ class PermissionsScreen extends StatelessWidget {
       if (bfp)
         (
           t('Raise the alarm level'),
-          t('From the alarm requests Fire Volunteer sends'),
+          t('From the alarm escalations Fire Volunteer sends'),
         )
       else
         (t('Ask BFP to raise the alarm'), t('From the alarm level on LIVE')),
