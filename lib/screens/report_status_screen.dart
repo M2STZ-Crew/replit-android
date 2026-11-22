@@ -34,6 +34,9 @@ import '../widgets/alarm_status_banner.dart';
 ///      the way, then on scene (v11: one Accept sends everyone);
 ///   5. fire out — and then it says so, plainly, and the report is done.
 ///
+/// The percentage circle stays at every stage and on every phone; while
+/// there is an alarm, it is the title (v1.12.61).
+///
 /// Leaving is allowed — the map is one Back away — but the report is not
 /// lost: pressing SOS again, or reopening the app, comes back here
 /// ([ActiveReportStore]). It lets go when the resident presses Done, and until
@@ -212,6 +215,12 @@ class ReportStatusScreen extends StatefulWidget {
 }
 
 enum _Step { done, now, later }
+
+/// How the five steps are drawn, from roomy to tight. The first that
+/// leaves the circle its room is shown (v1.12.61; answered "Only if
+/// needed"): as designed; the finished ones folded to a line; all five
+/// in one card, where only the current one keeps its second line.
+enum _Fit { roomy, folded, oneCard }
 
 class _ReportStatusScreenState extends State<ReportStatusScreen>
     with WidgetsBindingObserver {
@@ -419,12 +428,17 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
 
     final (String phase, double fraction) = switch (_stage) {
       'fire_out' => (t('Fire out'), 1.0),
-      'rejected' => ('Closed', 1.0),
+      'rejected' => (t('Closed'), 1.0),
       'arrived' => (t('On scene'), 0.9),
       'en_route' => (t('On the way'), 0.8),
-      'verified' => ('Acknowledged', 0.7),
-      _ => ('Confirming', 0.6),
+      'verified' => (t('Acknowledged'), 0.7),
+      _ => (t('Confirming'), 0.6),
     };
+
+    final alarm = AlarmStatus.of(_area);
+    // While there is one, the alarm is the title. At fire out the title
+    // says it already.
+    final alarmIsTitle = !_over && alarm.known;
 
     final (String eyebrow, Color eyebrowTone) = widget.practice
         ? (t('Practice report'), context.pal.warn)
@@ -465,6 +479,61 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
             'report until the fire is out — SOS brings you back here.',
           );
 
+    final steps = <_StepInfo>[
+      (
+        state: _Step.done,
+        title: t('Report received'),
+        line: widget.practice
+            ? t('Nothing was sent or stored')
+            : t('Photo and GPS stored'),
+      ),
+      (
+        state: _Step.done,
+        title: reports == 1
+            ? t('New incident: {name}', {'name': fireName(designation)})
+            : t('Matched to {fire}', {'fire': fireAt(designation)}),
+        line: matchLine,
+      ),
+      (
+        state: _Step.done,
+        title: t('Responders notified'),
+        line: widget.practice
+            ? t('In a real report, neighbours within 100 m are alerted too')
+            : t('Neighbours within 100 m were alerted too'),
+      ),
+      (
+        state: _refused || _accepted ? _Step.done : _Step.now,
+        title: _refused
+            ? t('Not confirmed')
+            : _accepted
+            ? t('Accepted')
+            : t('Waiting to be accepted'),
+        line: _refused
+            ? t('Closed by a coordinator')
+            : _onScene
+            ? t('Responders reached the scene')
+            : _accepted
+            ? t('Responders are on the way')
+            : _areaId == null && !widget.practice
+            ? t('Open it from Your reports to follow it')
+            : t('Now'),
+      ),
+      if (!_refused)
+        (
+          state: _fireOut
+              ? _Step.done
+              : _onScene
+              ? _Step.now
+              : _Step.later,
+          title: t('Fire out'),
+          line: _fireOut
+              ? t('Your report is done')
+              : _onScene
+              ? t('Responders are working on it')
+              : t('Once responders are on scene'),
+        ),
+    ];
+
     return Scaffold(
       backgroundColor: context.pal.background,
       body: SafeArea(
@@ -472,124 +541,63 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
           builder: (context, box) {
             // 12 Nov 2026: the page fits the screen, with no scrolling. Its
             // spacing eases from a short phone to a tall one, the ring takes
-            // the room that is left (and steps aside when there is too
-            // little: the steps say the same), and the line about
-            // encryption is gone.
+            // the room that is left, and the line about encryption is gone.
+            // 23 Nov 2026 ("don't remove that circle with percentage"): the
+            // steps tighten to leave the ring its room, so it never leaves.
             final roomy = FitPage.roominess(context, box.maxHeight);
             double ease(double short, double tall) =>
                 short + (tall - short) * roomy;
-            final stepGap = SizedBox(height: ease(6, 8));
+            // On the shortest pages, and at a large type, the margins give
+            // way too. A tall phone's stay as designed.
+            final snug = (1 - roomy * 4).clamp(0.0, 1.0);
             return FitPage(
-              padding: EdgeInsets.fromLTRB(24, ease(16, 40), 24, ease(16, 28)),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                ease(16, 40) - 6 * snug,
+                24,
+                ease(16, 28) - 8 * snug,
+              ),
               gap: ease(16, 32),
               flexMin: _ringLeast,
               flexMax: _ringMost,
+              flexFloor: _ringFloor,
               top: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AlarmStatusBanner(
-                    AlarmStatus.of(_area),
-                    compact: true,
-                    showNone: false,
-                    spacing: 12,
-                  ),
-                  Eyebrow(eyebrow, color: eyebrowTone),
-                  SizedBox(height: ease(8, 10)),
-                  Text(
-                    heading,
-                    textAlign: TextAlign.center,
-                    style: context.type.heading1,
+                  Eyebrow(
+                    alarmIsTitle ? '$eyebrow · $heading' : eyebrow,
+                    color: eyebrowTone,
                   ),
                   SizedBox(height: ease(8, 10)),
-                  Center(
-                    child: SizedBox(
-                      width: 300,
-                      child: Text(
-                        lead,
-                        textAlign: TextAlign.center,
-                        style: context.type.body,
+                  if (alarmIsTitle)
+                    AlarmStatusTitle(alarm)
+                  else ...[
+                    Text(
+                      heading,
+                      textAlign: TextAlign.center,
+                      style: context.type.heading1,
+                    ),
+                    SizedBox(height: ease(8, 10)),
+                    Center(
+                      child: SizedBox(
+                        width: 300,
+                        child: Text(
+                          lead,
+                          textAlign: TextAlign.center,
+                          style: context.type.body,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                  ],
+                  SizedBox(height: 16 - 8 * snug),
                 ],
               ),
               flex: _ringSlot(fraction, phase),
               bottom: PracticeTarget(
                 id: LitTargets.updates,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: FirstThatFits(
                   children: [
-                    _StepRow(
-                      state: _Step.done,
-                      title: t('Report received'),
-                      line: widget.practice
-                          ? t('Nothing was sent or stored')
-                          : t('Photo and GPS stored'),
-                      roomy: roomy,
-                    ),
-                    stepGap,
-                    _StepRow(
-                      state: _Step.done,
-                      title: reports == 1
-                          ? t('New incident: {name}', {
-                              'name': fireName(designation),
-                            })
-                          : t('Matched to {fire}', {
-                              'fire': fireAt(designation),
-                            }),
-                      line: matchLine,
-                      roomy: roomy,
-                    ),
-                    stepGap,
-                    _StepRow(
-                      state: _Step.done,
-                      title: t('Responders notified'),
-                      line: widget.practice
-                          ? t(
-                              'In a real report, neighbours within 100 m are '
-                              'alerted too',
-                            )
-                          : t('Neighbours within 100 m were alerted too'),
-                      roomy: roomy,
-                    ),
-                    stepGap,
-                    _StepRow(
-                      state: _refused || _accepted ? _Step.done : _Step.now,
-                      title: _refused
-                          ? t('Not confirmed')
-                          : _accepted
-                          ? t('Accepted')
-                          : t('Waiting to be accepted'),
-                      line: _refused
-                          ? t('Closed by a coordinator')
-                          : _onScene
-                          ? t('Responders reached the scene')
-                          : _accepted
-                          ? t('Responders are on the way')
-                          : _areaId == null && !widget.practice
-                          ? t('Open it from Your reports to follow it')
-                          : t('Now'),
-                      refused: _refused,
-                      roomy: roomy,
-                    ),
-                    if (!_refused) ...[
-                      stepGap,
-                      _StepRow(
-                        state: _fireOut
-                            ? _Step.done
-                            : _onScene
-                            ? _Step.now
-                            : _Step.later,
-                        title: t('Fire out'),
-                        line: _fireOut
-                            ? t('Your report is done')
-                            : _onScene
-                            ? t('Responders are working on it')
-                            : t('Once responders are on scene'),
-                        roomy: roomy,
-                      ),
-                    ],
+                    for (final fit in _Fit.values) _stepList(fit, steps, roomy),
                   ],
                 ),
               ),
@@ -632,24 +640,74 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
     );
   }
 
-  /// The ring's room on the page, below the 16 under the lead: at most a
+  /// The steps as [fit] draws them.
+  Widget _stepList(_Fit fit, List<_StepInfo> steps, double roomy) {
+    // The last step reached: its line is where the report is now.
+    final current = _onScene ? 4 : 3;
+    final card = fit == _Fit.oneCard;
+    final gap = switch (fit) {
+      _Fit.roomy => 6 + 2 * roomy,
+      _Fit.folded => 4.0,
+      _Fit.oneCard => 0.0,
+    };
+    final list = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, step) in steps.indexed) ...[
+          if (i > 0 && !card) SizedBox(height: gap),
+          _StepRow(
+            state: step.state,
+            title: step.title,
+            line: switch (fit) {
+              _Fit.roomy => step.line,
+              _Fit.folded when i == current || step.state == _Step.later =>
+                step.line,
+              _Fit.oneCard when i == current => step.line,
+              _ => null,
+            },
+            refused: _refused && i == current,
+            joined: card,
+            roomy: roomy,
+          ),
+        ],
+      ],
+    );
+    if (!card) return list;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: context.pal.glass,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: context.pal.line),
+      ),
+      child: list,
+    );
+  }
+
+  /// The ring's room on the page, below the 16 under the title: at most a
   /// 160 ring with 12 more above it and 28 below (the frame's spacing), and
-  /// at least an 80 ring with 14 below. With less, it steps aside.
+  /// an 80 ring with 14 below for as long as the steps can tighten to leave
+  /// it that. Then down to a 56 ring with 8 below, and never less.
   static const double _ringMost = 12 + 160 + 28;
   static const double _ringLeast = 80 + 14;
+  static const double _ringFloor = 56 + 8;
 
   /// The ring in the room the page leaves it: the more room, the bigger the
   /// ring and the more air around it.
   Widget _ringSlot(double fraction, String phase) => LayoutBuilder(
     builder: (context, box) {
       final room = box.maxHeight;
-      if (room < _ringLeast) return const SizedBox.shrink();
       final grown = ((room - _ringLeast) / (_ringMost - _ringLeast)).clamp(
         0.0,
         1.0,
       );
+      final squeezed = ((_ringLeast - room) / (_ringLeast - _ringFloor)).clamp(
+        0.0,
+        1.0,
+      );
       final above = 12 * grown;
-      final below = 14 + 14 * grown;
+      final below = 14 + 14 * grown - 6 * squeezed;
       return Padding(
         padding: EdgeInsets.only(top: above, bottom: below),
         child: Center(
@@ -702,7 +760,7 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
                         '${(fraction * 100).round()}%',
                         style: context.type.numeralXl,
                       ),
-                    if (size >= 120) ...[
+                    if (size >= 100) ...[
                       const SizedBox(height: 4),
                       Text(
                         phase.toUpperCase(),
@@ -722,21 +780,30 @@ class _ReportStatusScreenState extends State<ReportStatusScreen>
   }
 }
 
+/// One step as the screen reads it.
+typedef _StepInfo = ({_Step state, String title, String line});
+
 /// One step: a marker (a tick, coral while it is the open one, hollow until
-/// it is reached), the step, and what it amounts to.
+/// it is reached), the step, and what it amounts to unless it is folded.
 class _StepRow extends StatelessWidget {
   const _StepRow({
     required this.state,
     required this.title,
     required this.line,
     this.refused = false,
+    this.joined = false,
     this.roomy = 1,
   });
 
   final _Step state;
   final String title;
-  final String line;
+
+  /// Null folds the step to its title.
+  final String? line;
   final bool refused;
+
+  /// One of the steps that share a card, which draws the edge for all.
+  final bool joined;
 
   /// How roomy the page is ([FitPage.roominess]): a row is 58 tall on a
   /// tall phone, as in the frame, and 48 on a short one.
@@ -779,18 +846,25 @@ class _StepRow extends StatelessWidget {
         ),
       ),
     };
+    final (double least, double pad) = joined
+        ? (22, 2)
+        : line == null
+        ? (36, 6)
+        : (48 + 10 * roomy, 7 + 3 * roomy);
     return Container(
-      constraints: BoxConstraints(minHeight: 48 + 10 * roomy),
-      padding: EdgeInsets.symmetric(horizontal: 18, vertical: 7 + 3 * roomy),
-      decoration: BoxDecoration(
-        color: context.pal.glass,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(
-          color: now
-              ? context.pal.accentInk.withValues(alpha: 0.45)
-              : context.pal.line,
-        ),
-      ),
+      constraints: BoxConstraints(minHeight: least),
+      padding: EdgeInsets.symmetric(horizontal: 18, vertical: pad),
+      decoration: joined
+          ? null
+          : BoxDecoration(
+              color: context.pal.glass,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                color: now
+                    ? context.pal.accentInk.withValues(alpha: 0.45)
+                    : context.pal.line,
+              ),
+            ),
       child: Row(
         children: [
           marker,
@@ -806,13 +880,15 @@ class _StepRow extends StatelessWidget {
                     color: later ? context.pal.muted : context.pal.onBackground,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  line,
-                  style: context.type.caption.copyWith(
-                    color: now ? context.pal.accentInk : context.pal.muted,
+                if (line case final line?) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    line,
+                    style: context.type.caption.copyWith(
+                      color: now ? context.pal.accentInk : context.pal.muted,
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -72,9 +72,10 @@ void main() {
     Session.instance.email = me;
   });
 
-  /// A phone with room for the ring even in the test font, which draws every
-  /// letter as a square; on a shorter one the ring steps aside, and the
-  /// steps say the same (screen_fit_test.dart measures it in Inter).
+  /// A phone with room for every step's two lines even in the test font,
+  /// which draws every letter as a square; on a shorter one they fold to
+  /// leave the ring its room (screen_fit_test.dart and v1_12_61_test.dart
+  /// measure it in Inter).
   // 1450 (was 1400) since v1.12.53: the step names the fire's street, longer
   // than "Area 1.2 opened".
   const roomForTheRing = Size(402, 1450);
@@ -118,12 +119,9 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('GETTING YOU HELP'), findsOneWidget);
       expect(find.text('60%'), findsOneWidget);
-      // The stage goes under the figure when the ring is big enough to hold
-      // it; at 1.5x the larger steps leave it a smaller ring.
-      expect(
-        find.text('CONFIRMING'),
-        scale == 1 ? findsOneWidget : findsNothing,
-      );
+      // The stage goes under the figure from a 100 ring up (v1.12.61: the
+      // steps make way for the ring, at 1.5x too).
+      expect(find.text('CONFIRMING'), findsOneWidget);
       await see(tester, find.text('Waiting to be accepted'));
       expect(find.text('Now'), findsOneWidget);
       await see(tester, find.text('Fire out'));
@@ -137,7 +135,7 @@ void main() {
   }
 
   testWidgets('the first report opens its own area', (tester) async {
-    await pump(tester, api(reports: 1));
+    await pump(tester, api(reports: 1), size: roomForTheRing);
     expect(find.text('New incident: Near F. Victor Street'), findsOneWidget);
     expect(find.text('A new incident — the first report here'), findsOneWidget);
   });

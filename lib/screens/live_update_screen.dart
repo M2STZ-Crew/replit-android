@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -133,6 +134,14 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   final DraggableScrollableController _sheetSize =
       DraggableScrollableController();
 
+  /// The sheet's least size, and whether it is down at it (v1.12.61): the
+  /// alarm is then a badge on the status line, the only line in view.
+  double _peek = 0;
+  bool _folded = false;
+
+  /// The sheet's list, to bring the status line back into view as it folds.
+  ScrollController? _list;
+
   /// Whether the camera has been moved to take in the trucks. Once only: after
   /// that the resident decides where the map looks.
   bool _framed = false;
@@ -182,6 +191,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     _feed.live.addListener(_rebuild);
     _feed.denied.addListener(_onFeedDenied);
     _feed.start();
+    _sheetSize.addListener(_onSheetMoved);
     // Where the resident is now, for the nearest shelter as they move.
     LivePosition.instance.acquire();
     LivePosition.instance.here.addListener(_pickNearestShelter);
@@ -576,6 +586,29 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   };
 
   // -------------------------------------------------------------- build ---
+  /// Folded past half way, or opened again.
+  void _onSheetMoved() {
+    if (!mounted || !_sheetSize.isAttached) return;
+    final folded = _sheetSize.size < (_peek + _kSheetOpen) / 2;
+    if (folded == _folded) return;
+    _folded = folded;
+    void show() {
+      if (!mounted) return;
+      setState(() {});
+      final list = _list;
+      if (!_folded || list == null || !list.hasClients) return;
+      if (list.offset > 0) list.jumpTo(0);
+    }
+
+    // The sheet can also say so while it is being built (a turned phone).
+    final binding = SchedulerBinding.instance;
+    if (binding.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      binding.addPostFrameCallback((_) => show());
+    } else {
+      show();
+    }
+  }
+
   /// Folded down to its status line, or open again — the handle's tap.
   void _toggleSheet(double peek) {
     if (!_sheetSize.isAttached) return;
@@ -600,6 +633,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
       0.08,
       _kSheetOpen - 0.05,
     );
+    _peek = peek;
     return Scaffold(
       backgroundColor: context.pal.background,
       body: Stack(
@@ -856,6 +890,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     final at = kResidentRail.indexOf(status);
     final reported = DateTime.tryParse('${_area?['reported_at']}')?.toLocal();
     final others = _reports > 0 ? _reports - 1 : 0;
+    final alarm = _alarmStatus(status);
+    _list = scroll;
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(
         top: Radius.circular(AppRadius.sheet),
@@ -888,37 +924,34 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                     controller: scroll,
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     children: [
-                      AlarmStatusBanner(
-                        _alarmStatus(status),
-                        compact: true,
-                        showNone: _area != null,
-                        spacing: 12,
-                      ),
                       Eyebrow(t('Status'), color: context.pal.muted),
                       const SizedBox(height: 10),
                       // A Wrap, not a Row: at a large font scale the two do not fit
                       // side by side, and a Row squeezed the status to a column one
                       // letter wide. Here the time drops under it instead.
-                      Wrap(
-                        alignment: WrapAlignment.spaceBetween,
-                        crossAxisAlignment: WrapCrossAlignment.end,
-                        spacing: 12,
-                        runSpacing: 4,
-                        children: [
-                          Text(
-                            residentWord(status).toUpperCase(),
-                            style: context.type.heading2,
-                          ),
-                          if (reported != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                'Reported ${_ago(reported)}',
-                                style: context.type.caption,
-                              ),
+                      if (_folded && alarm.known)
+                        _statusWithAlarm(status, alarm)
+                      else
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.end,
+                          spacing: 12,
+                          runSpacing: 4,
+                          children: [
+                            Text(
+                              residentWord(status).toUpperCase(),
+                              style: context.type.heading2,
                             ),
-                        ],
-                      ),
+                            if (reported != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Text(
+                                  'Reported ${_ago(reported)}',
+                                  style: context.type.caption,
+                                ),
+                              ),
+                          ],
+                        ),
                       // What is burning, once the first fire team on scene
                       // says (v1.12.49).
                       if (_area?['fire_type'] != null) ...[
@@ -927,6 +960,13 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
                       ],
                       const SizedBox(height: 14),
                       _rail(at),
+                      // Between the stages and who acknowledged (v1.12.61;
+                      // "put the alarm level between incident lifecycle
+                      // and who acknowledge it").
+                      if (alarm.applies && (alarm.known || _area != null)) ...[
+                        const SizedBox(height: 16),
+                        AlarmStatusBanner(alarm, compact: true, spacing: 0),
+                      ],
                       ..._verified(),
                       ..._responders(status),
                       const SizedBox(height: 22),
@@ -987,6 +1027,33 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
       ),
     );
   }
+
+  /// The status line of a folded sheet: the alarm's badge in the time's
+  /// place (answered "Small badge"). One line, as only one is in view: the
+  /// status shrinks rather than push the badge out of it.
+  Widget _statusWithAlarm(String status, AlarmStatus alarm) => LayoutBuilder(
+    builder: (context, box) => Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                residentWord(status).toUpperCase(),
+                style: context.type.heading2,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: box.maxWidth * 0.58),
+          child: AlarmBadge(alarm),
+        ),
+      ],
+    ),
+  );
 
   /// The five steps, each named, the current one in full colour.
   Widget _rail(int at) {

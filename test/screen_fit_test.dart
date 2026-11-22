@@ -122,23 +122,28 @@ void main() {
     });
   }
 
-  testWidgets('the ring takes the room there is, and steps aside without it', (
+  testWidgets('the ring takes the room there is, and never leaves', (
     tester,
   ) async {
     final sizes = <double?>[];
+    var folded = false;
     for (final phone in phones) {
       await open(tester, phone, status());
       sizes.add(ring(tester));
+      if (phone == phones.first) {
+        folded = find.text('Photo and GPS stored').evaluate().isEmpty;
+      }
     }
-    // A short phone: the steps say what the ring would.
-    expect(sizes.first, isNull);
+    // v1.12.61, "don't remove that circle with percentage": on a short
+    // phone the finished steps fold to leave it its room.
+    expect(folded, isTrue);
+    for (final size in sizes) {
+      expect(size, isNotNull);
+      expect(size, greaterThanOrEqualTo(72));
+    }
     expect(find.text('Waiting to be accepted'), findsOneWidget);
-    // Taller phones: a bigger ring, up to the frame's 144.
-    final shown = sizes.skip(1).cast<double>().toList();
-    for (var i = 1; i < shown.length; i++) {
-      expect(shown[i], greaterThan(shown[i - 1]));
-    }
-    expect(shown.last, 144);
+    // The tallest: the frame's 144.
+    expect(sizes.last, 144);
     // The figure is always there; the stage under it once there is room.
     expect(find.text('60%'), findsOneWidget);
     expect(find.text('CONFIRMING'), findsOneWidget);

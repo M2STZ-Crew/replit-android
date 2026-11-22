@@ -7,6 +7,31 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.61 — 23 November 2026 — The percentage circle is back; the alarm level in its place
+
+No backend change.
+
+- **Getting you help keeps its percentage circle** ("don't remove that circle
+  with percentage"; answered "A. Becomes title" and "Only if needed"). The
+  alarm banner of v1.12.60 took the circle's room, on most phones from the
+  moment a fire was acknowledged, and made short ones scroll. While there is
+  an alarm it is now the title, and the steps tighten only where they must:
+  the finished ones fold to a line, then all five share a card. The circle
+  never leaves. The page doesn't scroll at the standard type size; at a large
+  one on the shortest phones it scrolls rather than lose the circle.
+- **Track it live** ("put the alarm level between incident lifecycle and who
+  acknowledge it"; answered "Small badge" and "Only this one"): status, fire
+  type, the stages, the alarm, who acknowledged. Pulled down, the sheet shows
+  the alarm as a badge in the time's place. Every other detail screen keeps
+  the banner at the top.
+- The circle's stage reads in Tagalog, and shows from a 100 dp circle up.
+- **Want to be an affiliate? Register here** opens the Admin console's form at
+  its own address, not through the retired one's redirect.
+- **No microphone or storage permission** (answered "Remove them"): the
+  camera plugin declared both, and RepLiT uses neither.
+
+---
+
 ## v1.12.60 — 22 November 2026 — The alarm status, highlighted, for everyone; Alarm Escalations
 
 Goes with backend v1.12.49.

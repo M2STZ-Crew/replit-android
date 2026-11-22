@@ -132,10 +132,11 @@ String alarmStatusMeaning(AlarmStatus status) => switch (status.situation) {
   ),
 };
 
-/// The highlighted alarm status at the top of every detail screen (v1.12.60;
-/// 22 Nov 2026: "highlight it in the details because it is crucial";
-/// answered "Everyone, everywhere"). Raised alarms are solid red. A change is
-/// read out to screen readers.
+/// The highlighted alarm status on every detail screen (v1.12.60; 22 Nov
+/// 2026: "highlight it in the details because it is crucial"; answered
+/// "Everyone, everywhere"): at the top, but under the stages on Track it
+/// live (v1.12.61). Raised alarms are solid red. A change is read out to
+/// screen readers.
 ///
 /// Draws nothing for a rejected or merged incident and, with [showNone] off,
 /// before there is a level; [spacing] goes under it only when it draws.
@@ -266,6 +267,65 @@ class AlarmStatusBanner extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The status as a screen's title, over what it means: "Getting you help"
+/// while there is an alarm (v1.12.61; "put the fire alarm level on getting
+/// you help", answered "A. Becomes title"). At the top of that screen the
+/// banner took the room of the percentage circle.
+class AlarmStatusTitle extends StatelessWidget {
+  const AlarmStatusTitle(this.status, {super.key});
+
+  final AlarmStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final look = _look(context.pal, status);
+    final soft = status.raised ? Colors.white : context.pal.textSoft;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      header: true,
+      label: t('Alarm status'),
+      child: AnimatedContainer(
+        duration: Motion.of(context).state,
+        curve: Motion.standard,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: look.fill,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: look.edge, width: 2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ExcludeSemantics(
+                    child: Icon(look.icon, size: 22, color: look.ink),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    alarmStatusWord(status).toUpperCase(),
+                    style: context.type.heading1.copyWith(color: look.ink),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              alarmStatusMeaning(status),
+              textAlign: TextAlign.center,
+              style: context.type.bodySm.copyWith(color: soft),
+            ),
+          ],
         ),
       ),
     );

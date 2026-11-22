@@ -37,7 +37,7 @@ class ApiConfig {
   /// affiliate? REGISTER HERE" on the sign-in screen opens it.
   static const String affiliateRegisterUrl = String.fromEnvironment(
     'REPLIT_AFFILIATE_REGISTER',
-    defaultValue: 'https://replit-backend-5u9u.vercel.app/register',
+    defaultValue: '$adminConsoleUrl/register',
   );
 
   /// The residents' site (v1.12.45): the privacy policy, and deleting or

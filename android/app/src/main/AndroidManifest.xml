@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
@@ -8,6 +9,12 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <!-- The camera plugin declares these for filming with sound and saving
+         to the gallery. RepLiT does neither: both cameras open with
+         enableAudio false, which asks for CAMERA alone, and a photo stays in
+         the app's own storage (v1.12.61). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- A dispatched responder's location keeps going to command with the
          screen off (lib/location/responder_tracker.dart): geolocator runs it as
