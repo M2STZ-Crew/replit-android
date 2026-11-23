@@ -729,7 +729,7 @@ class LifecycleRail extends StatelessWidget {
   static const steps = [
     'Reported',
     'Acknowledged',
-    'En route',
+    'On route',
     'Arrived',
     'Fire out',
     'Closed',

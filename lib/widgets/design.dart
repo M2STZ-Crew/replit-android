@@ -269,7 +269,7 @@ class Panel extends StatelessWidget {
 /// (REPLIT (MAIN) 04, pass 4).
 ///
 /// The word carries the meaning; the tint and the dot only reinforce it. The
-/// word is shown as given, sentence case ("En route", "On a run"): uppercase
+/// word is shown as given, sentence case ("On route", "On a run"): uppercase
 /// is for naming things, and a status is not a name. A tone change fades over
 /// 200 ms, so a status that moves on is seen to move.
 class Tag extends StatelessWidget {
@@ -331,7 +331,7 @@ class Tag extends StatelessWidget {
 /// An incident's status in the PRD words (§4.5) — the Lifecycle chip.
 ///
 /// The labels are fixed on purpose: no "Pending", "Dispatched" or
-/// "Resolved". Read by a screen reader as "Status: En route". The server still
+/// "Resolved". Read by a screen reader as "Status: On route". The server still
 /// sends `verified` for the act PRD v13 renamed Acknowledged (pass 6: "Status
 /// reads Acknowledged"); a person's identity "Verified" is a different thing
 /// and keeps its word. `declined` is drawn the day the server sends it.
@@ -345,7 +345,7 @@ class LifecycleChip extends StatelessWidget {
     'reported' => 'Reported',
     'verified' || 'acknowledged' => 'Acknowledged',
     'declined' => 'Declined',
-    'en_route' => 'En route',
+    'en_route' => 'On route',
     'arrived' => 'Arrived',
     'fire_out' => 'Fire out',
     'post_incident_report' => 'Report pending',

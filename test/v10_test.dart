@@ -275,7 +275,7 @@ void main() {
       // The Lifecycle chip's fixed labels (REPLIT (MAIN) 04, pass 4).
       expect(responderStatusLabel('post_incident_report'), 'Report pending');
       expect(responderStatusLabel('closed'), 'Closed');
-      expect(responderStatusLabel('en_route'), 'En route');
+      expect(responderStatusLabel('en_route'), 'On route');
       expect(responderStatusLabel('fire_out'), 'Fire out');
     });
 

@@ -198,7 +198,7 @@ void main() {
         find.text('Taft Avenue corner Gil Puyat Avenue · F. Victor Street, Barangay 76, Pasay City'),
         findsNWidgets(2),
       );
-      expect(find.text('En route · now at 1st alarm'), findsNWidgets(2));
+      expect(find.text('On route · now at 1st alarm'), findsNWidgets(2));
       expect(
         find.text('Asked by R. Alonzo · Hercules Fire & Rescue · 5 min ago'),
         findsOneWidget,

@@ -53,7 +53,7 @@ void main() {
   });
 
   test('the stages of an incident are the five the server names', () {
-    // app/services/incident_notify.py _REPORTER_SOUNDS: verified, en route,
+    // app/services/incident_notify.py _REPORTER_SOUNDS: verified, on route,
     // arrived, resolved, rejected. Reported has none.
     expect(
       SoundCues.categories.containsAll({
@@ -109,9 +109,9 @@ void main() {
   });
 
   test('each stage of an incident has a recording of its own', () {
-    // 9 November: "the phase is en route but the sound is on scene". From
+    // 9 November: "the phase is on route but the sound is on scene". From
     // 28 Oct sound_on_route.mp3 was a copy of sound_on_scene.mp3, which an
-    // exception here let through. The En route recording replaced it, Rejected
+    // exception here let through. The On route recording replaced it, Rejected
     // got its own, and no two stages may share a file again.
     const stages = ['verified', 'on_route', 'on_scene', 'fire_out', 'rejected'];
     final copies = <String>[];

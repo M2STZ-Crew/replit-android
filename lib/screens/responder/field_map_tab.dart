@@ -57,7 +57,20 @@ const double _sheetMin = 0.16;
 const double _sheetMax = 0.7;
 
 class _FieldMapTabState extends State<FieldMapTab> {
-  final MapFollow _follow = MapFollow();
+  late final MapFollow _follow = MapFollow()..makeRoom = _makeRoom;
+  final ValueNotifier<double> _cover = ValueNotifier(0);
+
+  /// Center (v1.12.62): a drawer pulled up over most of the map comes back
+  /// to where it opens first, so there is room to show where you are.
+  void _makeRoom() {
+    if (_sheetSize.isAttached && _sheetSize.size > 0.6) {
+      _sheetSize.animateTo(
+        0.34,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
 
   /// The "Around you" sheet, so its frozen grip can drag it.
   final DraggableScrollableController _sheetSize =
@@ -142,6 +155,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
     }
     return _barangayShapes;
   }
+
   final Map<String, List<OpsPoint>> _cache = {};
 
   @override
@@ -160,6 +174,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
     _position.here.removeListener(_moved);
     _position.release();
     _follow.dispose();
+    _cover.dispose();
     _sheetSize.dispose();
     super.dispose();
   }
@@ -283,7 +298,8 @@ class _FieldMapTabState extends State<FieldMapTab> {
               initialChildSize: 0.34,
               minChildSize: _sheetMin,
               maxChildSize: _sheetMax,
-              builder: (context, scroll) => _sheet(scroll),
+              builder: (context, scroll) =>
+                  MapCover(cover: _cover, child: _sheet(scroll)),
             ),
           ],
         );
@@ -357,7 +373,7 @@ class _FieldMapTabState extends State<FieldMapTab> {
           ),
         ZoomGatedMarkers(markers: layerMarkers),
         MarkerLayer(rotate: true, markers: markers),
-        YouAreHereLayer(follow: _follow),
+        YouAreHereLayer(follow: _follow, cover: _cover),
         MapLocationButtons(
           follow: _follow,
           alignment: Alignment.topRight,

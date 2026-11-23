@@ -523,7 +523,7 @@ void main() {
           'it', (tester) async {
         await pump(tester, run: run());
         await settle(tester);
-        expect(find.bySemanticsLabel('Status: En route'), findsOneWidget);
+        expect(find.bySemanticsLabel('Status: On route'), findsOneWidget);
         expect(find.text('F. VICTOR STREET, BARANGAY 76'), findsOneWidget);
         expect(find.text('2.0 km, about 4 min — Area 1.2'), findsOneWidget);
         expect(

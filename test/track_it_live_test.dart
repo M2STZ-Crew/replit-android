@@ -468,7 +468,7 @@ void main() {
       snapshot(status: 'arrived', units: [unit('unit-1', 'Apollo', north: 40)]),
     );
     expect(find.text('ON SCENE'), findsOneWidget);
-    // A slower area read, still saying en route, lands afterwards.
+    // A slower area read, still saying on route, lands afterwards.
     await tester.pump(const Duration(seconds: 31));
     expect(find.text('ON SCENE'), findsOneWidget);
   });

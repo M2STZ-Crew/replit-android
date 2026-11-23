@@ -7,6 +7,25 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.62 — 23 November 2026 — Centered where you can see; On route; the fire type before the alarm
+
+Goes with backend v1.12.52.
+
+- **Center and navigation put you where you can see** ("it centers the whole
+  screen but the drawer blocks it"; answered "Visible center"). The map puts
+  you in the middle of the part the drawer leaves in view, or low in it while
+  navigating, and follows as the drawer moves. Where a drawer can cover most
+  of the map, Center first brings it back down. On Track it live, LIVE, the
+  Coordinator and Responder maps, directions and the residents' map.
+- **The fire type comes first** ("before to proceed with positive fire
+  alarm, someone should fill the fire type first"). Until the first fire team
+  on scene says what is burning, the alarm sheet says so instead of offering
+  levels.
+- **On route** replaces "En route" in every text ("change the text en route
+  to on route totally").
+
+---
+
 ## v1.12.61 — 23 November 2026 — The percentage circle is back; the alarm level in its place
 
 No backend change.

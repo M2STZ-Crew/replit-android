@@ -109,6 +109,7 @@ class LiveUpdateScreen extends StatefulWidget {
 class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     with WidgetsBindingObserver {
   final MapFollow _follow = MapFollow();
+  final ValueNotifier<double> _cover = ValueNotifier(0);
 
   late final ApiClient _api = widget.api ?? ApiClient();
   late final TrackingFeed _feed = widget.feed ?? TrackingSocket(widget.areaId);
@@ -214,6 +215,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
     _sheetSize.dispose();
     _camera.dispose();
     _follow.dispose();
+    _cover.dispose();
     super.dispose();
   }
 
@@ -362,7 +364,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
   void _focus(TrackedUnit unit) {
     final at = unit.position;
     if (at == null || !_mapReady) return;
-    _camera.move(at, 16.2);
+    // In the middle of what the drawer leaves in view (v1.12.62).
+    _camera.move(at, 16.2, offset: Offset(0, -_cover.value / 2));
   }
 
   /// "Hercules Fire Brigade · On the way · 850 m from the fire".
@@ -665,7 +668,8 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
               minChildSize: peek,
               maxChildSize: _kSheetOpen,
               snap: true,
-              builder: (context, scroll) => _sheet(scroll, peek),
+              builder: (context, scroll) =>
+                  MapCover(cover: _cover, child: _sheet(scroll, peek)),
             ),
           ),
           if (_loading)
@@ -779,7 +783,7 @@ class _LiveUpdateScreenState extends State<LiveUpdateScreen>
         // them. No polyline: see the class comment.
         if (units.isNotEmpty && _snap != null)
           _UnitsLayer(units: units, snapshot: _snap!),
-        YouAreHereLayer(follow: _follow),
+        YouAreHereLayer(follow: _follow, cover: _cover),
         MapLocationButtons(
           follow: _follow,
           alignment: const Alignment(1, -0.35),

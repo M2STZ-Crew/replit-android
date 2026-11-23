@@ -212,6 +212,7 @@ class DirectionsScreen extends StatefulWidget {
 
 class _DirectionsScreenState extends State<DirectionsScreen> {
   final MapController _map = MapController();
+  final ValueNotifier<double> _cover = ValueNotifier(0);
   final StreamController<LocationMarkerPosition?> _dot =
       StreamController.broadcast();
   final StreamController<double?> _travel = StreamController.broadcast();
@@ -325,6 +326,7 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
       ..removeListener(_changed)
       ..dispose();
     _follow.dispose();
+    _cover.dispose();
     _alternativeHits.dispose();
     unawaited(_dot.close());
     unawaited(_travel.close());
@@ -577,7 +579,11 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
                     ),
                   ],
                 ),
-                YouAreHereLayer(follow: _follow, navigating: navigating),
+                YouAreHereLayer(
+                  follow: _follow,
+                  navigating: navigating,
+                  cover: _cover,
+                ),
                 // Choosing a route, the sheet covers where these sit; on
                 // the run, the banner's own controls take their place.
                 if (!_toFire || _noLocation)
@@ -647,25 +653,28 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               left: 0,
               right: 0,
               bottom: 0,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_fireRouteState() case final state?)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                        child: state,
+              child: MapCover(
+                cover: _cover,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_fireRouteState() case final state?)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: state,
+                        ),
                       ),
-                    ),
-                  if (navigating)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: _recentre(),
-                    ),
-                  _runPanel(),
-                ],
+                    if (navigating)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: _recentre(),
+                      ),
+                    _runPanel(),
+                  ],
+                ),
               ),
             )
           else
@@ -673,10 +682,13 @@ class _DirectionsScreenState extends State<DirectionsScreen> {
               left: 16,
               right: 16,
               bottom: 16,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [if (navigating) _recentre(), _routeCard()],
+              child: MapCover(
+                cover: _cover,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [if (navigating) _recentre(), _routeCard()],
+                ),
               ),
             ),
         ],

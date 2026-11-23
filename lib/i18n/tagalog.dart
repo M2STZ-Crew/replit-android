@@ -71,8 +71,7 @@ const Map<String, String> kTagalog = {
       'Patay na ang sunog. Tapos na ang mga responder dito.',
   'Closed — it could not be confirmed as an incident.':
       'Sarado na — hindi ito nakumpirmang insidente.',
-  'Joined to a neighbouring incident.':
-      'Isinama sa katabing insidente.',
+  'Joined to a neighbouring incident.': 'Isinama sa katabing insidente.',
   'Incident area': 'Area ng insidente',
   'Pasay City': 'Lungsod ng Pasay',
   'One report — no spread yet': 'Isang report pa lang — wala pang pagkalat',
@@ -272,8 +271,7 @@ const Map<String, String> kTagalog = {
   'Status': 'Status',
   'What happens next': 'Ano ang susunod',
   'No neighbours have confirmed yet': 'Wala pang kapitbahay na kumumpirma',
-  'Asked within 100 m of the fire':
-      'Tinanong sa loob ng 100 m mula sa sunog',
+  'Asked within 100 m of the fire': 'Tinanong sa loob ng 100 m mula sa sunog',
   'Nearest open shelter': 'Pinakamalapit na bukas na shelter',
   'WAY': 'DAAN',
   'Seen and being checked': 'Nakita na at sinusuri',
@@ -1110,7 +1108,7 @@ const Map<String, String> kTagalog = {
       'Pindutin nang 2 segundo ang SOS button. Kunan ng litrato ang lugar, piliin ang mga responder na kailangan mo (Sunog, Pulis, Medikal, Barangay), magdagdag ng notes kung gusto, saka i-tap ang IPADALA ANG REPORT.',
   'What happens after I report?':
       'Ano ang mangyayari pagkatapos kong mag-report?',
-  'Your report is localized into an incident area and sent to command for verification. Tap TRACK RESPONSE LIVE to follow the status — pending, verified, dispatched, en route, arrived, or resolved.':
+  'Your report is localized into an incident area and sent to command for verification. Tap TRACK RESPONSE LIVE to follow the status — pending, verified, dispatched, on route, arrived, or resolved.':
       'Ilalagay ang report mo sa isang area ng insidente at ipapadala sa command para ma-verify. I-tap ang SUNDAN NANG LIVE para makita ang status — naghihintay, verified, ipinadala, papunta na, nandiyan na, o naayos na.',
   'Can I add more responders later?':
       'Puwede ba akong magdagdag ng responder mamaya?',
@@ -1394,17 +1392,14 @@ const Map<String, String> kTagalog = {
   '1 UNIT RESPONDING': '1 UNIT ANG RUMERESPONDE',
   '{going} UNITS RESPONDING': '{going} UNIT ANG RUMERESPONDE',
   'Alarm level': 'Antas ng alarma',
-  'Incident details':
-      'Mga detalye ng insidente',
+  'Incident details': 'Mga detalye ng insidente',
   'Where it is, confidence, summary and reports':
       'Kung nasaan ito, katiyakan, summary at mga report',
   'Mark fire out': 'Markahang fire out',
-  'Reject this incident':
-      'Tanggihan ang insidenteng ito',
+  'Reject this incident': 'Tanggihan ang insidenteng ito',
   'You follow this incident here, and can get directions to it. Fire Volunteer and BFP coordinators and responders run the response: going, fire out and the report.':
       'Dito mo sinusundan ang insidenteng ito, at makakakuha ka ng direksiyon papunta rito. Ang mga Fire Volunteer at BFP coordinator at responder ang nagpapatakbo ng pagresponde: pagpunta, fire out at ang report.',
-  'The incident is marked on scene':
-      'Minarkahang nasa lugar ang insidente',
+  'The incident is marked on scene': 'Minarkahang nasa lugar ang insidente',
   'Within {_onSceneMetres} m of the fire':
       'Nasa loob ng {_onSceneMetres} m mula sa sunog',
   'No location yet': 'Wala pang lokasyon',
@@ -1412,7 +1407,7 @@ const Map<String, String> kTagalog = {
   'last seen {agoText}': 'huling nakita {agoText}',
   'updates every 5 s': 'nag-a-update kada 5 s',
   '{name} · {crew} crew': '{name} · {crew} crew',
-  'En route': 'Papunta',
+  'On route': 'Papunta',
   'Areas': 'Mga Area',
   'Fire stations': 'Mga fire station',
   'Monitoring Pasay · {value}': 'Binabantayan ang Pasay · {value}',
@@ -1439,16 +1434,14 @@ const Map<String, String> kTagalog = {
   'Every decision is kept in the audit log with your role and agency at the time. It cannot be edited.':
       'Itinatago sa audit log ang bawat desisyon, kasama ang role at ahensiya mo noong panahong iyon. Hindi ito mae-edit.',
   '{_name} merged into {_name2}.': 'Pinagsama ang {_name} sa {_name2}.',
-  'Kept as two incidents.':
-      'Pinanatiling dalawang insidente.',
+  'Kept as two incidents.': 'Pinanatiling dalawang insidente.',
   'Could not decide. Check your signal.':
       'Hindi makapagpasya. Tingnan ang signal mo.',
   'Merge into {a}': 'Isama sa {a}',
   'Keep them separate': 'Panatilihing hiwalay',
   'Overlap': 'Overlap',
   'Overlap · {metres} m apart': 'Overlap · {metres} m ang layo',
-  'Merge these incidents?':
-      'Pagsamahin ang mga insidenteng ito?',
+  'Merge these incidents?': 'Pagsamahin ang mga insidenteng ito?',
   '{b} has grown into {a}.': 'Lumaki ang {b} hanggang sa {a}.',
   '{b} has grown to within {metres} m of {a}.':
       'Lumaki ang {b} hanggang {metres} m na lang mula sa {a}.',
@@ -1456,8 +1449,7 @@ const Map<String, String> kTagalog = {
       'Kapag pinagsama, maisasama ang {b} sa {a}. Magiging "merged" ang mas maliit na insidente at itatala kung saan ito sumama. Hindi na ito mapaghihiwalay ulit.',
   'The decision window has closed': 'Sarado na ang oras ng pagpapasya',
   'Decide within {_clock}': 'Magpasya sa loob ng {_clock}',
-  'They stay as two incidents.':
-      'Mananatili silang dalawang insidente.',
+  'They stay as two incidents.': 'Mananatili silang dalawang insidente.',
   'If nobody decides, they stay as two incidents.':
       'Kung walang magpapasya, mananatili silang dalawang insidente.',
   'Alert volume': 'Lakas ng alerto',
@@ -1495,24 +1487,20 @@ const Map<String, String> kTagalog = {
   'Version {label} installed': 'Naka-install ang version {label}',
   'Coordinator · {responderAgencyLabel}':
       'Coordinator · {responderAgencyLabel}',
-  'Accept an incident':
-      'Tumanggap ng insidente',
+  'Accept an incident': 'Tumanggap ng insidente',
   'Acknowledges it for your organization when it asks for your agency':
       'Na-acknowledge ito para sa organisasyon mo kapag humihingi ito ng ahensiya mo',
   'Merge or keep separate': 'Pagsamahin o panatilihing hiwalay',
-  'When two incidents overlap':
-      'Kapag nag-overlap ang dalawang insidente',
+  'When two incidents overlap': 'Kapag nag-overlap ang dalawang insidente',
   'Follow an incident on LIVE and the map':
       'Sundan ang isang insidente sa LIVE at sa mapa',
   'Its units and its alarm level':
       'Ang mga unit nito at ang antas ng alarma nito',
-  'Route to an incident':
-      'Kumuha ng ruta papunta sa insidente',
+  'Route to an incident': 'Kumuha ng ruta papunta sa insidente',
   'Directions, once it has been accepted': 'Direksiyon, kapag natanggap na ito',
   "Make your responders' accounts": 'Gumawa ng mga account ng responder mo',
   'Under Profile, Responders': 'Sa Profile, Responders',
-  'Reject an incident':
-      'Tumanggi sa isang insidente',
+  'Reject an incident': 'Tumanggi sa isang insidente',
   'Fire Volunteer and BFP coordinators':
       'Mga Fire Volunteer at BFP coordinator',
   'Respond or mark fire out': 'Rumesponde o markahang fire out',
@@ -1540,16 +1528,14 @@ const Map<String, String> kTagalog = {
   'Edit a filed report': 'Mag-edit ng na-file na report',
   'A post-incident report saves once':
       'Isang beses lang nase-save ang post-incident report',
-  'Reopen a rejected incident':
-      'Buksan ulit ang tinanggihang insidente',
+  'Reopen a rejected incident': 'Buksan ulit ang tinanggihang insidente',
   'It has left the live feed for good': 'Tuluyan na itong nawala sa live feed',
   'Queue': 'Queue',
   'To decide': 'Pagpapasyahan',
   'To file': 'Ifa-file',
   'Queue unavailable': 'Hindi available ang queue',
   '1 area': '1 Area',
-  '{n} incidents':
-      '{n} insidente',
+  '{n} incidents': '{n} insidente',
   'Nothing to decide': 'Walang pagpapasyahan',
   'A new incident that asks for {_askedWord} lands here first.':
       'Dito unang dumarating ang bagong insidenteng humihingi ng {_askedWord}.',
@@ -1612,10 +1598,8 @@ const Map<String, String> kTagalog = {
   'Your run': 'Ang run mo',
   'Open run': 'Buksan ang run',
   'Needs a unit': 'Kailangan ng unit',
-  '1 incident':
-      '1 insidente',
-  '{count} incidents':
-      '{count} insidente',
+  '1 incident': '1 insidente',
+  '{count} incidents': '{count} insidente',
   'Pasay now': 'Pasay ngayon',
   'Location sharing is on': 'Naka-on ang pagbabahagi ng lokasyon',
   'Command sees where you are while you are on {value}. It stops when the Captain marks fire out.':
@@ -1624,8 +1608,7 @@ const Map<String, String> kTagalog = {
   'Location sharing is off': 'Naka-off ang pagbabahagi ng lokasyon',
   'It starts when you tap I am going and stops when the Captain marks fire out.':
       'Magsisimula ito kapag pinindot mo ang Papunta na ako, at titigil kapag minarkahan ng Captain na fire out.',
-  'No incident needs {unit}':
-      'Walang insidenteng nangangailangan ng {unit}',
+  'No incident needs {unit}': 'Walang insidenteng nangangailangan ng {unit}',
   'When an incident asks for {agencyLabel} it arrives here with an alert sound. You can leave this screen.':
       'Kapag may insidenteng humingi ng {agencyLabel}, darating ito rito nang may alert sound. Puwede mong iwan ang screen na ito.',
   'Live now': 'Live ngayon',
@@ -1668,8 +1651,7 @@ const Map<String, String> kTagalog = {
   '{count} reports': '{count} report',
   'Photos are for staff only.': 'Para sa staff lang ang mga litrato.',
   'No reports could be read.': 'Walang report na mabasa.',
-  'Could not load this incident':
-      'Hindi ma-load ang insidenteng ito',
+  'Could not load this incident': 'Hindi ma-load ang insidenteng ito',
   'Check your signal and try again.': 'Tingnan ang signal mo at subukan ulit.',
   '{formatDistance} from you': '{formatDistance} mula sa iyo',
   '1 resident': '1 residente',
@@ -1715,8 +1697,7 @@ const Map<String, String> kTagalog = {
   'Arrived {clockText}': 'Dumating {clockText}',
   'Marked on its own when you reach the fire, or by you':
       'Kusang namamarkahan kapag naabot mo ang sunog, o ikaw ang magmamarka',
-  'The incident was marked arrived':
-      'Minarkahang dumating sa insidente',
+  'The incident was marked arrived': 'Minarkahang dumating sa insidente',
   'Fire out {clockText}': 'Fire out {clockText}',
   'The Captain calls it on scene': 'Ang Captain ang nagdedeklara nito sa lugar',
   'Stood down {clockText}': 'Pinatigil {clockText}',
@@ -1731,12 +1712,10 @@ const Map<String, String> kTagalog = {
   '1 on it': '1 ang sakay',
   '{count} on it': '{count} ang sakay',
   'Need water': 'Kailangan ng tubig',
-  'More water supply to this fire':
-      'Dagdag na suplay ng tubig sa sunog na ito',
+  'More water supply to this fire': 'Dagdag na suplay ng tubig sa sunog na ito',
   'FC-6': 'FC-6',
   'Need assistance': 'Kailangan ng tulong',
-  'Backup responders to this fire':
-      'Mga backup na responder sa sunog na ito',
+  'Backup responders to this fire': 'Mga backup na responder sa sunog na ito',
   'FC-7': 'FC-7',
   'Escalate to BFP': 'I-escalate sa BFP',
   'Fire is out': 'Patay na ang sunog',
@@ -1744,12 +1723,10 @@ const Map<String, String> kTagalog = {
       'Sabihan ang command — ang Captain ang magmamarka nito',
   'FC-3': 'FC-3',
   'Responder · {agencyLabel}': 'Responder · {agencyLabel}',
-  'Go to an incident':
-      'Pumunta sa isang insidente',
+  'Go to an incident': 'Pumunta sa isang insidente',
   'I am going — verifies it if it is still Reported':
       'Papunta na ako — ginagawa itong verified kung Reported pa',
-  'Verify an incident':
-      'Mag-verify ng insidente',
+  'Verify an incident': 'Mag-verify ng insidente',
   'Without going, while it is still Reported':
       'Nang hindi pumupunta, habang Reported pa ito',
   'Choose your route': 'Piliin ang ruta mo',
@@ -1776,8 +1753,7 @@ const Map<String, String> kTagalog = {
   'What you can do': 'Ang mga puwede mong gawin',
   'Your actions as a Responder': 'Ang mga gagawin mo bilang Responder',
   'RUN': 'RUN',
-  'Run — the fire you are going to':
-      'Run — ang sunog na pinupuntahan mo',
+  'Run — the fire you are going to': 'Run — ang sunog na pinupuntahan mo',
   'Bureau of Fire': 'Bureau of Fire',
   'Coast Guard': 'Coast Guard',
   'Response team': 'Response team',
@@ -1856,8 +1832,7 @@ const Map<String, String> kTagalog = {
   'Submit and close {_areaName}?': 'Ipasa at isara ang {_areaName}?',
   'The report saves once and cannot be edited. Filing it closes the incident.':
       'Isang beses lang nase-save ang report at hindi na ito mae-edit. Kapag na-file ito, magsasara ang insidente.',
-  'Submit and close the incident':
-      'Ipasa at isara ang insidente',
+  'Submit and close the incident': 'Ipasa at isara ang insidente',
   'Could not file the report. Check your connection.':
       'Hindi ma-file ang report. Tingnan ang connection mo.',
   'Still needed: {join}': 'Kailangan pa: {join}',
@@ -1901,8 +1876,7 @@ const Map<String, String> kTagalog = {
   'Report saved': 'Na-save ang report',
   'Trucks, driver, crew, equipment and notes':
       'Mga trak, driver, crew, kagamitan at tala',
-  'Incident closed':
-      'Sarado na ang insidente',
+  'Incident closed': 'Sarado na ang insidente',
   'It has left the live feed for every role':
       'Wala na ito sa live feed para sa bawat role',
   'Closing it now': 'Isinasara na ngayon',
@@ -1929,8 +1903,7 @@ const Map<String, String> kTagalog = {
   'Could not load incidents. Check your connection.':
       'Hindi ma-load ang mga insidente. Tingnan ang connection mo.',
   'No incidents to review right now.': 'Walang insidenteng susuriin ngayon.',
-  'No reports in this incident.':
-      'Walang report sa insidenteng ito.',
+  'No reports in this incident.': 'Walang report sa insidenteng ito.',
   'UNKNOWN REPORTER': 'HINDI KILALANG NAG-REPORT',
   '{label} broadcast to units.': 'Naipadala ang {label} sa mga unit.',
   'Could not broadcast. Check your connection.':
@@ -2202,7 +2175,8 @@ const Map<String, String> kTagalog = {
   'The responding Captain sees where you are':
       'Makikita ng rumerespondeng Captain kung nasaan ka',
   'Not in the area': 'Wala sa lugar',
-  'No more alerts for this incident': 'Wala nang alerto para sa insidenteng ito',
+  'No more alerts for this incident':
+      'Wala nang alerto para sa insidenteng ito',
   'Water level': 'Antas ng tubig',
   'Unit not recorded': 'Hindi nakatala ang unit',
   'Coordinator': 'Coordinator',
@@ -2322,8 +2296,7 @@ const Map<String, String> kTagalog = {
   // v1.12.38: the LIT tutorial's practice report, on the real screens.
   'For practice, tap the shutter to use a drawing instead.':
       'Para sa practice, i-tap ang shutter para gumamit ng drawing.',
-  'Near you (practice)':
-      'Malapit sa iyo (practice)',
+  'Near you (practice)': 'Malapit sa iyo (practice)',
   'Practice report': 'Practice na report',
   'Practice done. A real report ends here, when responders say the fire is out.':
       'Tapos na ang practice. Dito nagtatapos ang totoong report, kapag '
@@ -2468,7 +2441,8 @@ const Map<String, String> kTagalog = {
   'In effect': 'Umiiral',
   'Removed': 'Tinanggal',
   'removed': 'tinanggal',
-  'Waiting for a second staff check': 'Naghihintay ng pagsuri ng isa pang staff',
+  'Waiting for a second staff check':
+      'Naghihintay ng pagsuri ng isa pang staff',
   'Your appeal is waiting for an answer': 'Naghihintay ng sagot ang apela mo',
   'Appeal not accepted': 'Hindi tinanggap ang apela',
   'The strike stays.': 'Mananatili ang strike.',
@@ -2660,24 +2634,15 @@ const Map<String, String> kTagalog = {
   'This incident': 'Ang insidenteng ito',
 
   // The alarm status (v1.12.60).
-  'Alarm status':
-      'Antas ng alarma',
-  'No alarm yet':
-      'Wala pang alarma',
-  'Under control':
-      'Under control',
-  'Was {level}':
-      'Dating {level}',
-  'Raised {time}':
-      'Itinaas {time}',
-  'Raised {time} by {who}':
-      'Itinaas {time} ng {who}',
-  'Set {time}':
-      'Itinakda {time}',
-  'Set {time} by {who}':
-      'Itinakda {time} ng {who}',
-  'The fire is out.':
-      'Patay na ang sunog.',
+  'Alarm status': 'Antas ng alarma',
+  'No alarm yet': 'Wala pang alarma',
+  'Under control': 'Under control',
+  'Was {level}': 'Dating {level}',
+  'Raised {time}': 'Itinaas {time}',
+  'Raised {time} by {who}': 'Itinaas {time} ng {who}',
+  'Set {time}': 'Itinakda {time}',
+  'Set {time} by {who}': 'Itinakda {time} ng {who}',
+  'The fire is out.': 'Patay na ang sunog.',
   'It is no longer spreading. Stay away until the fire is out.':
       'Hindi na ito kumakalat. Lumayo hanggang sa mapatay ang sunog.',
   'The highest alarm. Stay far away and keep the roads clear.':
@@ -2688,35 +2653,42 @@ const Map<String, String> kTagalog = {
       'Kumpirmadong sunog. Lumayo rito at panatilihing bukas ang mga daan.',
   'An alarm is set once responders confirm the fire.':
       'Itinatakda ang alarma kapag nakumpirma ng mga responder ang sunog.',
-  'Withdraw':
-      'Bawiin',
-  'Withdraw Under control?':
-      'Bawiin ang Under control?',
+  'Withdraw': 'Bawiin',
+  'Withdraw Under control?': 'Bawiin ang Under control?',
   "Everyone sees the fire's alarm level again, and its crews and coordinators are told without a sound.":
       'Makikita ulit ng lahat ang antas ng alarma ng sunog, at sasabihan nang walang tunog ang mga crew at coordinator nito.',
-  'Under control withdrawn.':
-      'Binawi ang Under control.',
+  'Under control withdrawn.': 'Binawi ang Under control.',
   'This declares the fire under control: everyone, residents too, will see it.':
       'Idedeklara nitong under control ang sunog: makikita ito ng lahat, pati ng mga residente.',
   'It tells command. A Fire Volunteer or BFP coordinator declares the fire under control.':
       'Sasabihan nito ang command. Ang coordinator ng Fire Volunteer o BFP ang nagdedeklarang under control ang sunog.',
 
   // Requests became Alarm Escalations (v1.12.60).
-  'Failed to load alarm escalations.': 'Hindi ma-load ang mga alarm escalation.',
+  'Failed to load alarm escalations.':
+      'Hindi ma-load ang mga alarm escalation.',
   'Alarm escalation': 'Alarm escalation',
-  'Could not load the alarm escalations. Check your signal.': 'Hindi ma-load ang mga alarm escalation. Tingnan ang signal mo.',
+  'Could not load the alarm escalations. Check your signal.':
+      'Hindi ma-load ang mga alarm escalation. Tingnan ang signal mo.',
   'Alarm Escalations': 'Mga Alarm Escalation',
   'Escalations unavailable': 'Hindi available ang mga escalation',
-  'Escalations move here once BFP sets the level or declines, or the coordinator takes one back.': 'Lumilipat dito ang mga escalation kapag itinakda ng BFP ang antas o tumanggi ito, o binawi ng coordinator.',
-  'An escalation lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise a fire\'s alarm.': 'Dumarating dito ang escalation, kasama ang fire alert, kapag hiniling ng isang Fire Volunteer coordinator sa BFP na itaas ang alarma ng isang sunog.',
+  'Escalations move here once BFP sets the level or declines, or the coordinator takes one back.':
+      'Lumilipat dito ang mga escalation kapag itinakda ng BFP ang antas o tumanggi ito, o binawi ng coordinator.',
+  'An escalation lands here, with the fire alert, when a Fire Volunteer coordinator asks BFP to raise a fire\'s alarm.':
+      'Dumarating dito ang escalation, kasama ang fire alert, kapag hiniling ng isang Fire Volunteer coordinator sa BFP na itaas ang alarma ng isang sunog.',
   'Decline this escalation?': 'Tanggihan ang escalation na ito?',
   'No pending escalations': 'Walang naghihintay na escalation',
-  'Escalation taken back. BFP no longer sees it.': 'Binawi ang escalation. Hindi na ito nakikita ng BFP.',
+  'Escalation taken back. BFP no longer sees it.':
+      'Binawi ang escalation. Hindi na ito nakikita ng BFP.',
   '1 escalation waiting on you': '1 escalation ang naghihintay sa iyo',
   '{n} escalations waiting on you': '{n} escalation ang naghihintay sa iyo',
-  'From the alarm escalations Fire Volunteer sends': 'Mula sa mga alarm escalation na ipinapadala ng Fire Volunteer',
-  '{count} alarm escalations waiting': '{count} alarm escalation ang naghihintay',
+  'From the alarm escalations Fire Volunteer sends':
+      'Mula sa mga alarm escalation na ipinapadala ng Fire Volunteer',
+  '{count} alarm escalations waiting':
+      '{count} alarm escalation ang naghihintay',
   '1 escalation waiting': '1 escalation ang naghihintay',
   '{n} escalations waiting': '{n} escalation ang naghihintay',
   'See escalations': 'Tingnan ang mga escalation',
+  'What is burning comes first': 'Uunahin ang kung ano ang nasusunog',
+  'The alarm can be raised once the first fire team on scene says what is burning.':
+      'Maitataas ang alarm kapag nasabi na ng unang fire team sa lugar kung ano ang nasusunog.',
 };

@@ -240,7 +240,7 @@ class NotificationRouter {
     }
   }
 
-  /// A responder lands on the incident, where Verify, Respond, En route and
+  /// A responder lands on the incident, where Verify, Respond, On route and
   /// Arrived are; a coordinator where their dashboard would send them for its
   /// current state (review, command, or the report owed).
   /// The incident as the staff account [me] works it: a responder's incident
