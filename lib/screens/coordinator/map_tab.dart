@@ -53,7 +53,21 @@ const double _sheetMin = 0.16;
 const double _sheetMax = 0.8;
 
 class _MapTabState extends State<MapTab> {
-  final MapFollow _follow = MapFollow();
+  late final MapFollow _follow = MapFollow()..makeRoom = _makeRoom;
+  final ValueNotifier<double> _cover = ValueNotifier(0);
+
+  /// Center (v1.12.62): a drawer pulled up over most of the map comes back
+  /// to where it opens first, so there is room to show where you are.
+  void _makeRoom() {
+    if (_sheetSize.isAttached && _sheetSize.size > 0.6) {
+      _sheetSize.animateTo(
+        0.36,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
   final MapController _mapController = MapController();
 
   /// What this coordinator may do with water (backend v1.12.43).
@@ -128,6 +142,7 @@ class _MapTabState extends State<MapTab> {
     }
     return _barangayShapes;
   }
+
   final Map<String, List<OpsPoint>> _cache = {};
 
   @override
@@ -142,6 +157,7 @@ class _MapTabState extends State<MapTab> {
   @override
   void dispose() {
     _follow.dispose();
+    _cover.dispose();
     _mapController.dispose();
     _sheetSize.dispose();
     super.dispose();
@@ -281,7 +297,8 @@ class _MapTabState extends State<MapTab> {
                 initialChildSize: 0.36,
                 minChildSize: _sheetMin,
                 maxChildSize: _sheetMax,
-                builder: (context, scroll) => _sheet(areas, scroll),
+                builder: (context, scroll) =>
+                    MapCover(cover: _cover, child: _sheet(areas, scroll)),
               ),
           ],
         );
@@ -356,7 +373,7 @@ class _MapTabState extends State<MapTab> {
           ),
         ZoomGatedMarkers(markers: layerMarkers),
         MarkerLayer(rotate: true, markers: markers),
-        YouAreHereLayer(follow: _follow),
+        YouAreHereLayer(follow: _follow, cover: _cover),
         MapLocationButtons(
           follow: _follow,
           alignment: Alignment.topRight,

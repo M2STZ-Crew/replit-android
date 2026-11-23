@@ -23,7 +23,7 @@ const List<_Faq> _faqs = [
     'What happens after I report?',
     'Your report is localized into an incident area and sent to command for '
         'verification. Tap TRACK RESPONSE LIVE to follow the status — pending, '
-        'verified, dispatched, en route, arrived, or resolved.',
+        'verified, dispatched, on route, arrived, or resolved.',
   ),
   _Faq(
     'Can I add more responders later?',

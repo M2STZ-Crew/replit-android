@@ -25,7 +25,7 @@ Color responderStatusColor(String status) {
   return tone == AppColors.muted ? AppColors.warn : tone;
 }
 
-/// The status in the PRD v12 words the Lifecycle chip uses ("En route",
+/// The status in the PRD v12 words the Lifecycle chip uses ("On route",
 /// "Report pending") — the same words a resident's rail shows.
 String responderStatusLabel(String status) => LifecycleChip.word(status);
 

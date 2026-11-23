@@ -274,10 +274,10 @@ const List<LitLesson> kLitLessons = [
     pose: LitPose.present,
     captionEn:
         'Here, you can follow status updates. Reported means your report was '
-        'received. En Route means responders are on the way. Tap Continue.',
+        'received. On Route means responders are on the way. Tap Continue.',
     captionTl:
         'Dito mo makikita ang status updates. Ang Reported ay natanggap na '
-        'ang report mo. Ang En Route ay papunta na ang responders. I-tap ang '
+        'ang report mo. Ang On Route ay papunta na ang responders. I-tap ang '
         'Continue.',
   ),
   LitLesson(

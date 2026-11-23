@@ -363,7 +363,7 @@ void main() {
       tester,
     ) async {
       await run(tester, 'en_route');
-      expect(find.text('AREA 3.1 — EN ROUTE'), findsOneWidget);
+      expect(find.text('AREA 3.1 — ON ROUTE'), findsOneWidget);
       expect(find.text('ON THE WAY'), findsOneWidget);
       expect(find.text('NAVIGATE'), findsOneWidget);
       await tester.tap(find.text('MARK ARRIVED'));

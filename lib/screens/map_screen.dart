@@ -198,6 +198,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final MapFollow _follow = MapFollow();
+  final ValueNotifier<double> _cover = ValueNotifier(0);
 
   /// Where the map opens: the phone's latest fix this session, else the last
   /// spot kept on the phone (LastPlace, v1.12.43), else Pasay City. Coming
@@ -289,6 +290,7 @@ class _MapScreenState extends State<MapScreen> {
     // whoever handed it in.
     if (widget.feed == null) unawaited(_live.dispose());
     _follow.dispose();
+    _cover.dispose();
     super.dispose();
   }
 
@@ -610,7 +612,8 @@ class _MapScreenState extends State<MapScreen> {
     } catch (_) {
       // No camera yet: move.
     }
-    _map.move(here, _streetZoom);
+    // In the middle of what the drawer leaves in view (v1.12.62).
+    _map.move(here, _streetZoom, offset: Offset(0, -_cover.value / 2));
   }
 
   /// No fix to measure from: the sheet says why, unless one arrived some
@@ -803,7 +806,7 @@ class _MapScreenState extends State<MapScreen> {
                     left: side,
                     right: side,
                     bottom: 0,
-                    child: _sheet(clearance),
+                    child: MapCover(cover: _cover, child: _sheet(clearance)),
                   ),
                   Positioned(top: 0, left: 0, right: 0, child: _topControls()),
                   if (_loading)
@@ -867,7 +870,7 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ZoomGatedMarkers(markers: _layerMarkers()),
         MarkerLayer(rotate: true, markers: _markers()),
-        YouAreHereLayer(follow: _follow),
+        YouAreHereLayer(follow: _follow, cover: _cover),
         MapLocationButtons(
           follow: _follow,
           alignment: const Alignment(1, -0.1),

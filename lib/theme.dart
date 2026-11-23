@@ -194,7 +194,7 @@ class AppColors {
   /// (REPLIT (MAIN) 04, pass 4): amber needs a decision or a record, blue is
   /// verified, red is under way, green is out, and grey has left the live
   /// feed. v11 dropped 'dispatched': Accept carries an incident from Reported
-  /// straight to En route, so there is no step between them to colour.
+  /// straight to On route, so there is no step between them to colour.
   ///
   /// The web consoles still draw the v11 colours; PRD §8.1 wants the three
   /// token files in step, so they follow in their own change.

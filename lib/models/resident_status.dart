@@ -7,7 +7,7 @@ import '../i18n/i18n.dart';
 /// and Live tracking screens (REPLIT-OVERHAUL frames 06 and 10).
 ///
 /// Five steps in v11, not six: Accept takes an incident from Reported through
-/// Verified to En route in one act (Master Context v11 §2.5.1), so there is no
+/// Verified to On route in one act (Master Context v11 §2.5.1), so there is no
 /// "dispatched" step between them for a resident to watch.
 ///
 /// After fire out the crew still files its Post-Incident Report (§2.5.3); that
@@ -28,7 +28,7 @@ String residentStatus(String? status) =>
 
 /// The status in a word or two, sentence case.
 ///
-/// Plain words for residents: "On the way", not the dispatcher's "En route".
+/// Plain words for residents: "On the way", not the dispatcher's "On route".
 /// Staff screens keep their own terms.
 String residentWord(String status) => switch (status) {
   'en_route' => t('On the way'),

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 
@@ -111,6 +114,21 @@ class MapFollow extends ChangeNotifier {
 
   FollowMode get mode => _mode;
 
+  /// Before Center brings the map to the person (v1.12.62): a screen whose
+  /// drawer can cover most of the map lowers it first.
+  VoidCallback? makeRoom;
+
+  /// The moves to the person the map is told to make, for tests.
+  @visibleForTesting
+  Stream<double?> get alignments => _alignPosition.stream;
+
+  /// Back to the person at the same zoom, when following: the part of the
+  /// map in view changed (v1.12.62).
+  void realign() {
+    if (_disposed || _mode == FollowMode.free) return;
+    _alignPosition.add(null);
+  }
+
   /// Centre on the person and keep them there as they move.
   void follow() {
     _set(FollowMode.follow);
@@ -180,10 +198,32 @@ class YouAreHereLayer extends StatelessWidget {
     super.key,
     required this.follow,
     this.navigating = false,
+    this.cover,
   });
 
   final MapFollow follow;
   final bool navigating;
+
+  /// How much of the map a drawer over its bottom covers, from a [MapCover]
+  /// around it (v1.12.62; 23 Nov 2026: "it centers the whole screen but the
+  /// drawer blocks it"; answered "Visible center"). The person is put in the
+  /// middle of what is left in view, and stays there as the drawer moves.
+  final ValueListenable<double>? cover;
+
+  /// Where the person sits: the middle of the map in view, or low in it
+  /// while navigating, so the road ahead shows.
+  @visibleForTesting
+  static FocalPoint focalFor({
+    required bool navigating,
+    required double covered,
+  }) {
+    final ratio = navigating ? 0.4 : 0.0;
+    final share = 0.5 + ratio / 2;
+    return FocalPoint(
+      ratio: Offset(0, ratio),
+      offset: Offset(0, -share * covered),
+    );
+  }
 
   /// One fix's worth of motion: the next fix lands as this one finishes.
   static const Duration _glide = Duration(milliseconds: 950);
@@ -191,6 +231,12 @@ class YouAreHereLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cover = this.cover;
+    if (cover == null) return _layer(context, 0);
+    return _CoverWatch(cover: cover, follow: follow, builder: _layer);
+  }
+
+  Widget _layer(BuildContext context, double covered) {
     final accent = context.pal.accent;
     return ListenableBuilder(
       listenable: follow,
@@ -205,9 +251,7 @@ class YouAreHereLayer extends StatelessWidget {
         alignDirectionOnUpdate: follow.mode == FollowMode.compass
             ? AlignOnUpdate.always
             : AlignOnUpdate.never,
-        focalPoint: navigating
-            ? const FocalPoint(ratio: Offset(0, 0.4))
-            : const FocalPoint(),
+        focalPoint: focalFor(navigating: navigating, covered: covered),
         moveAnimationDuration: navigating
             ? _glide
             : const Duration(milliseconds: 200),
@@ -234,6 +278,103 @@ class YouAreHereLayer extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Rebuilds the layer as the drawer moves, and once it settles brings a
+/// following map back to the person.
+class _CoverWatch extends StatefulWidget {
+  const _CoverWatch({
+    required this.cover,
+    required this.follow,
+    required this.builder,
+  });
+
+  final ValueListenable<double> cover;
+  final MapFollow follow;
+  final Widget Function(BuildContext context, double covered) builder;
+
+  @override
+  State<_CoverWatch> createState() => _CoverWatchState();
+}
+
+class _CoverWatchState extends State<_CoverWatch> {
+  Timer? _settle;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.cover.addListener(_moved);
+  }
+
+  @override
+  void didUpdateWidget(_CoverWatch old) {
+    super.didUpdateWidget(old);
+    if (old.cover != widget.cover) {
+      old.cover.removeListener(_moved);
+      widget.cover.addListener(_moved);
+    }
+  }
+
+  @override
+  void dispose() {
+    _settle?.cancel();
+    widget.cover.removeListener(_moved);
+    super.dispose();
+  }
+
+  void _moved() {
+    if (!mounted) return;
+    setState(() {});
+    _settle?.cancel();
+    _settle = Timer(const Duration(milliseconds: 150), widget.follow.realign);
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      widget.builder(context, widget.cover.value);
+}
+
+/// Wrap a drawer over a map in this, and hand [cover] to the map's
+/// [YouAreHereLayer]: it says how much of the screen the drawer covers,
+/// measured from its top edge after each frame it moves in (v1.12.62).
+class MapCover extends SingleChildRenderObjectWidget {
+  const MapCover({super.key, required this.cover, super.child});
+
+  final ValueNotifier<double> cover;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      RenderMapCover(cover, MediaQuery.sizeOf(context).height);
+
+  @override
+  void updateRenderObject(BuildContext context, RenderMapCover renderObject) {
+    renderObject
+      ..cover = cover
+      ..screen = MediaQuery.sizeOf(context).height;
+  }
+}
+
+class RenderMapCover extends RenderProxyBox {
+  RenderMapCover(this.cover, this.screen);
+
+  ValueNotifier<double> cover;
+  double screen;
+  bool _queued = false;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    super.paint(context, offset);
+    if (_queued) return;
+    _queued = true;
+    // Where it is on screen once the frame is done, never during it.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _queued = false;
+      if (!attached || !hasSize) return;
+      final top = localToGlobal(Offset.zero).dy;
+      final covered = (screen - top).clamp(0.0, screen).toDouble();
+      if ((cover.value - covered).abs() >= 1) cover.value = covered;
+    });
   }
 }
 
@@ -302,6 +443,7 @@ class MapLocationButtons extends StatelessWidget {
                   onTap: () {
                     switch (mode) {
                       case FollowMode.free:
+                        follow.makeRoom?.call();
                         follow.follow();
                       case FollowMode.follow:
                         follow.compass();

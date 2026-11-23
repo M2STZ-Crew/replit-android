@@ -122,7 +122,18 @@ class _AlarmAskSheetState extends State<AlarmAskSheet> {
             ),
           ],
           const SizedBox(height: 16),
-          if (levels.isEmpty)
+          // No alarm before the first fire team on scene says what is
+          // burning (v1.12.62; 23 Nov 2026).
+          if (area.asksFireType && area.fireType == null)
+            InlineAlert(
+              tone: AlertTone.warning,
+              title: t('What is burning comes first'),
+              body: t(
+                'The alarm can be raised once the first fire team on scene '
+                'says what is burning.',
+              ),
+            )
+          else if (levels.isEmpty)
             InlineAlert(
               body: '${area.name} is at General alarm, the highest level.',
             )

@@ -170,7 +170,21 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
   late final LiveRefresh _live = LiveRefresh([
     incidentChannel(widget.areaId),
   ], _load);
-  final MapFollow _follow = MapFollow();
+  late final MapFollow _follow = MapFollow()..makeRoom = _makeRoom;
+  final ValueNotifier<double> _cover = ValueNotifier(0);
+
+  /// Center (v1.12.62): a drawer pulled up over most of the map comes back
+  /// to where it opens first, so there is room to show where you are.
+  void _makeRoom() {
+    if (_sheetSize.isAttached && _sheetSize.size > 0.7) {
+      _sheetSize.animateTo(
+        _sheetStart,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
   final ResponderTracker _tracker = ResponderTracker.instance;
 
   /// The details sheet, so its frozen grip can drag it.
@@ -230,6 +244,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
     _poll?.cancel();
     unawaited(_live.dispose());
     _follow.dispose();
+    _cover.dispose();
     _sheetSize.dispose();
     super.dispose();
   }
@@ -704,7 +719,8 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
           initialChildSize: _sheetStart,
           minChildSize: _sheetMin,
           maxChildSize: _sheetMax,
-          builder: (context, scroll) => _sheet(area, units, scroll),
+          builder: (context, scroll) =>
+              MapCover(cover: _cover, child: _sheet(area, units, scroll)),
         ),
       ],
     );
@@ -774,7 +790,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
             ),
           ],
         ),
-        YouAreHereLayer(follow: _follow),
+        YouAreHereLayer(follow: _follow, cover: _cover),
         MapLocationButtons(
           follow: _follow,
           alignment: Alignment.topRight,
@@ -1063,7 +1079,7 @@ class _LiveIncidentViewState extends State<LiveIncidentView> {
           ? t('{name} · {crew} crew', {'name': u.name, 'crew': crew})
           : u.name,
       subtitle: subtitle,
-      trailing: RowValue(onScene ? t('On scene') : t('En route'), color: tone),
+      trailing: RowValue(onScene ? t('On scene') : t('On route'), color: tone),
     );
   }
 }
