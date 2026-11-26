@@ -59,15 +59,17 @@ holds `app-release.aab`, the file Play Console takes.
   a staff account), and say that administrators use the web console only.
 - **Ads**: none. **Target audience**: 18 and over. **Content rating**: answer
   the questionnaire (emergency reporting, no user-to-user chat).
-- **Data safety**: location (precise, also in the background, optional), name,
+- **Data safety**: location (precise, optional; not in the background: the Play
+  copy leaves out "All the time" since v1.12.64), name,
   email, phone number, date of birth and gender (optional), photos (reports, and
   National ID photos deleted after review), app interactions (answers to
   alerts), device identifiers (the notification token). Shared with service
   providers only; encrypted in transit; people can ask for deletion.
 - **Sensitive permissions**:
-  - *Background location*: a declaration and a short video: Profile → "Fire
-    alerts with the app closed", its explanation, then Android's "Allow all the
-    time".
+  - *Background location*: not in the Play copy since v1.12.64
+    (`backgroundLocationPermission`). To add it back: a declaration and a short
+    video: Profile → "Fire alerts with the app closed", its explanation, then
+    Android's "Allow all the time".
   - *Foreground service (location)*: responders share their location while they
     go to an incident; a declaration and a short video of "I am going".
 - **Government features**: RepLiT is a community reporting app for Barangay 76
