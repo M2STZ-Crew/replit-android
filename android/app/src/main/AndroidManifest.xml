@@ -15,6 +15,7 @@
          the app's own storage (v1.12.61). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- A dispatched responder's location keeps going to command with the
          screen off (lib/location/responder_tracker.dart): geolocator runs it as

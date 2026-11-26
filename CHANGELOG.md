@@ -7,6 +7,22 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.63 — 26 November 2026 — LIVE before I AM GOING; Terms
+
+Goes with backend v1.12.53.
+
+- **An organization not going sees the fire, not its controls** (answered
+  "Info + 2 buttons"). Its LIVE panel shows the status, progress, fire type and
+  Incident details, with I AM GOING and CLOSE. Alarm level, fire codes and Mark
+  fire out appear once it is going; BFP's alarm level shows anyway.
+- **The fire type waits for the first team on scene** and reads so until
+  they fill it in; only a team going may.
+- **No card per unit** in the panel (answered "Remove it"): the title counts
+  them and the map shows them.
+- **Terms** in Profile, and no read-storage permission.
+
+---
+
 ## v1.12.62 — 23 November 2026 — Centered where you can see; On route; the fire type before the alarm
 
 Goes with backend v1.12.52.

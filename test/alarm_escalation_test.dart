@@ -115,6 +115,9 @@ void main() {
     };
   });
 
+  // The Fire Volunteer coordinator is going (v1.12.63: only then may they ask).
+  var fvGoing = false;
+
   ApiClient api() => ApiClient(
     client: MockClient((req) async {
       final path = req.url.path;
@@ -149,6 +152,11 @@ void main() {
       if (path == '/alarm-requests/mine') return json(mine);
       if (path == '/incidents') return json([incident]);
       if (path == '/incidents/a3') return json(incident);
+      if (path == '/incidents/a3/dispatches' && fvGoing) {
+        return json([
+          {'id': 'd-fv', 'responder_id': 'fv1', 'status': 'active'},
+        ]);
+      }
       return json([]);
     }),
   );
@@ -195,7 +203,9 @@ void main() {
       expect(find.bySemanticsLabel('2 Waiting'), findsOneWidget);
       expect(find.bySemanticsLabel('0 Answered'), findsOneWidget);
       expect(
-        find.text('Taft Avenue corner Gil Puyat Avenue · F. Victor Street, Barangay 76, Pasay City'),
+        find.text(
+          'Taft Avenue corner Gil Puyat Avenue · F. Victor Street, Barangay 76, Pasay City',
+        ),
         findsNWidgets(2),
       );
       expect(find.text('On route · now at 1st alarm'), findsNWidgets(2));
@@ -242,7 +252,10 @@ void main() {
       await tester.tap(find.text('SET 2ND ALARM').last);
       await settle(tester);
       expect(posted(), ['/alarm-requests/q1/execute']);
-      expect(find.text('Taft Avenue corner Gil Puyat Avenue is now at 2nd alarm.'), findsOneWidget);
+      expect(
+        find.text('Taft Avenue corner Gil Puyat Avenue is now at 2nd alarm.'),
+        findsOneWidget,
+      );
       await done(tester);
     });
 
@@ -327,7 +340,10 @@ void main() {
     testWidgets('the Queue tab shows BFP what waits on it', (tester) async {
       requests = [request('q1')];
       await pump(tester, CoordinatorShell(me: bfp, api: api()));
-      expect(find.text('Taft Avenue corner Gil Puyat Avenue asks for 2nd alarm'), findsOneWidget);
+      expect(
+        find.text('Taft Avenue corner Gil Puyat Avenue asks for 2nd alarm'),
+        findsOneWidget,
+      );
       expect(
         find.textContaining('R. Alonzo · Hercules Fire & Rescue'),
         findsOneWidget,
@@ -341,6 +357,9 @@ void main() {
   });
 
   group('the Fire Volunteer coordinator who asks', () {
+    setUp(() => fvGoing = true);
+    tearDown(() => fvGoing = false);
+
     Future<void> openLive(WidgetTester tester) => pump(
       tester,
       Scaffold(

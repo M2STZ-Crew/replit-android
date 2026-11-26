@@ -84,10 +84,7 @@ void main() {
     ) async {
       await pump(tester, FireTypeRow(area: open));
       expect(find.text('What’s burning?'), findsOneWidget);
-      expect(
-        find.text('Waiting for the fire team on scene to say'),
-        findsOneWidget,
-      );
+      expect(find.text('Waiting for the first team on scene'), findsOneWidget);
     });
   });
 

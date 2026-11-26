@@ -59,8 +59,20 @@ abstract final class StoreBuild {
 abstract final class PolicyLinks {
   static Uri get privacy => Uri.parse('${ApiConfig.publicSiteUrl}/privacy');
 
+  /// The Terms (v1.12.63).
+  static Uri get terms => Uri.parse('${ApiConfig.publicSiteUrl}/terms');
+
   static Uri get deleteAccount =>
       Uri.parse('${ApiConfig.publicSiteUrl}/delete-account');
+
+  /// Open the Terms in the browser.
+  static Future<void> openTerms() async {
+    try {
+      await launchUrl(terms, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // No browser: nothing else to open it in.
+    }
+  }
 
   /// Open the privacy policy in the browser.
   static Future<void> openPrivacy() async {
