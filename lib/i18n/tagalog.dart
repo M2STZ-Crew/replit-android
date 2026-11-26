@@ -2694,4 +2694,9 @@ const Map<String, String> kTagalog = {
   'What you agree to when you use RepLiT': 'Ang sinasang-ayunan mo sa paggamit ng RepLiT',
   'This Google Play version of RepLiT is for residents. Coordinators and responders: use the RepLiT app from the link in your welcome email.':
       'Para sa mga residente ang bersyong ito ng RepLiT sa Google Play. Mga coordinator at responder: gamitin ang RepLiT app mula sa link sa inyong welcome email.',
+  'This fire is about {distance} from you': 'Mga {distance} mula sa iyo ang sunog na ito',
+  'Move away from the smoke and the fire, and keep the road clear for fire trucks. If anyone is trapped, call 911.':
+      'Lumayo sa usok at sa apoy, at huwag harangan ang daan ng mga fire truck. Kung may na-trap, tumawag sa 911.',
+  'Allow location to see how far this fire is from you.':
+      'Payagan ang lokasyon para makita kung gaano kalayo sa iyo ang sunog na ito.',
 };

@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart' as geo;
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_client.dart';
+import '../widgets/app_icons.dart';
 import '../diagnostics/report_timing.dart';
 import '../location/live_position.dart';
 import '../location/sos_location.dart';
@@ -29,6 +32,11 @@ import '../widgets/alarm_status_banner.dart';
 /// Reports join an area only from within this distance of its centre
 /// (clustering, Master Context §3.4) — the circle on the map extract.
 const double kClusterRadiusMetres = 50;
+
+/// Within this distance of a fire that is not over, the screen warns the
+/// resident before anything else: the server's neighbourhood radius (backend
+/// app/workers/neighborhood.py, 100 m).
+const double kNearFireMetres = 100;
 
 /// "06 Area detail" from the REPLIT-OVERHAUL Figma: one incident area, what
 /// the system believes about it, how far it has got, and — for someone close
@@ -82,12 +90,21 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   /// Where the viewer is now.
   LatLng? _here;
 
+  /// A fresh fix, taken as the screen opens.
+  final SosLocation _fresh = SosLocation.instance;
+
   @override
   void initState() {
     super.initState();
     _here = widget.here ?? LivePosition.instance.here.value;
     LivePosition.instance.acquire();
     LivePosition.instance.here.addListener(_onMoved);
+    _fresh.position.addListener(_onFix);
+    // Opening a fire is when RepLiT checks where the resident is (v1.12.66,
+    // 27 Nov 2026: "check the location of the user ... when someone submits
+    // a report"): a fresh fix now, asking for location while the app is in
+    // use if it is not allowed yet. A closed app is never asked.
+    unawaited(_checkWhereIAm());
     _load();
     _checkMine();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _load());
@@ -98,6 +115,7 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
     _poll?.cancel();
     LivePosition.instance.here.removeListener(_onMoved);
     LivePosition.instance.release();
+    _fresh.position.removeListener(_onFix);
     _follow.dispose();
     super.dispose();
   }
@@ -105,6 +123,52 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   void _onMoved() {
     final here = LivePosition.instance.here.value;
     if (here != null && mounted) setState(() => _here = here);
+  }
+
+  void _onFix() {
+    final p = _fresh.position.value;
+    if (p != null && mounted) {
+      setState(() => _here = LatLng(p.latitude, p.longitude));
+    }
+  }
+
+  Future<void> _checkWhereIAm() async {
+    try {
+      await _fresh.warmUp();
+    } catch (_) {
+      // No location service (a tablet, a test): the distance stays unknown.
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// Location is off or not allowed: the phone's settings, or its question.
+  Future<void> _allowLocation() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        await Geolocator.openLocationSettings();
+        return;
+      }
+      if (await Geolocator.checkPermission() ==
+          LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+        return;
+      }
+    } catch (_) {
+      // Asked again below.
+    }
+    await _checkWhereIAm();
+  }
+
+  Future<void> _call911() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (await launchUrl(Uri(scheme: 'tel', path: '911'))) return;
+    } catch (_) {
+      // Said below.
+    }
+    messenger.showSnackBar(
+      SnackBar(content: Text(t('Could not open the dialer for 911.'))),
+    );
   }
 
   Future<void> _load() async {
@@ -187,6 +251,12 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
   String get _status => residentStatus(_area?['status'] as String?);
 
   bool get _over => residentOver(_status);
+
+  /// The resident is within [kNearFireMetres] of a fire that is still going.
+  bool get _near {
+    final away = _metresAway;
+    return away != null && away <= kNearFireMetres && !_over;
+  }
 
   int get _reports => (_area?['report_count'] as num?)?.toInt() ?? 0;
 
@@ -279,11 +349,13 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       const SizedBox(height: 6),
       // The server's full place (v1.12.45): street, barangay, district,
       // city; else what the phone's geocoder said.
-      Text(
-        _placeLine ?? _place ?? t('Pasay City'),
-        style: context.type.body,
-      ),
+      Text(_placeLine ?? _place ?? t('Pasay City'), style: context.type.body),
       const SizedBox(height: 18),
+      // Close enough to be in danger: what to do, before anything else.
+      if (_near) ...[
+        _NearFire(metres: away!, onCall911: _call911),
+        const SizedBox(height: 14),
+      ],
       AlarmStatusBanner(AlarmStatus.of(_area)),
       Wrap(
         spacing: 8,
@@ -294,6 +366,11 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
           if (away != null) _Fact('${_distance(away)} away'),
         ],
       ),
+      // No distance because location is off or not allowed: say how to see it.
+      if (away == null && !_over && _fresh.problem.value != null) ...[
+        const SizedBox(height: 6),
+        _LocationHint(onAllow: _allowLocation),
+      ],
       // What is burning, once the first fire team on scene says (v1.12.49).
       if (_area?['fire_type'] != null) ...[
         const SizedBox(height: 12),
@@ -505,6 +582,85 @@ class _AreaDetailScreenState extends State<AreaDetailScreen> {
       t('I see it too — add my report'),
       height: 54,
       onPressed: _addMyReport,
+    );
+  }
+}
+
+/// Within [kNearFireMetres] of a fire that is still going (v1.12.66): how
+/// close, and what to do now. The live tone, as the 911 panels have it.
+class _NearFire extends StatelessWidget {
+  const _NearFire({required this.metres, required this.onCall911});
+
+  final double metres;
+  final VoidCallback onCall911;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Panel(
+        key: const ValueKey('near-fire'),
+        // Call 911's own 44 px tap height stands in for the bottom padding.
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+        radius: AppRadius.card,
+        color: pal.live.withValues(alpha: 0.12),
+        border: pal.live.withValues(alpha: 0.5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(AppIcons.warning, color: pal.live),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    t('This fire is about {distance} from you', {
+                      'distance': formatDistance(metres),
+                    }),
+                    style: context.type.rowTitleLg,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              t(
+                'Move away from the smoke and the fire, and keep the road '
+                'clear for fire trucks. If anyone is trapped, call 911.',
+              ),
+              style: context.type.body,
+            ),
+            const SizedBox(height: 4),
+            TextLink(t('Call 911'), onTap: onCall911, color: pal.live),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// No distance, because location is off or not allowed: the way to see it.
+class _LocationHint extends StatelessWidget {
+  const _LocationHint({required this.onAllow});
+
+  final VoidCallback onAllow;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(AppIcons.myLocation, size: 18, color: context.pal.label),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            t('Allow location to see how far this fire is from you.'),
+            style: context.type.caption.copyWith(color: context.pal.label),
+          ),
+        ),
+        TextLink(t('Allow'), onTap: onAllow),
+      ],
     );
   }
 }

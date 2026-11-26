@@ -54,15 +54,6 @@ android {
             } else {
                 "android.permission.REQUEST_INSTALL_PACKAGES"
             }
-        // Location "All the time", for fire alerts with the app closed: the
-        // APK page's copy only. Play reviews it strictly and wants a video
-        // for it, so its copy leaves it out for now (v1.12.64).
-        manifestPlaceholders["backgroundLocationPermission"] =
-            if (playStore) {
-                "com.m2stz.replit.permission.NO_BACKGROUND_LOCATION_ON_PLAY"
-            } else {
-                "android.permission.ACCESS_BACKGROUND_LOCATION"
-            }
         // The location foreground service, for a dispatched responder's
         // position: the APK page's copy only. Play's copy is for residents
         // (v1.12.65), so it needs no foreground-service declaration.
