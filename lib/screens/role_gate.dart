@@ -134,12 +134,16 @@ class _RoleGateState extends State<RoleGate> {
     ),
   );
 
-  /// An Admin account: sign it out and say where it works (WebOnly).
+  /// An account this copy does not open — an Admin, or a coordinator or
+  /// responder in Google Play's copy: sign it out and say where it works
+  /// (WebOnly).
   Future<void> _leaveForWeb() async {
     await WebOnly.signOut(_api);
     if (!mounted) return;
     await Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => LoginScreen(notice: WebOnly.message)),
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(notice: WebOnly.messageFor(_me)),
+      ),
       (route) => false,
     );
   }
@@ -232,7 +236,8 @@ class _RoleGateState extends State<RoleGate> {
       );
     }
     if (WebOnly.account(me)) {
-      // Never the residents' app for an Admin: off to the web console.
+      // Never the residents' app for an Admin (off to the web console), nor
+      // a staff app in Google Play's copy (v1.12.65).
       if (!_leaving) {
         _leaving = true;
         WidgetsBinding.instance.addPostFrameCallback((_) => _leaveForWeb());

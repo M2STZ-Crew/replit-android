@@ -7,6 +7,30 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.65 — 27 November 2026 — Google Play's copy is for residents
+
+Goes with backend v1.12.53; no server change.
+
+- **Google Play's copy opens residents only** (answered "go with the
+  safest"). A coordinator or responder signing in there is signed out and
+  told to use the RepLiT app from the link in their welcome email, the way an
+  Admin is sent to the web console (`WebOnly.playStaff`). Google's reviewers
+  get a resident account that opens all of it, and nobody reviewing can act
+  on a real fire or see a reporter's details.
+- **No location foreground service in Play's copy**: it names a permission
+  nobody defines instead of `FOREGROUND_SERVICE_LOCATION`
+  (`foregroundLocationPermission`), so Play needs no declaration or video for
+  it. Only a dispatched responder's tracking used it.
+- **The APK page's copy is unchanged**: coordinators and responders work there
+  as before.
+- **Confirm your email is centred** (27 Nov: "it is not centered"): on the
+  full screen after sign-up, the title with its +10%, the text, the button and
+  "Wrong email? Start over" are one block down the middle of the space above
+  the hotline, as Log out is; it scrolls only when it does not fit. The sheet
+  from Profile reads from the left, as before.
+
+---
+
 ## v1.12.64 — 27 November 2026 — Google Play's copy without "All the time"
 
 Goes with backend v1.12.53; no server change.

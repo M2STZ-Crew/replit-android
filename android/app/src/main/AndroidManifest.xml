@@ -25,9 +25,12 @@
          screen off (lib/location/responder_tracker.dart): geolocator runs it as
          a location-type foreground service, which Android 14+ refuses without
          both of these. No background-location permission is needed, because
-         the service starts while the app is open. -->
+         the service starts while the app is open. Google Play's copy is for
+         residents (v1.12.65), who never start it, so it names a permission
+         nobody defines instead (android/app/build.gradle.kts,
+         foregroundLocationPermission). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="${foregroundLocationPermission}"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- "Check for updates" (lib/updates/app_updates.dart) hands a downloaded
          release to Android's installer, which asks once to allow it. Only the

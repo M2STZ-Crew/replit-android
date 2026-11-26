@@ -26,9 +26,6 @@ WHAT YOU CAN DO
 • Call emergency hotlines from the app
 • Use it in English or Filipino
 
-FOR FIRE RESPONDERS
-Responders and volunteer fire brigades with RepLiT accounts receive reports, tell command they are on the way, share their position while going, and update each fire's status, so everyone sees the same picture.
-
 WHERE IT WORKS
 RepLiT serves Pasay City, Metro Manila, Philippines.
 

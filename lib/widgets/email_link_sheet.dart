@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -356,34 +357,57 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
   @override
   Widget build(BuildContext context) {
     final canResend = !_busy && !_spent && _resendIn <= 0;
-    final content = <Widget>[
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: Text(_title, style: context.type.screenTitle)),
-          const SizedBox(width: 12),
-          Text(
-            '+10%',
-            style: context.type.cardTitleSm.copyWith(
-              color: _step == _Step.confirmed
-                  ? context.pal.ok
-                  : context.pal.accent,
-            ),
-          ),
-        ],
+    // A full screen (the email gate) holds one thing to do, so it is one
+    // centred block, read down the middle (27 Nov 2026: "it is not
+    // centered"); a sheet reads from the left, under its grip.
+    final centered = !widget.handle;
+    final align = centered ? TextAlign.center : TextAlign.start;
+    final badge = Text(
+      '+10%',
+      style: context.type.cardTitleSm.copyWith(
+        color: _step == _Step.confirmed ? context.pal.ok : context.pal.accent,
       ),
+    );
+    final content = <Widget>[
+      if (centered)
+        // The title and its +10% side by side, under each other at a large
+        // font.
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 4,
+          children: [
+            Text(_title, textAlign: align, style: context.type.screenTitle),
+            badge,
+          ],
+        )
+      else
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Text(_title, style: context.type.screenTitle)),
+            const SizedBox(width: 12),
+            badge,
+          ],
+        ),
       const SizedBox(height: 8),
-      Text(_body, style: context.type.body),
+      Text(_body, textAlign: align, style: context.type.body),
       if (_step == _Step.sent) ...[
         const SizedBox(height: 8),
         Text(
           t('Not in your inbox? Look in Spam or Promotions.'),
+          textAlign: align,
           style: context.type.caption,
         ),
       ],
       if (_error != null) ...[
         const SizedBox(height: 10),
-        Text(_error!, style: TextStyle(color: context.pal.live, fontSize: 13)),
+        Text(
+          _error!,
+          textAlign: align,
+          style: TextStyle(color: context.pal.live, fontSize: 13),
+        ),
       ],
       const SizedBox(height: 18),
       _button(),
@@ -392,7 +416,9 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
         // A Wrap, not a Row: at a large font the two do not fit side by
         // side, and "Later" drops under "Send again" instead of off-screen.
         Wrap(
-          alignment: WrapAlignment.spaceBetween,
+          alignment: centered
+              ? WrapAlignment.center
+              : WrapAlignment.spaceBetween,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             if (_step == _Step.sent)
@@ -437,13 +463,25 @@ class _EmailLinkSheetState extends State<EmailLinkSheet>
         children: content,
       );
     }
-    // Inside a page (the email gate): no drawer to close.
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: content,
+    // Inside a page (the email gate): no drawer to close. The block sits in
+    // the middle of the space it is given, and scrolls only when it does not
+    // fit (a large font, a short phone).
+    const padding = EdgeInsets.fromLTRB(24, 10, 24, 20);
+    return LayoutBuilder(
+      builder: (context, box) => SingleChildScrollView(
+        padding: padding,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: box.maxHeight.isFinite
+                ? math.max(0, box.maxHeight - padding.vertical)
+                : 0,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: content,
+          ),
+        ),
       ),
     );
   }

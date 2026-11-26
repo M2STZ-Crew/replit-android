@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       if (WebOnly.account(me)) {
         await WebOnly.signOut(_api);
-        _showError(WebOnly.message, long: true);
+        _showError(WebOnly.messageFor(me), long: true);
         return;
       }
       if (me != null) {
