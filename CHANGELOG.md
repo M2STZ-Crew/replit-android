@@ -7,6 +7,26 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.66 — 27 November 2026 — A fire's alert checks where you are
+
+Goes with backend v1.12.53; no server change.
+
+- **Opening a fire checks where you are** (27 Nov 2026: "check the location of
+  the user first ... when someone submits a report"; answered "Check when an
+  alert is opened"). Android lets a closed app read the location only with
+  "All the time", so RepLiT checks it the moment a resident opens a fire's
+  alert: a fresh fix, asking for location while the app is in use if it is
+  not allowed yet. Within 100 m of a fire that is still going, the fire's page
+  leads with how close it is and what to do, with Call 911. Without location,
+  it says how to allow it.
+- **Neither copy asks for location "All the time"** (answered "we need to
+  unite it"): the APK page's copy drops it too, with Profile's "Fire alerts
+  with the app closed". The 100 m "Do you see it too?" alert still goes to
+  phones that sent their location in the last 30 minutes. A closed-app task an
+  older APK scheduled is cancelled when the app next starts.
+
+---
+
 ## v1.12.65 — 27 November 2026 — Google Play's copy is for residents
 
 Goes with backend v1.12.53; no server change.

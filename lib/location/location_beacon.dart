@@ -26,6 +26,16 @@ import '../api/session.dart';
 ///   time". Without that permission Android gives a closed app no location at
 ///   all, so the task is not scheduled, and alerts reach them while their
 ///   last report from an open app is fresh.
+///
+/// Since v1.12.66 neither copy of the app asks for "All the time", so the
+/// closed-app part never runs: [syncClosed] only cancels a task an older APK
+/// scheduled. A fire's alert checks where the resident is when it is opened
+/// instead (AreaDetailScreen).
+///
+/// Since v1.12.66 neither copy of the app asks for "All the time", so the
+/// closed-app part never runs: [syncClosed] only cancels a task an older APK
+/// scheduled. A fire's alert checks where the resident is when it is opened
+/// instead (AreaDetailScreen).
 abstract final class LocationBeacon {
   static const Duration openInterval = Duration(minutes: 5);
   static const Duration closedInterval = Duration(minutes: 15);
