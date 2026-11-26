@@ -34,15 +34,18 @@ void main() {
       // Play first, then the APK page's copy.
       expect(
         block.indexOf('NO_BACKGROUND_LOCATION_ON_PLAY'),
-        lessThan(block.indexOf('android.permission.ACCESS_BACKGROUND_LOCATION')),
+        lessThan(
+          block.indexOf('android.permission.ACCESS_BACKGROUND_LOCATION'),
+        ),
       );
       expect(block, contains('if (playStore)'));
     });
 
-    test('the foreground service for responders stays in both copies', () {
+    test('the APK page\'s copy keeps the responders\' foreground service', () {
+      // Play's copy leaves it out since v1.12.65 (test/v1_12_65_test.dart).
       expect(
-        manifest,
-        contains('android.permission.FOREGROUND_SERVICE_LOCATION'),
+        gradle,
+        contains('"android.permission.FOREGROUND_SERVICE_LOCATION"'),
       );
     });
   });

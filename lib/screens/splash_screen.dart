@@ -114,10 +114,11 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       final me = await _api.getMe().timeout(ApiClient.signInTimeout);
       if (WebOnly.account(me)) {
-        // An Admin kept signed in by an older app: the web console is its
-        // place (WebOnly). Signed out, and its phone no longer told.
+        // An Admin kept signed in by an older app, or a coordinator or
+        // responder in Google Play's copy (v1.12.65): not this app's
+        // (WebOnly). Signed out, and its phone no longer told.
         await WebOnly.signOut(_api);
-        next = LoginScreen(notice: WebOnly.message);
+        next = LoginScreen(notice: WebOnly.messageFor(me));
       } else {
         // The account's language, as the console or another phone left it.
         await LanguageChoice.adopt(me['language']);

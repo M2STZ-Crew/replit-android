@@ -2692,4 +2692,6 @@ const Map<String, String> kTagalog = {
       'Maitataas ang alarm kapag nasabi na ng unang fire team sa lugar kung ano ang nasusunog.',
   'Terms': 'Terms',
   'What you agree to when you use RepLiT': 'Ang sinasang-ayunan mo sa paggamit ng RepLiT',
+  'This Google Play version of RepLiT is for residents. Coordinators and responders: use the RepLiT app from the link in your welcome email.':
+      'Para sa mga residente ang bersyong ito ng RepLiT sa Google Play. Mga coordinator at responder: gamitin ang RepLiT app mula sa link sa inyong welcome email.',
 };

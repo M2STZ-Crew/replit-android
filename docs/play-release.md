@@ -57,6 +57,10 @@ holds `app-release.aab`, the file Play Console takes.
   form's deletion answers.
 - **App access**: give the reviewers a citizen test account made for them (not
   a staff account), and say that administrators use the web console only.
+  Since v1.12.65 the Play copy opens residents only (coordinators and
+  responders are refused there, as Admins are), so that account gives full
+  access. Leave Google's automated device testing with it off: a test robot
+  could send a real report.
 - **Ads**: none. **Target audience**: 18 and over. **Content rating**: answer
   the questionnaire (emergency reporting, no user-to-user chat).
 - **Data safety**: location (precise, optional; not in the background: the Play
@@ -70,8 +74,9 @@ holds `app-release.aab`, the file Play Console takes.
     (`backgroundLocationPermission`). To add it back: a declaration and a short
     video: Profile → "Fire alerts with the app closed", its explanation, then
     Android's "Allow all the time".
-  - *Foreground service (location)*: responders share their location while they
-    go to an incident; a declaration and a short video of "I am going".
+  - *Foreground service (location)*: not in the Play copy since v1.12.65
+    (`foregroundLocationPermission`); only a dispatched responder's tracking
+    used it, and Play's copy has no responders.
 - **Government features**: RepLiT is a community reporting app for Barangay 76
   Zone 10. If the listing names BFP or PNP, be ready to show their
   authorization, or describe them as partner responders without their logos.
