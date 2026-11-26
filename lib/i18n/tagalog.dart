@@ -2290,8 +2290,7 @@ const Map<String, String> kTagalog = {
       'Mag-practice ng report kasama si Lit. Walang naipapadala.',
 
   // v1.12.37: only the first fire team says what is burning.
-  'Waiting for the fire team on scene to say':
-      'Hinihintay ang fire team na nasa lugar na magsabi',
+  'Waiting for the first team on scene': 'Hinihintay ang unang team sa lugar',
 
   // v1.12.38: the LIT tutorial's practice report, on the real screens.
   'For practice, tap the shutter to use a drawing instead.':
@@ -2691,4 +2690,6 @@ const Map<String, String> kTagalog = {
   'What is burning comes first': 'Uunahin ang kung ano ang nasusunog',
   'The alarm can be raised once the first fire team on scene says what is burning.':
       'Maitataas ang alarm kapag nasabi na ng unang fire team sa lugar kung ano ang nasusunog.',
+  'Terms': 'Terms',
+  'What you agree to when you use RepLiT': 'Ang sinasang-ayunan mo sa paggamit ng RepLiT',
 };

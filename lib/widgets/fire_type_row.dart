@@ -33,7 +33,7 @@ class FireTypeRow extends StatelessWidget {
         leading: IconPlate(AppIcons.localFireDepartment, tint: pal.live),
         title: t('What’s burning?'),
         subtitle: onPick == null
-            ? t('Waiting for the fire team on scene to say')
+            ? t('Waiting for the first team on scene')
             : t('Required on scene. Pick the fire type.'),
         chevron: onPick != null,
         onTap: onPick,

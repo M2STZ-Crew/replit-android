@@ -434,6 +434,10 @@ void main() {
     testWidgets("Fire codes opens this incident's codes, pressed on it", (
       tester,
     ) async {
+      // Codes are for an organization going to the fire (v1.12.63).
+      dispatches = [
+        {'id': 'd0', 'responder_id': me['id'], 'status': 'active'},
+      ];
       await openLive(tester);
       await scrollSheetTo(tester, find.text('Fire codes'));
       await tester.tap(find.text('Fire codes'));
@@ -462,7 +466,9 @@ void main() {
       await done(tester);
     });
 
-    testWidgets('lists units by truck and confirms fire out', (tester) async {
+    testWidgets('counts units by truck and confirms fire out', (tester) async {
+      // Their organization is going (v1.12.63): its own responders are.
+      final ours = {...me, 'primary_org_id': 'o1'};
       dispatches = [
         {
           'id': 'd1',
@@ -470,6 +476,7 @@ void main() {
           'responder_name': 'Ben',
           'status': 'active',
           'vehicle_name': 'Tanker 1',
+          'organization_id': 'o1',
         },
         {
           'id': 'd2',
@@ -477,24 +484,26 @@ void main() {
           'responder_name': 'Cy',
           'status': 'active',
           'vehicle_name': 'Tanker 1',
+          'organization_id': 'o1',
         },
         {
           'id': 'd3',
           'responder_id': 'r3',
           'responder_name': 'Dee',
           'status': 'active',
+          'organization_id': 'o1',
         },
       ];
       await pump(
         tester,
         Scaffold(
-          body: LiveIncidentView(areaId: 'a3', me: me, api: api()),
+          body: LiveIncidentView(areaId: 'a3', me: ours, api: api()),
         ),
       );
       expect(find.text('2 UNITS RESPONDING'), findsOneWidget);
-      expect(find.text('Tanker 1 · 2 crew'), findsOneWidget);
-      expect(find.text('Dee'), findsOneWidget);
-      expect(find.text('No location yet'), findsNWidgets(2));
+      // No card per unit (answered "Remove it"): the map shows them.
+      expect(find.text('Tanker 1 · 2 crew'), findsNothing);
+      expect(find.text('No location yet'), findsNothing);
 
       await tester.dragUntilVisible(
         find.text('MARK FIRE OUT'),
@@ -511,6 +520,39 @@ void main() {
       await tester.tap(find.text('NOT YET, KEEP IT LIVE'));
       await settle(tester);
       expect(posted, isEmpty);
+      await done(tester);
+    });
+
+    testWidgets('another organization not going: I AM GOING and CLOSE only', (
+      tester,
+    ) async {
+      final ours = {...me, 'primary_org_id': 'o1'};
+      dispatches = [
+        {
+          'id': 'd1',
+          'responder_id': 'r1',
+          'responder_name': 'Ben',
+          'status': 'active',
+          'organization_id': 'o2',
+        },
+      ];
+      await pump(
+        tester,
+        Scaffold(
+          body: LiveIncidentView(areaId: 'a3', me: ours, api: api()),
+        ),
+      );
+      expect(find.text('Incident details'), findsOneWidget);
+      expect(find.text('Alarm level'), findsNothing);
+      expect(find.text('Fire codes'), findsNothing);
+      await tester.dragUntilVisible(
+        find.text('CLOSE'),
+        find.byType(ListView).last,
+        const Offset(0, -200),
+      );
+      expect(find.text('I AM GOING'), findsOneWidget);
+      expect(find.text('CLOSE'), findsOneWidget);
+      expect(find.text('MARK FIRE OUT'), findsNothing);
       await done(tester);
     });
   });
@@ -645,7 +687,10 @@ void main() {
         find.byType(ListView).last,
         const Offset(0, -200),
       );
-      expect(find.textContaining('You follow this incident here'), findsOneWidget);
+      expect(
+        find.textContaining('You follow this incident here'),
+        findsOneWidget,
+      );
       await done(tester);
     });
 

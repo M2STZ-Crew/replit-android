@@ -521,6 +521,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                   line: t('What RepLiT keeps, and why'),
                   onTap: () => unawaited(PolicyLinks.openPrivacy()),
                 ),
+                const SizedBox(height: 8),
+                _Link(
+                  icon: AppIcons.description,
+                  title: t('Terms'),
+                  line: t('What you agree to when you use RepLiT'),
+                  onTap: () => unawaited(PolicyLinks.openTerms()),
+                ),
                 if (AppUpdates.supported) ...[
                   const SizedBox(height: 8),
                   _Link(
