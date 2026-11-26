@@ -7,6 +7,20 @@ nothing shows it — the version alone names a release everywhere.
 
 ---
 
+## v1.12.64 — 27 November 2026 — Google Play's copy without "All the time"
+
+Goes with backend v1.12.53; no server change.
+
+- **Google Play's copy does not ask for location "All the time"** (answered
+  "Leave it out for now"). Play reviews that permission strictly and wants a
+  video for it, so its copy names a permission nobody defines instead
+  (`backgroundLocationPermission` in `android/app/build.gradle.kts`), and
+  Profile does not show "Fire alerts with the app closed". Its fire alerts
+  use where the phone was when RepLiT was last open (under 30 minutes).
+- **The APK page's copy is unchanged**: it still offers the closed-app alerts.
+
+---
+
 ## v1.12.63 — 26 November 2026 — LIVE before I AM GOING; Terms
 
 Goes with backend v1.12.53.

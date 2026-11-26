@@ -4,9 +4,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- Location while the app is closed, only for a resident who chooses
-         "Allow all the time" in Profile: it keeps the 150 m fire alert
-         pointed at where they are (lib/location/location_beacon.dart). -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
+         "Allow all the time" in Profile: it keeps the 100 m fire alert
+         pointed at where they are (lib/location/location_beacon.dart). Only
+         the APK page's copy asks for it: Google Play's copy (v1.12.64) names a
+         permission nobody defines instead, which Android ignores, and Profile
+         does not offer it (android/app/build.gradle.kts,
+         backgroundLocationPermission). -->
+    <uses-permission android:name="${backgroundLocationPermission}"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <!-- The camera plugin declares these for filming with sound and saving

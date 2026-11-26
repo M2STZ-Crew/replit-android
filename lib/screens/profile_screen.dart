@@ -55,6 +55,14 @@ class ProfileScreen extends StatefulWidget {
 
   final ApiClient? api;
 
+  /// Whether Profile offers "Fire alerts with the app closed": Android, and
+  /// not Google Play's copy, which does not ask for location "All the time"
+  /// (v1.12.64, android/app/build.gradle.kts).
+  static bool get offersAllTheTime =>
+      !kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      !StoreBuild.play;
+
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
@@ -245,9 +253,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     await LocationBeacon.syncClosed(alertsOn: _alerts);
   }
 
-  /// Only Android has "All the time" to give here.
-  static bool get _canAskAllTheTime =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  /// Only Android has "All the time" to give here, and only the APK page's
+  /// copy asks for it: Google Play's copy leaves it out (v1.12.64), so its
+  /// alerts use where the phone was when RepLiT was last open.
+  static bool get _canAskAllTheTime => ProfileScreen.offersAllTheTime;
 
   Future<void> _setAlerts(bool on) async {
     setState(() {
